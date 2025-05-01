@@ -1,0 +1,17 @@
+nohup: ignoring input
+
+Collecting usage statistics. To deactivate, set browser.gatherUsageStats to False.
+
+
+  You can now view your Streamlit app in your browser.
+
+  Network URL: http://169.254.0.21:8512
+  External URL: http://34.48.50.108:8512
+
+2025-04-24 10:27:35,941 - config - INFO - Using default extraction API URL: https://dataextractionai.onrender.com
+2025-04-24 10:27:35,942 - config - INFO - Final extraction API base URL: https://dataextractionai.onrender.com
+2025-04-24 10:27:35,942 - config - WARNING - Extraction API key not found in environment variables
+2025-04-24 10:27:35,943 - config - INFO - Using hardcoded OpenAI API key
+2025-04-24 10:27:35.945 `label` got an empty value. This is discouraged for accessibility reasons and may be disallowed in the future by raising an exception. Please provide a non-empty label and hide it with label_visibility if needed.
+2025-04-24 10:27:35.946 `label` got an empty value. This is discouraged for accessibility reasons and may be disallowed in the future by raising an exception. Please provide a non-empty label and hide it with label_visibility if needed.
+2025-04-24 10:27:35.947 `label` got an empty value. This is discouraged for accessibility reasons and may be disallowed in the future by raising an exception. Please provide a non-empty label and hide it with label_visibility if needed.
