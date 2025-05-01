@@ -1,0 +1,361 @@
+/* Reborn Theme CSS for NOI Analyzer */
+
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Color palette based on design specs */
+    --reborn-bg-primary: #0D1117;
+    --reborn-bg-secondary: #161B22;
+    --reborn-text-primary: #FFFFFF;
+    --reborn-text-secondary: #8B949E;
+    --reborn-link: #58A6FF;
+    --reborn-primary-cta: #1F6FEB;
+    --reborn-primary-cta-hover: #229FFF;
+    --reborn-success: #3FB950;
+    --reborn-warning: #F85149;
+    --reborn-border: rgba(255, 255, 255, 0.1);
+    
+    /* Spacing */
+    --reborn-spacing-xs: 8px;
+    --reborn-spacing-sm: 16px;
+    --reborn-spacing-md: 24px;
+    --reborn-spacing-lg: 32px;
+    
+    /* Border radius */
+    --reborn-radius-sm: 4px;
+    --reborn-radius-md: 8px;
+    --reborn-radius-pill: 999px;
+    
+    /* Shadows */
+    --reborn-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --reborn-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Global styles */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--reborn-bg-primary);
+    color: var(--reborn-text-primary);
+    margin: 0;
+    padding: 0;
+}
+
+/* Main app styling */
+.stApp {
+    background-color: var(--reborn-bg-primary);
+    color: var(--reborn-text-primary);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: var(--reborn-text-primary);
+}
+
+h1, .main-header {
+    font-size: 32px;
+    line-height: 1.2;
+    margin-bottom: var(--reborn-spacing-sm);
+}
+
+h2, .section-header {
+    font-size: 24px;
+    line-height: 1.3;
+    margin-bottom: var(--reborn-spacing-sm);
+}
+
+p, .body-text {
+    font-size: 16px;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+.caption, .help-text {
+    font-size: 14px;
+    color: var(--reborn-text-secondary);
+}
+
+/* Header styling */
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--reborn-spacing-md) var(--reborn-spacing-lg);
+    border-bottom: 1px solid var(--reborn-border);
+    margin-bottom: var(--reborn-spacing-md);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo-container img {
+    height: 40px;
+    margin-right: var(--reborn-spacing-sm);
+}
+
+.header-title {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--reborn-text-primary);
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: var(--reborn-spacing-sm);
+}
+
+/* Card styling */
+.card {
+    background-color: var(--reborn-bg-secondary);
+    border-radius: var(--reborn-radius-md);
+    padding: var(--reborn-spacing-md);
+    margin-bottom: var(--reborn-spacing-md);
+    border: 1px solid var(--reborn-border);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--reborn-shadow-md);
+}
+
+.kpi-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kpi-value {
+    font-size: 48px;
+    font-weight: 600;
+    color: var(--reborn-text-primary);
+}
+
+.kpi-label {
+    font-size: 16px;
+    color: var(--reborn-text-secondary);
+    margin-bottom: var(--reborn-spacing-xs);
+}
+
+/* Stat cards */
+.stat-cards-container {
+    display: flex;
+    gap: var(--reborn-spacing-sm);
+    margin-bottom: var(--reborn-spacing-md);
+}
+
+.stat-card {
+    flex: 1;
+    background-color: var(--reborn-bg-secondary);
+    border-radius: var(--reborn-radius-md);
+    padding: var(--reborn-spacing-md);
+    border: 1px solid var(--reborn-border);
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--reborn-text-primary);
+    margin-bottom: var(--reborn-spacing-xs);
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--reborn-text-secondary);
+}
+
+.change-positive {
+    color: var(--reborn-success);
+}
+
+.change-negative {
+    color: var(--reborn-warning);
+}
+
+/* Button styling */
+.stButton > button {
+    background-color: var(--reborn-primary-cta);
+    color: var(--reborn-text-primary);
+    border: none;
+    border-radius: var(--reborn-radius-pill);
+    padding: var(--reborn-spacing-xs) var(--reborn-spacing-md);
+    font-weight: 600;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.stButton > button:hover {
+    background-color: var(--reborn-primary-cta-hover);
+    box-shadow: var(--reborn-shadow-sm);
+}
+
+/* Tabs styling */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 1px;
+    background-color: transparent;
+    border-bottom: 1px solid var(--reborn-border);
+}
+
+.stTabs [data-baseweb="tab"] {
+    background-color: transparent;
+    color: var(--reborn-text-secondary);
+    font-weight: 600;
+    font-size: 16px;
+    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
+    border-bottom: 2px solid transparent;
+}
+
+.stTabs [aria-selected="true"] {
+    color: var(--reborn-link);
+    border-bottom: 2px solid var(--reborn-primary-cta);
+    background-color: transparent;
+}
+
+/* Chart styling */
+.chart-container {
+    background-color: var(--reborn-bg-secondary);
+    border-radius: var(--reborn-radius-md);
+    padding: var(--reborn-spacing-md);
+    margin-bottom: var(--reborn-spacing-md);
+    border: 1px solid var(--reborn-border);
+}
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background-color: var(--reborn-bg-secondary);
+    border-right: 1px solid var(--reborn-border);
+}
+
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+    padding: var(--reborn-spacing-md);
+}
+
+/* File uploader styling */
+.stFileUploader > div {
+    background-color: transparent;
+    border: 2px dashed var(--reborn-border);
+    border-radius: var(--reborn-radius-md);
+    padding: var(--reborn-spacing-md);
+    transition: background-color 0.3s ease;
+}
+
+.stFileUploader > div:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: var(--reborn-link);
+}
+
+/* Metric styling */
+.stMetric {
+    background-color: var(--reborn-bg-secondary);
+    border-radius: var(--reborn-radius-md);
+    padding: var(--reborn-spacing-sm);
+    border: 1px solid var(--reborn-border);
+}
+
+.stMetric label {
+    color: var(--reborn-text-secondary);
+    font-size: 14px;
+}
+
+.stMetric [data-testid="stMetricValue"] {
+    color: var(--reborn-text-primary);
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.stMetric [data-testid="stMetricDelta"] {
+    color: var(--reborn-success);
+}
+
+.stMetric [data-testid="stMetricDelta"][data-direction="down"] {
+    color: var(--reborn-warning);
+}
+
+/* Table styling */
+.stDataFrame {
+    background-color: var(--reborn-bg-secondary);
+    border-radius: var(--reborn-radius-md);
+    border: 1px solid var(--reborn-border);
+}
+
+.stDataFrame [data-testid="stTable"] {
+    border-collapse: collapse;
+}
+
+.stDataFrame th {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--reborn-text-primary);
+    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
+    border: 1px solid var(--reborn-border);
+    font-weight: 600;
+}
+
+.stDataFrame td {
+    color: var(--reborn-text-primary);
+    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
+    border: 1px solid var(--reborn-border);
+}
+
+/* Input fields */
+.stTextInput > div > div {
+    background-color: var(--reborn-bg-secondary);
+    color: var(--reborn-text-primary);
+    border: 1px solid var(--reborn-border);
+    border-radius: var(--reborn-radius-md);
+}
+
+.stTextInput > div > div:focus-within {
+    border-color: var(--reborn-primary-cta);
+}
+
+.stTextInput > div > div > input {
+    color: var(--reborn-text-primary);
+}
+
+/* Select box */
+.stSelectbox > div > div {
+    background-color: var(--reborn-bg-secondary);
+    color: var(--reborn-text-primary);
+    border: 1px solid var(--reborn-border);
+    border-radius: var(--reborn-radius-md);
+}
+
+/* Progress bar */
+.stProgress > div > div {
+    background-color: var(--reborn-primary-cta);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+    .stat-cards-container {
+        flex-wrap: wrap;
+    }
+    
+    .stat-card {
+        flex-basis: calc(50% - var(--reborn-spacing-sm));
+    }
+}
+
+@media (max-width: 768px) {
+    .header-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--reborn-spacing-sm);
+    }
+    
+    .kpi-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 600px) {
+    .stat-card {
+        flex-basis: 100%;
+    }
+}

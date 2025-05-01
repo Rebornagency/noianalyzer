@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>NOI Analysis Report</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 40px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .metric-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .metric-value {
+            font-size: 24px;
+            color: #212529;
+            margin: 8px 0;
+        }
+        .chart-container {
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>NOI Analysis Report</h1>
+        <p>Generated on {{ datetime.now().strftime('%B %d, %Y') }}</p>
+    </div>
+
+    <div class="metrics-section">
+        <h2>Key Performance Indicators</h2>
+        <div class="metric-card">
+            <div class="metric-label">Effective Gross Income</div>
+            <div class="metric-value">${{ '{:,.2f}'.format(kpis.egi) }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Operating Expense Ratio</div>
+            <div class="metric-value">{{ '{:.1%}'.format(kpis.operating_expense_ratio) }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">NOI Margin</div>
+            <div class="metric-value">{{ '{:.1%}'.format(kpis.noi_margin) }}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Gross Rent Multiplier</div>
+            <div class="metric-value">{{ '{:.2f}'.format(kpis.gross_rent_multiplier) }}x</div>
+        </div>
+    </div>
+
+    <div class="performance-section">
+        <h2>Performance Analysis</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>Current</th>
+                    <th>Prior</th>
+                    <th>Variance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in performance_data %}
+                <tr>
+                    <td>{{ row.metric }}</td>
+                    <td>${{ '{:,.2f}'.format(row.current) }}</td>
+                    <td>${{ '{:,.2f}'.format(row.prior) }}</td>
+                    <td>{{ '{:+.1%}'.format(row.variance) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
