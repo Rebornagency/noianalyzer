@@ -110,4 +110,4 @@ def detect_document_properties(filename: Optional[str], text_content: Optional[s
                 result['document_type'] = doc_type
                 break
     
-    return result 
+    return result
