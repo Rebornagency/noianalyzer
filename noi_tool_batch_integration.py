@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, List
 from noi_calculations import calculate_noi_comparisons
 from ai_insights_gpt import generate_insights_with_gpt
 from insights_display import display_insights
-from ai_extraction import extract_noi_data
+from fixed_ai_extraction import extract_noi_data
 from utils.helpers import format_for_noi_comparison
 
 # Configure logging

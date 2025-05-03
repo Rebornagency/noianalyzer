@@ -12,7 +12,7 @@ from datetime import datetime
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
-from ai_extraction import extract_noi_data
+from fixed_ai_extraction import extract_noi_data
 from ai_insights_gpt import generate_insights_with_gpt
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
 
