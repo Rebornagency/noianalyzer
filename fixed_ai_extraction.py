@@ -4,7 +4,7 @@ import logging
 import time
 import traceback
 import streamlit as st
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 
 from config import get_extraction_api_url, get_api_key
 from utils.helpers import format_for_noi_comparison
@@ -16,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger('ai_extraction')
 
 
-def extract_noi_data(
+def extract_single_document(
         file: Any,
         document_type_hint: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
@@ -32,7 +32,7 @@ def extract_noi_data(
     # Validate input parameters
     if file is None:
         st.error("No file provided for extraction.")
-        logger.error("extract_noi_data called with None file parameter")
+        logger.error("extract_single_document called with None file parameter")
         return None
         
     # Use direct API URL from config and append /extract endpoint
@@ -292,3 +292,35 @@ def handle_extraction_exception(
     
     if progress_bar is not None:
         progress_bar.empty()
+
+# THIS IS THE FUNCTION NEEDED TO FIX THE IMPORT ERROR
+# We renamed the original function to extract_single_document to avoid recursion
+def extract_noi_data(document_files: List[Any], api_url: Optional[str] = None, 
+                    api_key: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Extract NOI data from multiple documents using the extraction API.
+    
+    Args:
+        document_files: List of document files to process
+        api_url: Optional API URL override
+        api_key: Optional API key override
+        
+    Returns:
+        Dictionary containing extracted financial data for each file
+    """
+    logger.info(f"Extracting NOI data from {len(document_files)} documents")
+    
+    results = {}
+    
+    for doc_file in document_files:
+        # Process each document using the single document function
+        result = extract_single_document(doc_file)
+        
+        if result:
+            logger.info(f"Successfully extracted data from {doc_file.name}")
+            results[doc_file.name] = result
+        else:
+            logger.warning(f"Failed to extract data from {doc_file.name}")
+            results[doc_file.name] = {"error": "Extraction failed"}
+    
+    return results
