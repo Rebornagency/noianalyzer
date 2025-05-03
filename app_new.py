@@ -17,7 +17,7 @@ from config import get_extraction_api_url, get_api_key, get_openai_api_key
 # Import batch processing module
 from noi_tool_batch_integration import process_multiple_documents_batch
 # Import centralized helper functions
-from utils import format_for_noi_comparison
+from utils import format_for_noi_comparison, format_currency, format_percent
 
 # Configure logging
 logging.basicConfig(

@@ -20,7 +20,7 @@ from noi_tool_batch_integration import process_multiple_documents_batch
 # Import insights display module
 from insights_display import display_insights
 # Import centralized helper functions
-from utils import format_for_noi_comparison
+from utils import format_for_noi_comparison, format_currency, format_percent
 # Import Reborn logo
 from static.reborn_logo import get_reborn_logo_base64
 
