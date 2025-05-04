@@ -32,7 +32,7 @@ DEFAULT_CONFIG = {
 }
 
 # Hardcoded OpenAI API key
-HARDCODED_OPENAI_API_KEY = "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"
+HARDCODED_OPENAI_API_KEY = "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"
 
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     """Load configuration with fallback to environment variables and defaults"""
