@@ -31,7 +31,7 @@ DEFAULT_CONFIG = {
     }
 }
 
-# Hardcoded OpenAI API key
+# Hardcoded OpenAI API key - removed for security
 HARDCODED_OPENAI_API_KEY = ""
 
 # Move this function outside to make it globally available
@@ -123,27 +123,27 @@ def get_api_timeout() -> int:
 
 def get_openai_api_key() -> str:
     """
-    Get OpenAI API key from hardcoded value, environment or session state.
+    Get OpenAI API key from environment or session state.
     
     Returns:
         OpenAI API key
     """
-    # First priority: Use hardcoded API key
-    if HARDCODED_OPENAI_API_KEY:
-        logger.info("Using hardcoded OpenAI API key")
-        return HARDCODED_OPENAI_API_KEY
+    # First priority: Use environment variable
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    if openai_key:
+        logger.info("Using OpenAI API key from environment variable")
+        return openai_key
         
     # Second priority: Check if API key is in session state (set via UI)
     if 'openai_api_key' in st.session_state and st.session_state.openai_api_key:
         logger.info("Using OpenAI API key from session state")
         return st.session_state.openai_api_key
         
-    # Third priority: Use environment variable
-    openai_key = os.environ.get("OPENAI_API_KEY", "")
-    if openai_key:
-        logger.info("Using OpenAI API key from environment variable")
-        return openai_key
-        
+    # Third priority: Use hardcoded API key (empty in production)
+    if HARDCODED_OPENAI_API_KEY:
+        logger.info("Using hardcoded OpenAI API key")
+        return HARDCODED_OPENAI_API_KEY
+    
     logger.warning("No OpenAI API key found in any source")
     return ""
 
