@@ -7,13 +7,52 @@ import streamlit as st
 from typing import Dict, Any, Optional, Tuple, List
 
 from config import get_extraction_api_url, get_api_key
-from utils.helpers import format_for_noi_comparison, determine_document_type
+from utils.helpers import format_for_noi_comparison
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('ai_extraction')
+
+# Define determine_document_type locally instead of importing it
+def determine_document_type(filename: str, result: Dict[str, Any]) -> str:
+    """
+    Determine the document type based on filename and content
+
+    Args:
+        filename: Name of the file
+        result: Extraction result
+
+    Returns:
+        Document type (current_month, prior_month, budget, prior_year)
+    """
+    filename = filename.lower()
+
+    # Try to determine from filename first
+    if "budget" in filename:
+        return "budget"
+    elif "prior" in filename or "previous" in filename:
+        if "year" in filename:
+            return "prior_year"
+        else:
+            return "prior_month"
+    elif "current" in filename or "actual" in filename:
+        return "current_month"
+
+    # If not determined from filename, try to use document_type from result
+    doc_type = result.get("document_type", "").lower()
+    if "budget" in doc_type:
+        return "budget"
+    elif "prior year" in doc_type or "previous year" in doc_type:
+        return "prior_year"
+    elif "prior" in doc_type or "previous" in doc_type:
+        return "prior_month"
+    elif "current" in doc_type or "actual" in doc_type:
+        return "current_month"
+
+    # Default to current_month if can't determine
+    return "current_month"
 
 
 def extract_single_document(
