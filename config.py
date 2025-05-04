@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import streamlit as st
 from typing import Dict, Any, List, Optional
 
 # Configure logging
@@ -13,7 +14,7 @@ logger = logging.getLogger('config')
 # Default configuration
 DEFAULT_CONFIG = {
     "extraction_api": {
-        "url": "http://localhost:8000/api/v2/extraction/financials",
+        "url": "https://dataextractionai.onrender.com",
         "timeout": 60,
         "max_retries": 3,
         "batch_size": 5
@@ -29,6 +30,9 @@ DEFAULT_CONFIG = {
         "egi": ["effective_gross_income", "adjusted_income", "effective_income"]
     }
 }
+
+# Hardcoded OpenAI API key
+HARDCODED_OPENAI_API_KEY = "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"
 
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     """Load configuration with fallback to environment variables and defaults"""
@@ -108,3 +112,56 @@ def get_max_retries() -> int:
 def get_api_timeout() -> int:
     """Get the API timeout in seconds"""
     return int(os.environ.get('API_TIMEOUT') or get_config()['extraction_api']['timeout'])
+
+def get_openai_api_key() -> str:
+    """
+    Get OpenAI API key from hardcoded value, environment or session state.
+    
+    Returns:
+        OpenAI API key
+    """
+    # First priority: Use hardcoded API key
+    if HARDCODED_OPENAI_API_KEY:
+        logger.info("Using hardcoded OpenAI API key")
+        return HARDCODED_OPENAI_API_KEY
+        
+    # Second priority: Check if API key is in session state (set via UI)
+    if 'openai_api_key' in st.session_state and st.session_state.openai_api_key:
+        logger.info("Using OpenAI API key from session state")
+        return st.session_state.openai_api_key
+        
+    # Third priority: Use environment variable
+    openai_key = os.environ.get("OPENAI_API_KEY", "")
+    if openai_key:
+        logger.info("Using OpenAI API key from environment variable")
+        return openai_key
+        
+    logger.warning("No OpenAI API key found in any source")
+    return ""
+
+def save_api_settings(openai_key=None, extraction_url=None, extraction_key=None):
+    """
+    Save API settings to session state.
+    
+    Args:
+        openai_key: OpenAI API key
+        extraction_url: Extraction API URL
+        extraction_key: Extraction API key
+    """
+    if openai_key:
+        st.session_state.openai_api_key = openai_key
+        logger.info("Saved OpenAI API key to session state")
+        
+    if extraction_url:
+        # Ensure URL doesn't end with /extract as we add that in get_extraction_api_url
+        if extraction_url.endswith('/extract'):
+            extraction_url = extraction_url[:-8]
+        elif extraction_url.endswith('/'):
+            extraction_url = extraction_url[:-1]
+            
+        st.session_state.extraction_api_url = extraction_url
+        logger.info(f"Saved extraction API URL to session state: {extraction_url}")
+        
+    if extraction_key:
+        st.session_state.extraction_api_key = extraction_key
+        logger.info("Saved extraction API key to session state")
