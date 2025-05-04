@@ -8,6 +8,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_calculations')
 
+def safe_float(value: Any) -> float:
+    """Safely convert value to float"""
+    try:
+        return float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
 def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, Any]]]) -> Dict[str, Any]:
     """
     Calculate detailed NOI comparisons with improved data handling and validation
@@ -19,13 +26,6 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         if not data:
             return {}
         return data.get('financials', data)
-    
-    def safe_float(value: Any) -> float:
-        """Safely convert value to float"""
-        try:
-            return float(value or 0.0)
-        except (TypeError, ValueError):
-            return 0.0
     
     def safe_percent_change(current: float, previous: float) -> float:
         """Calculate percentage change with improved handling of edge cases"""

@@ -34,6 +34,14 @@ DEFAULT_CONFIG = {
 # Hardcoded OpenAI API key
 HARDCODED_OPENAI_API_KEY = ""
 
+# Move this function outside to make it globally available
+def safe_float(value: Any) -> float:
+    """Safely convert value to float"""
+    try:
+        return float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     """Load configuration with fallback to environment variables and defaults"""
     config = DEFAULT_CONFIG.copy()
