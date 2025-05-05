@@ -606,13 +606,14 @@ def generate_pdf_report(comparison_results: Dict[str, Any], property_name: str =
         }
         
         # Render template to HTML
-        html = template.render(**template_data)
+        html_content = template.render(**template_data)
         
         # Create a temporary file for the PDF
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
             # Generate PDF from HTML
-            pdf = HTML(string=html).write_pdf()
-            tmp.write(pdf)
+            html_doc = HTML(string=html_content)
+            pdf_bytes = html_doc.write_pdf()
+            tmp.write(pdf_bytes)
             tmp_path = tmp.name
             
         logger.info(f"PDF report generated successfully: {tmp_path}")
@@ -836,7 +837,8 @@ def display_insights(insights: Dict[str, Any], property_name: str = "Property"):
     st.markdown('<h2 class="section-header">AI-Generated Insights</h2>', unsafe_allow_html=True)
     
     # Display summary in a styled card with icon
-    st.markdown('''
+    summary_text = insights.get("summary", "No summary available.")
+    st.markdown(f'''
     <div class="card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; background: linear-gradient(to right, #f8f9fa, #e9ecef);">
         <div style="display: flex; align-items: center; margin-bottom: 15px;">
             <div style="background-color: #0D6EFD; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
@@ -847,7 +849,7 @@ def display_insights(insights: Dict[str, Any], property_name: str = "Property"):
             <h3 style="margin: 0; color: #333; font-weight: 600;">Executive Summary</h3>
         </div>
         <p style="color: #444; font-size: 16px; line-height: 1.6; margin: 0; padding-left: 55px;">
-            {insights.get("summary", "No summary available.")}
+            {summary_text}
         </p>
     </div>
     ''', unsafe_allow_html=True)
@@ -874,10 +876,11 @@ def display_insights(insights: Dict[str, Any], property_name: str = "Property"):
             for i, insight in enumerate(performance_insights):
                 # Alternate background colors for better visual separation
                 bg_color = "#f8f9fa" if i % 2 == 0 else "#ffffff"
+                insight_text = insight
                 st.markdown(f'''
                 <div style="background-color: {bg_color}; padding: 12px 12px 12px 20px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #20C997;">
                     <p style="margin: 0; color: #444; font-size: 15px; line-height: 1.5;">
-                        {insight}
+                        {insight_text}
                     </p>
                 </div>
                 ''', unsafe_allow_html=True)
@@ -906,10 +909,11 @@ def display_insights(insights: Dict[str, Any], property_name: str = "Property"):
             for i, recommendation in enumerate(recommendations):
                 # Alternate background colors for better visual separation
                 bg_color = "#f8f9fa" if i % 2 == 0 else "#ffffff"
+                rec_text = recommendation
                 st.markdown(f'''
                 <div style="background-color: {bg_color}; padding: 12px 12px 12px 20px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #FD7E14;">
                     <p style="margin: 0; color: #444; font-size: 15px; line-height: 1.5;">
-                        {recommendation}
+                        {rec_text}
                     </p>
                 </div>
                 ''', unsafe_allow_html=True)
