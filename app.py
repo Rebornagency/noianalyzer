@@ -27,6 +27,62 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_analyzer')
 
+# Debug helper function to diagnose comparison structure issues
+def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
+    """
+    Debug function to analyze and log the structure of comparison results
+    """
+    if not comparison_results:
+        logger.error("No comparison results available for debugging")
+        return
+        
+    logger.info("=== COMPARISON RESULTS STRUCTURE DEBUG ===")
+    logger.info(f"Top level keys: {list(comparison_results.keys())}")
+    
+    # Check for current data
+    if "current" in comparison_results:
+        logger.info(f"Current data keys: {list(comparison_results['current'].keys())}")
+        
+        # Check for financial metrics in current data
+        financial_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
+        for key in financial_keys:
+            if key in comparison_results["current"]:
+                logger.info(f"Current.{key} = {comparison_results['current'][key]}")
+            else:
+                logger.warning(f"Missing key in current data: {key}")
+    else:
+        logger.warning("No 'current' key in comparison results")
+    
+    # Check comparison data sections
+    for section in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
+        if section in comparison_results:
+            logger.info(f"{section} keys: {list(comparison_results[section].keys())}")
+            
+            # Check for common patterns in the data
+            patterns = [
+                "_current",    # current values
+                "_compare",    # comparison values 
+                "_change",     # absolute change
+                "_percent_change"  # percentage change
+            ]
+            
+            found_patterns = {}
+            for pattern in patterns:
+                matches = [key for key in comparison_results[section].keys() if key.endswith(pattern)]
+                found_patterns[pattern] = matches
+                
+                if matches:
+                    logger.info(f"  Found {len(matches)} keys with pattern '{pattern}': {matches[:3]}...")
+                    # Show sample values
+                    if matches:
+                        logger.info(f"  Sample value ({matches[0]}): {comparison_results[section][matches[0]]}")
+                else:
+                    logger.warning(f"  No keys found with pattern '{pattern}'")
+        else:
+            logger.warning(f"Missing comparison section: {section}")
+    
+    logger.info("=== END COMPARISON RESULTS STRUCTURE DEBUG ===")
+
 # Set page configuration
 st.set_page_config(
     page_title="NOI Analyzer Enhanced",
@@ -72,16 +128,52 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         prior_key_suffix: Suffix for prior period keys (e.g., 'prior', 'budget', 'prior_year')
         name_suffix: Display name for the prior period (e.g., 'Prior Month', 'Budget', 'Prior Year')
     """
-    # Get current data
-    current_data = tab_data.get("current", {})
+    # Log detailed debugging information
+    logger.info(f"Starting display_comparison_tab for {name_suffix} comparison")
+    logger.info(f"tab_data keys: {list(tab_data.keys())}")
+    
+    # Get current data from the tab_data or from the 'current' key in comparison_results
+    current_data = {}
+    if "current" in tab_data:
+        current_data = tab_data["current"]
+        logger.info(f"Found 'current' data with keys: {list(current_data.keys())}")
+    
+    # Check if we have the expected data format
+    has_current_format = False
+    for key in ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]:
+        if key in current_data:
+            has_current_format = True
+            break
+    
+    logger.info(f"Current data has standard format: {has_current_format}")
+    
+    # If we don't have the expected format, we need to extract data from the comparison structure
+    if not has_current_format and any(f"{key}_current" in tab_data for key in ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]):
+        logger.info(f"Using alternative data format for {name_suffix} comparison")
+        for key in ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]:
+            if f"{key}_current" in tab_data:
+                current_data[key] = tab_data.get(f"{key}_current", 0.0)
+        
+        logger.info(f"Extracted current data with keys: {list(current_data.keys())}")
+    
     if not current_data:
+        logger.warning(f"No current data available for {name_suffix} comparison")
         st.warning(f"No current data available for {name_suffix} comparison.")
         return
         
     # Log the data structure for debugging
-    logger.info(f"display_comparison_tab called with {name_suffix} comparison")
-    logger.info(f"tab_data keys: {list(tab_data.keys())}")
+    logger.info(f"display_comparison_tab processing {name_suffix} comparison")
     logger.info(f"current_data keys: {list(current_data.keys())}")
+    logger.info(f"current_data NOI value: {current_data.get('noi', 'Not found')}")
+    
+    # Look for prior values in different formats
+    prior_keys = [f"noi_{prior_key_suffix}", "noi_compare", "noi_budget", "noi_prior", "noi_prior_year"]
+    found_prior_keys = [key for key in prior_keys if key in tab_data]
+    logger.info(f"Looking for prior NOI in keys: {prior_keys}")
+    logger.info(f"Found prior NOI keys: {found_prior_keys}")
+    
+    if found_prior_keys:
+        logger.info(f"Prior NOI value ({found_prior_keys[0]}): {tab_data.get(found_prior_keys[0], 'Not found')}")
     
     # Create columns for KPI cards
     col1, col2, col3 = st.columns(3)
@@ -96,15 +188,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         st.markdown('</div>', unsafe_allow_html=True)
         
     with col2:
-        # Prior period value
-        prior_noi = tab_data.get(f"noi_{prior_key_suffix}", 0.0)
+        # Prior period value - handle both formats (_prior_key_suffix or _compare)
+        prior_noi = tab_data.get(f"noi_{prior_key_suffix}", tab_data.get("noi_compare", 0.0))
         st.markdown('<div class="stat-card">', unsafe_allow_html=True)
         st.markdown(f'<div class="stat-title">{name_suffix}</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="stat-value">${prior_noi:,.0f}</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
         
     with col3:
-        # Change
+        # Change - handle both formats
         change_val = tab_data.get("noi_change", tab_data.get("noi_variance", 0.0))
         percent_change = tab_data.get("noi_percent_change", tab_data.get("noi_percent_variance", 0.0))
         
@@ -118,16 +210,23 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         st.markdown(f'<div class="stat-label">${change_val:,.0f}</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # Log additional information before creating DataFrame
+    logger.info(f"Creating DataFrame for {name_suffix} comparison")
+    
     # Create DataFrame for data
     metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
     data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
 
     df_data = []
     for key, name in zip(data_keys, metrics):
-        current_val = current_data.get(key, 0.0)
-        prior_val = tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_budget", 0.0))
+        # Handle both formats for current, prior, and change values
+        current_val = current_data.get(key, tab_data.get(f"{key}_current", 0.0))
+        prior_val = tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0))
         change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
         percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+        
+        # Debug logging for data extraction
+        logger.debug(f"Metric: {name}, Current: {current_val}, Prior: {prior_val}, Change: {change_val}, %Change: {percent_change}")
         
         # Skip zero values if show_zero_values is False
         if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
@@ -143,9 +242,12 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
     # Create DataFrame for display
     if not df_data:
+        logger.warning(f"No data available for {name_suffix} display")
         st.info("No data available for display. Try enabling 'Show Zero Values' in the sidebar.")
         return
         
+    logger.info(f"Created df_data with {len(df_data)} rows for {name_suffix} comparison")
+    
     try:
         # Create the DataFrame
         df = pd.DataFrame(df_data)
@@ -187,6 +289,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         return
 
     try:
+        logger.info(f"Creating charts for {name_suffix} comparison")
         # Create bar chart for visual comparison
         st.markdown('<div class="chart-container">', unsafe_allow_html=True)
         
@@ -239,6 +342,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # Display chart
         st.plotly_chart(fig, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
+        logger.info(f"Successfully displayed chart for {name_suffix} comparison")
     except Exception as e:
         logger.error(f"Error creating chart: {str(e)}")
         st.error(f"Error creating chart: {str(e)}")
@@ -268,7 +372,12 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
     with tab1:
         if "actual_vs_budget" in comparison_results:
             try:
-                display_comparison_tab(comparison_results["actual_vs_budget"], "budget", "Budget")
+                # Add current data to the actual_vs_budget dict if it doesn't have it
+                budget_data = comparison_results["actual_vs_budget"].copy()
+                if "current" not in budget_data and "current" in comparison_results:
+                    budget_data["current"] = comparison_results["current"]
+                    
+                display_comparison_tab(budget_data, "budget", "Budget")
             except Exception as e:
                 logger.error(f"Error in Budget comparison tab: {str(e)}")
                 st.error(f"Error displaying Budget comparison: {str(e)}")
@@ -277,7 +386,12 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
     with tab2:
         if "year_vs_year" in comparison_results:
             try:
-                display_comparison_tab(comparison_results["year_vs_year"], "prior_year", "Prior Year")
+                # Add current data to the year_vs_year dict if it doesn't have it
+                yoy_data = comparison_results["year_vs_year"].copy()
+                if "current" not in yoy_data and "current" in comparison_results:
+                    yoy_data["current"] = comparison_results["current"]
+                    
+                display_comparison_tab(yoy_data, "prior_year", "Prior Year")
             except Exception as e:
                 logger.error(f"Error in Prior Year comparison tab: {str(e)}")
                 st.error(f"Error displaying Prior Year comparison: {str(e)}")
@@ -286,7 +400,12 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
     with tab3:
         if "month_vs_prior" in comparison_results:
             try:
-                display_comparison_tab(comparison_results["month_vs_prior"], "prior", "Prior Month")
+                # Add current data to the month_vs_prior dict if it doesn't have it
+                mom_data = comparison_results["month_vs_prior"].copy()
+                if "current" not in mom_data and "current" in comparison_results:
+                    mom_data["current"] = comparison_results["current"]
+                    
+                display_comparison_tab(mom_data, "prior", "Prior Month")
             except Exception as e:
                 logger.error(f"Error in Prior Month comparison tab: {str(e)}")
                 st.error(f"Error displaying Prior Month comparison: {str(e)}")
@@ -449,6 +568,12 @@ def main():
                         if st.session_state.processing_completed:
                             st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data)
                             
+                            # Debug the structure of comparison results
+                            debug_comparison_structure(st.session_state.comparison_results)
+                            
+                            # Log the comparison results structure
+                            logger.info(f"Calculated comparison results with keys: {list(st.session_state.comparison_results.keys())}")
+
                             # Generate insights if OpenAI API key is provided
                             openai_key = get_openai_api_key()
                             if openai_key and len(openai_key) > 10:
@@ -528,6 +653,9 @@ def main():
                     # Calculate comparisons if processing was successful
                     if st.session_state.processing_completed:
                         st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data)
+                        
+                        # Debug the structure of comparison results
+                        debug_comparison_structure(st.session_state.comparison_results)
                         
                         # Log the comparison results structure
                         logger.info(f"Calculated comparison results with keys: {list(st.session_state.comparison_results.keys())}")
