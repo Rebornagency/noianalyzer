@@ -8,6 +8,10 @@ import json
 from typing import Dict, Any, List, Optional, Tuple
 import base64
 from datetime import datetime
+import io
+from jinja2 import Environment, FileSystemLoader
+from weasyprint import HTML
+import tempfile
 
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
@@ -296,48 +300,145 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # Create bar chart for visual comparison
         fig = go.Figure()
 
-        # Add current period bars
+        # Calculate change percentages for hover data
+        change_pcts = df["Change (%)"].tolist()
+        change_vals = df["Change ($)"].tolist()
+        
+        # Create custom color scales based on values to add visual contrast
+        current_colors = []
+        compare_colors = []
+        
+        # Use a gradient of blue shades for current values
+        current_max = max(df["Current"]) if not df["Current"].empty else 0
+        for val in df["Current"]:
+            intensity = min(1.0, 0.3 + 0.7 * (val / current_max)) if current_max > 0 else 0.5
+            current_colors.append(f'rgba(13, 110, 253, {intensity})')
+            
+        # Use a gradient of teal shades for comparison values
+        compare_max = max(df[name_suffix]) if not df[name_suffix].empty else 0
+        for val in df[name_suffix]:
+            intensity = min(1.0, 0.3 + 0.7 * (val / compare_max)) if compare_max > 0 else 0.5
+            compare_colors.append(f'rgba(32, 201, 151, {intensity})')
+
+        # Add current period bars with enhanced styling
         fig.add_trace(go.Bar(
             x=df["Metric"],
             y=df["Current"],
             name="Current",
-            marker_color='#0D6EFD'
+            marker=dict(
+                color=current_colors,
+                line=dict(width=1, color='white')
+            ),
+            opacity=0.9,
+            customdata=list(zip(change_vals, change_pcts)),
+            hovertemplate='<b>%{x}</b><br>Current: $%{y:,.0f}<br>Change: $%{customdata[0]:,.0f} (%{customdata[1]:.1f}%)<extra></extra>'
         ))
 
-        # Add prior period bars
+        # Add prior period bars with enhanced styling
         fig.add_trace(go.Bar(
             x=df["Metric"],
             y=df[name_suffix],
             name=name_suffix,
-            marker_color='#6C757D'
+            marker=dict(
+                color=compare_colors,
+                line=dict(width=1, color='white')
+            ),
+            opacity=0.9,
+            hovertemplate='<b>%{x}</b><br>' + f'{name_suffix}: $' + '%{y:,.0f}<extra></extra>'
         ))
 
-        # Update layout
+        # Identify peak NOI for annotation
+        if 'NOI' in df['Metric'].values:
+            current_noi = df.loc[df['Metric'] == 'NOI', 'Current'].values[0]
+            prior_noi = df.loc[df['Metric'] == 'NOI', name_suffix].values[0]
+            
+            # Calculate the difference and percentage change
+            noi_diff = current_noi - prior_noi
+            noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 else 0
+            
+            # Create annotation text based on whether NOI increased or decreased
+            if noi_diff > 0:
+                annotation_text = f"NOI increased by ${noi_diff:,.0f}<br>({noi_pct:.1f}%)"
+                arrow_color = "green"
+            elif noi_diff < 0:
+                annotation_text = f"NOI decreased by ${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)"
+                arrow_color = "red"
+            else:
+                annotation_text = "NOI unchanged"
+                arrow_color = "gray"
+                
+            # Add annotation for NOI
+            fig.add_annotation(
+                x='NOI', 
+                y=max(current_noi, prior_noi) * 1.1,
+                text=annotation_text,
+                showarrow=True,
+                arrowhead=2,
+                arrowsize=1,
+                arrowwidth=2,
+                arrowcolor=arrow_color,
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                bordercolor=arrow_color,
+                borderwidth=1,
+                borderpad=4,
+                font=dict(color="#333", size=12)
+            )
+
+        # Update layout with modern styling
         fig.update_layout(
             barmode='group',
             title=f"Current vs {name_suffix}",
-            xaxis_title="Metric",
-            yaxis_title="Amount ($)",
-            template="plotly_dark",
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
+            title_font=dict(size=18, color="#333", family="Roboto, sans-serif"),
+            template="plotly_white",
+            plot_bgcolor='rgba(250, 250, 250, 0.9)',
+            paper_bgcolor='rgba(250, 250, 250, 0.9)',
             font=dict(
-                family="Inter, sans-serif",
-                size=12,
-                color="white"
+                family="Roboto, sans-serif",
+                size=14,
+                color="#333"
             ),
-            margin=dict(l=40, r=40, t=60, b=40),
+            margin=dict(l=20, r=20, t=60, b=40),
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
+                y=-0.15,
+                xanchor="center",
+                x=0.5,
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                bordercolor="#ddd",
+                borderwidth=1
+            ),
+            xaxis=dict(
+                title="",
+                tickfont=dict(size=14),
+                showgrid=False,
+                zeroline=False
+            ),
+            yaxis=dict(
+                title="Amount ($)",
+                titlefont=dict(size=14),
+                tickfont=dict(size=12),
+                showgrid=True,
+                gridcolor='rgba(220, 220, 220, 0.5)',
+                zeroline=False
+            ),
+            hoverlabel=dict(
+                bgcolor="white",
+                font_size=14,
+                font_family="Roboto, sans-serif"
             )
         )
 
         # Add dollar sign to y-axis labels
         fig.update_yaxes(tickprefix="$")
+        
+        # Add subtle pattern and depth to bars
+        for trace in fig.data:
+            trace.update(
+                marker_pattern_shape="",
+                marker_line_width=1,
+                marker_line_color="white"
+            )
 
         # Display chart
         st.plotly_chart(fig, use_container_width=True)
@@ -424,13 +525,305 @@ def generate_pdf_report(comparison_results: Dict[str, Any], property_name: str =
     Returns:
         Path to the generated PDF file or None if generation failed
     """
-    # This is a placeholder for future PDF generation functionality
-    return None
+    try:
+        logger.info("Generating PDF report")
+        
+        # Extract KPIs from comparison results
+        current_data = comparison_results.get("current", {})
+        
+        if not current_data:
+            logger.warning("No current data available for PDF report")
+            return None
+            
+        # Calculate some additional KPIs
+        egi = current_data.get("egi", 0)
+        opex = current_data.get("opex", 0)
+        noi = current_data.get("noi", 0)
+        
+        operating_expense_ratio = opex / egi if egi else 0
+        noi_margin = noi / egi if egi else 0
+        
+        # Default value for gross rent multiplier
+        gross_rent_multiplier = 10.0  # Example value, would be calculated from property value
+        
+        kpis = {
+            "egi": egi,
+            "opex": opex,
+            "noi": noi,
+            "operating_expense_ratio": operating_expense_ratio,
+            "noi_margin": noi_margin,
+            "gross_rent_multiplier": gross_rent_multiplier
+        }
+        
+        # Prepare performance data for the table
+        performance_data = []
+        metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
+        data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
+        
+        # Find the comparison with most data - prioritize budget comparison
+        comparison_section = None
+        for section in ["actual_vs_budget", "year_vs_year", "month_vs_prior"]:
+            if section in comparison_results:
+                comparison_section = section
+                break
+                
+        if not comparison_section:
+            logger.warning("No comparison data available for PDF report")
+            return None
+            
+        comparison_data = comparison_results[comparison_section]
+        
+        for key, metric in zip(data_keys, metrics):
+            current_val = current_data.get(key, 0)
+            
+            # Look for prior value in different formats
+            prior_val = 0
+            for prior_key in [f"{key}_compare", f"{key}_prior", f"{key}_budget", f"{key}_prior_year"]:
+                if prior_key in comparison_data:
+                    prior_val = comparison_data[prior_key]
+                    break
+                    
+            # Calculate variance
+            variance = (current_val - prior_val) / prior_val if prior_val else 0
+            
+            performance_data.append({
+                "metric": metric,
+                "current": current_val,
+                "prior": prior_val,
+                "variance": variance
+            })
+        
+        # Configure Jinja environment
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('report.html')
+        
+        # Prepare template data
+        template_data = {
+            'datetime': datetime,
+            'property_name': property_name,
+            'kpis': kpis,
+            'performance_data': performance_data
+        }
+        
+        # Render template to HTML
+        html = template.render(**template_data)
+        
+        # Create a temporary file for the PDF
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            # Generate PDF from HTML
+            pdf = HTML(string=html).write_pdf()
+            tmp.write(pdf)
+            tmp_path = tmp.name
+            
+        logger.info(f"PDF report generated successfully: {tmp_path}")
+        return tmp_path
+        
+    except Exception as e:
+        logger.error(f"Error generating PDF report: {str(e)}")
+        return None
 
+def export_to_excel(comparison_results: Dict[str, Any], property_name: str = "Property") -> Optional[bytes]:
+    """
+    Export comparison results to Excel file.
+    
+    Args:
+        comparison_results: Results from calculate_noi_comparisons()
+        property_name: Name of the property
+        
+    Returns:
+        Excel file as bytes or None if export failed
+    """
+    try:
+        logger.info("Exporting data to Excel")
+        
+        # Create an Excel writer
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            # Current Data Sheet
+            if "current" in comparison_results:
+                current_data = comparison_results["current"]
+                df_current = pd.DataFrame({
+                    "Metric": ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"],
+                    "Value": [
+                        current_data.get("gpr", 0),
+                        current_data.get("vacancy_loss", 0),
+                        current_data.get("other_income", 0),
+                        current_data.get("egi", 0),
+                        current_data.get("opex", 0),
+                        current_data.get("noi", 0)
+                    ]
+                })
+                df_current.to_excel(writer, sheet_name="Current Data", index=False)
+                
+                # Format the sheet
+                workbook = writer.book
+                worksheet = writer.sheets["Current Data"]
+                money_format = workbook.add_format({'num_format': '$#,##0.00'})
+                worksheet.set_column('B:B', 15, money_format)
+            
+            # Create sheets for each comparison type
+            for comparison_type, title in [
+                ("actual_vs_budget", "Actual vs Budget"),
+                ("year_vs_year", "Year vs Year"),
+                ("month_vs_prior", "Month vs Prior Month")
+            ]:
+                if comparison_type in comparison_results:
+                    comparison_data = comparison_results[comparison_type]
+                    
+                    # Create DataFrame for the comparison
+                    df_data = []
+                    metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
+                    data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
+                    
+                    for key, name in zip(data_keys, metrics):
+                        # Handle both formats for current, prior, and change values
+                        current_val = comparison_data.get(f"{key}_current", 0.0)
+                        compare_val = comparison_data.get(f"{key}_compare", 0.0)
+                        change_val = comparison_data.get(f"{key}_change", 0.0)
+                        percent_change = comparison_data.get(f"{key}_percent_change", 0.0)
+                        
+                        df_data.append({
+                            "Metric": name,
+                            "Current": current_val,
+                            "Comparison": compare_val,
+                            "Change ($)": change_val,
+                            "Change (%)": percent_change
+                        })
+                    
+                    # Create DataFrame and write to Excel
+                    df_comparison = pd.DataFrame(df_data)
+                    df_comparison.to_excel(writer, sheet_name=title, index=False)
+                    
+                    # Format the sheet
+                    worksheet = writer.sheets[title]
+                    money_format = workbook.add_format({'num_format': '$#,##0.00'})
+                    percent_format = workbook.add_format({'num_format': '0.00%'})
+                    
+                    worksheet.set_column('B:D', 15, money_format)
+                    worksheet.set_column('E:E', 15, percent_format)
+            
+            # If insights are available, add them to the Excel file
+            if "insights" in st.session_state and st.session_state.insights:
+                insights = st.session_state.insights
+                
+                # Create insights sheet
+                insights_data = []
+                
+                # Add summary
+                if "summary" in insights:
+                    insights_data.append({"Category": "Summary", "Content": insights["summary"]})
+                
+                # Add performance insights
+                if "performance" in insights and insights["performance"]:
+                    for i, insight in enumerate(insights["performance"], 1):
+                        insights_data.append({"Category": f"Performance Insight {i}", "Content": insight})
+                
+                # Add recommendations
+                if "recommendations" in insights and insights["recommendations"]:
+                    for i, rec in enumerate(insights["recommendations"], 1):
+                        insights_data.append({"Category": f"Recommendation {i}", "Content": rec})
+                
+                # Create DataFrame and write to Excel
+                df_insights = pd.DataFrame(insights_data)
+                df_insights.to_excel(writer, sheet_name="AI Insights", index=False)
+                
+                # Format the insights sheet
+                worksheet = writer.sheets["AI Insights"]
+                worksheet.set_column('A:A', 20)
+                worksheet.set_column('B:B', 70)
+        
+        # Get the Excel file as bytes
+        output.seek(0)
+        excel_data = output.getvalue()
+        
+        logger.info("Excel export completed successfully")
+        return excel_data
+        
+    except Exception as e:
+        logger.error(f"Error exporting to Excel: {str(e)}")
+        return None
+
+def export_to_csv(comparison_results: Dict[str, Any], property_name: str = "Property") -> Optional[Dict[str, bytes]]:
+    """
+    Export comparison results to CSV files.
+    
+    Args:
+        comparison_results: Results from calculate_noi_comparisons()
+        property_name: Name of the property
+        
+    Returns:
+        Dictionary with CSV files as bytes or None if export failed
+    """
+    try:
+        logger.info("Exporting data to CSV")
+        
+        csv_files = {}
+        
+        # Current Data CSV
+        if "current" in comparison_results:
+            current_data = comparison_results["current"]
+            df_current = pd.DataFrame({
+                "Metric": ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"],
+                "Value": [
+                    current_data.get("gpr", 0),
+                    current_data.get("vacancy_loss", 0),
+                    current_data.get("other_income", 0),
+                    current_data.get("egi", 0),
+                    current_data.get("opex", 0),
+                    current_data.get("noi", 0)
+                ]
+            })
+            
+            # Convert to CSV
+            csv_buffer = io.StringIO()
+            df_current.to_csv(csv_buffer, index=False)
+            csv_files["current_data.csv"] = csv_buffer.getvalue().encode()
+        
+        # Create CSV for each comparison type
+        for comparison_type, title in [
+            ("actual_vs_budget", "Actual vs Budget"),
+            ("year_vs_year", "Year vs Year"),
+            ("month_vs_prior", "Month vs Prior Month")
+        ]:
+            if comparison_type in comparison_results:
+                comparison_data = comparison_results[comparison_type]
+                
+                # Create DataFrame for the comparison
+                df_data = []
+                metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
+                data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
+                
+                for key, name in zip(data_keys, metrics):
+                    # Handle both formats for current, prior, and change values
+                    current_val = comparison_data.get(f"{key}_current", 0.0)
+                    compare_val = comparison_data.get(f"{key}_compare", 0.0)
+                    change_val = comparison_data.get(f"{key}_change", 0.0)
+                    percent_change = comparison_data.get(f"{key}_percent_change", 0.0)
+                    
+                    df_data.append({
+                        "Metric": name,
+                        "Current": current_val,
+                        "Comparison": compare_val,
+                        "Change ($)": change_val,
+                        "Change (%)": percent_change
+                    })
+                
+                # Create DataFrame and convert to CSV
+                df_comparison = pd.DataFrame(df_data)
+                csv_buffer = io.StringIO()
+                df_comparison.to_csv(csv_buffer, index=False)
+                csv_files[f"{comparison_type.replace('_', '-')}.csv"] = csv_buffer.getvalue().encode()
+        
+        logger.info(f"CSV export completed successfully with {len(csv_files)} files")
+        return csv_files
+        
+    except Exception as e:
+        logger.error(f"Error exporting to CSV: {str(e)}")
+        return None
 
 def display_insights(insights: Dict[str, Any], property_name: str = "Property"):
     """
-    Display AI-generated insights.
+    Display AI-generated insights with enhanced visual styling.
     
     Args:
         insights: Dictionary with insights generated by GPT
@@ -442,42 +835,95 @@ def display_insights(insights: Dict[str, Any], property_name: str = "Property"):
         
     st.markdown('<h2 class="section-header">AI-Generated Insights</h2>', unsafe_allow_html=True)
     
-    # Display summary
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown('<h3>Executive Summary</h3>', unsafe_allow_html=True)
-    st.markdown(f'<p class="body-text">{insights.get("summary", "No summary available.")}</p>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Display summary in a styled card with icon
+    st.markdown('''
+    <div class="card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; background: linear-gradient(to right, #f8f9fa, #e9ecef);">
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <div style="background-color: #0D6EFD; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
+                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                </svg>
+            </div>
+            <h3 style="margin: 0; color: #333; font-weight: 600;">Executive Summary</h3>
+        </div>
+        <p style="color: #444; font-size: 16px; line-height: 1.6; margin: 0; padding-left: 55px;">
+            {insights.get("summary", "No summary available.")}
+        </p>
+    </div>
+    ''', unsafe_allow_html=True)
     
     # Create columns for performance insights and recommendations
     col1, col2 = st.columns(2)
     
-    # Display performance insights
+    # Display performance insights with enhanced styling
     with col1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<h3>Key Performance Insights</h3>', unsafe_allow_html=True)
+        st.markdown('''
+        <div class="card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; height: 100%; background: linear-gradient(to bottom right, #ffffff, #f0f7ff);">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div style="background-color: #20C997; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                    </svg>
+                </div>
+                <h3 style="margin: 0; color: #333; font-weight: 600;">Key Performance Insights</h3>
+            </div>
+        ''', unsafe_allow_html=True)
         
         performance_insights = insights.get("performance", [])
         if performance_insights:
-            for insight in performance_insights:
-                st.markdown(f'<p class="insight-item">• {insight}</p>', unsafe_allow_html=True)
+            for i, insight in enumerate(performance_insights):
+                # Alternate background colors for better visual separation
+                bg_color = "#f8f9fa" if i % 2 == 0 else "#ffffff"
+                st.markdown(f'''
+                <div style="background-color: {bg_color}; padding: 12px 12px 12px 20px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #20C997;">
+                    <p style="margin: 0; color: #444; font-size: 15px; line-height: 1.5;">
+                        {insight}
+                    </p>
+                </div>
+                ''', unsafe_allow_html=True)
         else:
-            st.markdown('<p class="body-text">No performance insights available.</p>', unsafe_allow_html=True)
+            st.markdown('<p style="color: #666; font-style: italic;">No performance insights available.</p>', unsafe_allow_html=True)
             
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # Display recommendations
+    # Display recommendations with enhanced styling
     with col2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<h3>Actionable Recommendations</h3>', unsafe_allow_html=True)
+        st.markdown('''
+        <div class="card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; height: 100%; background: linear-gradient(to bottom right, #ffffff, #fff0f7);">
+            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <div style="background-color: #FD7E14; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+                    </svg>
+                </div>
+                <h3 style="margin: 0; color: #333; font-weight: 600;">Actionable Recommendations</h3>
+            </div>
+        ''', unsafe_allow_html=True)
         
         recommendations = insights.get("recommendations", [])
         if recommendations:
-            for recommendation in recommendations:
-                st.markdown(f'<p class="insight-item">• {recommendation}</p>', unsafe_allow_html=True)
+            for i, recommendation in enumerate(recommendations):
+                # Alternate background colors for better visual separation
+                bg_color = "#f8f9fa" if i % 2 == 0 else "#ffffff"
+                st.markdown(f'''
+                <div style="background-color: {bg_color}; padding: 12px 12px 12px 20px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #FD7E14;">
+                    <p style="margin: 0; color: #444; font-size: 15px; line-height: 1.5;">
+                        {recommendation}
+                    </p>
+                </div>
+                ''', unsafe_allow_html=True)
         else:
-            st.markdown('<p class="body-text">No recommendations available.</p>', unsafe_allow_html=True)
+            st.markdown('<p style="color: #666; font-style: italic;">No recommendations available.</p>', unsafe_allow_html=True)
             
         st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Add a small footer with timestamp
+    st.markdown(f'''
+    <div style="text-align: right; margin-top: 20px; font-size: 12px; color: #999;">
+        Analysis generated for {property_name} | {datetime.now().strftime("%Y-%m-%d %H:%M")}
+    </div>
+    ''', unsafe_allow_html=True)
 
 
 def main():
@@ -725,25 +1171,101 @@ def main():
             # Display AI insights if available
             if st.session_state.insights:
                 display_insights(st.session_state.insights, property_name)
+                
+            # Add export options
+            st.markdown('<h2 class="section-header">Export Options</h2>', unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("Export to Excel", key="export_excel_btn", use_container_width=True):
+                    try:
+                        excel_data = export_to_excel(st.session_state.comparison_results, property_name)
+                        if excel_data:
+                            # Create a download button for the Excel file
+                            safe_property_name = "".join(c if c.isalnum() else "_" for c in property_name) if property_name else "Property"
+                            filename = f"{safe_property_name}_NOI_Analysis_{datetime.now().strftime('%Y%m%d')}.xlsx"
+                            
+                            st.download_button(
+                                label="Download Excel File",
+                                data=excel_data,
+                                file_name=filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        else:
+                            st.error("Failed to generate Excel file. Please try again.")
+                    except Exception as e:
+                        logger.error(f"Error in Excel export button action: {str(e)}")
+                        st.error(f"Error exporting to Excel: {str(e)}")
+            with col2:
+                if st.button("Export to CSV", key="export_csv_btn", use_container_width=True):
+                    try:
+                        csv_files = export_to_csv(st.session_state.comparison_results, property_name)
+                        if csv_files:
+                            # If only one CSV file, provide direct download
+                            if len(csv_files) == 1:
+                                file_name, file_data = next(iter(csv_files.items()))
+                                st.download_button(
+                                    label="Download CSV File",
+                                    data=file_data,
+                                    file_name=file_name,
+                                    mime="text/csv"
+                                )
+                            else:
+                                # If multiple files, let user select which one to download
+                                selected_file = st.selectbox(
+                                    "Select file to download:",
+                                    list(csv_files.keys())
+                                )
+                                
+                                if selected_file:
+                                    st.download_button(
+                                        label=f"Download {selected_file}",
+                                        data=csv_files[selected_file],
+                                        file_name=selected_file,
+                                        mime="text/csv"
+                                    )
+                        else:
+                            st.error("Failed to generate CSV files. Please try again.")
+                    except Exception as e:
+                        logger.error(f"Error in CSV export button action: {str(e)}")
+                        st.error(f"Error exporting to CSV: {str(e)}")
+            with col3:
+                if st.button("Generate PDF Report", key="share_report_btn", use_container_width=True):
+                    try:
+                        with st.spinner("Generating PDF report..."):
+                            pdf_path = generate_pdf_report(st.session_state.comparison_results, property_name)
+                            
+                        if pdf_path and os.path.exists(pdf_path):
+                            # Read the PDF file
+                            with open(pdf_path, "rb") as f:
+                                pdf_data = f.read()
+                            
+                            # Clean up the temporary file
+                            try:
+                                os.unlink(pdf_path)
+                            except Exception as e:
+                                logger.error(f"Error removing temporary PDF file: {str(e)}")
+                            
+                            # Create a download button for the PDF
+                            safe_property_name = "".join(c if c.isalnum() else "_" for c in property_name) if property_name else "Property"
+                            filename = f"{safe_property_name}_NOI_Report_{datetime.now().strftime('%Y%m%d')}.pdf"
+                            
+                            st.download_button(
+                                label="Download PDF Report",
+                                data=pdf_data,
+                                file_name=filename,
+                                mime="application/pdf"
+                            )
+                        else:
+                            st.error("Failed to generate PDF report. Please try again.")
+                    except Exception as e:
+                        logger.error(f"Error in PDF report button action: {str(e)}")
+                        st.error(f"Error generating PDF report: {str(e)}")
         except Exception as e:
             logger.error(f"Error displaying results: {str(e)}")
             st.error(f"Error displaying results: {str(e)}")
             # Display raw data as fallback
             st.subheader("Raw Data (Error Fallback)")
             st.json(st.session_state.comparison_results)
-            
-        # Add export options
-        st.markdown('<h2 class="section-header">Export Options</h2>', unsafe_allow_html=True)
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("Export to Excel", key="export_excel_btn", use_container_width=True):
-                st.info("Excel export functionality will be available in the next update.")
-        with col2:
-            if st.button("Export to CSV", key="export_csv_btn", use_container_width=True):
-                st.info("CSV export functionality will be available in the next update.")
-        with col3:
-            if st.button("Share Report", key="share_report_btn", use_container_width=True):
-                st.info("Report sharing functionality will be available in the next update.")
     else:
         # Display instructions when no data is processed
         if st.session_state.processing_status == "processing":
