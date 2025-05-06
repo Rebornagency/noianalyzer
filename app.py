@@ -198,11 +198,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         change_val = tab_data.get("noi_change", tab_data.get("noi_variance", 0.0))
         percent_change = tab_data.get("noi_percent_change", tab_data.get("noi_percent_variance", 0.0))
         
-        # Format for Streamlit metric
-        delta_value = f"{change_val:,.0f} ({percent_change:.1f}%)"
+        # Format the percentage value with sign
+        percent_display = f"{percent_change:.1f}%"
+        if percent_change > 0:
+            percent_display = f"+{percent_display}"
+        
+        # NOI is a positive business impact when it increases (green for increase, red for decrease)
         st.metric(
             label="Change",
-            value=f"-{percent_change:.1f}%" if percent_change < 0 else f"{percent_change:.1f}%",
+            value=percent_display,
             delta=f"${change_val:,.0f}",
             delta_color="normal" if change_val >= 0 else "inverse"
         )
@@ -234,7 +238,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             "Current": current_val,
             name_suffix: prior_val,
             "Change ($)": change_val,
-            "Change (%)": percent_change
+            "Change (%)": percent_change,
+            # Add business impact direction for proper color coding
+            "Direction": "inverse" if name in ["Vacancy Loss", "Total OpEx"] else "normal"
         })
 
     # Create DataFrame for display
@@ -267,9 +273,357 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         df_display[name_suffix] = df_display[name_suffix].apply(lambda x: f"${x:,.2f}")
         df_display["Change ($)"] = df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
         df_display["Change (%)"] = df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
-
-        # Display table
-        st.dataframe(df_display, use_container_width=True)
+        
+        # Create styleable dataframe with business-appropriate color coding
+        df_styled = df_display.drop(columns=["Direction"])
+        
+        # Apply conditional formatting based on business impact
+        def style_df(row):
+            styles = [''] * len(row)
+            
+            # Get indices of the columns to style
+            pct_change_idx = list(row.index).index("Change (%)")
+            dollar_change_idx = list(row.index).index("Change ($)")
+            
+            direction = row["Direction"]
+            change_pct = float(row["Change (%)"].strip('%'))
+            
+            # Determine if the change is positive from a business perspective
+            if direction == "inverse":
+                # For metrics where decrease is good (Vacancy Loss, OpEx)
+                is_positive = change_pct < 0
+            else:
+                # For metrics where increase is good (NOI, GPR, etc.)
+                is_positive = change_pct > 0
+                
+            # Apply appropriate colors
+            color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
+            
+            # Apply to both dollar and percentage columns
+            styles[pct_change_idx] = color
+            styles[dollar_change_idx] = color
+            
+            return styles
+        
+        # Apply styling and display
+        styled_df = df_display.style.apply(style_df, axis=1)
+        st.dataframe(styled_df, use_container_width=True)
+        
+        # Add OpEx Breakdown expander section
+        with st.expander("Operating Expense Breakdown"):
+            # Check if we have OpEx component data
+            opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
+            
+            if any(component in current_data for component in opex_components):
+                # Create DataFrame for OpEx components
+                opex_df_data = []
+                opex_metrics = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
+                
+                for key, name in zip(opex_components, opex_metrics):
+                    # Handle both formats for current, prior, and change values
+                    current_val = current_data.get(key, tab_data.get(f"{key}_current", 0.0))
+                    prior_val = tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0))
+                    change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
+                    percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+                    
+                    # Skip zero values if show_zero_values is False
+                    if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
+                        continue
+                        
+                    opex_df_data.append({
+                        "Expense Category": name,
+                        "Current": current_val,
+                        name_suffix: prior_val,
+                        "Change ($)": change_val,
+                        "Change (%)": percent_change,
+                        # Operating expenses are positive when they decrease
+                        "Direction": "inverse"
+                    })
+                
+                if opex_df_data:
+                    opex_df = pd.DataFrame(opex_df_data)
+                    
+                    # Format DataFrame for display
+                    opex_df_display = opex_df.copy()
+                    opex_df_display["Current"] = opex_df_display["Current"].apply(lambda x: f"${x:,.2f}")
+                    opex_df_display[name_suffix] = opex_df_display[name_suffix].apply(lambda x: f"${x:,.2f}")
+                    opex_df_display["Change ($)"] = opex_df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
+                    opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
+                    
+                    # Apply styling and display
+                    opex_styled_df = opex_df_display.drop(columns=["Direction"])
+                    
+                    # Create a function to apply styling
+                    def style_opex_df(row):
+                        styles = [''] * len(row)
+                        
+                        # Get indices of the columns to style
+                        pct_change_idx = list(row.index).index("Change (%)")
+                        dollar_change_idx = list(row.index).index("Change ($)")
+                        
+                        change_pct = float(row["Change (%)"].strip('%'))
+                        
+                        # For expenses, a decrease (negative change) is good
+                        is_positive = change_pct < 0
+                        
+                        # Apply appropriate colors
+                        color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
+                        
+                        # Apply to both dollar and percentage columns
+                        styles[pct_change_idx] = color
+                        styles[dollar_change_idx] = color
+                        
+                        return styles
+                    
+                    # Apply styling and display
+                    opex_styled = opex_df_display.style.apply(style_opex_df, axis=1)
+                    st.dataframe(opex_styled, use_container_width=True)
+                    
+                    # Display a pie chart to visualize the breakdown
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Filter out zero values for the pie chart
+                        pie_data = opex_df[opex_df["Current"] > 0]
+                        if not pie_data.empty:
+                            fig = px.pie(
+                                pie_data, 
+                                values="Current", 
+                                names="Expense Category",
+                                title="Current Operating Expenses Breakdown",
+                                color_discrete_sequence=px.colors.qualitative.Set3,
+                                hole=0.4
+                            )
+                            fig.update_layout(
+                                template="plotly_dark",
+                                plot_bgcolor='rgba(30, 41, 59, 0.8)',
+                                paper_bgcolor='rgba(16, 23, 42, 0)',
+                                font=dict(
+                                    family="Inter, sans-serif",
+                                    size=12,
+                                    color="#F0F0F0"
+                                ),
+                                title_font=dict(size=16, color="#F0F0F0", family="Inter, sans-serif"),
+                                legend=dict(font=dict(size=10, color="#F0F0F0"))
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                    
+                    with col2:
+                        # Create a horizontal bar chart for comparison
+                        if not opex_df.empty:
+                            comp_fig = go.Figure()
+                            
+                            # Add current period bars
+                            comp_fig.add_trace(go.Bar(
+                                y=opex_df["Expense Category"],
+                                x=opex_df["Current"],
+                                name="Current",
+                                orientation='h',
+                                marker=dict(
+                                    color='rgba(13, 110, 253, 0.8)',
+                                    line=dict(width=1, color='white')
+                                )
+                            ))
+                            
+                            # Add prior period bars
+                            comp_fig.add_trace(go.Bar(
+                                y=opex_df["Expense Category"],
+                                x=opex_df[name_suffix],
+                                name=name_suffix,
+                                orientation='h',
+                                marker=dict(
+                                    color='rgba(32, 201, 151, 0.8)',
+                                    line=dict(width=1, color='white')
+                                )
+                            ))
+                            
+                            # Update layout
+                            comp_fig.update_layout(
+                                title=f"OpEx Components: Current vs {name_suffix}",
+                                barmode='group',
+                                xaxis_title="Amount ($)",
+                                xaxis=dict(tickprefix="$"),
+                                template="plotly_dark",
+                                plot_bgcolor='rgba(30, 41, 59, 0.8)',
+                                paper_bgcolor='rgba(16, 23, 42, 0)',
+                                font=dict(
+                                    family="Inter, sans-serif",
+                                    size=12,
+                                    color="#F0F0F0"
+                                ),
+                                title_font=dict(size=16, color="#F0F0F0", family="Inter, sans-serif"),
+                                legend=dict(
+                                    orientation="h",
+                                    yanchor="bottom",
+                                    y=-0.2,
+                                    xanchor="center",
+                                    x=0.5,
+                                    font=dict(size=10, color="#F0F0F0")
+                                )
+                            )
+                            
+                            st.plotly_chart(comp_fig, use_container_width=True)
+                else:
+                    st.info("No operating expense details available for this period.")
+            else:
+                st.info("Operating expense breakdown is not available for this comparison.")
+                
+        # Add Other Income Breakdown expander section
+        with st.expander("Other Income Breakdown"):
+            # Check if we have Other Income component data
+            other_income_components = ["parking", "laundry", "late_fees", "pet_fees", "application_fees"]
+            
+            if any(component in current_data for component in other_income_components):
+                # Create DataFrame for Other Income components
+                income_df_data = []
+                income_metrics = ["Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees"]
+                
+                for key, name in zip(other_income_components, income_metrics):
+                    # Handle both formats for current, prior, and change values
+                    current_val = current_data.get(key, tab_data.get(f"{key}_current", 0.0))
+                    prior_val = tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0))
+                    change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
+                    percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+                    
+                    # Skip zero values if show_zero_values is False
+                    if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
+                        continue
+                        
+                    income_df_data.append({
+                        "Income Category": name,
+                        "Current": current_val,
+                        name_suffix: prior_val,
+                        "Change ($)": change_val,
+                        "Change (%)": percent_change,
+                        # Other Income is positive when it increases
+                        "Direction": "normal"
+                    })
+                
+                if income_df_data:
+                    income_df = pd.DataFrame(income_df_data)
+                    
+                    # Format DataFrame for display
+                    income_df_display = income_df.copy()
+                    income_df_display["Current"] = income_df_display["Current"].apply(lambda x: f"${x:,.2f}")
+                    income_df_display[name_suffix] = income_df_display[name_suffix].apply(lambda x: f"${x:,.2f}")
+                    income_df_display["Change ($)"] = income_df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
+                    income_df_display["Change (%)"] = income_df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
+                    
+                    # Apply styling and display
+                    income_styled_df = income_df_display.drop(columns=["Direction"])
+                    
+                    # Create a function to apply styling
+                    def style_income_df(row):
+                        styles = [''] * len(row)
+                        
+                        # Get indices of the columns to style
+                        pct_change_idx = list(row.index).index("Change (%)")
+                        dollar_change_idx = list(row.index).index("Change ($)")
+                        
+                        change_pct = float(row["Change (%)"].strip('%'))
+                        
+                        # For income, an increase (positive change) is good
+                        is_positive = change_pct > 0
+                        
+                        # Apply appropriate colors
+                        color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
+                        
+                        # Apply to both dollar and percentage columns
+                        styles[pct_change_idx] = color
+                        styles[dollar_change_idx] = color
+                        
+                        return styles
+                    
+                    # Apply styling and display
+                    income_styled = income_df_display.style.apply(style_income_df, axis=1)
+                    st.dataframe(income_styled, use_container_width=True)
+                    
+                    # Display a pie chart to visualize the breakdown
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Filter out zero values for the pie chart
+                        pie_data = income_df[income_df["Current"] > 0]
+                        if not pie_data.empty:
+                            fig = px.pie(
+                                pie_data, 
+                                values="Current", 
+                                names="Income Category",
+                                title="Current Other Income Breakdown",
+                                color_discrete_sequence=px.colors.qualitative.Pastel,
+                                hole=0.4
+                            )
+                            fig.update_layout(
+                                template="plotly_dark",
+                                plot_bgcolor='rgba(30, 41, 59, 0.8)',
+                                paper_bgcolor='rgba(16, 23, 42, 0)',
+                                font=dict(
+                                    family="Inter, sans-serif",
+                                    size=12,
+                                    color="#F0F0F0"
+                                ),
+                                title_font=dict(size=16, color="#F0F0F0", family="Inter, sans-serif"),
+                                legend=dict(font=dict(size=10, color="#F0F0F0"))
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                    
+                    with col2:
+                        # Create comparison bar chart
+                        comp_data = income_df.copy()
+                        
+                        # Sort by current value
+                        comp_data = comp_data.sort_values(by="Current", ascending=True)
+                        
+                        # Create horizontal bar chart for comparing current vs prior
+                        comp_fig = go.Figure()
+                        
+                        # Add bars for current and prior values
+                        comp_fig.add_trace(go.Bar(
+                            y=comp_data["Income Category"],
+                            x=comp_data["Current"],
+                            name="Current",
+                            orientation='h',
+                            marker=dict(color="#4DB6AC")
+                        ))
+                        
+                        comp_fig.add_trace(go.Bar(
+                            y=comp_data["Income Category"],
+                            x=comp_data[name_suffix],
+                            name=name_suffix,
+                            orientation='h',
+                            marker=dict(color="#BA68C8")
+                        ))
+                        
+                        # Update layout
+                        comp_fig.update_layout(
+                            title=f"Other Income Components: Current vs {name_suffix}",
+                            barmode='group',
+                            xaxis_title="Amount ($)",
+                            xaxis=dict(tickprefix="$"),
+                            template="plotly_dark",
+                            plot_bgcolor='rgba(30, 41, 59, 0.8)',
+                            paper_bgcolor='rgba(16, 23, 42, 0)',
+                            font=dict(
+                                family="Inter, sans-serif",
+                                size=12,
+                                color="#F0F0F0"
+                            ),
+                            title_font=dict(size=16, color="#F0F0F0", family="Inter, sans-serif"),
+                            legend=dict(
+                                orientation="h",
+                                yanchor="bottom",
+                                y=-0.2,
+                                xanchor="center",
+                                x=0.5,
+                                font=dict(size=10, color="#F0F0F0")
+                            )
+                        )
+                        
+                        st.plotly_chart(comp_fig, use_container_width=True)
+                else:
+                    st.info("No other income details available for this period.")
+            else:
+                st.info("Other income breakdown is not available for this comparison.")
     except KeyError as e:
         logger.error(f"KeyError in DataFrame operation: {str(e)}")
         st.error(f"Error accessing DataFrame column: {str(e)}")
@@ -291,6 +645,17 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # Calculate change percentages for hover data
         change_pcts = df["Change (%)"].tolist()
         change_vals = df["Change ($)"].tolist()
+        directions = df["Direction"].tolist()
+        metrics = df["Metric"].tolist()
+        
+        # Helper function to determine if a change is positive from business perspective
+        def is_positive_change(metric, change_val):
+            if metric in ["Vacancy Loss", "Total OpEx"]:
+                # For these metrics, a decrease (negative change) is good
+                return change_val < 0
+            else:
+                # For other metrics (NOI, GPR, EGI, etc.), an increase (positive change) is good
+                return change_val > 0
         
         # Create custom color scales based on values to add visual contrast
         current_colors = []
@@ -318,7 +683,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 line=dict(width=1, color='white')
             ),
             opacity=0.9,
-            customdata=list(zip(change_vals, change_pcts)),
+            customdata=list(zip(change_vals, change_pcts, directions)),
             hovertemplate='<b>%{x}</b><br>Current: $%{y:,.0f}<br>Change: $%{customdata[0]:,.0f} (%{customdata[1]:.1f}%)<extra></extra>'
         ))
 
@@ -332,6 +697,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 line=dict(width=1, color='white')
             ),
             opacity=0.9,
+            customdata=list(zip(df["Metric"])),
             hovertemplate='<b>%{x}</b><br>' + f'{name_suffix}: $' + '%{y:,.0f}<extra></extra>'
         ))
 
@@ -345,6 +711,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 else 0
             
             # Create annotation text based on whether NOI increased or decreased
+            # For NOI, an increase is positive (green), decrease is negative (red)
             if noi_diff > 0:
                 annotation_text = f"NOI increased by ${noi_diff:,.0f}<br>({noi_pct:.1f}%)"
                 arrow_color = "green"
@@ -365,25 +732,25 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 arrowsize=1,
                 arrowwidth=2,
                 arrowcolor=arrow_color,
-                bgcolor="rgba(255, 255, 255, 0.8)",
+                bgcolor="rgba(30, 41, 59, 0.8)",
                 bordercolor=arrow_color,
                 borderwidth=1,
                 borderpad=4,
-                font=dict(color="#333", size=12)
+                font=dict(color="#F0F0F0", size=12)
             )
 
-        # Update layout with modern styling
+        # Update layout with dark theme styling
         fig.update_layout(
             barmode='group',
             title=f"Current vs {name_suffix}",
-            title_font=dict(size=18, color="#333", family="Roboto, sans-serif"),
-            template="plotly_white",
-            plot_bgcolor='rgba(250, 250, 250, 0.9)',
-            paper_bgcolor='rgba(250, 250, 250, 0.9)',
+            title_font=dict(size=18, color="#F0F0F0", family="Inter, sans-serif"),
+            template="plotly_dark",
+            plot_bgcolor='rgba(30, 41, 59, 0.8)',
+            paper_bgcolor='rgba(16, 23, 42, 0)',
             font=dict(
-                family="Roboto, sans-serif",
+                family="Inter, sans-serif",
                 size=14,
-                color="#333"
+                color="#F0F0F0"
             ),
             margin=dict(l=20, r=20, t=60, b=40),
             legend=dict(
@@ -392,28 +759,33 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 y=-0.15,
                 xanchor="center",
                 x=0.5,
-                bgcolor="rgba(255, 255, 255, 0.8)",
-                bordercolor="#ddd",
-                borderwidth=1
+                bgcolor="rgba(10, 15, 30, 0.6)",
+                bordercolor="rgba(255, 255, 255, 0.1)",
+                borderwidth=1,
+                font=dict(
+                    color="#F0F0F0"
+                )
             ),
             xaxis=dict(
                 title="",
                 tickfont=dict(size=14),
                 showgrid=False,
-                zeroline=False
+                zeroline=False,
+                color="#F0F0F0"
             ),
             yaxis=dict(
                 title="Amount ($)",
-                titlefont=dict(size=14),
-                tickfont=dict(size=12),
+                titlefont=dict(size=14, color="#F0F0F0"),
+                tickfont=dict(size=12, color="#F0F0F0"),
                 showgrid=True,
-                gridcolor='rgba(220, 220, 220, 0.5)',
+                gridcolor='rgba(255, 255, 255, 0.1)',
                 zeroline=False
             ),
             hoverlabel=dict(
-                bgcolor="white",
+                bgcolor="#1E293B",
                 font_size=14,
-                font_family="Roboto, sans-serif"
+                font_family="Inter, sans-serif",
+                font_color="#F0F0F0"
             )
         )
 
@@ -580,16 +952,102 @@ def generate_pdf_report(comparison_results: Dict[str, Any], property_name: str =
                 "variance": variance
             })
         
+        # Check if OpEx breakdown is available and prepare data
+        opex_breakdown_available = False
+        opex_breakdown_data = []
+        opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
+        opex_names = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
+        
+        if any(component in current_data for component in opex_components):
+            opex_breakdown_available = True
+            
+            # Calculate percentages of total OpEx
+            total_opex = current_data.get("opex", 0)
+            
+            for key, name in zip(opex_components, opex_names):
+                current_val = current_data.get(key, 0)
+                
+                # Look for prior value in different formats
+                prior_val = 0
+                for prior_key in [f"{key}_compare", f"{key}_prior", f"{key}_budget", f"{key}_prior_year"]:
+                    if prior_key in comparison_data:
+                        prior_val = comparison_data[prior_key]
+                        break
+                
+                # Calculate variance and percentage of total
+                variance = (current_val - prior_val) / prior_val if prior_val else 0
+                percentage = (current_val / total_opex) * 100 if total_opex else 0
+                
+                opex_breakdown_data.append({
+                    "category": name,
+                    "current": current_val,
+                    "prior": prior_val,
+                    "variance": variance,
+                    "percentage": percentage
+                })
+        
+        # Check if Other Income breakdown is available and prepare data
+        income_breakdown_available = False
+        income_breakdown_data = []
+        other_income_components = ["parking", "laundry", "late_fees", "pet_fees", "application_fees"]
+        income_names = ["Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees"]
+        
+        if any(component in current_data for component in other_income_components):
+            income_breakdown_available = True
+            
+            # Calculate percentages of total Other Income
+            total_income = current_data.get("other_income", 0)
+            
+            for key, name in zip(other_income_components, income_names):
+                current_val = current_data.get(key, 0)
+                
+                # Look for prior value in different formats
+                prior_val = 0
+                for prior_key in [f"{key}_compare", f"{key}_prior", f"{key}_budget", f"{key}_prior_year"]:
+                    if prior_key in comparison_data:
+                        prior_val = comparison_data[prior_key]
+                        break
+                
+                # Calculate variance and percentage of total
+                variance = (current_val - prior_val) / prior_val if prior_val else 0
+                percentage = (current_val / total_income) * 100 if total_income else 0
+                
+                income_breakdown_data.append({
+                    "category": name,
+                    "current": current_val,
+                    "prior": prior_val,
+                    "variance": variance,
+                    "percentage": percentage
+                })
+        
         # Configure Jinja environment
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template('report.html')
+        
+        # Get insights data if available
+        executive_summary = ""
+        performance_insights = []
+        recommendations = []
+        
+        if "insights" in st.session_state and st.session_state.insights:
+            insights = st.session_state.insights
+            executive_summary = insights.get("summary", "")
+            performance_insights = insights.get("performance", [])
+            recommendations = insights.get("recommendations", [])
         
         # Prepare template data
         template_data = {
             'datetime': datetime,
             'property_name': property_name,
             'kpis': kpis,
-            'performance_data': performance_data
+            'performance_data': performance_data,
+            'executive_summary': executive_summary,
+            'performance_insights': performance_insights,
+            'recommendations': recommendations,
+            'opex_breakdown_available': opex_breakdown_available,
+            'opex_breakdown_data': opex_breakdown_data,
+            'income_breakdown_available': income_breakdown_available,
+            'income_breakdown_data': income_breakdown_data
         }
         
         # Render template to HTML
@@ -648,6 +1106,77 @@ def export_to_excel(comparison_results: Dict[str, Any], property_name: str = "Pr
                 worksheet = writer.sheets["Current Data"]
                 money_format = workbook.add_format({'num_format': '$#,##0.00'})
                 worksheet.set_column('B:B', 15, money_format)
+                
+                # Add OpEx Breakdown sheet if data is available
+                opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
+                if any(component in current_data for component in opex_components):
+                    opex_data = {
+                        "Category": ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees", "Total OpEx"],
+                        "Amount": [
+                            current_data.get("property_taxes", 0),
+                            current_data.get("insurance", 0),
+                            current_data.get("repairs_and_maintenance", 0),
+                            current_data.get("utilities", 0),
+                            current_data.get("management_fees", 0),
+                            current_data.get("opex", 0)
+                        ],
+                        "Percent of Total": []
+                    }
+                    
+                    # Calculate percentages
+                    total_opex = current_data.get("opex", 0)
+                    if total_opex > 0:
+                        for component_value in opex_data["Amount"][:-1]:  # Exclude the total itself
+                            percent = (component_value / total_opex) * 100 if total_opex else 0
+                            opex_data["Percent of Total"].append(percent)
+                        opex_data["Percent of Total"].append(100)  # Total is 100%
+                    else:
+                        opex_data["Percent of Total"] = [0, 0, 0, 0, 0, 100]
+                    
+                    # Create DataFrame and write to Excel
+                    df_opex = pd.DataFrame(opex_data)
+                    df_opex.to_excel(writer, sheet_name="OpEx Breakdown", index=False)
+                    
+                    # Format the OpEx breakdown sheet
+                    worksheet_opex = writer.sheets["OpEx Breakdown"]
+                    percent_format = workbook.add_format({'num_format': '0.00%'})
+                    worksheet_opex.set_column('B:B', 15, money_format)
+                    worksheet_opex.set_column('C:C', 15, percent_format)
+            
+            # Add Other Income breakdown if available
+            other_income_components = ["parking", "laundry", "late_fees", "pet_fees", "application_fees"]
+            if any(component in current_data for component in other_income_components):
+                income_data = {
+                    "Category": ["Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees", "Total Other Income"],
+                    "Amount": [
+                        current_data.get("parking", 0),
+                        current_data.get("laundry", 0),
+                        current_data.get("late_fees", 0),
+                        current_data.get("pet_fees", 0),
+                        current_data.get("application_fees", 0),
+                        current_data.get("other_income", 0)
+                    ],
+                    "Percent of Total": []
+                }
+                
+                # Calculate percentages
+                total_income = current_data.get("other_income", 0)
+                if total_income > 0:
+                    for component_value in income_data["Amount"][:-1]:  # Exclude the total itself
+                        percent = (component_value / total_income) * 100 if total_income else 0
+                        income_data["Percent of Total"].append(percent)
+                    income_data["Percent of Total"].append(100)  # Total is 100%
+                else:
+                    income_data["Percent of Total"] = [0, 0, 0, 0, 0, 100]
+                
+                # Create DataFrame and write to Excel
+                df_income = pd.DataFrame(income_data)
+                df_income.to_excel(writer, sheet_name="Other Income Breakdown", index=False)
+                
+                # Format the Other Income breakdown sheet
+                worksheet_income = writer.sheets["Other Income Breakdown"]
+                worksheet_income.set_column('B:B', 15, money_format)
+                worksheet_income.set_column('C:C', 15, percent_format)
             
             # Create sheets for each comparison type
             for comparison_type, title in [
@@ -689,6 +1218,49 @@ def export_to_excel(comparison_results: Dict[str, Any], property_name: str = "Pr
                     
                     worksheet.set_column('B:D', 15, money_format)
                     worksheet.set_column('E:E', 15, percent_format)
+                    
+                    # Add OpEx component comparison if data is available
+                    opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
+                    opex_names = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
+                    
+                    if any(f"{component}_current" in comparison_data for component in opex_components):
+                        sheet_name = f"{title} - OpEx Detail"
+                        
+                        # Create DataFrame for OpEx component comparison
+                        opex_comparison_data = []
+                        
+                        for key, name in zip(opex_components, opex_names):
+                            # Handle both formats for current, prior, and change values
+                            current_val = comparison_data.get(f"{key}_current", 0.0)
+                            compare_val = comparison_data.get(f"{key}_compare", 0.0)
+                            change_val = comparison_data.get(f"{key}_change", 0.0)
+                            percent_change = comparison_data.get(f"{key}_percent_change", 0.0)
+                            
+                            opex_comparison_data.append({
+                                "OpEx Category": name,
+                                "Current": current_val,
+                                "Comparison": compare_val,
+                                "Change ($)": change_val,
+                                "Change (%)": percent_change
+                            })
+                        
+                        # Add total row
+                        opex_comparison_data.append({
+                            "OpEx Category": "Total OpEx",
+                            "Current": comparison_data.get("opex_current", 0.0),
+                            "Comparison": comparison_data.get("opex_compare", 0.0),
+                            "Change ($)": comparison_data.get("opex_change", 0.0),
+                            "Change (%)": comparison_data.get("opex_percent_change", 0.0)
+                        })
+                        
+                        # Create DataFrame and write to Excel
+                        df_opex_comparison = pd.DataFrame(opex_comparison_data)
+                        df_opex_comparison.to_excel(writer, sheet_name=sheet_name, index=False)
+                        
+                        # Format the sheet
+                        worksheet_opex_detail = writer.sheets[sheet_name]
+                        worksheet_opex_detail.set_column('B:D', 15, money_format)
+                        worksheet_opex_detail.set_column('E:E', 15, percent_format)
             
             # If insights are available, add them to the Excel file
             if "insights" in st.session_state and st.session_state.insights:
@@ -730,559 +1302,3 @@ def export_to_excel(comparison_results: Dict[str, Any], property_name: str = "Pr
     except Exception as e:
         logger.error(f"Error exporting to Excel: {str(e)}")
         return None
-
-def export_to_csv(comparison_results: Dict[str, Any], property_name: str = "Property") -> Optional[Dict[str, bytes]]:
-    """
-    Export comparison results to CSV files.
-    
-    Args:
-        comparison_results: Results from calculate_noi_comparisons()
-        property_name: Name of the property
-        
-    Returns:
-        Dictionary with CSV files as bytes or None if export failed
-    """
-    try:
-        logger.info("Exporting data to CSV")
-        
-        csv_files = {}
-        
-        # Current Data CSV
-        if "current" in comparison_results:
-            current_data = comparison_results["current"]
-            df_current = pd.DataFrame({
-                "Metric": ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"],
-                "Value": [
-                    current_data.get("gpr", 0),
-                    current_data.get("vacancy_loss", 0),
-                    current_data.get("other_income", 0),
-                    current_data.get("egi", 0),
-                    current_data.get("opex", 0),
-                    current_data.get("noi", 0)
-                ]
-            })
-            
-            # Convert to CSV
-            csv_buffer = io.StringIO()
-            df_current.to_csv(csv_buffer, index=False)
-            csv_files["current_data.csv"] = csv_buffer.getvalue().encode()
-        
-        # Create CSV for each comparison type
-        for comparison_type, title in [
-            ("actual_vs_budget", "Actual vs Budget"),
-            ("year_vs_year", "Year vs Year"),
-            ("month_vs_prior", "Month vs Prior Month")
-        ]:
-            if comparison_type in comparison_results:
-                comparison_data = comparison_results[comparison_type]
-                
-                # Create DataFrame for the comparison
-                df_data = []
-                metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
-                data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
-                
-                for key, name in zip(data_keys, metrics):
-                    # Handle both formats for current, prior, and change values
-                    current_val = comparison_data.get(f"{key}_current", 0.0)
-                    compare_val = comparison_data.get(f"{key}_compare", 0.0)
-                    change_val = comparison_data.get(f"{key}_change", 0.0)
-                    percent_change = comparison_data.get(f"{key}_percent_change", 0.0)
-                    
-                    df_data.append({
-                        "Metric": name,
-                        "Current": current_val,
-                        "Comparison": compare_val,
-                        "Change ($)": change_val,
-                        "Change (%)": percent_change
-                    })
-                
-                # Create DataFrame and convert to CSV
-                df_comparison = pd.DataFrame(df_data)
-                csv_buffer = io.StringIO()
-                df_comparison.to_csv(csv_buffer, index=False)
-                csv_files[f"{comparison_type.replace('_', '-')}.csv"] = csv_buffer.getvalue().encode()
-        
-        logger.info(f"CSV export completed successfully with {len(csv_files)} files")
-        return csv_files
-        
-    except Exception as e:
-        logger.error(f"Error exporting to CSV: {str(e)}")
-        return None
-
-def display_insights(insights: Dict[str, Any], property_name: str = "Property"):
-    """
-    Display AI-generated insights with enhanced visual styling.
-    
-    Args:
-        insights: Dictionary with insights generated by GPT
-        property_name: Name of the property
-    """
-    if not insights:
-        st.warning("No AI insights available.")
-        return
-        
-    st.markdown('<h2 class="section-header">AI-Generated Insights</h2>', unsafe_allow_html=True)
-    
-    # Display summary in a styled card with icon
-    summary_text = insights.get("summary", "No summary available.")
-    st.markdown(f'''
-    <div class="card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; background: linear-gradient(to right, #f8f9fa, #e9ecef);">
-        <div style="display: flex; align-items: center; margin-bottom: 15px;">
-            <div style="background-color: #0D6EFD; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
-                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-                </svg>
-            </div>
-            <h3 style="margin: 0; color: #333; font-weight: 600;">Executive Summary</h3>
-        </div>
-        <p style="color: #444; font-size: 16px; line-height: 1.6; margin: 0; padding-left: 55px;">
-            {summary_text}
-        </p>
-    </div>
-    ''', unsafe_allow_html=True)
-    
-    # Create columns for performance insights and recommendations
-    col1, col2 = st.columns(2)
-    
-    # Display performance insights with enhanced styling
-    with col1:
-        st.markdown('''
-        <div class="card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; height: 100%; background: linear-gradient(to bottom right, #ffffff, #f0f7ff);">
-            <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                <div style="background-color: #20C997; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
-                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-                    </svg>
-                </div>
-                <h3 style="margin: 0; color: #333; font-weight: 600;">Key Performance Insights</h3>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        performance_insights = insights.get("performance", [])
-        if performance_insights:
-            for i, insight in enumerate(performance_insights):
-                # Alternate background colors for better visual separation
-                bg_color = "#f8f9fa" if i % 2 == 0 else "#ffffff"
-                insight_text = insight
-                st.markdown(f'''
-                <div style="background-color: {bg_color}; padding: 12px 12px 12px 20px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #20C997;">
-                    <p style="margin: 0; color: #444; font-size: 15px; line-height: 1.5;">
-                        {insight_text}
-                    </p>
-                </div>
-                ''', unsafe_allow_html=True)
-        else:
-            st.markdown('<p style="color: #666; font-style: italic;">No performance insights available.</p>', unsafe_allow_html=True)
-            
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Display recommendations with enhanced styling
-    with col2:
-        st.markdown('''
-        <div class="card" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 20px; height: 100%; background: linear-gradient(to bottom right, #ffffff, #fff0f7);">
-            <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                <div style="background-color: #FD7E14; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-right: 15px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-                        <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
-                    </svg>
-                </div>
-                <h3 style="margin: 0; color: #333; font-weight: 600;">Actionable Recommendations</h3>
-            </div>
-        ''', unsafe_allow_html=True)
-        
-        recommendations = insights.get("recommendations", [])
-        if recommendations:
-            for i, recommendation in enumerate(recommendations):
-                # Alternate background colors for better visual separation
-                bg_color = "#f8f9fa" if i % 2 == 0 else "#ffffff"
-                rec_text = recommendation
-                st.markdown(f'''
-                <div style="background-color: {bg_color}; padding: 12px 12px 12px 20px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #FD7E14;">
-                    <p style="margin: 0; color: #444; font-size: 15px; line-height: 1.5;">
-                        {rec_text}
-                    </p>
-                </div>
-                ''', unsafe_allow_html=True)
-        else:
-            st.markdown('<p style="color: #666; font-style: italic;">No recommendations available.</p>', unsafe_allow_html=True)
-            
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Add a small footer with timestamp
-    st.markdown(f'''
-    <div style="text-align: right; margin-top: 20px; font-size: 12px; color: #999;">
-        Analysis generated for {property_name} | {datetime.now().strftime("%Y-%m-%d %H:%M")}
-    </div>
-    ''', unsafe_allow_html=True)
-
-
-def main():
-    """
-    Main function to run the Streamlit app.
-    """
-    # Load custom CSS
-    load_css()
-    
-    # Display logo and title
-    col1, col2 = st.columns([1, 5])
-    with col1:
-        st.image("static/images/reborn_logo.png", width=100)
-    with col2:
-        st.markdown('<h1 class="main-title">NOI Analyzer Enhanced</h1>', unsafe_allow_html=True)
-    
-    # Get property name from session state or set default
-    property_name = st.session_state.get("property_name", "")
-    
-    # Sidebar
-    with st.sidebar:
-        st.image("static/images/reborn_logo.png", width=100)
-        st.markdown('<h2 class="sidebar-header">Property Information</h2>', unsafe_allow_html=True)
-        
-        # Document Upload Section
-        st.markdown('<h2 class="sidebar-header">Document Upload</h2>', unsafe_allow_html=True)
-        st.markdown('<p class="sidebar-text">Upload your financial documents for analysis.</p>', unsafe_allow_html=True)
-        
-        # Current Month Actuals (Required)
-        st.markdown('<h3 class="sidebar-subheader">Current Month Actuals (Required)</h3>', unsafe_allow_html=True)
-        current_month_actuals = st.file_uploader(
-            "Upload current month actuals",
-            type=["pdf", "xlsx", "xls", "csv"],
-            key="current_month_actuals_uploader"
-        )
-        if current_month_actuals:
-            st.session_state.current_month_actuals = current_month_actuals
-            st.success(f"✅ {current_month_actuals.name}")
-
-        # Prior Month Actuals (Optional)
-        st.markdown('<h3 class="sidebar-subheader">Prior Month Actuals (Optional)</h3>', unsafe_allow_html=True)
-        prior_month_actuals = st.file_uploader(
-            "Upload prior month actuals",
-            type=["pdf", "xlsx", "xls", "csv"],
-            key="prior_month_actuals_uploader"
-        )
-        if prior_month_actuals:
-            st.session_state.prior_month_actuals = prior_month_actuals
-            st.success(f"✅ {prior_month_actuals.name}")
-
-        # Current Month Budget (Optional)
-        st.markdown('<h3 class="sidebar-subheader">Current Month Budget (Optional)</h3>', unsafe_allow_html=True)
-        current_month_budget = st.file_uploader(
-            "Upload current month budget",
-            type=["pdf", "xlsx", "xls", "csv"],
-            key="current_month_budget_uploader"
-        )
-        if current_month_budget:
-            st.session_state.current_month_budget = current_month_budget
-            st.success(f"✅ {current_month_budget.name}")
-
-        # Prior Year Actuals (Optional)
-        st.markdown('<h3 class="sidebar-subheader">Prior Year Actuals (Optional)</h3>', unsafe_allow_html=True)
-        prior_year_actuals = st.file_uploader(
-            "Upload prior year actuals",
-            type=["pdf", "xlsx", "xls", "csv"],
-            key="prior_year_actuals_uploader"
-        )
-        if prior_year_actuals:
-            st.session_state.prior_year_actuals = prior_year_actuals
-            st.success(f"✅ {prior_year_actuals.name}")
-        
-        # Process Documents Button
-        if st.button("Process Documents", key="process_docs_upload_section"):
-            if not st.session_state.current_month_actuals:
-                st.error("Current Month Actuals is required.")
-            else:
-                st.session_state.processing_completed = False
-                st.session_state.comparison_results = None
-                st.session_state.insights = None
-
-                # Process documents
-                with st.spinner("Processing documents..."):
-                    try:
-                        consolidated_data = process_all_documents()
-                        
-                        # Calculate comparisons if processing was successful
-                        if st.session_state.processing_completed:
-                            st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data)
-                            
-                            # Debug the structure of comparison results
-                            debug_comparison_structure(st.session_state.comparison_results)
-                            
-                            # Log the comparison results structure
-                            logger.info(f"Calculated comparison results with keys: {list(st.session_state.comparison_results.keys())}")
-
-                            # Generate insights if OpenAI API key is provided
-                            openai_key = get_openai_api_key()
-                            if openai_key and len(openai_key) > 10:
-                                st.session_state.insights = generate_insights_with_gpt(
-                                    st.session_state.comparison_results,
-                                    property_name
-                                )
-                    except Exception as e:
-                        logger.error(f"Error processing documents: {str(e)}")
-                        st.error(f"Error processing documents: {str(e)}")
-
-                # Rerun to update the main content area
-                st.rerun()
-        
-        # Property information
-        st.markdown('<h2 class="sidebar-header">Property Information</h2>', unsafe_allow_html=True)
-        property_name = st.text_input("Property Name (Optional)", value=property_name)
-        st.session_state.property_name = property_name
-        
-        property_id = st.text_input("Property ID (Optional)")
-        
-        # Display options
-        st.markdown('<h2 class="sidebar-header">Display Options</h2>', unsafe_allow_html=True)
-        show_zero_values = st.checkbox("Show Zero Values", value=st.session_state.show_zero_values)
-        st.session_state.show_zero_values = show_zero_values
-        
-        # API configuration
-        st.markdown('<h2 class="sidebar-header">API Configuration</h2>', unsafe_allow_html=True)
-        with st.expander("API Configuration"):
-            # Get current values
-            current_api_url = get_extraction_api_url()
-            current_api_key = get_api_key()
-            current_openai_key = get_openai_api_key()
-            
-            # Remove /extract from display URL
-            if current_api_url and current_api_url.endswith('/extract'):
-                display_url = current_api_url[:-8]
-            else:
-                display_url = current_api_url
-                
-            # API URL
-            st.markdown('<div class="api-config-label">Extraction API URL</div>', unsafe_allow_html=True)
-            api_url = st.text_input("", value=display_url, key="api_url_input", help="URL of the extraction API service")
-            
-            # API Key
-            st.markdown('<div class="api-config-label">API Key</div>', unsafe_allow_html=True)
-            api_key = st.text_input("", value=current_api_key, key="api_key_input", type="password", help="API key for the extraction service")
-            
-            # OpenAI API Key
-            st.markdown('<div class="api-config-label">OpenAI API Key</div>', unsafe_allow_html=True)
-            openai_api_key = st.text_input("", value=current_openai_key, key="openai_api_key_input", type="password", help="OpenAI API key for generating insights")
-            
-            # Save button
-            if st.button("Save API Settings", key="save_api_settings_btn"):
-                save_api_settings(openai_api_key, api_url, api_key)
-                st.success("API settings saved successfully!")
-
-        # Process button
-        process_button = st.button("Process Documents", key="process_docs_sidebar", use_container_width=True)
-        if process_button:
-            if not st.session_state.current_month_actuals:
-                st.error("Current Month Actuals is required.")
-            else:
-                st.session_state.processing_completed = False
-                st.session_state.comparison_results = None
-                st.session_state.insights = None
-                st.session_state.processing_status = "processing"
-
-                # Initialize progress tracking
-                st.session_state.progress_bar = st.progress(0)
-                st.session_state.status_text = st.empty()
-
-                # Process documents
-                with st.spinner("Processing documents..."):
-                    consolidated_data = process_all_documents()
-
-                    # Calculate comparisons if processing was successful
-                    if st.session_state.processing_completed:
-                        st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data)
-                        
-                        # Debug the structure of comparison results
-                        debug_comparison_structure(st.session_state.comparison_results)
-                        
-                        # Log the comparison results structure
-                        logger.info(f"Calculated comparison results with keys: {list(st.session_state.comparison_results.keys())}")
-
-                        # Generate insights if OpenAI API key is provided
-                        openai_key = get_openai_api_key()
-                        if openai_key and len(openai_key) > 10:
-                            st.session_state.status_text.text("Generating AI insights...")
-                            st.session_state.progress_bar.progress(90)
-                            
-                            # Log the call to generate_insights_with_gpt
-                            logger.info(f"Calling generate_insights_with_gpt with OpenAI key: {'*' * (len(openai_key) - 5)}{openai_key[-5:]}")
-                            logger.info(f"Comparison results keys: {list(st.session_state.comparison_results.keys())}")
-                            
-                            try:
-                                st.session_state.insights = generate_insights_with_gpt(
-                                    st.session_state.comparison_results,
-                                    property_name
-                                )
-                                logger.info(f"Generated insights: {st.session_state.insights is not None}")
-                            except Exception as e:
-                                logger.error(f"Error generating insights: {str(e)}")
-                                st.error(f"Error generating insights: {str(e)}")
-                                st.session_state.insights = None
-                                
-                            st.session_state.progress_bar.progress(100)
-                            st.session_state.status_text.text("Processing complete!")
-                        else:
-                            logger.warning("Skipping AI insights generation - no valid OpenAI API key")
-                            st.session_state.progress_bar.progress(100)
-                            st.session_state.status_text.text("Processing complete! (AI insights skipped - no API key)")
-
-                # Clean up progress tracking
-                if 'progress_bar' in st.session_state:
-                    st.session_state.progress_bar.empty()
-                if 'status_text' in st.session_state:
-                    st.session_state.status_text.empty()
-                    
-                st.session_state.processing_status = "complete"
-
-                # Rerun to update the main content area
-                st.rerun()
-
-        # Clear data button
-        if st.session_state.processing_completed:
-            if st.button("Clear Data", key="clear_data_btn", use_container_width=True):
-                # Reset session state
-                st.session_state.current_month_actuals = None
-                st.session_state.prior_month_actuals = None
-                st.session_state.current_month_budget = None
-                st.session_state.prior_year_actuals = None
-                st.session_state.consolidated_data = None
-                st.session_state.processing_completed = False
-                st.session_state.comparison_results = None
-                st.session_state.insights = None
-                st.session_state.processing_status = None
-                
-                # Rerun to update the UI
-                st.rerun()
-
-    # Main content area
-    if st.session_state.processing_completed and st.session_state.comparison_results:
-        try:
-            # Display NOI comparisons
-            display_noi_comparisons(st.session_state.comparison_results)
-
-            # Display AI insights if available
-            if st.session_state.insights:
-                display_insights(st.session_state.insights, property_name)
-                
-            # Add export options
-            st.markdown('<h2 class="section-header">Export Options</h2>', unsafe_allow_html=True)
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("Export to Excel", key="export_excel_btn", use_container_width=True):
-                    try:
-                        excel_data = export_to_excel(st.session_state.comparison_results, property_name)
-                        if excel_data:
-                            # Create a download button for the Excel file
-                            safe_property_name = "".join(c if c.isalnum() else "_" for c in property_name) if property_name else "Property"
-                            filename = f"{safe_property_name}_NOI_Analysis_{datetime.now().strftime('%Y%m%d')}.xlsx"
-                            
-                            st.download_button(
-                                label="Download Excel File",
-                                data=excel_data,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                            )
-                        else:
-                            st.error("Failed to generate Excel file. Please try again.")
-                    except Exception as e:
-                        logger.error(f"Error in Excel export button action: {str(e)}")
-                        st.error(f"Error exporting to Excel: {str(e)}")
-            with col2:
-                if st.button("Export to CSV", key="export_csv_btn", use_container_width=True):
-                    try:
-                        csv_files = export_to_csv(st.session_state.comparison_results, property_name)
-                        if csv_files:
-                            # If only one CSV file, provide direct download
-                            if len(csv_files) == 1:
-                                file_name, file_data = next(iter(csv_files.items()))
-                                st.download_button(
-                                    label="Download CSV File",
-                                    data=file_data,
-                                    file_name=file_name,
-                                    mime="text/csv"
-                                )
-                            else:
-                                # If multiple files, let user select which one to download
-                                selected_file = st.selectbox(
-                                    "Select file to download:",
-                                    list(csv_files.keys())
-                                )
-                                
-                                if selected_file:
-                                    st.download_button(
-                                        label=f"Download {selected_file}",
-                                        data=csv_files[selected_file],
-                                        file_name=selected_file,
-                                        mime="text/csv"
-                                    )
-                        else:
-                            st.error("Failed to generate CSV files. Please try again.")
-                    except Exception as e:
-                        logger.error(f"Error in CSV export button action: {str(e)}")
-                        st.error(f"Error exporting to CSV: {str(e)}")
-            with col3:
-                if st.button("Generate PDF Report", key="share_report_btn", use_container_width=True):
-                    try:
-                        with st.spinner("Generating PDF report..."):
-                            pdf_path = generate_pdf_report(st.session_state.comparison_results, property_name)
-                            
-                        if pdf_path and os.path.exists(pdf_path):
-                            # Read the PDF file
-                            with open(pdf_path, "rb") as f:
-                                pdf_data = f.read()
-                            
-                            # Clean up the temporary file
-                            try:
-                                os.unlink(pdf_path)
-                            except Exception as e:
-                                logger.error(f"Error removing temporary PDF file: {str(e)}")
-                            
-                            # Create a download button for the PDF
-                            safe_property_name = "".join(c if c.isalnum() else "_" for c in property_name) if property_name else "Property"
-                            filename = f"{safe_property_name}_NOI_Report_{datetime.now().strftime('%Y%m%d')}.pdf"
-                            
-                            st.download_button(
-                                label="Download PDF Report",
-                                data=pdf_data,
-                                file_name=filename,
-                                mime="application/pdf"
-                            )
-                        else:
-                            st.error("Failed to generate PDF report. Please try again.")
-                    except Exception as e:
-                        logger.error(f"Error in PDF report button action: {str(e)}")
-                        st.error(f"Error generating PDF report: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error displaying results: {str(e)}")
-            st.error(f"Error displaying results: {str(e)}")
-            # Display raw data as fallback
-            st.subheader("Raw Data (Error Fallback)")
-            st.json(st.session_state.comparison_results)
-    else:
-        # Display instructions when no data is processed
-        if st.session_state.processing_status == "processing":
-            st.info("Processing documents... Please wait.")
-        else:
-            # Use native Streamlit info component instead of custom card div
-            st.info("Upload your financial documents using the sidebar and click 'Process Documents' to begin analysis.")
-
-            # Display sample images or instructions
-            st.markdown('<h2 class="section-header">How to use this tool:</h2>', unsafe_allow_html=True)
-            
-            st.markdown("""
-            1. **Upload Documents**: Start by uploading your current month actuals (required). For more comprehensive analysis, also upload prior month actuals, budget, and prior year actuals.
-
-            2. **Process Documents**: Click the 'Process Documents' button to extract and analyze the financial data.
-
-            3. **Review Results**: Examine the comparative analysis and AI-generated insights to understand your property's financial performance.
-
-            4. **Export or Share**: Use the export options to download reports or share insights with your team.
-            """)
-            
-            # Add sample data option
-            st.markdown('<h3>Try with Sample Data</h3>', unsafe_allow_html=True)
-            if st.button("Load Sample Data", key="load_sample_data_btn", use_container_width=True):
-                st.info("Sample data functionality will be available in the next update.")
-
-
-if __name__ == "__main__":
-    main()

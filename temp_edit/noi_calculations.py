@@ -8,13 +8,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_calculations')
 
-def safe_float(value: Any) -> float:
-    """Safely convert value to float"""
-    try:
-        return float(value or 0.0)
-    except (TypeError, ValueError):
-        return 0.0
-
 def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, Any]]]) -> Dict[str, Any]:
     """
     Calculate detailed NOI comparisons with improved data handling and validation
@@ -25,49 +18,14 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         """Normalize input data structure"""
         if not data:
             return {}
-        
-        financials = data.get('financials', data)
-        normalized = {}
-        
-        # Copy all top-level financials
-        for key, value in financials.items():
-            normalized[key] = value
-        
-        # Extract nested OpEx components if they exist
-        if "operating_expenses" in financials and isinstance(financials["operating_expenses"], dict):
-            opex_data = financials["operating_expenses"]
-            
-            # Set total OpEx
-            if "total_operating_expenses" in opex_data:
-                normalized["opex"] = opex_data["total_operating_expenses"]
-            
-            # Extract each OpEx component
-            component_mapping = {
-                "property_taxes": ["property_taxes", "taxes"],
-                "insurance": ["insurance"],
-                "repairs_and_maintenance": ["repairs_maintenance", "repairs", "maintenance"],
-                "utilities": ["utilities"],
-                "management_fees": ["management_fees", "management"]
-            }
-            
-            # Try to extract each component using various possible field names
-            for normalized_key, possible_fields in component_mapping.items():
-                for field in possible_fields:
-                    if field in opex_data and opex_data[field] is not None:
-                        normalized[normalized_key] = opex_data[field]
-                        break
-        
-        # Handle legacy/flat structure where components might be at the top level
-        if "opex" not in normalized and "operating_expenses_total" in financials:
-            normalized["opex"] = financials["operating_expenses_total"]
-        
-        # Ensure all OpEx components exist with default values if missing
-        opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
-        for component in opex_components:
-            if component not in normalized:
-                normalized[component] = 0
-                
-        return normalized
+        return data.get('financials', data)
+    
+    def safe_float(value: Any) -> float:
+        """Safely convert value to float"""
+        try:
+            return float(value or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
     
     def safe_percent_change(current: float, previous: float) -> float:
         """Calculate percentage change with improved handling of edge cases"""
@@ -90,11 +48,10 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     # Store current data
     comparison_results["current"] = current_data
     
-    # Define metrics to compare, now including OpEx components
+    # Define metrics to compare
     metrics = [
         "gpr", "vacancy_loss", "concessions", "bad_debt",
-        "other_income", "egi", "opex", "property_taxes", "insurance", 
-        "repairs_and_maintenance", "utilities", "management_fees", "noi"
+        "other_income", "egi", "opex", "noi"
     ]
     
     # Calculate comparisons for each period type
@@ -163,21 +120,4 @@ def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
         logger.warning(
             f"NOI calculation mismatch: reported={reported_noi:.2f}, "
             f"calculated={calculated_noi:.2f}"
-        )
-    
-    # Validate OpEx breakdown summing to total OpEx
-    total_opex = safe_float(current.get("opex"))
-    sum_components = (
-        safe_float(current.get("property_taxes")) +
-        safe_float(current.get("insurance")) +
-        safe_float(current.get("repairs_and_maintenance")) +
-        safe_float(current.get("utilities")) +
-        safe_float(current.get("management_fees"))
-    )
-    
-    # Allow some tolerance for rounding errors
-    if abs(total_opex - sum_components) > 0.1 and total_opex > 0:
-        logger.warning(
-            f"OpEx components sum mismatch: total={total_opex:.2f}, "
-            f"component sum={sum_components:.2f}"
         )
