@@ -35,16 +35,22 @@ logger = logging.getLogger('noi_analyzer')
 # Import the logo function
 from reborn_logo import get_reborn_logo_base64
 
-# Logo display function
+# Logo display function - updated to use direct embedding
 def display_logo():
     """Display the Reborn logo in the Streamlit app"""
-    logo_base64 = get_reborn_logo_base64()
-    logo_html = f"""
-    <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-        <img src="data:image/png;base64,{logo_base64}" width="150px" alt="Reborn Logo">
-    </div>
-    """
-    st.markdown(logo_html, unsafe_allow_html=True)
+    try:
+        # Direct embedding of the logo
+        logo_html = f"""
+        <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+            <img src="data:image/png;base64,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" width="150px" alt="Reborn Logo">
+        </div>
+        """
+        st.markdown(logo_html, unsafe_allow_html=True)
+        logger.info("Successfully displayed logo using direct base64 embedding")
+    except Exception as e:
+        logger.error(f"Error displaying logo: {str(e)}")
+        # Fallback to text
+        st.markdown("**REBORN NOI ANALYZER**")
 
 # Show instructions to the user
 def show_instructions():
@@ -76,28 +82,107 @@ def load_css():
                 logger.info(f"Successfully loaded CSS from {css_path}")
         else:
             logger.warning(f"CSS file not found at path: {css_path}")
-            # Apply fallback minimal styling
+            # Apply fallback comprehensive styling
             st.markdown("""
             <style>
-            .section-header {color: #4DB6AC; font-size: 1.5rem; margin-top: 2rem;}
-            .metric-card {background-color: #1E293B; border-radius: 10px; padding: 15px; margin: 10px 0;}
-            .metric-title {color: #94A3B8; font-size: 0.9rem;}
-            .metric-value {color: white; font-size: 1.5rem; font-weight: bold;}
-            .positive-change {color: #22C55E;}
-            .negative-change {color: #EF4444;}
+            /* Global theming */
+            .stApp {
+                background-color: #0A0F1E;
+                color: #F0F0F0;
+            }
+            
+            /* Headers */
+            h1, h2, h3, h4, h5 {
+                color: #4DB6AC !important;
+                font-family: 'Inter', sans-serif;
+            }
+            
+            /* Section headers */
+            .section-header {
+                color: #4DB6AC; 
+                font-size: 1.5rem; 
+                margin-top: 2rem;
+                font-weight: 600;
+            }
+            
+            /* Metric cards */
+            .metric-card {
+                background-color: #1E293B; 
+                border-radius: 10px; 
+                padding: 15px; 
+                margin: 10px 0;
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            .metric-title {
+                color: #94A3B8; 
+                font-size: 0.9rem;
+            }
+            .metric-value {
+                color: white; 
+                font-size: 1.5rem; 
+                font-weight: bold;
+            }
+            
+            /* Color indicators */
+            .positive-change {color: #22C55E !important;}
+            .negative-change {color: #EF4444 !important;}
+            
+            /* Expanders */
+            .streamlit-expanderHeader {
+                background-color: rgba(30, 41, 59, 0.7);
+                border-radius: 5px;
+                color: #F0F0F0;
+                font-weight: 500;
+            }
+            
+            /* Insights */
+            .insights-summary {
+                background-color: rgba(30, 41, 59, 0.7);
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #4DB6AC;
+                margin-bottom: 10px;
+            }
+            
+            /* Button styling */
+            .stButton>button {
+                background-color: #4DB6AC;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 10px 24px;
+                font-weight: 500;
+            }
+            .stButton>button:hover {
+                background-color: #3B9E94;
+            }
+            
+            /* Tables */
+            .dataframe {
+                font-family: 'Inter', sans-serif;
+            }
+            .dataframe th {
+                background-color: #1E293B;
+            }
+            .dataframe td {
+                background-color: rgba(30, 41, 59, 0.5);
+            }
+            
+            /* Ensure text contrast */
+            p, span, div, li {
+                color: #F0F0F0;
+            }
             </style>
             """, unsafe_allow_html=True)
     except Exception as e:
         logger.error(f"Error loading CSS: {str(e)}")
-        # Apply fallback minimal styling
+        # Apply minimal fallback styling
         st.markdown("""
         <style>
+        h1, h2, h3, h4, h5 {color: #4DB6AC !important;}
         .section-header {color: #4DB6AC; font-size: 1.5rem; margin-top: 2rem;}
-        .metric-card {background-color: #1E293B; border-radius: 10px; padding: 15px; margin: 10px 0;}
-        .metric-title {color: #94A3B8; font-size: 0.9rem;}
-        .metric-value {color: white; font-size: 1.5rem; font-weight: bold;}
-        .positive-change {color: #22C55E;}
-        .negative-change {color: #EF4444;}
+        .positive-change {color: #22C55E !important;}
+        .negative-change {color: #EF4444 !important;}
         </style>
         """, unsafe_allow_html=True)
 
@@ -352,24 +437,32 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # Get indices of the columns to style
             pct_change_idx = list(row.index).index("Change (%)")
             dollar_change_idx = list(row.index).index("Change ($)")
+            metric_idx = list(row.index).index("Metric")
             
             direction = row["Direction"]
-            change_pct = float(row["Change (%)"].strip('%'))
+            change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
             
-            # Determine if the change is positive from a business perspective
-            if direction == "inverse":
-                # For metrics where decrease is good (Vacancy Loss, OpEx)
-                is_positive = change_pct < 0
-            else:
-                # For metrics where increase is good (NOI, GPR, etc.)
-                is_positive = change_pct > 0
+            try:
+                change_pct = float(change_pct_str)
                 
-            # Apply appropriate colors
-            color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
-            
-            # Apply to both dollar and percentage columns
-            styles[pct_change_idx] = color
-            styles[dollar_change_idx] = color
+                # Determine if the change is positive from a business perspective
+                # For metrics where a decrease is good (Vacancy Loss, OpEx)
+                if direction == "inverse":
+                    # For these metrics (expenses/losses), a decrease (negative change) is GOOD (green)
+                    is_positive = change_pct < 0
+                else:
+                    # For income metrics (NOI, GPR), an increase (positive change) is GOOD (green)
+                    is_positive = change_pct > 0
+                    
+                # Apply appropriate colors
+                color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
+                
+                # Apply to both dollar and percentage columns
+                styles[pct_change_idx] = color
+                styles[dollar_change_idx] = color
+            except (ValueError, TypeError):
+                # If there's an error parsing the percentage, don't apply styling
+                pass
             
             return styles
         
@@ -940,7 +1033,6 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
         else:
             st.info("No prior month data available for comparison.")
 
-
 def generate_pdf_report(comparison_results: Dict[str, Any], property_name: str = "Property") -> Optional[str]:
     """
     Generate a PDF report from the comparison results.
@@ -1371,6 +1463,39 @@ def export_to_excel(comparison_results: Dict[str, Any], property_name: str = "Pr
         logger.error(f"Error exporting to Excel: {str(e)}")
         return None
 
+# Add a function to display insights in the UI
+def display_insights(insights: Dict[str, Any]):
+    """
+    Display insights and recommendations in the UI
+    
+    Args:
+        insights: Dictionary containing summary, performance insights, and recommendations
+    """
+    if not insights:
+        st.info("No insights available. Please process documents to generate insights.")
+        return
+    
+    # Create expanders for each section
+    with st.expander("Executive Summary", expanded=True):
+        if "summary" in insights and insights["summary"]:
+            st.markdown(f"<div class='insights-summary'>{insights['summary']}</div>", unsafe_allow_html=True)
+        else:
+            st.info("No executive summary available.")
+    
+    with st.expander("Key Performance Insights", expanded=True):
+        if "performance" in insights and insights["performance"] and len(insights["performance"]) > 0:
+            for i, insight in enumerate(insights["performance"], 1):
+                st.markdown(f"**{i}.** {insight}")
+        else:
+            st.info("No performance insights available.")
+    
+    with st.expander("Recommendations", expanded=True):
+        if "recommendations" in insights and insights["recommendations"] and len(insights["recommendations"]) > 0:
+            for i, recommendation in enumerate(insights["recommendations"], 1):
+                st.markdown(f"**{i}.** {recommendation}")
+        else:
+            st.info("No recommendations available.")
+
 def main():
     """Main entry point for the Streamlit app"""
     # Create sidebar for navigation and controls
@@ -1378,13 +1503,7 @@ def main():
         st.title("NOI Analyzer")
         
         # Display logo in sidebar
-        logo_base64 = get_reborn_logo_base64()
-        logo_html = f"""
-        <div style="display: flex; justify-content: center; margin: 10px 0;">
-            <img src="data:image/png;base64,{logo_base64}" width="100px" alt="Reborn Logo">
-        </div>
-        """
-        st.markdown(logo_html, unsafe_allow_html=True)
+        display_logo()
         
         # Upload section
         st.header("Document Upload")
@@ -1499,6 +1618,11 @@ def main():
         
         # Display NOI comparisons
         display_noi_comparisons(st.session_state.comparison_results)
+        
+        # Display insights if available
+        if "insights" in st.session_state and st.session_state.insights:
+            st.header("Financial Insights")
+            display_insights(st.session_state.insights)
         
         # Export options
         st.header("Export Options")
