@@ -21,203 +21,117 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_tool_batch_integration')
 
+def collect_all_files() -> Dict[str, Any]:
+    """
+    Collect all files from session state
+    
+    Returns:
+        Dictionary with document types as keys and file objects as values
+    """
+    logger.info("Collecting files from session state")
+    
+    files = {}
+    
+    # Check for current month actuals (required)
+    if 'current_month_actuals' in st.session_state and st.session_state.current_month_actuals is not None:
+        files["current_month_actuals"] = st.session_state.current_month_actuals
+    
+    # Check for prior month actuals (optional)
+    if 'prior_month_actuals' in st.session_state and st.session_state.prior_month_actuals is not None:
+        files["prior_month_actuals"] = st.session_state.prior_month_actuals
+    
+    # Check for budget (optional)
+    if 'current_month_budget' in st.session_state and st.session_state.current_month_budget is not None:
+        files["current_month_budget"] = st.session_state.current_month_budget
+    
+    # Check for prior year actuals (optional)
+    if 'prior_year_actuals' in st.session_state and st.session_state.prior_year_actuals is not None:
+        files["prior_year_actuals"] = st.session_state.prior_year_actuals
+    
+    logger.info(f"Collected {len(files)} files: {list(files.keys())}")
+    return files
+
 def process_all_documents() -> Dict[str, Any]:
     """
-    Process all uploaded documents using the enhanced extraction API.
-
-    Returns:
-        Consolidated data dictionary with the DETAILED structure for each document type.
-    """
-    # Initialize consolidated data structure
-    consolidated_data = {
-        "current_month": None,
-        "prior_month": None,
-        "budget": None,
-        "prior_year": None
-    }
-    processed_ok = True # Flag to track if all essential processing worked
-    processing_results = [] # Track processing results for summary
-
-    # Process current month actuals (required)
-    if st.session_state.current_month_actuals:
-        with st.status(f"Processing Current Month: {st.session_state.current_month_actuals.name}...", expanded=True) as status:
-            status.update(label="Extracting data...", state="running")
-            result = extract_noi_data(st.session_state.current_month_actuals, "current_month_actuals")
-            
-            if result:
-                status.update(label="Formatting data...", state="running")
-                # Use the enhanced formatter
-                formatted_data = format_for_noi_comparison(result)
-                
-                # Validate the formatted data
-                validation_result = validate_formatted_data(formatted_data, "current_month")
-                if validation_result["valid"]:
-                    consolidated_data["current_month"] = formatted_data
-                    status.update(label=f"✅ Processed Current Month: {st.session_state.current_month_actuals.name}", state="complete")
-                    processing_results.append({
-                        "file": st.session_state.current_month_actuals.name,
-                        "type": "Current Month",
-                        "status": "Success",
-                        "details": f"Extracted {len(formatted_data)} data points"
-                    })
-                else:
-                    status.update(label=f"⚠️ Processed Current Month with warnings: {validation_result['message']}", state="complete")
-                    st.warning(validation_result["message"])
-                    consolidated_data["current_month"] = formatted_data
-                    processing_results.append({
-                        "file": st.session_state.current_month_actuals.name,
-                        "type": "Current Month",
-                        "status": "Warning",
-                        "details": validation_result["message"]
-                    })
-            else:
-                status.update(label=f"❌ Failed to process Current Month: {st.session_state.current_month_actuals.name}", state="error")
-                processed_ok = False # Mark failure
-                processing_results.append({
-                    "file": st.session_state.current_month_actuals.name,
-                    "type": "Current Month",
-                    "status": "Failed",
-                    "details": "Extraction failed"
-                })
-
-    # Process prior month actuals (optional)
-    if st.session_state.prior_month_actuals:
-        with st.status(f"Processing Prior Month: {st.session_state.prior_month_actuals.name}...", expanded=True) as status:
-            status.update(label="Extracting data...", state="running")
-            result = extract_noi_data(st.session_state.prior_month_actuals, "prior_month_actuals")
-            
-            if result:
-                status.update(label="Formatting data...", state="running")
-                formatted_data = format_for_noi_comparison(result)
-                
-                # Validate the formatted data
-                validation_result = validate_formatted_data(formatted_data, "prior_month")
-                if validation_result["valid"]:
-                    consolidated_data["prior_month"] = formatted_data
-                    status.update(label=f"✅ Processed Prior Month: {st.session_state.prior_month_actuals.name}", state="complete")
-                    processing_results.append({
-                        "file": st.session_state.prior_month_actuals.name,
-                        "type": "Prior Month",
-                        "status": "Success",
-                        "details": f"Extracted {len(formatted_data)} data points"
-                    })
-                else:
-                    status.update(label=f"⚠️ Processed Prior Month with warnings: {validation_result['message']}", state="complete")
-                    st.warning(validation_result["message"])
-                    consolidated_data["prior_month"] = formatted_data
-                    processing_results.append({
-                        "file": st.session_state.prior_month_actuals.name,
-                        "type": "Prior Month",
-                        "status": "Warning",
-                        "details": validation_result["message"]
-                    })
-            else:
-                status.update(label=f"❌ Failed to process Prior Month: {st.session_state.prior_month_actuals.name}", state="error")
-                processing_results.append({
-                    "file": st.session_state.prior_month_actuals.name,
-                    "type": "Prior Month",
-                    "status": "Failed",
-                    "details": "Extraction failed"
-                })
-                # Allow continuing even if optional files fail
-
-    # Process budget files (optional)
-    if st.session_state.current_month_budget:
-        with st.status(f"Processing Budget: {st.session_state.current_month_budget.name}...", expanded=True) as status:
-            status.update(label="Extracting data...", state="running")
-            result = extract_noi_data(st.session_state.current_month_budget, "current_month_budget")
-            
-            if result:
-                status.update(label="Formatting data...", state="running")
-                formatted_data = format_for_noi_comparison(result)
-                
-                # Validate the formatted data
-                validation_result = validate_formatted_data(formatted_data, "budget")
-                if validation_result["valid"]:
-                    consolidated_data["budget"] = formatted_data
-                    status.update(label=f"✅ Processed Budget: {st.session_state.current_month_budget.name}", state="complete")
-                    processing_results.append({
-                        "file": st.session_state.current_month_budget.name,
-                        "type": "Budget",
-                        "status": "Success",
-                        "details": f"Extracted {len(formatted_data)} data points"
-                    })
-                else:
-                    status.update(label=f"⚠️ Processed Budget with warnings: {validation_result['message']}", state="complete")
-                    st.warning(validation_result["message"])
-                    consolidated_data["budget"] = formatted_data
-                    processing_results.append({
-                        "file": st.session_state.current_month_budget.name,
-                        "type": "Budget",
-                        "status": "Warning",
-                        "details": validation_result["message"]
-                    })
-            else:
-                status.update(label=f"❌ Failed to process Budget: {st.session_state.current_month_budget.name}", state="error")
-                processing_results.append({
-                    "file": st.session_state.current_month_budget.name,
-                    "type": "Budget",
-                    "status": "Failed",
-                    "details": "Extraction failed"
-                })
-
-    # Process prior year actuals (optional)
-    if st.session_state.prior_year_actuals:
-        with st.status(f"Processing Prior Year: {st.session_state.prior_year_actuals.name}...", expanded=True) as status:
-            status.update(label="Extracting data...", state="running")
-            result = extract_noi_data(st.session_state.prior_year_actuals, "prior_year_actuals")
-            
-            if result:
-                status.update(label="Formatting data...", state="running")
-                formatted_data = format_for_noi_comparison(result)
-                
-                # Validate the formatted data
-                validation_result = validate_formatted_data(formatted_data, "prior_year")
-                if validation_result["valid"]:
-                    consolidated_data["prior_year"] = formatted_data
-                    status.update(label=f"✅ Processed Prior Year: {st.session_state.prior_year_actuals.name}", state="complete")
-                    processing_results.append({
-                        "file": st.session_state.prior_year_actuals.name,
-                        "type": "Prior Year",
-                        "status": "Success",
-                        "details": f"Extracted {len(formatted_data)} data points"
-                    })
-                else:
-                    status.update(label=f"⚠️ Processed Prior Year with warnings: {validation_result['message']}", state="complete")
-                    st.warning(validation_result["message"])
-                    consolidated_data["prior_year"] = formatted_data
-                    processing_results.append({
-                        "file": st.session_state.prior_year_actuals.name,
-                        "type": "Prior Year",
-                        "status": "Warning",
-                        "details": validation_result["message"]
-                    })
-            else:
-                status.update(label=f"❌ Failed to process Prior Year: {st.session_state.prior_year_actuals.name}", state="error")
-                processing_results.append({
-                    "file": st.session_state.prior_year_actuals.name,
-                    "type": "Prior Year",
-                    "status": "Failed",
-                    "details": "Extraction failed"
-                })
-
-    # Display processing summary
-    if processing_results:
-        st.subheader("Processing Summary")
-        summary_df = pd.DataFrame(processing_results)
-        st.dataframe(summary_df, use_container_width=True)
-
-    # Store in session state
-    st.session_state.consolidated_data = consolidated_data
-    st.session_state.processing_completed = processed_ok # Store completion status
+    Process all uploaded documents and return consolidated data ready for NOI calculation
     
-    # Log the final consolidated structure
-    logger.info(f"Consolidated data structure: {list(consolidated_data.keys())}")
-    for doc_type, data in consolidated_data.items():
-        if data:
-            logger.info(f"{doc_type} data keys: {list(data.keys())}")
-
-    return consolidated_data
+    Returns:
+        Dictionary containing financial data for each document type
+    """
+    logger.info("Processing all documents")
+    
+    # Collect all files from session state
+    files = collect_all_files()
+    
+    # Return empty data if no files
+    if not files:
+        logger.warning("No files to process")
+        return {
+            'error': "No files to process. Please upload at least the Current Month Actuals file."
+        }
+    
+    # Extract data from each document
+    results = {}
+    has_error = False
+    error_message = ""
+    
+    for doc_type, file in files.items():
+        if file is not None:
+            logger.info(f"Processing {doc_type}: {file.name}")
+            
+            # Process document and get extraction result
+            extraction_result = extract_noi_data(file, doc_type)
+            
+            # Check for extraction errors
+            if 'error' in extraction_result:
+                logger.error(f"Error extracting data from {doc_type}: {extraction_result['error']}")
+                has_error = True
+                error_message = extraction_result['error']
+                if 'details' in extraction_result:
+                    error_message += f" Details: {extraction_result['details']}"
+                continue
+            
+            # Format data for NOI calculation
+            formatted_data = format_for_noi_comparison(extraction_result)
+            
+            # Add to results
+            if doc_type == "current_month_actuals":
+                results["current_month"] = formatted_data
+            elif doc_type == "prior_month_actuals":
+                results["prior_month"] = formatted_data
+            elif doc_type == "current_month_budget":
+                results["budget"] = formatted_data
+            elif doc_type == "prior_year_actuals":
+                results["prior_year"] = formatted_data
+    
+    # Check if we have the minimum required data
+    if "current_month" not in results:
+        logger.error("Current month data is required but missing or failed to process")
+        return {
+            'error': "Current month data is required but missing or failed to process",
+            'details': error_message if has_error else "Please upload Current Month Actuals file and try again."
+        }
+    
+    # Check if we have any errors but still have current month data
+    if has_error:
+        logger.warning("Some documents had extraction errors, but proceeding with available data")
+        # We can still continue with partial data if at least current_month is available
+    
+    # Log structure of consolidated data
+    logger.info(f"Consolidated data structure: {list(results.keys())}")
+    
+    # Check that current_month has the expected data
+    if "current_month" in results:
+        current_month = results["current_month"]
+        logger.info(f"current_month data keys: {list(current_month.keys())}")
+    
+    # Check other data elements if present
+    for key in ["prior_month", "budget", "prior_year"]:
+        if key in results:
+            data = results[key]
+            logger.info(f"{key} data keys: {list(data.keys())}")
+    
+    return results
 
 def validate_formatted_data(data: Dict[str, Any], doc_type: str) -> Dict[str, Any]:
     """

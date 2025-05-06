@@ -19,6 +19,7 @@ from noi_tool_batch_integration import process_all_documents
 from ai_extraction import extract_noi_data
 from ai_insights_gpt import generate_insights_with_gpt
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
+from reborn_logo import get_reborn_logo_base64
 
 # Configure logging
 logging.basicConfig(
@@ -30,6 +31,39 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger('noi_analyzer')
+
+# Import the logo function
+from reborn_logo import get_reborn_logo_base64
+
+# Logo display function
+def display_logo():
+    """Display the Reborn logo in the Streamlit app"""
+    logo_base64 = get_reborn_logo_base64()
+    logo_html = f"""
+    <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+        <img src="data:image/png;base64,{logo_base64}" width="150px" alt="Reborn Logo">
+    </div>
+    """
+    st.markdown(logo_html, unsafe_allow_html=True)
+
+# Show instructions to the user
+def show_instructions():
+    """Display instructions for using the NOI Analyzer"""
+    instructions_html = """
+    <div style="background-color: rgba(30, 41, 59, 0.8); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+        <h3 style="color: #4DB6AC;">Instructions:</h3>
+        <ol style="color: #F0F0F0;">
+            <li>Upload your financial documents using the file uploaders</li>
+            <li>At minimum, upload a <b>Current Month Actuals</b> file</li>
+            <li>For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)</li>
+            <li>Click "Process Documents" to analyze the data</li>
+            <li>View the results in the analysis tabs</li>
+            <li>Export your results as PDF or Excel using the export options</li>
+        </ol>
+        <p style="color: #F0F0F0; font-style: italic;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>
+    </div>
+    """
+    st.markdown(instructions_html, unsafe_allow_html=True)
 
 # Load custom CSS function (defined here before it's used)
 def load_css():
@@ -1313,6 +1347,15 @@ def main():
     with st.sidebar:
         st.title("NOI Analyzer")
         
+        # Display logo in sidebar
+        logo_base64 = get_reborn_logo_base64()
+        logo_html = f"""
+        <div style="display: flex; justify-content: center; margin: 10px 0;">
+            <img src="data:image/png;base64,{logo_base64}" width="100px" alt="Reborn Logo">
+        </div>
+        """
+        st.markdown(logo_html, unsafe_allow_html=True)
+        
         # Upload section
         st.header("Document Upload")
         
@@ -1345,7 +1388,14 @@ def main():
     
     # Main content area
     st.title("NOI Analyzer")
+    
+    # Display logo in main content area
+    display_logo()
+    
     st.markdown("Upload financial documents to analyze Net Operating Income (NOI) comparisons.")
+    
+    # Show instructions to the user
+    show_instructions()
     
     # File upload section
     st.header("Upload Documents")
@@ -1386,28 +1436,35 @@ def main():
                 # Process the documents
                 consolidated_data = process_all_documents()
                 
-                # Calculate comparisons
-                comparison_results = calculate_noi_comparisons(
-                    consolidated_data.get("current_month"),
-                    consolidated_data.get("budget"),
-                    consolidated_data.get("prior_month"),
-                    consolidated_data.get("prior_year")
-                )
-                
-                # Store in session state
-                st.session_state.comparison_results = comparison_results
-                
-                # Generate insights with GPT if possible
-                if get_openai_api_key():
-                    logger.info("Calling generate_insights_with_gpt with OpenAI key: " + "*" * len(get_openai_api_key()))
-                    insights = generate_insights_with_gpt(comparison_results)
-                    st.session_state.insights = insights
-                    logger.info(f"Generated insights: {insights is not None}")
+                # Check if there were API errors during processing
+                if isinstance(consolidated_data, dict) and 'error' in consolidated_data:
+                    st.error(f"Error processing documents: {consolidated_data['error']}")
+                    if 'details' in consolidated_data:
+                        st.info(f"Error details: {consolidated_data['details']}")
+                    st.info("Please check your API settings and try again.")
                 else:
-                    logger.warning("OpenAI API key not provided. Skipping insights generation.")
-                
-                st.session_state.processing_completed = True
-                st.success("Documents processed successfully!")
+                    # Calculate comparisons
+                    comparison_results = calculate_noi_comparisons(
+                        consolidated_data.get("current_month"),
+                        consolidated_data.get("budget"),
+                        consolidated_data.get("prior_month"),
+                        consolidated_data.get("prior_year")
+                    )
+                    
+                    # Store in session state
+                    st.session_state.comparison_results = comparison_results
+                    
+                    # Generate insights with GPT if possible
+                    if get_openai_api_key():
+                        logger.info("Calling generate_insights_with_gpt with OpenAI key: " + "*" * len(get_openai_api_key()))
+                        insights = generate_insights_with_gpt(comparison_results)
+                        st.session_state.insights = insights
+                        logger.info(f"Generated insights: {insights is not None}")
+                    else:
+                        logger.warning("OpenAI API key not provided. Skipping insights generation.")
+                    
+                    st.session_state.processing_completed = True
+                    st.success("Documents processed successfully!")
     
     # Display results if processing is completed
     if st.session_state.processing_completed and st.session_state.comparison_results:

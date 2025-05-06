@@ -3,6 +3,7 @@ import logging
 import requests
 import json
 import tempfile
+import time
 from typing import Dict, Any, List, Optional, BinaryIO, Union
 import streamlit as st
 from config import get_extraction_api_url, get_api_key
@@ -15,7 +16,8 @@ logging.basicConfig(
 logger = logging.getLogger('ai_extraction')
 
 def extract_noi_data(file: Any, document_type_hint: Optional[str] = None, 
-                    api_url: Optional[str] = None, api_key: Optional[str] = None) -> Dict[str, Any]:
+                    api_url: Optional[str] = None, api_key: Optional[str] = None,
+                    max_retries: int = 3, retry_delay: int = 5) -> Dict[str, Any]:
     """
     Extract NOI data from a document using the extraction API.
     
@@ -24,6 +26,8 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
         document_type_hint: Optional hint about document type
         api_url: Optional API URL override
         api_key: Optional API key override
+        max_retries: Maximum number of retry attempts for API calls
+        retry_delay: Delay in seconds between retry attempts
         
     Returns:
         Dictionary containing extracted financial data
@@ -54,41 +58,119 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
         logger.error("Extraction API key not configured")
         return {"error": "Extraction API key not configured"}
     
-    try:
-        # Prepare files for API request
-        files = {"file": (file.name, file.getvalue(), file.type)}
-        
-        # Prepare headers with API key
-        headers = {"x-api-key": api_key}
-        
-        # Prepare data with document type hint if provided
-        data = {}
-        if document_type_hint:
-            data["document_type"] = document_type_hint
-        
-        # Make API request
-        logger.info(f"Sending request to extraction API: {api_url}")
-        response = requests.post(api_url, files=files, data=data, headers=headers)
-        
-        # Check response status
-        if response.status_code == 200:
-            logger.info("Extraction API request successful")
-            result = response.json()
-            logger.debug(f"Extraction API response structure: {list(result.keys())}")
-            return result
-        else:
-            logger.error(f"Extraction API request failed with status code {response.status_code}")
-            logger.error(f"Response content: {response.text}")
-            return {
-                'error': f"Extraction API request failed with status code {response.status_code}",
-                'details': response.text
-            }
+    # Prepare files for API request
+    files = {"file": (file.name, file.getvalue(), file.type)}
     
-    except Exception as e:
-        logger.error(f"Error extracting data from document: {str(e)}")
-        return {
-            'error': f"Error extracting data from document: {str(e)}"
-        }
+    # Prepare headers with API key
+    headers = {"x-api-key": api_key, "Accept": "application/json"}
+    
+    # Prepare data with document type hint if provided
+    data = {}
+    if document_type_hint:
+        data["document_type"] = document_type_hint
+    
+    # Log request details for debugging (without sensitive info)
+    logger.info(f"Sending POST to {api_url} with headers: {list(headers.keys())}, data_payload: {list(data.keys()) if data else 'None'}")
+    
+    # Retry logic
+    for attempt in range(max_retries):
+        try:
+            # Make API request
+            if attempt > 0:
+                logger.info(f"Retry attempt {attempt+1}/{max_retries} for extraction API request")
+            
+            # Create spinner in UI for better user feedback
+            if hasattr(st, 'spinner'):
+                spinner_message = f"Extracting data from {getattr(file, 'name', 'document')} (attempt {attempt+1}/{max_retries})..."
+                with st.spinner(spinner_message):
+                    response = requests.post(api_url, files=files, data=data, headers=headers, timeout=60)
+            else:
+                response = requests.post(api_url, files=files, data=data, headers=headers, timeout=60)
+            
+            # Check response status
+            if response.status_code == 200:
+                logger.info(f"Successfully extracted detailed data from {getattr(file, 'name', 'unknown')}")
+                
+                try:
+                    result = response.json()
+                    # Log successful response fields for debugging
+                    logger.info(f"Response keys: {list(result.keys())}")
+                    return result
+                except json.JSONDecodeError:
+                    logger.error(f"API returned non-JSON response: {response.text[:200]}...")
+                    return {"error": "API returned invalid JSON response"}
+                    
+            elif response.status_code == 502:
+                # Bad Gateway - temporary server issue, definitely retry
+                logger.warning(f"Extraction API server error (502): {response.text[:200]}...")
+                
+                if attempt < max_retries - 1:
+                    logger.info(f"Waiting {retry_delay} seconds before retry...")
+                    time.sleep(retry_delay)
+                    # Double the retry delay for each subsequent attempt (exponential backoff)
+                    retry_delay *= 2
+                    continue
+                else:
+                    logger.error(f"API error ({getattr(file, 'name', 'unknown')}): 502 - Server temporarily unavailable")
+                    return {
+                        "error": "Extraction API server is temporarily unavailable (502 Bad Gateway). Please try again later.",
+                        "details": "The server might be under high load or experiencing maintenance. This is usually a temporary issue."
+                    }
+            
+            elif response.status_code >= 500:
+                # Server error, might be temporary
+                logger.error(f"API error ({getattr(file, 'name', 'unknown')}): {response.status_code} - {response.text}")
+                
+                if attempt < max_retries - 1:
+                    logger.info(f"Waiting {retry_delay} seconds before retry...")
+                    time.sleep(retry_delay)
+                    # Double the retry delay for each subsequent attempt
+                    retry_delay *= 2
+                    continue
+                else:
+                    return {
+                        "error": f"Extraction API server error (status {response.status_code})",
+                        "details": response.text
+                    }
+            else:
+                # Client error or other error, don't retry
+                logger.error(f"API error ({getattr(file, 'name', 'unknown')}): {response.status_code} - {response.text}")
+                return {
+                    "error": f"Extraction API request failed (status {response.status_code})",
+                    "details": response.text
+                }
+                
+        except requests.exceptions.Timeout:
+            logger.warning(f"Request timed out on attempt {attempt+1}")
+            if attempt < max_retries - 1:
+                logger.info(f"Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+                # Double the retry delay for each subsequent attempt
+                retry_delay *= 2
+                continue
+            else:
+                logger.error(f"All {max_retries} extraction API requests timed out")
+                return {"error": "Extraction API request timed out after multiple attempts"}
+                
+        except requests.exceptions.ConnectionError:
+            logger.warning(f"Connection error on attempt {attempt+1}")
+            if attempt < max_retries - 1:
+                logger.info(f"Waiting {retry_delay} seconds before retry...")
+                time.sleep(retry_delay)
+                # Double the retry delay for each subsequent attempt
+                retry_delay *= 2
+                continue
+            else:
+                logger.error(f"All {max_retries} extraction API requests failed with connection errors")
+                return {"error": "Could not connect to extraction API after multiple attempts"}
+                
+        except Exception as e:
+            logger.error(f"Unexpected error during extraction: {str(e)}")
+            return {"error": f"Unexpected error during extraction: {str(e)}"}
+    
+    # This should never be reached due to the returns in the loop,
+    # but adding as a fallback
+    return {"error": "Extraction failed after multiple attempts"}
 
 # Define determine_document_type locally to avoid circular imports
 def determine_document_type(filename: str, result: Dict[str, Any]) -> str:
