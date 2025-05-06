@@ -95,6 +95,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Call load_css to apply custom styles
+load_css()
+
 # Initialize session state variables
 if 'current_month_actuals' not in st.session_state:
     st.session_state.current_month_actuals = None
@@ -116,11 +119,6 @@ if 'processing_status' not in st.session_state:
     st.session_state.processing_status = None
 if 'show_zero_values' not in st.session_state:
     st.session_state.show_zero_values = False
-
-# Load custom CSS
-def load_css():
-    with open(os.path.join(os.path.dirname(__file__), "static/css/reborn_theme.css")) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 # Display comparison tab
 def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name_suffix: str):
@@ -1302,3 +1300,149 @@ def export_to_excel(comparison_results: Dict[str, Any], property_name: str = "Pr
     except Exception as e:
         logger.error(f"Error exporting to Excel: {str(e)}")
         return None
+
+def main():
+    """Main entry point for the Streamlit app"""
+    # Create sidebar for navigation and controls
+    with st.sidebar:
+        st.title("NOI Analyzer")
+        
+        # Upload section
+        st.header("Document Upload")
+        
+        # Property name input
+        property_name = st.text_input("Property Name", value="")
+        if property_name:
+            st.session_state.property_name = property_name
+        
+        # Toggle for showing zero values
+        st.checkbox("Show Zero Values", key="show_zero_values")
+        
+        # API Configuration section
+        with st.expander("API Configuration"):
+            # OpenAI API key input
+            openai_key = st.text_input("OpenAI API Key", type="password", 
+                                      value=st.session_state.get("openai_api_key", ""))
+            
+            # Extraction API URL input
+            extraction_url = st.text_input("Extraction API URL", 
+                                          value=st.session_state.get("extraction_api_url", ""))
+            
+            # Extraction API key input
+            extraction_key = st.text_input("Extraction API Key", type="password", 
+                                          value=st.session_state.get("extraction_api_key", ""))
+            
+            # Save button
+            if st.button("Save API Settings"):
+                save_api_settings(openai_key, extraction_url, extraction_key)
+                st.success("API settings saved!")
+    
+    # Main content area
+    st.title("NOI Analyzer")
+    st.markdown("Upload financial documents to analyze Net Operating Income (NOI) comparisons.")
+    
+    # File upload section
+    st.header("Upload Documents")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Current Period")
+        current_month = st.file_uploader("Upload Current Month Actuals", 
+                                         type=["xlsx", "xls", "csv", "pdf"])
+        if current_month is not None:
+            st.session_state.current_month_actuals = current_month
+        
+        st.subheader("Budget")
+        budget = st.file_uploader("Upload Current Month Budget", 
+                                  type=["xlsx", "xls", "csv", "pdf"])
+        if budget is not None:
+            st.session_state.current_month_budget = budget
+    
+    with col2:
+        st.subheader("Prior Periods")
+        prior_month = st.file_uploader("Upload Prior Month Actuals", 
+                                       type=["xlsx", "xls", "csv", "pdf"])
+        if prior_month is not None:
+            st.session_state.prior_month_actuals = prior_month
+            
+        prior_year = st.file_uploader("Upload Prior Year Actuals", 
+                                      type=["xlsx", "xls", "csv", "pdf"])
+        if prior_year is not None:
+            st.session_state.prior_year_actuals = prior_year
+    
+    # Process documents button
+    if st.button("Process Documents"):
+        if st.session_state.current_month_actuals is None:
+            st.error("Please upload Current Month Actuals to proceed.")
+        else:
+            with st.spinner("Processing documents..."):
+                # Process the documents
+                consolidated_data = process_all_documents()
+                
+                # Calculate comparisons
+                comparison_results = calculate_noi_comparisons(
+                    consolidated_data.get("current_month"),
+                    consolidated_data.get("budget"),
+                    consolidated_data.get("prior_month"),
+                    consolidated_data.get("prior_year")
+                )
+                
+                # Store in session state
+                st.session_state.comparison_results = comparison_results
+                
+                # Generate insights with GPT if possible
+                if get_openai_api_key():
+                    logger.info("Calling generate_insights_with_gpt with OpenAI key: " + "*" * len(get_openai_api_key()))
+                    insights = generate_insights_with_gpt(comparison_results)
+                    st.session_state.insights = insights
+                    logger.info(f"Generated insights: {insights is not None}")
+                else:
+                    logger.warning("OpenAI API key not provided. Skipping insights generation.")
+                
+                st.session_state.processing_completed = True
+                st.success("Documents processed successfully!")
+    
+    # Display results if processing is completed
+    if st.session_state.processing_completed and st.session_state.comparison_results:
+        st.header("NOI Analysis Results")
+        
+        # Display NOI comparisons
+        display_noi_comparisons(st.session_state.comparison_results)
+        
+        # Export options
+        st.header("Export Options")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Export as PDF"):
+                property_name = st.session_state.property_name or "Property"
+                pdf_path = generate_pdf_report(st.session_state.comparison_results, property_name)
+                
+                if pdf_path:
+                    with open(pdf_path, "rb") as f:
+                        pdf_bytes = f.read()
+                    
+                    st.download_button(
+                        label="Download PDF Report",
+                        data=pdf_bytes,
+                        file_name=f"noi_report_{property_name}.pdf",
+                        mime="application/pdf"
+                    )
+        
+        with col2:
+            if st.button("Export as Excel"):
+                property_name = st.session_state.property_name or "Property"
+                excel_bytes = export_to_excel(st.session_state.comparison_results, property_name)
+                
+                if excel_bytes:
+                    st.download_button(
+                        label="Download Excel Report",
+                        data=excel_bytes,
+                        file_name=f"noi_analysis_{property_name}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+
+# Execute main function when script is run directly
+if __name__ == "__main__":
+    main()
