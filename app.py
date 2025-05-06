@@ -68,8 +68,38 @@ def show_instructions():
 # Load custom CSS function (defined here before it's used)
 def load_css():
     """Load and apply custom CSS styling"""
-    with open(os.path.join(os.path.dirname(__file__), "static/css/reborn_theme.css")) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    try:
+        css_path = os.path.join(os.path.dirname(__file__), "static/css/reborn_theme.css")
+        if os.path.exists(css_path):
+            with open(css_path) as f:
+                st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+                logger.info(f"Successfully loaded CSS from {css_path}")
+        else:
+            logger.warning(f"CSS file not found at path: {css_path}")
+            # Apply fallback minimal styling
+            st.markdown("""
+            <style>
+            .section-header {color: #4DB6AC; font-size: 1.5rem; margin-top: 2rem;}
+            .metric-card {background-color: #1E293B; border-radius: 10px; padding: 15px; margin: 10px 0;}
+            .metric-title {color: #94A3B8; font-size: 0.9rem;}
+            .metric-value {color: white; font-size: 1.5rem; font-weight: bold;}
+            .positive-change {color: #22C55E;}
+            .negative-change {color: #EF4444;}
+            </style>
+            """, unsafe_allow_html=True)
+    except Exception as e:
+        logger.error(f"Error loading CSS: {str(e)}")
+        # Apply fallback minimal styling
+        st.markdown("""
+        <style>
+        .section-header {color: #4DB6AC; font-size: 1.5rem; margin-top: 2rem;}
+        .metric-card {background-color: #1E293B; border-radius: 10px; padding: 15px; margin: 10px 0;}
+        .metric-title {color: #94A3B8; font-size: 0.9rem;}
+        .metric-value {color: white; font-size: 1.5rem; font-weight: bold;}
+        .positive-change {color: #22C55E;}
+        .negative-change {color: #EF4444;}
+        </style>
+        """, unsafe_allow_html=True)
 
 # Debug helper function to diagnose comparison structure issues
 def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
@@ -1445,10 +1475,7 @@ def main():
                 else:
                     # Calculate comparisons
                     comparison_results = calculate_noi_comparisons(
-                        consolidated_data.get("current_month"),
-                        consolidated_data.get("budget"),
-                        consolidated_data.get("prior_month"),
-                        consolidated_data.get("prior_year")
+                        consolidated_data
                     )
                     
                     # Store in session state
