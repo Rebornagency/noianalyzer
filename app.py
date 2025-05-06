@@ -182,37 +182,30 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     # Create columns for KPI cards
     col1, col2, col3 = st.columns(3)
     
-    # Display KPI cards
+    # Display KPI cards using Streamlit's metric component instead of custom HTML
     with col1:
         # Current value
         current_noi = current_data.get("noi", 0.0)
-        st.markdown('<div class="stat-card">', unsafe_allow_html=True)
-        st.markdown('<div class="stat-title">Current</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="stat-value">${current_noi:,.0f}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.metric(label="Current", value=f"${current_noi:,.0f}")
         
     with col2:
         # Prior period value - handle both formats (_prior_key_suffix or _compare)
         prior_noi = tab_data.get(f"noi_{prior_key_suffix}", tab_data.get("noi_compare", 0.0))
-        st.markdown('<div class="stat-card">', unsafe_allow_html=True)
-        st.markdown(f'<div class="stat-title">{name_suffix}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="stat-value">${prior_noi:,.0f}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.metric(label=f"{name_suffix}", value=f"${prior_noi:,.0f}")
         
     with col3:
         # Change - handle both formats
         change_val = tab_data.get("noi_change", tab_data.get("noi_variance", 0.0))
         percent_change = tab_data.get("noi_percent_change", tab_data.get("noi_percent_variance", 0.0))
         
-        # Determine color based on change
-        change_class = "positive" if change_val > 0 else "negative" if change_val < 0 else "neutral"
-        change_sign = "+" if change_val > 0 else ""
-        
-        st.markdown('<div class="stat-card">', unsafe_allow_html=True)
-        st.markdown('<div class="stat-title">Change</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="stat-value {change_class}">{change_sign}{percent_change:.1f}%</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="stat-label">${change_val:,.0f}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Format for Streamlit metric
+        delta_value = f"{change_val:,.0f} ({percent_change:.1f}%)"
+        st.metric(
+            label="Change",
+            value=f"-{percent_change:.1f}%" if percent_change < 0 else f"{percent_change:.1f}%",
+            delta=f"${change_val:,.0f}",
+            delta_color="normal" if change_val >= 0 else "inverse"
+        )
 
     # Log additional information before creating DataFrame
     logger.info(f"Creating DataFrame for {name_suffix} comparison")
@@ -276,9 +269,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         df_display["Change (%)"] = df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
 
         # Display table
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
         st.dataframe(df_display, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
     except KeyError as e:
         logger.error(f"KeyError in DataFrame operation: {str(e)}")
         st.error(f"Error accessing DataFrame column: {str(e)}")
@@ -294,9 +285,6 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
     try:
         logger.info(f"Creating charts for {name_suffix} comparison")
-        # Create bar chart for visual comparison
-        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        
         # Create bar chart for visual comparison
         fig = go.Figure()
 
@@ -442,7 +430,6 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
         # Display chart
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
         logger.info(f"Successfully displayed chart for {name_suffix} comparison")
     except Exception as e:
         logger.error(f"Error creating chart: {str(e)}")
@@ -1275,9 +1262,8 @@ def main():
         if st.session_state.processing_status == "processing":
             st.info("Processing documents... Please wait.")
         else:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown('<p class="body-text">Upload your financial documents using the sidebar and click \'Process Documents\' to begin analysis.</p>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            # Use native Streamlit info component instead of custom card div
+            st.info("Upload your financial documents using the sidebar and click 'Process Documents' to begin analysis.")
 
             # Display sample images or instructions
             st.markdown('<h2 class="section-header">How to use this tool:</h2>', unsafe_allow_html=True)
