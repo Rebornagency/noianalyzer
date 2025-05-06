@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Response
 from weasyprint import HTML
 from jinja2 import Environment, FileSystemLoader
@@ -17,7 +16,10 @@ async def export_pdf(property_id: int):
     template_data = {
         'datetime': datetime,
         'kpis': data['kpis'],
-        'performance_data': data['financials']
+        'performance_data': data['financials'],
+        'executive_summary': data.get('insights', {}).get('summary', ''),
+        'performance_insights': data.get('insights', {}).get('performance', []),
+        'recommendations': data.get('insights', {}).get('recommendations', [])
     }
     
     # Render template

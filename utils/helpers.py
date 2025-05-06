@@ -35,7 +35,19 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         'other_income': None,
         'egi': None,
         'opex': None,
-        'noi': None
+        'noi': None,
+        # Add OpEx breakdown components
+        'property_taxes': None,
+        'insurance': None,
+        'repairs_and_maintenance': None,
+        'utilities': None,
+        'management_fees': None,
+        # Add Other Income breakdown components
+        'parking': None,
+        'laundry': None,
+        'late_fees': None,
+        'pet_fees': None,
+        'application_fees': None
     }
     
     # Return empty result if API response is invalid
@@ -103,8 +115,38 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     other_income = financials.get('other_income')
     if isinstance(other_income, dict) and 'total' in other_income:
         result['other_income'] = safe_float(other_income['total'])
+        
+        # Extract Other Income components from the nested structure
+        other_income_components = {
+            'parking': ['parking'],
+            'laundry': ['laundry'],
+            'late_fees': ['late_fees', 'late fees'],
+            'pet_fees': ['pet_fees', 'pet fees', 'pet rent'],
+            'application_fees': ['application_fees', 'application fees']
+        }
+        
+        # Try to extract each component using various possible field names
+        for result_key, possible_fields in other_income_components.items():
+            for field in possible_fields:
+                if field in other_income and other_income[field] is not None:
+                    result[result_key] = safe_float(other_income[field])
+                    break
     else:
         result['other_income'] = safe_float(other_income)
+    
+    # Also check for Other Income components at the top level of financials
+    # The extraction tool may put these at the top level
+    other_income_keys = ['parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees']
+    for component in other_income_keys:
+        # Only set if not already set from nested structure
+        if result[component] is None and component in financials:
+            result[component] = safe_float(financials[component])
+    
+    # Ensure all Other Income components have at least a zero value if we have other_income
+    if result['other_income'] is not None and result['other_income'] > 0:
+        for component in other_income_keys:
+            if result[component] is None:
+                result[component] = 0.0
     
     # Handle EGI (effective_gross_income)
     egi = financials.get('effective_gross_income')
@@ -128,6 +170,35 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     noi = financials.get('net_operating_income')
     result['noi'] = safe_float(noi)
     
+    # --- extract OpEx breakdown components ---
+    # Try nested structure first
+    opex_source = {}
+    if isinstance(financials.get("operating_expenses"), dict):
+        opex_source = financials["operating_expenses"]
+    # Fall back to flat top-level
+    else:
+        opex_source = financials
+
+    # Map new component keys to possible field names
+    component_mapping = {
+        "property_taxes": ["property_taxes", "taxes"],
+        "insurance": ["insurance"],
+        "repairs_and_maintenance": ["repairs_and_maintenance", "repairs_maintenance", "repairs", "maintenance"],
+        "utilities": ["utilities"],
+        "management_fees": ["management_fees", "management"]
+    }
+
+    for key, candidates in component_mapping.items():
+        raw = None
+        for field in candidates:
+            if field in opex_source:
+                raw = opex_source[field]
+                break
+        # Also check top-level in case extraction tool flattened them
+        if raw is None and key in financials:
+            raw = financials[key]
+        result[key] = safe_float(raw) if raw is not None else 0.0
+    
     # Calculate EGI if not provided
     if result['egi'] is None and result['gpr'] is not None:
         egi = result['gpr']
@@ -148,6 +219,8 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     # Log the formatted result
     logger.info(f"Formatted result: property_id={result['property_id']}, period={result['period']}")
     logger.debug(f"Financial values: gpr={result['gpr']}, vacancy_loss={result['vacancy_loss']}, egi={result['egi']}, opex={result['opex']}, noi={result['noi']}")
+    logger.debug(f"OpEx breakdown: taxes={result['property_taxes']}, insurance={result['insurance']}, r&m={result['repairs_and_maintenance']}")
+    logger.debug(f"Other Income breakdown: parking={result['parking']}, laundry={result['laundry']}, late_fees={result['late_fees']}")
     
     return result
 
