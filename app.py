@@ -31,6 +31,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_analyzer')
 
+# Load custom CSS function (defined here before it's used)
+def load_css():
+    """Load and apply custom CSS styling"""
+    with open(os.path.join(os.path.dirname(__file__), "static/css/reborn_theme.css")) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 # Debug helper function to diagnose comparison structure issues
 def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
     """
