@@ -47,7 +47,13 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         'laundry': None,
         'late_fees': None,
         'pet_fees': None,
-        'application_fees': None
+        'application_fees': None,
+        'storage_fees': None,
+        'amenity_fees': None,
+        'utility_reimbursements': None,
+        'cleaning_fees': None,
+        'cancellation_fees': None,
+        'miscellaneous': None
     }
     
     # Return empty result if API response is invalid
@@ -118,11 +124,17 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         
         # Extract Other Income components from the nested structure
         other_income_components = {
-            'parking': ['parking'],
-            'laundry': ['laundry'],
-            'late_fees': ['late_fees', 'late fees'],
-            'pet_fees': ['pet_fees', 'pet fees', 'pet rent'],
-            'application_fees': ['application_fees', 'application fees']
+            'parking': ['parking', 'parking_income', 'parking_fees'],
+            'laundry': ['laundry', 'laundry_income', 'laundry_services'],
+            'late_fees': ['late_fees', 'late fees', 'late_fee_income', 'delinquency_fees'],
+            'pet_fees': ['pet_fees', 'pet fees', 'pet rent', 'pet_rent', 'pet_deposits'],
+            'application_fees': ['application_fees', 'application fees', 'application_income'],
+            'storage_fees': ['storage', 'storage_fees', 'storage_income', 'storage units', 'storage_rental'],
+            'amenity_fees': ['amenity', 'amenity_fees', 'amenities', 'gym_fees', 'pool_fees', 'facility_fees'],
+            'utility_reimbursements': ['utility_reimbursements', 'utility reimbursement', 'utilities_reimbursement', 'cam_reimbursements'],
+            'cleaning_fees': ['cleaning', 'cleaning_fees', 'housekeeping', 'janitorial_income'],
+            'cancellation_fees': ['cancellation', 'cancellation_fees', 'termination_fees', 'lease_break_fees'],
+            'miscellaneous': ['misc', 'miscellaneous', 'misc_income', 'other', 'other_fees']
         }
         
         # Try to extract each component using various possible field names
@@ -136,17 +148,30 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     
     # Also check for Other Income components at the top level of financials
     # The extraction tool may put these at the top level
-    other_income_keys = ['parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees']
+    other_income_keys = ['parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 
+                        'storage_fees', 'amenity_fees', 'utility_reimbursements', 
+                        'cleaning_fees', 'cancellation_fees', 'miscellaneous']
     for component in other_income_keys:
         # Only set if not already set from nested structure
-        if result[component] is None and component in financials:
-            result[component] = safe_float(financials[component])
+        if component not in result or result[component] is None:
+            if component in financials:
+                result[component] = safe_float(financials[component])
+            else:
+                result[component] = None
     
     # Ensure all Other Income components have at least a zero value if we have other_income
     if result['other_income'] is not None and result['other_income'] > 0:
+        # Calculate sum of all specified components
+        component_sum = 0.0
         for component in other_income_keys:
-            if result[component] is None:
+            if component in result and result[component] is not None:
+                component_sum += result[component]
+            else:
                 result[component] = 0.0
+        
+        # If sum of components is less than total other income, add difference to miscellaneous
+        if component_sum < result['other_income'] and abs(component_sum - result['other_income']) > 0.01:
+            result['miscellaneous'] = result.get('miscellaneous', 0.0) + (result['other_income'] - component_sum)
     
     # Handle EGI (effective_gross_income)
     egi = financials.get('effective_gross_income')
