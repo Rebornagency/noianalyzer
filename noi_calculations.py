@@ -93,7 +93,10 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     # Define metrics to compare, now including OpEx components
     metrics = [
         "gpr", "vacancy_loss", "concessions", "bad_debt",
-        "other_income", "egi", "opex", "property_taxes", "insurance", 
+        "other_income", "parking", "laundry", "late_fees", "pet_fees", "application_fees",
+        "storage_fees", "amenity_fees", "utility_reimbursements", 
+        "cleaning_fees", "cancellation_fees", "miscellaneous",
+        "egi", "opex", "property_taxes", "insurance", 
         "repairs_and_maintenance", "utilities", "management_fees", "noi"
     ]
     

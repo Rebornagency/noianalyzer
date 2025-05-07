@@ -377,3 +377,34 @@ def parse_gpt_response(response_text: str) -> Dict[str, Any]:
     logger.info(f"Parsed insights: summary={bool(insights['summary'])}, performance={len(insights['performance'])}, recommendations={len(insights['recommendations'])}")
     
     return insights
+
+def ask_noi_coach(question: str, comparison_results: Dict[str, Any]) -> str:
+    """
+    Ask the NOI Coach to answer a free-form question
+    based on the current comparison_results.
+    """
+    api_key = get_openai_api_key()
+    client = OpenAI(api_key=api_key)
+
+    # Format the metrics for the prompt
+    formatted = json.dumps(comparison_results, indent=2)
+    system = (
+      "You are a helpful NOI coach. "
+      "The user will ask questions about Net Operating Income metrics. "
+      "Use ONLY the data provided."
+    )
+    user = (
+      f"Here are the latest NOI comparison results:\n\n{formatted}\n\n"
+      f"User question: {question}"
+    )
+
+    resp = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+          {"role": "system", "content": system},
+          {"role": "user",   "content": user}
+        ],
+        temperature=0.3,
+        max_tokens=500
+    )
+    return resp.choices[0].message.content.strip()

@@ -17,7 +17,7 @@ from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
 from ai_extraction import extract_noi_data
-from ai_insights_gpt import generate_insights_with_gpt
+from ai_insights_gpt import generate_insights_with_gpt, ask_noi_coach
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
 from reborn_logo import get_reborn_logo_base64
 
@@ -35,22 +35,35 @@ logger = logging.getLogger('noi_analyzer')
 # Import the logo function
 from reborn_logo import get_reborn_logo_base64
 
-# Logo display function - updated to use direct embedding
+# Logo display function - updated to use direct embedding with better error handling
 def display_logo():
     """Display the Reborn logo in the Streamlit app"""
     try:
-        # Direct embedding of the logo
+        # Read the logo directly from file if possible
+        logo_path = os.path.join(os.path.dirname(__file__), "Reborn Logo.jpeg")
+        
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as f:
+                logo_bytes = f.read()
+                logo_base64 = base64.b64encode(logo_bytes).decode("utf-8")
+                logger.info(f"Successfully read logo from {logo_path}")
+        else:
+            # Fallback to embedded base64 logo
+            logger.info("Using embedded base64 logo as fallback")
+            logo_base64 = get_reborn_logo_base64()
+        
+        # Direct embedding of the logo with proper sizing and alignment
         logo_html = f"""
-        <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-            <img src="data:image/png;base64,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" width="150px" alt="Reborn Logo">
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 25px; margin-top: 10px;">
+            <img src="data:image/jpeg;base64,{logo_base64}" width="180px" alt="Reborn Logo" style="object-fit: contain;">
         </div>
         """
         st.markdown(logo_html, unsafe_allow_html=True)
-        logger.info("Successfully displayed logo using direct base64 embedding")
+        logger.info("Successfully displayed logo")
     except Exception as e:
         logger.error(f"Error displaying logo: {str(e)}")
         # Fallback to text
-        st.markdown("**REBORN NOI ANALYZER**")
+        st.markdown("<h2 style='text-align: center; color: #4DB6AC;'>REBORN NOI ANALYZER</h2>", unsafe_allow_html=True)
 
 # Show instructions to the user
 def show_instructions():
@@ -274,6 +287,16 @@ if 'processing_status' not in st.session_state:
     st.session_state.processing_status = None
 if 'show_zero_values' not in st.session_state:
     st.session_state.show_zero_values = False
+if 'property_name' not in st.session_state:
+    st.session_state.property_name = ""
+if 'openai_api_key' not in st.session_state:
+    st.session_state.openai_api_key = ""
+if 'extraction_api_url' not in st.session_state:
+    st.session_state.extraction_api_url = ""
+if 'extraction_api_key' not in st.session_state:
+    st.session_state.extraction_api_key = ""
+if 'noi_coach_history' not in st.session_state:
+    st.session_state.noi_coach_history = []
 
 # Display comparison tab
 def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name_suffix: str):
@@ -427,8 +450,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         df_display["Change ($)"] = df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
         df_display["Change (%)"] = df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
         
-        # Create styleable dataframe with business-appropriate color coding
-        df_styled = df_display.drop(columns=["Direction"])
+        # Remove the Direction column from display
+        display_columns = ["Metric", "Current", name_suffix, "Change ($)", "Change (%)"]
+        df_styled = df_display[display_columns]
         
         # Apply conditional formatting based on business impact
         def style_df(row):
@@ -439,7 +463,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             dollar_change_idx = list(row.index).index("Change ($)")
             metric_idx = list(row.index).index("Metric")
             
-            direction = row["Direction"]
+            metric = row["Metric"]
             change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
             
             try:
@@ -447,7 +471,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 
                 # Determine if the change is positive from a business perspective
                 # For metrics where a decrease is good (Vacancy Loss, OpEx)
-                if direction == "inverse":
+                if metric in ["Vacancy Loss", "Total OpEx"]:
                     # For these metrics (expenses/losses), a decrease (negative change) is GOOD (green)
                     is_positive = change_pct < 0
                 else:
@@ -467,7 +491,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             return styles
         
         # Apply styling and display
-        styled_df = df_display.style.apply(style_df, axis=1)
+        styled_df = df_styled.style.apply(style_df, axis=1)
         st.dataframe(styled_df, use_container_width=True)
         
         # Add OpEx Breakdown expander section
@@ -632,12 +656,21 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # Add Other Income Breakdown expander section
         with st.expander("Other Income Breakdown"):
             # Check if we have Other Income component data
-            other_income_components = ["parking", "laundry", "late_fees", "pet_fees", "application_fees"]
+            other_income_components = [
+                "parking", "laundry", "late_fees", "pet_fees", "application_fees",
+                "storage_fees", "amenity_fees", "utility_reimbursements", 
+                "cleaning_fees", "cancellation_fees", "miscellaneous"
+            ]
+            
+            income_metrics = [
+                "Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees",
+                "Storage Fees", "Amenity Fees", "Utility Reimbursements", 
+                "Cleaning Fees", "Cancellation Fees", "Miscellaneous"
+            ]
             
             if any(component in current_data for component in other_income_components):
                 # Create DataFrame for Other Income components
                 income_df_data = []
-                income_metrics = ["Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees"]
                 
                 for key, name in zip(other_income_components, income_metrics):
                     # Handle both formats for current, prior, and change values
@@ -661,6 +694,24 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     })
                 
                 if income_df_data:
+                    # Sort by current value (descending) to show most significant components first
+                    income_df_data = sorted(income_df_data, key=lambda x: x["Current"], reverse=True)
+                    
+                    # Add a total row
+                    total_current = sum(item["Current"] for item in income_df_data)
+                    total_prior = sum(item[name_suffix] for item in income_df_data)
+                    total_change = total_current - total_prior
+                    total_percent = (total_change / total_prior * 100) if total_prior else 0
+                    
+                    income_df_data.append({
+                        "Income Category": "Total Other Income",
+                        "Current": total_current,
+                        name_suffix: total_prior,
+                        "Change ($)": total_change,
+                        "Change (%)": total_percent,
+                        "Direction": "normal"
+                    })
+                    
                     income_df = pd.DataFrame(income_df_data)
                     
                     # Format DataFrame for display
@@ -670,8 +721,16 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     income_df_display["Change ($)"] = income_df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
                     income_df_display["Change (%)"] = income_df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
                     
-                    # Apply styling and display
-                    income_styled_df = income_df_display.drop(columns=["Direction"])
+                    # Add percentage of total column
+                    income_percents = []
+                    for item in income_df_data:
+                        if item["Income Category"] == "Total Other Income":
+                            income_percents.append("100.0%")
+                        else:
+                            pct = (item["Current"] / total_current * 100) if total_current > 0 else 0
+                            income_percents.append(f"{pct:.1f}%")
+                    
+                    income_df_display["% of Total"] = income_percents
                     
                     # Create a function to apply styling
                     def style_income_df(row):
@@ -681,17 +740,24 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         pct_change_idx = list(row.index).index("Change (%)")
                         dollar_change_idx = list(row.index).index("Change ($)")
                         
-                        change_pct = float(row["Change (%)"].strip('%'))
+                        # Get total row styling
+                        if row["Income Category"] == "Total Other Income":
+                            return ['font-weight: bold'] * len(row)
                         
-                        # For income, an increase (positive change) is good
-                        is_positive = change_pct > 0
-                        
-                        # Apply appropriate colors
-                        color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
-                        
-                        # Apply to both dollar and percentage columns
-                        styles[pct_change_idx] = color
-                        styles[dollar_change_idx] = color
+                        try:
+                            change_pct = float(row["Change (%)"].strip('%'))
+                            
+                            # For income, an increase (positive change) is good
+                            is_positive = change_pct > 0
+                            
+                            # Apply appropriate colors
+                            color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
+                            
+                            # Apply to both dollar and percentage columns
+                            styles[pct_change_idx] = color
+                            styles[dollar_change_idx] = color
+                        except (ValueError, TypeError):
+                            pass
                         
                         return styles
                     
@@ -703,8 +769,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     col1, col2 = st.columns(2)
                     
                     with col1:
-                        # Filter out zero values for the pie chart
-                        pie_data = income_df[income_df["Current"] > 0]
+                        # Filter out zero values and total row for the pie chart
+                        pie_data = income_df[
+                            (income_df["Current"] > 0) & 
+                            (income_df["Income Category"] != "Total Other Income")
+                        ]
                         if not pie_data.empty:
                             fig = px.pie(
                                 pie_data, 
@@ -729,11 +798,16 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             st.plotly_chart(fig, use_container_width=True)
                     
                     with col2:
-                        # Create comparison bar chart
+                        # Create horizontal bar chart for comparing current vs prior
                         comp_data = income_df.copy()
                         
                         # Sort by current value
+                        comp_data = comp_data[comp_data["Income Category"] != "Total Other Income"]
                         comp_data = comp_data.sort_values(by="Current", ascending=True)
+                        
+                        # Only show top 6 categories to avoid chart getting too crowded
+                        if len(comp_data) > 6:
+                            comp_data = comp_data.tail(6)  # Get the 6 largest categories
                         
                         # Create horizontal bar chart for comparing current vs prior
                         comp_fig = go.Figure()
@@ -757,7 +831,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         
                         # Update layout
                         comp_fig.update_layout(
-                            title=f"Other Income Components: Current vs {name_suffix}",
+                            title=f"Top Other Income Components: Current vs {name_suffix}",
                             barmode='group',
                             xaxis_title="Amount ($)",
                             xaxis=dict(tickprefix="$"),
@@ -781,6 +855,42 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         )
                         
                         st.plotly_chart(comp_fig, use_container_width=True)
+                    
+                    # Add a section with key insights about other income
+                    st.subheader("Other Income Insights")
+                    
+                    # Find the largest income component
+                    non_total_data = [item for item in income_df_data if item["Income Category"] != "Total Other Income"]
+                    if non_total_data:
+                        largest_component = max(non_total_data, key=lambda x: x["Current"])
+                        largest_pct = (largest_component["Current"] / total_current * 100) if total_current > 0 else 0
+                        
+                        st.markdown(f"- **{largest_component['Income Category']}** is the largest source of other income at **${largest_component['Current']:,.2f}** ({largest_pct:.1f}% of total)")
+                    
+                    # Find the component with largest growth
+                    growth_components = [item for item in non_total_data if item["Change (%)"] > 0]
+                    if growth_components:
+                        fastest_growth = max(growth_components, key=lambda x: x["Change (%)"])
+                        st.markdown(f"- **{fastest_growth['Income Category']}** has the highest growth at **{fastest_growth['Change (%)']}%** (${fastest_growth['Change ($)']:,.2f})")
+                    
+                    # Find declining components
+                    declining_components = [item for item in non_total_data if item["Change (%)"] < 0]
+                    if declining_components:
+                        most_decline = min(declining_components, key=lambda x: x["Change (%)"])
+                        st.markdown(f"- **{most_decline['Income Category']}** has decreased by **{abs(most_decline['Change (%)']):,.1f}%** (${abs(most_decline['Change ($)']):,.2f})")
+                    
+                    # Overall trend
+                    if total_change > 0:
+                        st.markdown(f"- Overall other income has **increased** by **${total_change:,.2f}** ({total_percent:.1f}%)")
+                    elif total_change < 0:
+                        st.markdown(f"- Overall other income has **decreased** by **${abs(total_change):,.2f}** ({abs(total_percent):.1f}%)")
+                        
+                    # Opportunity analysis
+                    low_components = [item for item in non_total_data if item["Current"] == 0 and item[name_suffix] > 0]
+                    if low_components:
+                        st.markdown("- **Opportunity alert:** The following income sources had values previously but are now at zero:")
+                        for item in low_components:
+                            st.markdown(f"  - **{item['Income Category']}** (previously ${item[name_suffix]:,.2f})")
                 else:
                     st.info("No other income details available for this period.")
             else:
@@ -1149,8 +1259,16 @@ def generate_pdf_report(comparison_results: Dict[str, Any], property_name: str =
         # Check if Other Income breakdown is available and prepare data
         income_breakdown_available = False
         income_breakdown_data = []
-        other_income_components = ["parking", "laundry", "late_fees", "pet_fees", "application_fees"]
-        income_names = ["Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees"]
+        other_income_components = [
+            "parking", "laundry", "late_fees", "pet_fees", "application_fees",
+            "storage_fees", "amenity_fees", "utility_reimbursements", 
+            "cleaning_fees", "cancellation_fees", "miscellaneous"
+        ]
+        income_names = [
+            "Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees",
+            "Storage Fees", "Amenity Fees", "Utility Reimbursements", 
+            "Cleaning Fees", "Cancellation Fees", "Miscellaneous"
+        ]
         
         if any(component in current_data for component in other_income_components):
             income_breakdown_available = True
@@ -1158,7 +1276,22 @@ def generate_pdf_report(comparison_results: Dict[str, Any], property_name: str =
             # Calculate percentages of total Other Income
             total_income = current_data.get("other_income", 0)
             
+            # First check which components actually have values
+            available_components = []
+            available_names = []
+            
             for key, name in zip(other_income_components, income_names):
+                if key in current_data and current_data.get(key, 0) > 0:
+                    available_components.append(key)
+                    available_names.append(name)
+            
+            # If no components have values but we have other_income, include the default components
+            if not available_components and total_income > 0:
+                available_components = other_income_components[:5]  # Use first 5 for PDF to avoid crowding
+                available_names = income_names[:5]
+            
+            # Process available components
+            for key, name in zip(available_components, available_names):
                 current_val = current_data.get(key, 0)
                 
                 # Look for prior value in different formats
@@ -1304,154 +1437,271 @@ def export_to_excel(comparison_results: Dict[str, Any], property_name: str = "Pr
                     worksheet_opex.set_column('C:C', 15, percent_format)
             
             # Add Other Income breakdown if available
-            other_income_components = ["parking", "laundry", "late_fees", "pet_fees", "application_fees"]
+            other_income_components = [
+                "parking", "laundry", "late_fees", "pet_fees", "application_fees",
+                "storage_fees", "amenity_fees", "utility_reimbursements", 
+                "cleaning_fees", "cancellation_fees", "miscellaneous"
+            ]
+            income_names = [
+                "Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees",
+                "Storage Fees", "Amenity Fees", "Utility Reimbursements", 
+                "Cleaning Fees", "Cancellation Fees", "Miscellaneous"
+            ]
+            
             if any(component in current_data for component in other_income_components):
+                # Check which components are actually present in the data
+                available_components = []
+                available_names = []
+                for component, name in zip(other_income_components, income_names):
+                    if component in current_data and current_data.get(component, 0) > 0:
+                        available_components.append(component)
+                        available_names.append(name)
+                
+                if not available_components:
+                    # If no components have values, include all of them
+                    available_components = other_income_components
+                    available_names = income_names
+                
+                # Prepare data for Excel sheet
+                income_amounts = [current_data.get(component, 0) for component in available_components]
+                income_amounts.append(current_data.get("other_income", 0))  # Add total
+                
                 income_data = {
-                    "Category": ["Parking", "Laundry", "Late Fees", "Pet Fees", "Application Fees", "Total Other Income"],
-                    "Amount": [
-                        current_data.get("parking", 0),
-                        current_data.get("laundry", 0),
-                        current_data.get("late_fees", 0),
-                        current_data.get("pet_fees", 0),
-                        current_data.get("application_fees", 0),
-                        current_data.get("other_income", 0)
-                    ],
+                    "Category": available_names + ["Total Other Income"],
+                    "Amount": income_amounts,
                     "Percent of Total": []
                 }
                 
                 # Calculate percentages
                 total_income = current_data.get("other_income", 0)
                 if total_income > 0:
-                    for component_value in income_data["Amount"][:-1]:  # Exclude the total itself
+                    for component_value in income_amounts[:-1]:  # Exclude the total itself
                         percent = (component_value / total_income) * 100 if total_income else 0
                         income_data["Percent of Total"].append(percent)
                     income_data["Percent of Total"].append(100)  # Total is 100%
                 else:
-                    income_data["Percent of Total"] = [0, 0, 0, 0, 0, 100]
+                    income_data["Percent of Total"] = [0] * len(available_components) + [100]
+                
+                # Add annual projection
+                income_data["Annual Projection"] = [val * 12 for val in income_amounts]
+                
+                # Add indicators for significant components
+                indicators = []
+                for i, value in enumerate(income_amounts[:-1]):  # Exclude the total
+                    if total_income > 0:
+                        percent = (value / total_income) * 100
+                        if percent > 20:
+                            indicators.append("Major Revenue Source")
+                        elif percent > 10:
+                            indicators.append("Significant")
+                        elif percent > 5:
+                            indicators.append("Notable")
+                        elif value == 0:
+                            indicators.append("Not Present")
+                        else:
+                            indicators.append("Minor")
+                    else:
+                        indicators.append("N/A")
+                indicators.append("TOTAL")  # Add indicator for total row
+                
+                income_data["Significance"] = indicators
                 
                 # Create DataFrame and write to Excel
                 df_income = pd.DataFrame(income_data)
+                
+                # Sort by amount descending (except for total row which should stay at the bottom)
+                total_row = df_income[df_income["Category"] == "Total Other Income"]
+                non_total = df_income[df_income["Category"] != "Total Other Income"]
+                sorted_non_total = non_total.sort_values("Amount", ascending=False)
+                df_income = pd.concat([sorted_non_total, total_row])
+                
                 df_income.to_excel(writer, sheet_name="Other Income Breakdown", index=False)
                 
                 # Format the Other Income breakdown sheet
                 worksheet_income = writer.sheets["Other Income Breakdown"]
+                worksheet_income.set_column('A:A', 25)
                 worksheet_income.set_column('B:B', 15, money_format)
                 worksheet_income.set_column('C:C', 15, percent_format)
-            
-            # Create sheets for each comparison type
-            for comparison_type, title in [
-                ("actual_vs_budget", "Actual vs Budget"),
-                ("year_vs_year", "Year vs Year"),
-                ("month_vs_prior", "Month vs Prior Month")
-            ]:
-                if comparison_type in comparison_results:
-                    comparison_data = comparison_results[comparison_type]
+                worksheet_income.set_column('D:D', 18, money_format)
+                worksheet_income.set_column('E:E', 20)
+                
+                # Apply conditional formatting to highlight the most significant income sources
+                # Add a color scale to the percentage column
+                worksheet_income.conditional_format('C2:C{}'.format(len(income_data["Category"])), {
+                    'type': '3_color_scale',
+                    'min_color': "#FFFFFF", 
+                    'mid_color': "#9BC2E6",
+                    'max_color': "#2F75B5",
+                    'min_type': 'num',
+                    'min_value': 0,
+                    'mid_type': 'num',
+                    'mid_value': 25,
+                    'max_type': 'num',
+                    'max_value': 100
+                })
+                
+                # Format the total row to be bold
+                total_row_format = workbook.add_format({
+                    'bold': True, 
+                    'border': 1,
+                    'bg_color': '#D9D9D9',
+                    'num_format': '$#,##0.00'
+                })
+                
+                percent_total_format = workbook.add_format({
+                    'bold': True, 
+                    'border': 1,
+                    'bg_color': '#D9D9D9',
+                    'num_format': '0.00%'
+                })
+                
+                # Apply total row formatting
+                total_row_index = len(income_data["Category"])
+                worksheet_income.set_row(total_row_index, None, total_row_format)
+                
+                # Add a title and info section
+                worksheet_income.merge_range('G2:J2', 'OTHER INCOME ANALYSIS', workbook.add_format({
+                    'bold': True, 
+                    'font_size': 14,
+                    'align': 'center',
+                    'valign': 'vcenter',
+                    'border': 1,
+                    'bg_color': '#4472C4',
+                    'font_color': 'white'
+                }))
+                
+                # Add analysis text
+                analysis_format = workbook.add_format({
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'border': 1
+                })
+                
+                worksheet_income.merge_range('G3:J10', 
+                    f"Property: {property_name}\n\n"
+                    f"- Total Other Income: ${total_income:,.2f}\n"
+                    f"- Annual Projection: ${total_income * 12:,.2f}\n\n"
+                    "Key Insights:\n"
+                    "- Review income sources marked as 'Major' or 'Significant' for revenue stability\n"
+                    "- Sources marked as 'Not Present' may present growth opportunities\n"
+                    "- Consider opportunities to introduce new income streams or enhance existing ones",
+                    analysis_format
+                )
+        
+        # Create sheets for each comparison type
+        for comparison_type, title in [
+            ("actual_vs_budget", "Actual vs Budget"),
+            ("year_vs_year", "Year vs Year"),
+            ("month_vs_prior", "Month vs Prior Month")
+        ]:
+            if comparison_type in comparison_results:
+                comparison_data = comparison_results[comparison_type]
+                
+                # Create DataFrame for the comparison
+                df_data = []
+                metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
+                data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
+                
+                for key, name in zip(data_keys, metrics):
+                    # Handle both formats for current, prior, and change values
+                    current_val = comparison_data.get(f"{key}_current", 0.0)
+                    compare_val = comparison_data.get(f"{key}_compare", 0.0)
+                    change_val = comparison_data.get(f"{key}_change", 0.0)
+                    percent_change = comparison_data.get(f"{key}_percent_change", 0.0)
                     
-                    # Create DataFrame for the comparison
-                    df_data = []
-                    metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
-                    data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
+                    df_data.append({
+                        "Metric": name,
+                        "Current": current_val,
+                        "Comparison": compare_val,
+                        "Change ($)": change_val,
+                        "Change (%)": percent_change
+                    })
+                
+                # Create DataFrame and write to Excel
+                df_comparison = pd.DataFrame(df_data)
+                df_comparison.to_excel(writer, sheet_name=title, index=False)
+                
+                # Format the sheet
+                worksheet = writer.sheets[title]
+                money_format = workbook.add_format({'num_format': '$#,##0.00'})
+                percent_format = workbook.add_format({'num_format': '0.00%'})
+                
+                worksheet.set_column('B:D', 15, money_format)
+                worksheet.set_column('E:E', 15, percent_format)
+                
+                # Add OpEx component comparison if data is available
+                opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
+                opex_names = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
+                
+                if any(f"{component}_current" in comparison_data for component in opex_components):
+                    sheet_name = f"{title} - OpEx Detail"
                     
-                    for key, name in zip(data_keys, metrics):
+                    # Create DataFrame for OpEx component comparison
+                    opex_comparison_data = []
+                    
+                    for key, name in zip(opex_components, opex_names):
                         # Handle both formats for current, prior, and change values
                         current_val = comparison_data.get(f"{key}_current", 0.0)
                         compare_val = comparison_data.get(f"{key}_compare", 0.0)
                         change_val = comparison_data.get(f"{key}_change", 0.0)
                         percent_change = comparison_data.get(f"{key}_percent_change", 0.0)
                         
-                        df_data.append({
-                            "Metric": name,
+                        opex_comparison_data.append({
+                            "OpEx Category": name,
                             "Current": current_val,
                             "Comparison": compare_val,
                             "Change ($)": change_val,
                             "Change (%)": percent_change
                         })
                     
+                    # Add total row
+                    opex_comparison_data.append({
+                        "OpEx Category": "Total OpEx",
+                        "Current": comparison_data.get("opex_current", 0.0),
+                        "Comparison": comparison_data.get("opex_compare", 0.0),
+                        "Change ($)": comparison_data.get("opex_change", 0.0),
+                        "Change (%)": comparison_data.get("opex_percent_change", 0.0)
+                    })
+                    
                     # Create DataFrame and write to Excel
-                    df_comparison = pd.DataFrame(df_data)
-                    df_comparison.to_excel(writer, sheet_name=title, index=False)
+                    df_opex_comparison = pd.DataFrame(opex_comparison_data)
+                    df_opex_comparison.to_excel(writer, sheet_name=sheet_name, index=False)
                     
                     # Format the sheet
-                    worksheet = writer.sheets[title]
-                    money_format = workbook.add_format({'num_format': '$#,##0.00'})
-                    percent_format = workbook.add_format({'num_format': '0.00%'})
-                    
-                    worksheet.set_column('B:D', 15, money_format)
-                    worksheet.set_column('E:E', 15, percent_format)
-                    
-                    # Add OpEx component comparison if data is available
-                    opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
-                    opex_names = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
-                    
-                    if any(f"{component}_current" in comparison_data for component in opex_components):
-                        sheet_name = f"{title} - OpEx Detail"
-                        
-                        # Create DataFrame for OpEx component comparison
-                        opex_comparison_data = []
-                        
-                        for key, name in zip(opex_components, opex_names):
-                            # Handle both formats for current, prior, and change values
-                            current_val = comparison_data.get(f"{key}_current", 0.0)
-                            compare_val = comparison_data.get(f"{key}_compare", 0.0)
-                            change_val = comparison_data.get(f"{key}_change", 0.0)
-                            percent_change = comparison_data.get(f"{key}_percent_change", 0.0)
-                            
-                            opex_comparison_data.append({
-                                "OpEx Category": name,
-                                "Current": current_val,
-                                "Comparison": compare_val,
-                                "Change ($)": change_val,
-                                "Change (%)": percent_change
-                            })
-                        
-                        # Add total row
-                        opex_comparison_data.append({
-                            "OpEx Category": "Total OpEx",
-                            "Current": comparison_data.get("opex_current", 0.0),
-                            "Comparison": comparison_data.get("opex_compare", 0.0),
-                            "Change ($)": comparison_data.get("opex_change", 0.0),
-                            "Change (%)": comparison_data.get("opex_percent_change", 0.0)
-                        })
-                        
-                        # Create DataFrame and write to Excel
-                        df_opex_comparison = pd.DataFrame(opex_comparison_data)
-                        df_opex_comparison.to_excel(writer, sheet_name=sheet_name, index=False)
-                        
-                        # Format the sheet
-                        worksheet_opex_detail = writer.sheets[sheet_name]
-                        worksheet_opex_detail.set_column('B:D', 15, money_format)
-                        worksheet_opex_detail.set_column('E:E', 15, percent_format)
-            
-            # If insights are available, add them to the Excel file
-            if "insights" in st.session_state and st.session_state.insights:
-                insights = st.session_state.insights
-                
-                # Create insights sheet
-                insights_data = []
-                
-                # Add summary
-                if "summary" in insights:
-                    insights_data.append({"Category": "Summary", "Content": insights["summary"]})
-                
-                # Add performance insights
-                if "performance" in insights and insights["performance"]:
-                    for i, insight in enumerate(insights["performance"], 1):
-                        insights_data.append({"Category": f"Performance Insight {i}", "Content": insight})
-                
-                # Add recommendations
-                if "recommendations" in insights and insights["recommendations"]:
-                    for i, rec in enumerate(insights["recommendations"], 1):
-                        insights_data.append({"Category": f"Recommendation {i}", "Content": rec})
-                
-                # Create DataFrame and write to Excel
-                df_insights = pd.DataFrame(insights_data)
-                df_insights.to_excel(writer, sheet_name="AI Insights", index=False)
-                
-                # Format the insights sheet
-                worksheet = writer.sheets["AI Insights"]
-                worksheet.set_column('A:A', 20)
-                worksheet.set_column('B:B', 70)
+                    worksheet_opex_detail = writer.sheets[sheet_name]
+                    worksheet_opex_detail.set_column('B:D', 15, money_format)
+                    worksheet_opex_detail.set_column('E:E', 15, percent_format)
         
+        # If insights are available, add them to the Excel file
+        if "insights" in st.session_state and st.session_state.insights:
+            insights = st.session_state.insights
+            
+            # Create insights sheet
+            insights_data = []
+            
+            # Add summary
+            if "summary" in insights:
+                insights_data.append({"Category": "Summary", "Content": insights["summary"]})
+            
+            # Add performance insights
+            if "performance" in insights and insights["performance"]:
+                for i, insight in enumerate(insights["performance"], 1):
+                    insights_data.append({"Category": f"Performance Insight {i}", "Content": insight})
+            
+            # Add recommendations
+            if "recommendations" in insights and insights["recommendations"]:
+                for i, rec in enumerate(insights["recommendations"], 1):
+                    insights_data.append({"Category": f"Recommendation {i}", "Content": rec})
+            
+            # Create DataFrame and write to Excel
+            df_insights = pd.DataFrame(insights_data)
+            df_insights.to_excel(writer, sheet_name="AI Insights", index=False)
+            
+            # Format the insights sheet
+            worksheet = writer.sheets["AI Insights"]
+            worksheet.set_column('A:A', 20)
+            worksheet.set_column('B:B', 70)
+    
         # Get the Excel file as bytes
         output.seek(0)
         excel_data = output.getvalue()
@@ -1475,24 +1725,51 @@ def display_insights(insights: Dict[str, Any]):
         st.info("No insights available. Please process documents to generate insights.")
         return
     
-    # Create expanders for each section
-    with st.expander("Executive Summary", expanded=True):
+    # Section title styling
+    section_title_style = """
+    <style>
+    .insight-section-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: #4DB6AC;
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        background-color: rgba(30, 41, 59, 0.8);
+        border-radius: 6px;
+        border-left: 4px solid #4DB6AC;
+    }
+    .insight-content {
+        font-size: 16px;
+        line-height: 1.5;
+        padding-left: 16px;
+        padding-right: 16px;
+        font-family: 'Inter', sans-serif;
+    }
+    </style>
+    """
+    st.markdown(section_title_style, unsafe_allow_html=True)
+    
+    # Create expanders for each section with custom titles
+    with st.expander("", expanded=True):
+        st.markdown("<div class='insight-section-title'>Executive Summary</div>", unsafe_allow_html=True)
         if "summary" in insights and insights["summary"]:
-            st.markdown(f"<div class='insights-summary'>{insights['summary']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='insights-summary insight-content'>{insights['summary']}</div>", unsafe_allow_html=True)
         else:
             st.info("No executive summary available.")
     
-    with st.expander("Key Performance Insights", expanded=True):
+    with st.expander("", expanded=True):
+        st.markdown("<div class='insight-section-title'>Key Performance Insights</div>", unsafe_allow_html=True)
         if "performance" in insights and insights["performance"] and len(insights["performance"]) > 0:
             for i, insight in enumerate(insights["performance"], 1):
-                st.markdown(f"**{i}.** {insight}")
+                st.markdown(f"<div class='insight-content'><strong>{i}.</strong> {insight}</div>", unsafe_allow_html=True)
         else:
             st.info("No performance insights available.")
     
-    with st.expander("Recommendations", expanded=True):
+    with st.expander("", expanded=True):
+        st.markdown("<div class='insight-section-title'>Recommendations</div>", unsafe_allow_html=True)
         if "recommendations" in insights and insights["recommendations"] and len(insights["recommendations"]) > 0:
             for i, recommendation in enumerate(insights["recommendations"], 1):
-                st.markdown(f"**{i}.** {recommendation}")
+                st.markdown(f"<div class='insight-content'><strong>{i}.</strong> {recommendation}</div>", unsafe_allow_html=True)
         else:
             st.info("No recommendations available.")
 
@@ -1603,7 +1880,13 @@ def main():
                     # Generate insights with GPT if possible
                     if get_openai_api_key():
                         logger.info("Calling generate_insights_with_gpt with OpenAI key: " + "*" * len(get_openai_api_key()))
-                        insights = generate_insights_with_gpt(comparison_results)
+                        # Use a default value if property_name is missing in session_state
+                        if "property_name" not in st.session_state:
+                            property_name = "Property"
+                        else:
+                            property_name = st.session_state.property_name or "Property"
+                            
+                        insights = generate_insights_with_gpt(comparison_results, property_name)
                         st.session_state.insights = insights
                         logger.info(f"Generated insights: {insights is not None}")
                     else:
@@ -1624,13 +1907,63 @@ def main():
             st.header("Financial Insights")
             display_insights(st.session_state.insights)
         
+        # NOI Coach (Chat Widget)
+        st.header("Ask Your NOI Coach")
+        st.markdown("""
+        <div style="background-color: rgba(30, 41, 59, 0.8); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <p style="color: #F0F0F0;">Ask any question about the NOI analysis and get an AI-powered response based on your financial data.</p>
+            <p style="color: #F0F0F0; font-style: italic;">Examples: "Why is my NOI down this month?", "What's driving my expense increases?", "How can I improve my vacancy rate?"</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Initialize chat history in session state if it doesn't exist
+        if "noi_coach_history" not in st.session_state:
+            st.session_state.noi_coach_history = []
+        
+        # Display chat history
+        for i, (role, message) in enumerate(st.session_state.noi_coach_history):
+            with st.chat_message(role):
+                st.write(message)
+        
+        # Chat input
+        user_question = st.chat_input("Ask a question about your NOI metrics...")
+        
+        if user_question:
+            # Add user message to chat history
+            st.session_state.noi_coach_history.append(("user", user_question))
+            
+            # Display user message
+            with st.chat_message("user"):
+                st.write(user_question)
+            
+            # Get property name
+            property_name = st.session_state.property_name or "Property"
+            
+            # Get response from NOI Coach
+            with st.chat_message("assistant"):
+                with st.spinner("Generating response..."):
+                    response = ask_noi_coach(
+                        question=user_question,
+                        comparison_results=st.session_state.comparison_results,
+                        property_name=property_name
+                    )
+                    st.write(response)
+            
+            # Add assistant response to chat history
+            st.session_state.noi_coach_history.append(("assistant", response))
+        
         # Export options
         st.header("Export Options")
         col1, col2 = st.columns(2)
         
         with col1:
             if st.button("Export as PDF"):
-                property_name = st.session_state.property_name or "Property"
+                # Use a default value if property_name is missing in session_state
+                if "property_name" not in st.session_state:
+                    property_name = "Property"
+                else:
+                    property_name = st.session_state.property_name or "Property"
+                    
                 pdf_path = generate_pdf_report(st.session_state.comparison_results, property_name)
                 
                 if pdf_path:
@@ -1646,7 +1979,12 @@ def main():
         
         with col2:
             if st.button("Export as Excel"):
-                property_name = st.session_state.property_name or "Property"
+                # Use a default value if property_name is missing in session_state
+                if "property_name" not in st.session_state:
+                    property_name = "Property"
+                else:
+                    property_name = st.session_state.property_name or "Property"
+                    
                 excel_bytes = export_to_excel(st.session_state.comparison_results, property_name)
                 
                 if excel_bytes:
