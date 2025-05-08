@@ -378,7 +378,8 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
                 title="Actual vs Budget Comparison",
                 xaxis_title="Category",
                 yaxis_title="Amount ($)",
-                barmode='group'
+                barmode='group',
+                margin=dict(l=20, r=20, t=60, b=80)
             )
             
             st.plotly_chart(fig)
@@ -432,7 +433,8 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
                 title="Year-over-Year Comparison",
                 xaxis_title="Category",
                 yaxis_title="Amount ($)",
-                barmode='group'
+                barmode='group',
+                margin=dict(l=20, r=20, t=60, b=80)
             )
             
             st.plotly_chart(fig)
@@ -486,7 +488,8 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
                 title="Month-over-Month Comparison",
                 xaxis_title="Category",
                 yaxis_title="Amount ($)",
-                barmode='group'
+                barmode='group',
+                margin=dict(l=20, r=20, t=60, b=80)
             )
             
             st.plotly_chart(fig)

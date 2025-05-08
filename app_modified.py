@@ -443,7 +443,8 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
                 barmode='group',
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white')
+                font=dict(color='white'),
+                margin=dict(l=20, r=20, t=60, b=80)
             )
             
             st.plotly_chart(fig)
@@ -500,7 +501,8 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
                 barmode='group',
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white')
+                font=dict(color='white'),
+                margin=dict(l=20, r=20, t=60, b=80)
             )
             
             st.plotly_chart(fig)
@@ -557,7 +559,8 @@ def display_noi_comparisons(comparison_results: Dict[str, Any]):
                 barmode='group',
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white')
+                font=dict(color='white'),
+                margin=dict(l=20, r=20, t=60, b=80)
             )
             
             st.plotly_chart(fig)

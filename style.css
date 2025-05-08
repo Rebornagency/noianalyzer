@@ -41,6 +41,12 @@ input[type="text"] {
     padding: 20px;
 }
 
+/* Fix for Budget file uploader spacing */
+[data-testid="stSubheader"]:has(+ div [data-testid="stFileUploader"]) {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
 /* Button styling */
 .stButton>button {
     background-color: #0e4de3;
@@ -137,6 +143,11 @@ div[data-baseweb="input"] {
     padding: 10px;
 }
 
+/* Fix for Amount ($) label in charts - move it down to prevent overlap */
+.js-plotly-plot .ytitle {
+    transform: translateY(25px) !important;
+}
+
 /* Table styling */
 .stDataFrame {
     background-color: #1a1f29;
@@ -146,6 +157,36 @@ div[data-baseweb="input"] {
 .streamlit-expanderHeader {
     background-color: #1a1f29;
     border-radius: 8px;
+}
+
+/* Fix for Executive Summary, Key Performance Insights, and Recommendations */
+.insight-section-title {
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    color: #4DB6AC !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+    padding: 8px 12px !important;
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    border-radius: 6px !important;
+    border-left: 4px solid #4DB6AC !important;
+}
+
+.insight-content {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    padding: 10px 16px !important;
+    font-family: 'Inter', sans-serif !important;
+    margin-bottom: 5px !important;
+}
+
+.insights-summary {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    border-left: 4px solid #4DB6AC !important;
+    margin-bottom: 10px !important;
+    text-align: center !important;
 }
 
 /* Dark mode specific adjustments */

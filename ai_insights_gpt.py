@@ -378,26 +378,51 @@ def parse_gpt_response(response_text: str) -> Dict[str, Any]:
     
     return insights
 
-def ask_noi_coach(question: str, comparison_results: Dict[str, Any]) -> str:
+def ask_noi_coach(question: str, comparison_results: Dict[str, Any], current_view: str = None) -> str:
     """
     Ask the NOI Coach to answer a free-form question
-    based on the current comparison_results.
+    based on the current comparison_results, with awareness of which comparison tab is active.
+    
+    Args:
+        question: The user's question about NOI data
+        comparison_results: The complete NOI comparison results dictionary
+        current_view: The currently selected comparison view (budget, prior_year, prior_month)
+        
+    Returns:
+        String response from the AI coach
     """
     api_key = get_openai_api_key()
     client = OpenAI(api_key=api_key)
 
     # Format the metrics for the prompt
-    formatted = json.dumps(comparison_results, indent=2)
+    formatted = format_detailed_comparison_results_for_prompt(comparison_results)
+    
+    # Determine which comparison data to focus on based on current view
+    focus_section = ""
+    if current_view:
+        if current_view == "budget":
+            focus_section = "You should focus primarily on the ACTUAL VS BUDGET COMPARISON in your analysis, as the user is currently viewing budget comparison data."
+        elif current_view == "prior_year":
+            focus_section = "You should focus primarily on the YEAR-OVER-YEAR COMPARISON in your analysis, as the user is currently viewing year-over-year comparison data."
+        elif current_view == "prior_month":
+            focus_section = "You should focus primarily on the MONTH-OVER-MONTH COMPARISON in your analysis, as the user is currently viewing month-over-month comparison data."
+    
     system = (
-      "You are a helpful NOI coach. "
-      "The user will ask questions about Net Operating Income metrics. "
-      "Use ONLY the data provided."
+      "You are a helpful NOI coach for real estate professionals analyzing property financial data. "
+      "The user will ask questions about Net Operating Income metrics and variances. "
+      f"Use ONLY the data provided in the detailed comparison results. {focus_section} "
+      "Be concise, professional, and specific in your responses. "
+      "Refer to exact dollar amounts and percentages when possible. "
+      "Remember that for metrics like vacancy and expenses, negative variances (decreases) are generally positive outcomes."
     )
+    
     user = (
-      f"Here are the latest NOI comparison results:\n\n{formatted}\n\n"
+      f"Here are the detailed NOI comparison results:\n\n{formatted}\n\n"
       f"User question: {question}"
     )
 
+    logger.info(f"Sending NOI coach request with current_view: {current_view}")
+    
     resp = client.chat.completions.create(
         model="gpt-4",
         messages=[

@@ -234,7 +234,8 @@ if st.session_state.data_extracted and st.session_state.comparison_results:
             xaxis_title="",
             yaxis_title="Amount ($)",
             legend_title="Components",
-            height=500
+            height=500,
+            margin=dict(l=20, r=20, t=60, b=80)
         )
         
         st.plotly_chart(fig, use_container_width=True)
@@ -336,7 +337,8 @@ if st.session_state.data_extracted and st.session_state.comparison_results:
                     yaxis_title="Amount ($)",
                     legend_title="Type",
                     barmode='group',
-                    height=500
+                    height=500,
+                    margin=dict(l=20, r=20, t=60, b=80)
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
@@ -442,7 +444,8 @@ if st.session_state.data_extracted and st.session_state.comparison_results:
                     yaxis_title="Amount ($)",
                     legend_title="Month",
                     barmode='group',
-                    height=500
+                    height=500,
+                    margin=dict(l=20, r=20, t=60, b=80)
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
@@ -548,7 +551,8 @@ if st.session_state.data_extracted and st.session_state.comparison_results:
                     yaxis_title="Amount ($)",
                     legend_title="Year",
                     barmode='group',
-                    height=500
+                    height=500,
+                    margin=dict(l=20, r=20, t=60, b=80)
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
