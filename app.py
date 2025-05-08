@@ -464,22 +464,28 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             metric_idx = list(row.index).index("Metric")
             
             metric = row["Metric"]
-            change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
             
             try:
+                change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
                 change_pct = float(change_pct_str)
                 
-                # Determine if the change is positive from a business perspective
-                # For metrics where a decrease is good (Vacancy Loss, OpEx)
+                # Determine color based on metric type and change direction
                 if metric in ["Vacancy Loss", "Total OpEx"]:
                     # For these metrics (expenses/losses), a decrease (negative change) is GOOD (green)
-                    is_positive = change_pct < 0
+                    if change_pct < 0:
+                        color = "color: green"  # Negative change is good for expenses
+                    elif change_pct > 0:
+                        color = "color: red"    # Positive change is bad for expenses
+                    else:
+                        color = ""              # No change, no color
                 else:
                     # For income metrics (NOI, GPR), an increase (positive change) is GOOD (green)
-                    is_positive = change_pct > 0
-                    
-                # Apply appropriate colors
-                color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
+                    if change_pct > 0:
+                        color = "color: green"  # Positive change is good for income
+                    elif change_pct < 0:
+                        color = "color: red"    # Negative change is bad for income
+                    else:
+                        color = ""              # No change, no color
                 
                 # Apply to both dollar and percentage columns
                 styles[pct_change_idx] = color
@@ -522,7 +528,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         "Change ($)": change_val,
                         "Change (%)": percent_change,
                         # Operating expenses are positive when they decrease
-                        "Direction": "inverse"
+                        # Removing Direction column as requested
                     })
                 
                 if opex_df_data:
@@ -535,8 +541,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     opex_df_display["Change ($)"] = opex_df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
                     opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
                     
-                    # Apply styling and display
-                    opex_styled_df = opex_df_display.drop(columns=["Direction"])
+                    # Apply styling and display - no need to drop Direction column as it's no longer added
+                    opex_styled_df = opex_df_display
                     
                     # Create a function to apply styling
                     def style_opex_df(row):
@@ -546,22 +552,30 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         pct_change_idx = list(row.index).index("Change (%)")
                         dollar_change_idx = list(row.index).index("Change ($)")
                         
-                        change_pct = float(row["Change (%)"].strip('%'))
-                        
-                        # For expenses, a decrease (negative change) is good
-                        is_positive = change_pct < 0
-                        
-                        # Apply appropriate colors
-                        color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
-                        
-                        # Apply to both dollar and percentage columns
-                        styles[pct_change_idx] = color
-                        styles[dollar_change_idx] = color
+                        try:
+                            change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
+                            change_pct = float(change_pct_str)
+                            
+                            # For expenses, a decrease (negative change) is good (green)
+                            # and an increase (positive change) is bad (red)
+                            if change_pct < 0:
+                                color = "color: green"  # Negative change (decrease in expenses) is good
+                            elif change_pct > 0:
+                                color = "color: red"    # Positive change (increase in expenses) is bad
+                            else:
+                                color = ""              # No change, no color
+                            
+                            # Apply to both dollar and percentage columns
+                            styles[pct_change_idx] = color
+                            styles[dollar_change_idx] = color
+                        except (ValueError, TypeError):
+                            # If there's an error parsing the percentage, don't apply styling
+                            pass
                         
                         return styles
                     
                     # Apply styling and display
-                    opex_styled = opex_df_display.style.apply(style_opex_df, axis=1)
+                    opex_styled = opex_styled_df.style.apply(style_opex_df, axis=1)
                     st.dataframe(opex_styled, use_container_width=True)
                     
                     # Display a pie chart to visualize the breakdown
@@ -745,18 +759,23 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             return ['font-weight: bold'] * len(row)
                         
                         try:
-                            change_pct = float(row["Change (%)"].strip('%'))
+                            change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
+                            change_pct = float(change_pct_str)
                             
-                            # For income, an increase (positive change) is good
-                            is_positive = change_pct > 0
-                            
-                            # Apply appropriate colors
-                            color = "color: green" if is_positive else "color: red" if change_pct != 0 else ""
+                            # For income, an increase (positive change) is good (green)
+                            # and a decrease (negative change) is bad (red)
+                            if change_pct > 0:
+                                color = "color: green"  # Positive change (increase in income) is good
+                            elif change_pct < 0:
+                                color = "color: red"    # Negative change (decrease in income) is bad
+                            else:
+                                color = ""              # No change, no color
                             
                             # Apply to both dollar and percentage columns
                             styles[pct_change_idx] = color
                             styles[dollar_change_idx] = color
                         except (ValueError, TypeError):
+                            # If there's an error parsing the percentage, don't apply styling
                             pass
                         
                         return styles
@@ -1944,8 +1963,7 @@ def main():
                 with st.spinner("Generating response..."):
                     response = ask_noi_coach(
                         question=user_question,
-                        comparison_results=st.session_state.comparison_results,
-                        property_name=property_name
+                        comparison_results=st.session_state.comparison_results
                     )
                     st.write(response)
             
