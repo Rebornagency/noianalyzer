@@ -1166,7 +1166,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # Display chart
         st.plotly_chart(fig, use_container_width=True)
         logger.info(f"Successfully displayed chart for {name_suffix} comparison")
+    except Exception as e:
+        logger.error(f"Error creating visualization: {str(e)}")
+        st.error(f"Error creating visualization: {str(e)}")
         
+    try:
         # Prepare OpEx breakdown data
         opex_breakdown_data = []
         opex_breakdown_available = False
@@ -1279,10 +1283,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         
         # Convert HTML to PDF using weasyprint
         pdf_bytes = HTML(filename=tmp_path).write_pdf()
-        
     except Exception as e:
-        logger.error(f"Error in display_comparison_tab: {str(e)}")
-        st.error("An error occurred while displaying the comparison tab. Please try again later.")
+        logger.error(f"Error in data preparation or PDF generation: {str(e)}")
+        st.error(f"Error preparing data for export: {str(e)}")
 
 # Display NOI Coach (Chat Widget)
 def display_noi_coach():
