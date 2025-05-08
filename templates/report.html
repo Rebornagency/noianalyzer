@@ -92,6 +92,23 @@
         .pie-colors {
             background: linear-gradient(45deg, #4e73df, #36b9cc, #1cc88a, #f6c23e, #e74a3b);
         }
+        .narrative-section {
+            margin: 30px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #4DB6AC;
+        }
+        .narrative-title {
+            color: #4DB6AC;
+            border-bottom: 1px solid #c8d6e5;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .narrative-content {
+            line-height: 1.6;
+            white-space: pre-line;
+        }
     </style>
 </head>
 <body>
@@ -100,6 +117,14 @@
         <h2>{{ property_name }}</h2>
         <p>Generated on {{ datetime.now().strftime('%B %d, %Y') }}</p>
     </div>
+
+    <!-- Financial Narrative Section -->
+    {% if financial_narrative %}
+    <div class="narrative-section">
+        <h2 class="narrative-title">Financial Performance Narrative</h2>
+        <div class="narrative-content">{{ financial_narrative }}</div>
+    </div>
+    {% endif %}
 
     <!-- Executive Summary Section -->
     {% if executive_summary %}
