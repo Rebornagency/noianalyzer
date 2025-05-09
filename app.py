@@ -1293,9 +1293,13 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         except Exception as e:
             logger.error(f"Error in data preparation or PDF generation: {str(e)}")
             st.error(f"Error preparing data for export: {str(e)}")
-
-        # Ensure the function is properly closed
-        return
+    # THIS IS THE END OF THE INNER TRY-EXCEPT FOR PDF
+    # NOW, ADD THE EXCEPT FOR THE OUTER TRY (started at line 471)
+    except Exception as e:
+        logger.error(f"An unexpected error occurred in display_comparison_tab for {name_suffix}: {str(e)}")
+        st.error(f"An error occurred while displaying the comparison tab for {name_suffix}: {name_suffix}.")
+    # Return for display_comparison_tab, ensuring it's at the same indent level as the try/except
+    return
 
 # Function to handle user questions about NOI data
 def ask_noi_coach(question: str, comparison_results: Dict[str, Any], context: str) -> str:
