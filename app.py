@@ -1294,9 +1294,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             logger.error(f"Error in data preparation or PDF generation: {str(e)}")
             st.error(f"Error preparing data for export: {str(e)}")
 
-    # Ensure the function is properly closed
-    return
-
+        # Ensure the function is properly closed
+        # Ensure the function is properly closed
+        return
 # Function to handle user questions about NOI data
 def ask_noi_coach(question: str, comparison_results: Dict[str, Any], context: str) -> str:
     """
@@ -1750,3 +1750,4 @@ def main():
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
     main()
+
