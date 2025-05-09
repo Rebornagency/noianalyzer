@@ -1721,14 +1721,15 @@ def main():
                     st.error("Current Month Actuals file is required. Please upload it to proceed.")
                     return
                 
+                # Store uploaded files in session state for process_all_documents
+                st.session_state.current_month_actuals = current_month_file
+                st.session_state.prior_month_actuals = prior_month_file
+                st.session_state.current_month_budget = budget_file
+                st.session_state.prior_year_actuals = prior_year_file
+                # property_name is already in st.session_state.property_name from the text input
+
                 # Process the documents
-                comparison_results = process_all_documents(
-                    current_month_file=current_month_file,
-                    prior_month_file=prior_month_file,
-                    budget_file=budget_file,
-                    prior_year_file=prior_year_file,
-                    property_name=property_name
-                )
+                comparison_results = process_all_documents()
                 
                 # Store results in session state
                 st.session_state.comparison_results = comparison_results
