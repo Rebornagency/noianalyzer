@@ -17,10 +17,11 @@ from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
 from ai_extraction import extract_noi_data
-from ai_insights_gpt import generate_insights_with_gpt, ask_noi_coach
+from ai_insights_gpt import generate_insights_with_gpt
 from financial_storyteller import create_narrative
 from storyteller_display import display_financial_narrative, display_narrative_in_tabs
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
+from insights_display import display_insights
 from reborn_logo import get_reborn_logo_base64
 
 # Configure logging
@@ -1292,6 +1293,285 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         except Exception as e:
             logger.error(f"Error in data preparation or PDF generation: {str(e)}")
             st.error(f"Error preparing data for export: {str(e)}")
+
+    # Ensure the function is properly closed
+    return
+
+# Function to handle user questions about NOI data
+def ask_noi_coach(question: str, comparison_results: Dict[str, Any], context: str) -> str:
+    """
+    Process user questions about NOI data and generate responses.
+    
+    Args:
+        question: The user's question
+        comparison_results: The comparison results dictionary
+        context: The selected comparison context (budget, prior_month, prior_year)
+    
+    Returns:
+        A string response to the user's question
+    """
+    logger.info(f"NOI Coach question received: {question}")
+    logger.info(f"Context: {context}")
+    
+    # Safety check for comparison results
+    if not comparison_results or "current" not in comparison_results:
+        return "I don't have enough financial data to answer that question. Please make sure you've uploaded your financial documents."
+    
+    try:
+        # Prepare the data for the selected context
+        context_data = {}
+        context_data["current"] = comparison_results.get("current", {})
+        
+        if context == "budget" and "budget" in comparison_results:
+            context_data["compare"] = comparison_results.get("budget", {})
+            comparison_type = "budget"
+        elif context == "prior_month" and "prior" in comparison_results:
+            context_data["compare"] = comparison_results.get("prior", {})
+            comparison_type = "prior month"
+        elif context == "prior_year" and "prior_year" in comparison_results:
+            context_data["compare"] = comparison_results.get("prior_year", {})
+            comparison_type = "prior year"
+        else:
+            # Default to budget if available
+            if "budget" in comparison_results:
+                context_data["compare"] = comparison_results.get("budget", {})
+                comparison_type = "budget"
+            else:
+                return "I don't have the comparison data you're asking about. Please select a different context or upload the relevant document."
+        
+        # Format the data into a structured message
+        data_summary = f"""
+        Current period NOI: ${context_data['current'].get('noi', 0):,.2f}
+        Comparison period ({comparison_type}) NOI: ${context_data['compare'].get('noi', 0):,.2f}
+        
+        Key metrics comparison:
+        - GPR: ${context_data['current'].get('gpr', 0):,.2f} vs ${context_data['compare'].get('gpr', 0):,.2f}
+        - Vacancy Loss: ${context_data['current'].get('vacancy_loss', 0):,.2f} vs ${context_data['compare'].get('vacancy_loss', 0):,.2f}
+        - Other Income: ${context_data['current'].get('other_income', 0):,.2f} vs ${context_data['compare'].get('other_income', 0):,.2f}
+        - EGI: ${context_data['current'].get('egi', 0):,.2f} vs ${context_data['compare'].get('egi', 0):,.2f}
+        - OpEx: ${context_data['current'].get('opex', 0):,.2f} vs ${context_data['compare'].get('opex', 0):,.2f}
+        """
+        
+        # Check if we have insights already generated
+        insights_text = ""
+        if hasattr(st.session_state, "insights") and st.session_state.insights:
+            insights = st.session_state.insights
+            if "summary" in insights:
+                insights_text += f"Summary: {insights['summary']}\n\n"
+            if context in insights:
+                insights_text += f"Analysis: {insights[context]}\n\n"
+        
+        # Simple analytics to answer basic questions
+        if "driving" in question.lower() or "factor" in question.lower():
+            # Identify main drivers for changes in NOI
+            current_noi = context_data['current'].get('noi', 0)
+            compare_noi = context_data['compare'].get('noi', 0)
+            noi_change = current_noi - compare_noi
+            
+            # Calculate percent contributions to NOI change
+            factors = []
+            
+            # Revenue factors
+            current_gpr = context_data['current'].get('gpr', 0)
+            compare_gpr = context_data['compare'].get('gpr', 0)
+            gpr_change = current_gpr - compare_gpr
+            if abs(gpr_change) > 0.01 * abs(compare_gpr):
+                factors.append({
+                    "factor": "Gross Potential Rent",
+                    "change": gpr_change,
+                    "percent": gpr_change / abs(compare_gpr) * 100 if compare_gpr else 0
+                })
+            
+            # Vacancy factors
+            current_vacancy = context_data['current'].get('vacancy_loss', 0)
+            compare_vacancy = context_data['compare'].get('vacancy_loss', 0)
+            vacancy_change = current_vacancy - compare_vacancy
+            if abs(vacancy_change) > 0.01 * abs(compare_noi):
+                factors.append({
+                    "factor": "Vacancy Loss",
+                    "change": vacancy_change,
+                    "percent": vacancy_change / abs(compare_noi) * 100 if compare_noi else 0
+                })
+            
+            # Other income factors
+            current_other = context_data['current'].get('other_income', 0)
+            compare_other = context_data['compare'].get('other_income', 0)
+            other_change = current_other - compare_other
+            if abs(other_change) > 0.01 * abs(compare_noi):
+                factors.append({
+                    "factor": "Other Income",
+                    "change": other_change,
+                    "percent": other_change / abs(compare_noi) * 100 if compare_noi else 0
+                })
+            
+            # Operating expense factors
+            current_opex = context_data['current'].get('opex', 0)
+            compare_opex = context_data['compare'].get('opex', 0)
+            opex_change = current_opex - compare_opex
+            if abs(opex_change) > 0.01 * abs(compare_noi):
+                factors.append({
+                    "factor": "Operating Expenses",
+                    "change": opex_change,
+                    "percent": opex_change / abs(compare_noi) * 100 if compare_noi else 0
+                })
+            
+            # Sort factors by absolute impact
+            factors.sort(key=lambda x: abs(x["change"]), reverse=True)
+            
+            # Generate response
+            response = f"Based on your {comparison_type} comparison data, the main factors driving NOI change are:\n\n"
+            
+            for factor in factors:
+                change_str = f"${abs(factor['change']):,.2f}"
+                direction = "increase" if factor["change"] > 0 else "decrease"
+                impact = "positive" if (factor["change"] > 0 and factor["factor"] != "Vacancy Loss" and factor["factor"] != "Operating Expenses") or \
+                                      (factor["change"] < 0 and (factor["factor"] == "Vacancy Loss" or factor["factor"] == "Operating Expenses")) else "negative"
+                
+                response += f"- {factor['factor']}: {change_str} {direction} ({abs(factor['percent']):.1f}% of NOI), {impact} impact\n"
+            
+            return response
+        
+        elif "vacancy" in question.lower() or "occupancy" in question.lower():
+            # Provide vacancy analysis
+            current_vacancy = context_data['current'].get('vacancy_loss', 0)
+            compare_vacancy = context_data['compare'].get('vacancy_loss', 0)
+            vacancy_change = current_vacancy - compare_vacancy
+            
+            current_gpr = context_data['current'].get('gpr', 0)
+            compare_gpr = context_data['compare'].get('gpr', 0)
+            
+            current_vacancy_rate = (current_vacancy / current_gpr * 100) if current_gpr else 0
+            compare_vacancy_rate = (compare_vacancy / compare_gpr * 100) if compare_gpr else 0
+            
+            response = f"Vacancy analysis compared to {comparison_type}:\n\n"
+            response += f"- Current vacancy loss: ${current_vacancy:,.2f} ({current_vacancy_rate:.1f}% of GPR)\n"
+            response += f"- Comparison vacancy loss: ${compare_vacancy:,.2f} ({compare_vacancy_rate:.1f}% of GPR)\n"
+            
+            if current_vacancy > compare_vacancy:
+                response += f"\nVacancy has increased by ${vacancy_change:,.2f}, which is a negative trend. "
+                response += "This suggests occupancy rates have decreased, reducing potential rental income."
+            else:
+                response += f"\nVacancy has decreased by ${abs(vacancy_change):,.2f}, which is a positive trend. "
+                response += "This suggests improved occupancy rates, increasing your rental income."
+            
+            return response
+            
+        else:
+            # For other questions, provide a general analysis
+            current_noi = context_data['current'].get('noi', 0)
+            compare_noi = context_data['compare'].get('noi', 0)
+            noi_change = current_noi - compare_noi
+            noi_pct_change = (noi_change / compare_noi * 100) if compare_noi else 0
+            
+            response = f"Based on your {comparison_type} comparison data:\n\n"
+            
+            if noi_change > 0:
+                response += f"Your NOI has increased by ${noi_change:,.2f} ({noi_pct_change:.1f}%) compared to the {comparison_type}. "
+                response += "This is a positive trend indicating improved property performance.\n\n"
+            else:
+                response += f"Your NOI has decreased by ${abs(noi_change):,.2f} ({abs(noi_pct_change):.1f}%) compared to the {comparison_type}. "
+                response += "This suggests challenges that may need to be addressed.\n\n"
+            
+            # Add insight on revenue
+            current_egi = context_data['current'].get('egi', 0)
+            compare_egi = context_data['compare'].get('egi', 0)
+            egi_change = current_egi - compare_egi
+            egi_pct_change = (egi_change / compare_egi * 100) if compare_egi else 0
+            
+            if egi_change > 0:
+                response += f"Revenue (EGI) is up by ${egi_change:,.2f} ({egi_pct_change:.1f}%). "
+            else:
+                response += f"Revenue (EGI) is down by ${abs(egi_change):,.2f} ({abs(egi_pct_change):.1f}%). "
+            
+            # Add insight on expenses
+            current_opex = context_data['current'].get('opex', 0)
+            compare_opex = context_data['compare'].get('opex', 0)
+            opex_change = current_opex - compare_opex
+            opex_pct_change = (opex_change / compare_opex * 100) if compare_opex else 0
+            
+            if opex_change > 0:
+                response += f"Operating expenses have increased by ${opex_change:,.2f} ({opex_pct_change:.1f}%)."
+            else:
+                response += f"Operating expenses have decreased by ${abs(opex_change):,.2f} ({abs(opex_pct_change):.1f}%)."
+            
+            return response
+        
+    except Exception as e:
+        logger.error(f"Error in ask_noi_coach: {str(e)}")
+        return f"I encountered an error while analyzing your data: {str(e)}"
+
+# Function to display NOI Coach interface
+def display_noi_coach():
+    """
+    Display the NOI Coach interface for asking questions about the financial data.
+    This provides an AI-powered assistant to help users understand their NOI analysis.
+    """
+    st.markdown('<h2 class="section-header">NOI Coach</h2>', unsafe_allow_html=True)
+    
+    # Create an expander for the NOI Coach
+    with st.expander("Ask questions about your NOI data", expanded=False):
+        st.markdown("""
+        Ask questions about your NOI data and get AI-powered insights. Examples:
+        - What factors are driving the change in NOI?
+        - How does my vacancy loss compare to industry standards?
+        - What actions could improve my NOI?
+        """)
+        
+        # Input for user questions
+        user_question = st.text_input(
+            "Your question:",
+            key="noi_coach_question",
+            help="Ask a question about your financial data"
+        )
+        
+        # Get currently selected comparison context
+        context = st.session_state.current_comparison_view
+        
+        # Submit button
+        if st.button("Get Answer", key="noi_coach_submit"):
+            if user_question:
+                with st.spinner("Analyzing your data and generating insights..."):
+                    try:
+                        # Use the ask_noi_coach function to get AI-powered insights
+                        answer = ask_noi_coach(
+                            user_question, 
+                            st.session_state.comparison_results,
+                            context
+                        )
+                        
+                        # Add the Q&A to the history
+                        if "noi_coach_history" not in st.session_state:
+                            st.session_state.noi_coach_history = []
+                        
+                        st.session_state.noi_coach_history.append({
+                            "question": user_question,
+                            "answer": answer,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        })
+                        
+                        # Display the answer
+                        st.markdown("### Answer")
+                        st.markdown(answer)
+                    except Exception as e:
+                        logger.error(f"Error in NOI Coach: {str(e)}")
+                        st.error(f"Error generating insights: {str(e)}")
+            else:
+                st.warning("Please enter a question to get insights.")
+        
+        # Show history of questions and answers
+        if "noi_coach_history" in st.session_state and st.session_state.noi_coach_history:
+            st.markdown("### Previous Questions")
+            
+            for i, qa in enumerate(reversed(st.session_state.noi_coach_history)):
+                # Only show the 5 most recent Q&As
+                if i >= 5:
+                    break
+                
+                with st.container():
+                    st.markdown(f"**Q: {qa['question']}**")
+                    st.markdown(f"A: {qa['answer']}")
+                    st.markdown(f"<small>Asked on {qa['timestamp']}</small>", unsafe_allow_html=True)
+                    st.markdown("---")
 
 # Main function for the NOI Analyzer application
 def main():
