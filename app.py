@@ -1006,292 +1006,292 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             else:
                 st.info("Other income breakdown is not available for this comparison.")
         
-    try:
-        logger.info(f"Creating charts for {name_suffix} comparison")
-        # Create bar chart for visual comparison
-        fig = go.Figure()
+        try:
+            logger.info(f"Creating charts for {name_suffix} comparison")
+            # Create bar chart for visual comparison
+            fig = go.Figure()
 
-        # Calculate change percentages for hover data
-        change_pcts = df["Change (%)"].tolist()
-        change_vals = df["Change ($)"].tolist()
-        directions = df["Direction"].tolist()
-        metrics = df["Metric"].tolist()
-        
-        # Helper function to determine if a change is positive from business perspective
-        def is_positive_change(metric, change_val):
-            if metric in ["Vacancy Loss", "Total OpEx"]:
-                # For these metrics, a decrease (negative change) is good
-                return change_val < 0
-            else:
-                # For other metrics (NOI, GPR, EGI, etc.), an increase (positive change) is good
-                return change_val > 0
-        
-        # Create custom color scales based on values to add visual contrast
-        current_colors = []
-        compare_colors = []
-        
-        # Use a gradient of blue shades for current values
-        current_max = max(df["Current"]) if not df["Current"].empty else 0
-        for val in df["Current"]:
-            intensity = min(1.0, 0.3 + 0.7 * (val / current_max)) if current_max > 0 else 0.5
-            current_colors.append(f'rgba(13, 110, 253, {intensity})')
+            # Calculate change percentages for hover data
+            change_pcts = df["Change (%)"].tolist()
+            change_vals = df["Change ($)"].tolist()
+            directions = df["Direction"].tolist()
+            metrics = df["Metric"].tolist()
             
-        # Use a gradient of teal shades for comparison values
-        compare_max = max(df[name_suffix]) if not df[name_suffix].empty else 0
-        for val in df[name_suffix]:
-            intensity = min(1.0, 0.3 + 0.7 * (val / compare_max)) if compare_max > 0 else 0.5
-            compare_colors.append(f'rgba(32, 201, 151, {intensity})')
-
-        # Add current period bars with enhanced styling
-        fig.add_trace(go.Bar(
-            x=df["Metric"],
-            y=df["Current"],
-            name="Current",
-            marker=dict(
-                color=current_colors,
-                line=dict(width=1, color='white')
-            ),
-            opacity=0.9,
-            customdata=list(zip(change_vals, change_pcts, directions)),
-            hovertemplate='<b>%{x}</b><br>Current: $%{y:,.0f}<br>Change: $%{customdata[0]:,.0f} (%{customdata[1]:.1f}%)<extra></extra>'
-        ))
-
-        # Add prior period bars with enhanced styling
-        fig.add_trace(go.Bar(
-            x=df["Metric"],
-            y=df[name_suffix],
-            name=name_suffix,
-            marker=dict(
-                color=compare_colors,
-                line=dict(width=1, color='white')
-            ),
-            opacity=0.9,
-            customdata=list(zip(df["Metric"])),
-            hovertemplate='<b>%{x}</b><br>' + f'{name_suffix}: $' + '%{y:,.0f}<extra></extra>'
-        ))
-
-        # Identify peak NOI for annotation
-        if 'NOI' in df['Metric'].values:
-            current_noi = df.loc[df['Metric'] == 'NOI', 'Current'].values[0]
-            prior_noi = df.loc[df['Metric'] == 'NOI', name_suffix].values[0]
+            # Helper function to determine if a change is positive from business perspective
+            def is_positive_change(metric, change_val):
+                if metric in ["Vacancy Loss", "Total OpEx"]:
+                    # For these metrics, a decrease (negative change) is good
+                    return change_val < 0
+                else:
+                    # For other metrics (NOI, GPR, EGI, etc.), an increase (positive change) is good
+                    return change_val > 0
             
-            # Calculate the difference and percentage change
-            noi_diff = current_noi - prior_noi
-            noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 else 0
+            # Create custom color scales based on values to add visual contrast
+            current_colors = []
+            compare_colors = []
             
-            # Create annotation text based on whether NOI increased or decreased
-            # For NOI, an increase is positive (green), decrease is negative (red)
-            if noi_diff > 0:
-                annotation_text = f"NOI increased by ${noi_diff:,.0f}<br>({noi_pct:.1f}%)"
-                arrow_color = "green"
-            elif noi_diff < 0:
-                annotation_text = f"NOI decreased by ${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)"
-                arrow_color = "red"
-            else:
-                annotation_text = "NOI unchanged"
-                arrow_color = "gray"
+            # Use a gradient of blue shades for current values
+            current_max = max(df["Current"]) if not df["Current"].empty else 0
+            for val in df["Current"]:
+                intensity = min(1.0, 0.3 + 0.7 * (val / current_max)) if current_max > 0 else 0.5
+                current_colors.append(f'rgba(13, 110, 253, {intensity})')
                 
-            # Add annotation for NOI
-            fig.add_annotation(
-                x='NOI', 
-                y=max(current_noi, prior_noi) * 1.1,
-                text=annotation_text,
-                showarrow=True,
-                arrowhead=2,
-                arrowsize=1,
-                arrowwidth=2,
-                arrowcolor=arrow_color,
-                bgcolor="rgba(30, 41, 59, 0.8)",
-                bordercolor=arrow_color,
-                borderwidth=1,
-                borderpad=4,
-                font=dict(color="#F0F0F0", size=12)
-            )
+            # Use a gradient of teal shades for comparison values
+            compare_max = max(df[name_suffix]) if not df[name_suffix].empty else 0
+            for val in df[name_suffix]:
+                intensity = min(1.0, 0.3 + 0.7 * (val / compare_max)) if compare_max > 0 else 0.5
+                compare_colors.append(f'rgba(32, 201, 151, {intensity})')
 
-        # Update layout with dark theme styling
-        fig.update_layout(
-            barmode='group',
-            title=f"Current vs {name_suffix}",
-            title_font=dict(size=18, color="#F0F0F0", family="Inter, sans-serif"),
-            template="plotly_dark",
-            plot_bgcolor='rgba(30, 41, 59, 0.8)',
-            paper_bgcolor='rgba(16, 23, 42, 0)',
-            font=dict(
-                family="Inter, sans-serif",
-                size=14,
-                color="#F0F0F0"
-            ),
-            margin=dict(l=20, r=20, t=60, b=80),
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=-0.15,
-                xanchor="center",
-                x=0.5,
-                bgcolor="rgba(10, 15, 30, 0.6)",
-                bordercolor="rgba(255, 255, 255, 0.1)",
-                borderwidth=1,
-                font=dict(
-                    color="#F0F0F0"
+            # Add current period bars with enhanced styling
+            fig.add_trace(go.Bar(
+                x=df["Metric"],
+                y=df["Current"],
+                name="Current",
+                marker=dict(
+                    color=current_colors,
+                    line=dict(width=1, color='white')
+                ),
+                opacity=0.9,
+                customdata=list(zip(change_vals, change_pcts, directions)),
+                hovertemplate='<b>%{x}</b><br>Current: $%{y:,.0f}<br>Change: $%{customdata[0]:,.0f} (%{customdata[1]:.1f}%)<extra></extra>'
+            ))
+
+            # Add prior period bars with enhanced styling
+            fig.add_trace(go.Bar(
+                x=df["Metric"],
+                y=df[name_suffix],
+                name=name_suffix,
+                marker=dict(
+                    color=compare_colors,
+                    line=dict(width=1, color='white')
+                ),
+                opacity=0.9,
+                customdata=list(zip(df["Metric"])),
+                hovertemplate='<b>%{x}</b><br>' + f'{name_suffix}: $' + '%{y:,.0f}<extra></extra>'
+            ))
+
+            # Identify peak NOI for annotation
+            if 'NOI' in df['Metric'].values:
+                current_noi = df.loc[df['Metric'] == 'NOI', 'Current'].values[0]
+                prior_noi = df.loc[df['Metric'] == 'NOI', name_suffix].values[0]
+                
+                # Calculate the difference and percentage change
+                noi_diff = current_noi - prior_noi
+                noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 else 0
+                
+                # Create annotation text based on whether NOI increased or decreased
+                # For NOI, an increase is positive (green), decrease is negative (red)
+                if noi_diff > 0:
+                    annotation_text = f"NOI increased by ${noi_diff:,.0f}<br>({noi_pct:.1f}%)"
+                    arrow_color = "green"
+                elif noi_diff < 0:
+                    annotation_text = f"NOI decreased by ${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)"
+                    arrow_color = "red"
+                else:
+                    annotation_text = "NOI unchanged"
+                    arrow_color = "gray"
+                    
+                # Add annotation for NOI
+                fig.add_annotation(
+                    x='NOI', 
+                    y=max(current_noi, prior_noi) * 1.1,
+                    text=annotation_text,
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowsize=1,
+                    arrowwidth=2,
+                    arrowcolor=arrow_color,
+                    bgcolor="rgba(30, 41, 59, 0.8)",
+                    bordercolor=arrow_color,
+                    borderwidth=1,
+                    borderpad=4,
+                    font=dict(color="#F0F0F0", size=12)
                 )
-            ),
-            xaxis=dict(
-                title="",
-                tickfont=dict(size=14),
-                showgrid=False,
-                zeroline=False,
-                color="#F0F0F0"
-            ),
-            yaxis=dict(
-                title="Amount ($)",
-                titlefont=dict(size=14, color="#F0F0F0"),
-                tickfont=dict(size=12, color="#F0F0F0"),
-                showgrid=True,
-                gridcolor='rgba(255, 255, 255, 0.1)',
-                zeroline=False
-            ),
-            hoverlabel=dict(
-                bgcolor="#1E293B",
-                font_size=14,
-                font_family="Inter, sans-serif",
-                font_color="#F0F0F0"
-            )
-        )
 
-        # Add dollar sign to y-axis labels
-        fig.update_yaxes(tickprefix="$")
-        
-        # Add subtle pattern and depth to bars
-        for trace in fig.data:
-            trace.update(
-                marker_pattern_shape="",
-                marker_line_width=1,
-                marker_line_color="white"
+            # Update layout with dark theme styling
+            fig.update_layout(
+                barmode='group',
+                title=f"Current vs {name_suffix}",
+                title_font=dict(size=18, color="#F0F0F0", family="Inter, sans-serif"),
+                template="plotly_dark",
+                plot_bgcolor='rgba(30, 41, 59, 0.8)',
+                paper_bgcolor='rgba(16, 23, 42, 0)',
+                font=dict(
+                    family="Inter, sans-serif",
+                    size=14,
+                    color="#F0F0F0"
+                ),
+                margin=dict(l=20, r=20, t=60, b=80),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=-0.15,
+                    xanchor="center",
+                    x=0.5,
+                    bgcolor="rgba(10, 15, 30, 0.6)",
+                    bordercolor="rgba(255, 255, 255, 0.1)",
+                    borderwidth=1,
+                    font=dict(
+                        color="#F0F0F0"
+                    )
+                ),
+                xaxis=dict(
+                    title="",
+                    tickfont=dict(size=14),
+                    showgrid=False,
+                    zeroline=False,
+                    color="#F0F0F0"
+                ),
+                yaxis=dict(
+                    title="Amount ($)",
+                    titlefont=dict(size=14, color="#F0F0F0"),
+                    tickfont=dict(size=12, color="#F0F0F0"),
+                    showgrid=True,
+                    gridcolor='rgba(255, 255, 255, 0.1)',
+                    zeroline=False
+                ),
+                hoverlabel=dict(
+                    bgcolor="#1E293B",
+                    font_size=14,
+                    font_family="Inter, sans-serif",
+                    font_color="#F0F0F0"
+                )
             )
 
-        # Display chart
-        st.plotly_chart(fig, use_container_width=True)
-        logger.info(f"Successfully displayed chart for {name_suffix} comparison")
-    except Exception as e:
-        logger.error(f"Error creating visualization: {str(e)}")
-        st.error(f"Error creating visualization: {str(e)}")
-        
-    try:
-        # Prepare OpEx breakdown data
-        opex_breakdown_data = []
-        opex_breakdown_available = False
-        
-        opex_total = current_data.get("opex", 0)
-        
-        if opex_total and opex_total > 0:
-            # OpEx components
-            opex_components = [
-                ("property_taxes", "Property Taxes"),
-                ("insurance", "Insurance"),
-                ("repairs_and_maintenance", "Repairs & Maintenance"),
-                ("utilities", "Utilities"),
-                ("management_fees", "Management Fees")
-            ]
+            # Add dollar sign to y-axis labels
+            fig.update_yaxes(tickprefix="$")
             
-            # Check if we have detailed OpEx data
-            has_detail = False
-            for key, _ in opex_components:
-                if key in current_data:
-                    has_detail = True
-                    break
+            # Add subtle pattern and depth to bars
+            for trace in fig.data:
+                trace.update(
+                    marker_pattern_shape="",
+                    marker_line_width=1,
+                    marker_line_color="white"
+                )
+
+            # Display chart
+            st.plotly_chart(fig, use_container_width=True)
+            logger.info(f"Successfully displayed chart for {name_suffix} comparison")
+        except Exception as e:
+            logger.error(f"Error creating visualization: {str(e)}")
+            st.error(f"Error creating visualization: {str(e)}")
+        
+        try:
+            # Prepare OpEx breakdown data
+            opex_breakdown_data = []
+            opex_breakdown_available = False
             
-            if has_detail:
-                opex_breakdown_available = True
+            opex_total = current_data.get("opex", 0)
+            
+            if opex_total and opex_total > 0:
+                # OpEx components
+                opex_components = [
+                    ("property_taxes", "Property Taxes"),
+                    ("insurance", "Insurance"),
+                    ("repairs_and_maintenance", "Repairs & Maintenance"),
+                    ("utilities", "Utilities"),
+                    ("management_fees", "Management Fees")
+                ]
                 
-                for key, label in opex_components:
+                # Check if we have detailed OpEx data
+                has_detail = False
+                for key, _ in opex_components:
                     if key in current_data:
-                        current_val = current_data.get(key, 0)
-                        percentage = (current_val / opex_total * 100) if opex_total > 0 else 0
-                        
-                        # Get comparison value if available
-                        if "compare" in tab_data:
-                            compare_val = tab_data["compare"].get(key, 0)
+                        has_detail = True
+                        break
+                
+                if has_detail:
+                    opex_breakdown_available = True
+                    
+                    for key, label in opex_components:
+                        if key in current_data:
+                            current_val = current_data.get(key, 0)
+                            percentage = (current_val / opex_total * 100) if opex_total > 0 else 0
                             
-                            # Calculate percent change safely
-                            if compare_val and compare_val != 0:
-                                variance = (current_val - compare_val) / compare_val
+                            # Get comparison value if available
+                            if "compare" in tab_data:
+                                compare_val = tab_data["compare"].get(key, 0)
+                                
+                                # Calculate percent change safely
+                                if compare_val and compare_val != 0:
+                                    variance = (current_val - compare_val) / compare_val
+                                else:
+                                    variance = 0
                             else:
+                                compare_val = 0
                                 variance = 0
-                        else:
-                            compare_val = 0
-                            variance = 0
-                        
-                        opex_breakdown_data.append({
-                            "category": label,
-                            "current": current_val,
-                            "prior": compare_val,
-                            "variance": variance,
-                            "percentage": percentage
-                        })
-        
-        # Calculate KPIs
-        egi = current_data.get("egi", 0)
-        noi = current_data.get("noi", 0)
-        gpr = current_data.get("gpr", 0)
-        opex = current_data.get("opex", 0)
-        
-        operating_expense_ratio = opex / egi if egi else 0
-        noi_margin = noi / egi if egi else 0
-        gross_rent_multiplier = 10  # Placeholder value
-        
-        kpis = {
-            "egi": egi,
-            "operating_expense_ratio": operating_expense_ratio,
-            "noi_margin": noi_margin,
-            "gross_rent_multiplier": gross_rent_multiplier
-        }
-        
-        # Get executive summary if available
-        executive_summary = ""
-        if hasattr(st.session_state, "insights") and st.session_state.insights:
-            executive_summary = st.session_state.insights.get("summary", "")
-        
-        # Include financial narrative if available
-        financial_narrative = None
-        if "edited_narrative" in st.session_state:
-            financial_narrative = st.session_state.edited_narrative
-        elif "generated_narrative" in st.session_state:
-            financial_narrative = st.session_state.generated_narrative
-        
-        # Create context for template
-        context = {
-            "property_name": name_suffix,
-            "datetime": datetime,
-            "performance_data": {
+                            
+                            opex_breakdown_data.append({
+                                "category": label,
+                                "current": current_val,
+                                "prior": compare_val,
+                                "variance": variance,
+                                "percentage": percentage
+                            })
+            
+            # Calculate KPIs
+            egi = current_data.get("egi", 0)
+            noi = current_data.get("noi", 0)
+            gpr = current_data.get("gpr", 0)
+            opex = current_data.get("opex", 0)
+            
+            operating_expense_ratio = opex / egi if egi else 0
+            noi_margin = noi / egi if egi else 0
+            gross_rent_multiplier = 10  # Placeholder value
+            
+            kpis = {
                 "egi": egi,
-                "opex": opex,
-                "noi": noi,
-                "gpr": gpr,
-                "vacancy_loss": current_data.get("vacancy_loss", 0),
-                "other_income": current_data.get("other_income", 0),
-                "opex_breakdown_data": opex_breakdown_data,
-                "opex_breakdown_available": opex_breakdown_available,
-                "kpis": kpis,
-                "executive_summary": executive_summary,
-                "financial_narrative": financial_narrative,
-                "comparison_title": name_suffix
-            },
-            "comparison_results": tab_data
-        }
-        
-        # Render template
-        html_content = template.render(**context)
-        
-        # Create a temporary file for the PDF
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
-            tmp.write(html_content.encode('utf-8'))
-            tmp_path = tmp.name
-        
-        # Convert HTML to PDF using weasyprint
-        pdf_bytes = HTML(filename=tmp_path).write_pdf()
-    except Exception as e:
-        logger.error(f"Error in data preparation or PDF generation: {str(e)}")
-        st.error(f"Error preparing data for export: {str(e)}")
+                "operating_expense_ratio": operating_expense_ratio,
+                "noi_margin": noi_margin,
+                "gross_rent_multiplier": gross_rent_multiplier
+            }
+            
+            # Get executive summary if available
+            executive_summary = ""
+            if hasattr(st.session_state, "insights") and st.session_state.insights:
+                executive_summary = st.session_state.insights.get("summary", "")
+            
+            # Include financial narrative if available
+            financial_narrative = None
+            if "edited_narrative" in st.session_state:
+                financial_narrative = st.session_state.edited_narrative
+            elif "generated_narrative" in st.session_state:
+                financial_narrative = st.session_state.generated_narrative
+            
+            # Create context for template
+            context = {
+                "property_name": name_suffix,
+                "datetime": datetime,
+                "performance_data": {
+                    "egi": egi,
+                    "opex": opex,
+                    "noi": noi,
+                    "gpr": gpr,
+                    "vacancy_loss": current_data.get("vacancy_loss", 0),
+                    "other_income": current_data.get("other_income", 0),
+                    "opex_breakdown_data": opex_breakdown_data,
+                    "opex_breakdown_available": opex_breakdown_available,
+                    "kpis": kpis,
+                    "executive_summary": executive_summary,
+                    "financial_narrative": financial_narrative,
+                    "comparison_title": name_suffix
+                },
+                "comparison_results": tab_data
+            }
+            
+            # Render template
+            html_content = template.render(**context)
+            
+            # Create a temporary file for the PDF
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
+                tmp.write(html_content.encode('utf-8'))
+                tmp_path = tmp.name
+            
+            # Convert HTML to PDF using weasyprint
+            pdf_bytes = HTML(filename=tmp_path).write_pdf()
+        except Exception as e:
+            logger.error(f"Error in data preparation or PDF generation: {str(e)}")
+            st.error(f"Error preparing data for export: {str(e)}")
 
 # Main function for the NOI Analyzer application
 def main():
@@ -1413,7 +1413,9 @@ def main():
         # Display tabs with comparison data
         if st.session_state.comparison_results:
             # Call our new comparison function
-            display_noi_comparisons(st.session_state.comparison_results)
+            display_comparison_tab(st.session_state.comparison_results, "prior", "Prior Month")
+            display_comparison_tab(st.session_state.comparison_results, "budget", "Budget")
+            display_comparison_tab(st.session_state.comparison_results, "prior_year", "Prior Year")
             
             # Display insights
             if st.session_state.insights:
