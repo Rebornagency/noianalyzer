@@ -28,32 +28,32 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     result = {
         'property_id': None,
         'period': None,
-        'gpr': None,
-        'vacancy_loss': None,
-        'concessions': None,
-        'bad_debt': None,
-        'other_income': None,
-        'egi': None,
-        'opex': None,
-        'noi': None,
+        'gpr': 0.0,
+        'vacancy_loss': 0.0,
+        'concessions': 0.0,
+        'bad_debt': 0.0,
+        'other_income': 0.0,
+        'egi': 0.0,
+        'opex': 0.0,
+        'noi': 0.0,
         # Add OpEx breakdown components
-        'property_taxes': None,
-        'insurance': None,
-        'repairs_and_maintenance': None,
-        'utilities': None,
-        'management_fees': None,
+        'property_taxes': 0.0,
+        'insurance': 0.0,
+        'repairs_and_maintenance': 0.0,
+        'utilities': 0.0,
+        'management_fees': 0.0,
         # Add Other Income breakdown components
-        'parking': None,
-        'laundry': None,
-        'late_fees': None,
-        'pet_fees': None,
-        'application_fees': None,
-        'storage_fees': None,
-        'amenity_fees': None,
-        'utility_reimbursements': None,
-        'cleaning_fees': None,
-        'cancellation_fees': None,
-        'miscellaneous': None
+        'parking': 0.0,
+        'laundry': 0.0,
+        'late_fees': 0.0,
+        'pet_fees': 0.0,
+        'application_fees': 0.0,
+        'storage_fees': 0.0,
+        'amenity_fees': 0.0,
+        'utility_reimbursements': 0.0,
+        'cleaning_fees': 0.0,
+        'cancellation_fees': 0.0,
+        'miscellaneous': 0.0
     }
     
     # Return empty result if API response is invalid
@@ -65,36 +65,17 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     result['property_id'] = api_response.get('property_id')
     result['period'] = api_response.get('period')
     
-    # Extract financial data - handle both nested and flat structures
-    financials = api_response.get('financials', {})
-    
-    # If financials is not a dict, try to use the top-level response
-    if not isinstance(financials, dict) or not financials:
-        logger.warning("No 'financials' object found in API response, using top-level fields")
-        financials = api_response
-    
-    # Log the structure for debugging
-    logger.debug(f"Financials structure: {list(financials.keys() if isinstance(financials, dict) else [])}")
-    
     # Helper function to safely extract numeric values
     def safe_float(value):
         if value is None:
-            return None
+            return 0.0
         
         # Handle numpy types
         if hasattr(value, 'item'):
             try:
                 return float(value.item())
             except:
-                pass
-        
-        # Handle dictionary values (nested structure)
-        if isinstance(value, dict):
-            # Try to find a numeric value in the dictionary
-            for key in ['amount', 'value', 'total']:
-                if key in value and value[key] is not None:
-                    return safe_float(value[key])
-            return None
+                return 0.0
         
         # Handle string values
         if isinstance(value, str):
@@ -103,149 +84,63 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
             try:
                 return float(clean_value)
             except ValueError:
-                return None
+                return 0.0
         
         # Handle numeric values
         try:
             return float(value)
         except (ValueError, TypeError):
-            return None
+            return 0.0
     
-    # Extract financial values with safe conversion
-    result['gpr'] = safe_float(financials.get('gross_potential_rent'))
-    result['vacancy_loss'] = safe_float(financials.get('vacancy_loss'))
-    result['concessions'] = safe_float(financials.get('concessions'))
-    result['bad_debt'] = safe_float(financials.get('bad_debt'))
-    
-    # Handle other_income which could be nested or a direct value
-    other_income = financials.get('other_income')
-    if isinstance(other_income, dict) and 'total' in other_income:
-        result['other_income'] = safe_float(other_income['total'])
-        
-        # Extract Other Income components from the nested structure
-        other_income_components = {
-            'parking': ['parking', 'parking_income', 'parking_fees'],
-            'laundry': ['laundry', 'laundry_income', 'laundry_services'],
-            'late_fees': ['late_fees', 'late fees', 'late_fee_income', 'delinquency_fees'],
-            'pet_fees': ['pet_fees', 'pet fees', 'pet rent', 'pet_rent', 'pet_deposits'],
-            'application_fees': ['application_fees', 'application fees', 'application_income'],
-            'storage_fees': ['storage', 'storage_fees', 'storage_income', 'storage units', 'storage_rental'],
-            'amenity_fees': ['amenity', 'amenity_fees', 'amenities', 'gym_fees', 'pool_fees', 'facility_fees'],
-            'utility_reimbursements': ['utility_reimbursements', 'utility reimbursement', 'utilities_reimbursement', 'cam_reimbursements'],
-            'cleaning_fees': ['cleaning', 'cleaning_fees', 'housekeeping', 'janitorial_income'],
-            'cancellation_fees': ['cancellation', 'cancellation_fees', 'termination_fees', 'lease_break_fees'],
-            'miscellaneous': ['misc', 'miscellaneous', 'misc_income', 'other', 'other_fees']
-        }
-        
-        # Try to extract each component using various possible field names
-        for result_key, possible_fields in other_income_components.items():
-            for field in possible_fields:
-                if field in other_income and other_income[field] is not None:
-                    result[result_key] = safe_float(other_income[field])
-                    break
-    else:
-        result['other_income'] = safe_float(other_income)
-    
-    # Also check for Other Income components at the top level of financials
-    # The extraction tool may put these at the top level
-    other_income_keys = ['parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 
-                        'storage_fees', 'amenity_fees', 'utility_reimbursements', 
-                        'cleaning_fees', 'cancellation_fees', 'miscellaneous']
-    for component in other_income_keys:
-        # Only set if not already set from nested structure
-        if component not in result or result[component] is None:
-            if component in financials:
-                result[component] = safe_float(financials[component])
-            else:
-                result[component] = None
-    
-    # Ensure all Other Income components have at least a zero value if we have other_income
-    if result['other_income'] is not None and result['other_income'] > 0:
-        # Calculate sum of all specified components
-        component_sum = 0.0
-        for component in other_income_keys:
-            if component in result and result[component] is not None:
-                component_sum += result[component]
-            else:
-                result[component] = 0.0
-        
-        # If sum of components is less than total other income, add difference to miscellaneous
-        if component_sum < result['other_income'] and abs(component_sum - result['other_income']) > 0.01:
-            result['miscellaneous'] = result.get('miscellaneous', 0.0) + (result['other_income'] - component_sum)
-    
-    # Handle EGI (effective_gross_income)
-    egi = financials.get('effective_gross_income')
-    if egi is None:
-        # Try total_revenue as an alternative
-        egi = financials.get('total_revenue')
-    result['egi'] = safe_float(egi)
-    
-    # Handle operating expenses
-    opex = financials.get('total_expenses')
-    if opex is None:
-        # Try alternative fields
-        opex = financials.get('operating_expenses')
-        if isinstance(opex, dict) and 'total_operating_expenses' in opex:
-            opex = opex['total_operating_expenses']
-        elif opex is None:
-            opex = financials.get('operating_expenses_total')
-    result['opex'] = safe_float(opex)
-    
-    # Handle NOI
-    noi = financials.get('net_operating_income')
-    result['noi'] = safe_float(noi)
-    
-    # --- extract OpEx breakdown components ---
-    # Try nested structure first
-    opex_source = {}
-    if isinstance(financials.get("operating_expenses"), dict):
-        opex_source = financials["operating_expenses"]
-    # Fall back to flat top-level
-    else:
-        opex_source = financials
-
-    # Map new component keys to possible field names
-    component_mapping = {
-        "property_taxes": ["property_taxes", "taxes"],
-        "insurance": ["insurance"],
-        "repairs_and_maintenance": ["repairs_and_maintenance", "repairs_maintenance", "repairs", "maintenance"],
-        "utilities": ["utilities"],
-        "management_fees": ["management_fees", "management"]
+    # Map the flat structure to our expected format
+    field_mapping = {
+        'gross_potential_rent': 'gpr',
+        'vacancy_loss': 'vacancy_loss',
+        'concessions': 'concessions',
+        'bad_debt': 'bad_debt',
+        'other_income': 'other_income',
+        'effective_gross_income': 'egi',
+        'operating_expenses': 'opex',
+        'net_operating_income': 'noi',
+        'property_taxes': 'property_taxes',
+        'insurance': 'insurance',
+        'repairs_and_maintenance': 'repairs_and_maintenance',
+        'utilities': 'utilities',
+        'management_fees': 'management_fees',
+        'parking': 'parking',
+        'laundry': 'laundry',
+        'late_fees': 'late_fees',
+        'pet_fees': 'pet_fees',
+        'application_fees': 'application_fees',
+        'storage_fees': 'storage_fees',
+        'amenity_fees': 'amenity_fees',
+        'utility_reimbursements': 'utility_reimbursements',
+        'cleaning_fees': 'cleaning_fees',
+        'cancellation_fees': 'cancellation_fees',
+        'miscellaneous': 'miscellaneous'
     }
-
-    for key, candidates in component_mapping.items():
-        raw = None
-        for field in candidates:
-            if field in opex_source:
-                raw = opex_source[field]
-                break
-        # Also check top-level in case extraction tool flattened them
-        if raw is None and key in financials:
-            raw = financials[key]
-        result[key] = safe_float(raw) if raw is not None else 0.0
+    
+    # Map fields from API response to result
+    for api_field, result_field in field_mapping.items():
+        if api_field in api_response:
+            result[result_field] = safe_float(api_response[api_field])
     
     # Calculate EGI if not provided
-    if result['egi'] is None and result['gpr'] is not None:
+    if result['egi'] == 0.0 and result['gpr'] > 0.0:
         egi = result['gpr']
-        if result['vacancy_loss'] is not None:
-            egi -= result['vacancy_loss']
-        if result['concessions'] is not None:
-            egi -= result['concessions']
-        if result['bad_debt'] is not None:
-            egi -= result['bad_debt']
-        if result['other_income'] is not None:
-            egi += result['other_income']
+        egi -= result['vacancy_loss']
+        egi -= result['concessions']
+        egi -= result['bad_debt']
+        egi += result['other_income']
         result['egi'] = egi
     
     # Calculate NOI if not provided
-    if result['noi'] is None and result['egi'] is not None and result['opex'] is not None:
+    if result['noi'] == 0.0 and result['egi'] > 0.0 and result['opex'] > 0.0:
         result['noi'] = result['egi'] - result['opex']
     
     # Log the formatted result
     logger.info(f"Formatted result: property_id={result['property_id']}, period={result['period']}")
     logger.debug(f"Financial values: gpr={result['gpr']}, vacancy_loss={result['vacancy_loss']}, egi={result['egi']}, opex={result['opex']}, noi={result['noi']}")
-    logger.debug(f"OpEx breakdown: taxes={result['property_taxes']}, insurance={result['insurance']}, r&m={result['repairs_and_maintenance']}")
-    logger.debug(f"Other Income breakdown: parking={result['parking']}, laundry={result['laundry']}, late_fees={result['late_fees']}")
     
     return result
 
