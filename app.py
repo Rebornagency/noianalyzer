@@ -42,23 +42,12 @@ from reborn_logo import get_reborn_logo_base64
 def display_logo():
     """Display the Reborn logo in the Streamlit app"""
     try:
-        # Read the logo directly from file if possible
-        logo_path = os.path.join(os.path.dirname(__file__), "Reborn Logo.jpeg")
-        
-        if os.path.exists(logo_path):
-            with open(logo_path, "rb") as f:
-                logo_bytes = f.read()
-                logo_base64 = base64.b64encode(logo_bytes).decode("utf-8")
-                logger.info(f"Successfully read logo from {logo_path}")
-        else:
-            # Fallback to embedded base64 logo
-            logger.info("Using embedded base64 logo as fallback")
-            logo_base64 = get_reborn_logo_base64()
+        logo_base64 = get_reborn_logo_base64()
         
         # Direct embedding of the logo with proper sizing and alignment
         logo_html = f"""
         <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 25px; margin-top: 10px;">
-            <img src="data:image/jpeg;base64,{logo_base64}" width="180px" alt="Reborn Logo" style="object-fit: contain;">
+            <img src="data:image/png;base64,{logo_base64}" width="180px" alt="Reborn Logo" style="object-fit: contain;">
         </div>
         """
         st.markdown(logo_html, unsafe_allow_html=True)
@@ -72,17 +61,7 @@ def display_logo():
 def display_logo_small():
     """Display the Reborn logo (small, transparent PNG) aligned to the left."""
     try:
-        # Read the logo directly from file
-        logo_path = os.path.join(os.path.dirname(__file__), "static/images/reborn_logo.png")
-        
-        if os.path.exists(logo_path):
-            with open(logo_path, "rb") as f:
-                logo_b64 = base64.b64encode(f.read()).decode("utf-8")
-                logger.info(f"Successfully read logo from {logo_path}")
-        else:
-            # Fallback to embedded base64 logo
-            logger.warning(f"Logo file not found at {logo_path}, using fallback")
-            logo_b64 = get_reborn_logo_base64()
+        logo_b64 = get_reborn_logo_base64()
         
         # Inline logo with proper sizing and alignment
         logo_html = f"""

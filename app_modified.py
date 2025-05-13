@@ -54,7 +54,7 @@ def display_logo():
     logo_html = f"""
     <div class="header-container">
         <div class="logo-container">
-            <img src="data:image/png;base64,{logo_base64}" width="120">
+            <img src="data:image/png;base64,{logo_base64}" width="120" alt="Reborn Logo" style="object-fit: contain;">
         </div>
     </div>
     """
@@ -1008,7 +1008,7 @@ def main():
         # Display logo in sidebar
         st.markdown(f"""
         <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-            <img src="data:image/png;base64,{get_reborn_logo_base64()}" width="80">
+            <img src="data:image/png;base64,{get_reborn_logo_base64()}" width="80" alt="Reborn Logo" style="object-fit: contain;">
         </div>
         """, unsafe_allow_html=True)
         

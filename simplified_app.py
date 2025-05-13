@@ -6,6 +6,7 @@ import os
 import sys
 import logging
 from datetime import datetime
+import base64
 
 # Add the current directory to the path so we can import modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -14,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from api_integration import extract_data_from_documents
 from helpers import format_for_noi_comparison, calculate_noi_comparisons, create_comparison_dataframe
 from ai_insights_gpt import generate_insights_with_gpt
+from reborn_logo import get_reborn_logo_base64
 
 # Configure logging
 logging.basicConfig(
@@ -619,3 +621,21 @@ st.markdown("""
     NOI Analyzer | Last updated: April 2025
 </p>
 """, unsafe_allow_html=True)
+
+# Display Reborn logo
+def display_logo():
+    """Display the Reborn logo in the Streamlit app"""
+    try:
+        logo_base64 = get_reborn_logo_base64()
+        
+        # Direct embedding of the logo with proper sizing and alignment
+        logo_html = f"""
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 25px; margin-top: 10px;">
+            <img src="data:image/png;base64,{logo_base64}" width="180px" alt="Reborn Logo" style="object-fit: contain;">
+        </div>
+        """
+        st.markdown(logo_html, unsafe_allow_html=True)
+    except Exception as e:
+        logger.error(f"Error displaying logo: {str(e)}")
+        # Fallback to text
+        st.markdown("<h2 style='text-align: center;'>NOI ANALYZER</h2>", unsafe_allow_html=True)
