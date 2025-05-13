@@ -21,11 +21,24 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     """
     comparison_results = {}
     
+    logger.info(f"calculate_noi_comparisons received data with keys: {list(consolidated_data.keys())}")
+    
+    # Check if we've already transformed the data to avoid double transformation
+    if any(key in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year', 'current'] for key in consolidated_data.keys()):
+        logger.warning("calculate_noi_comparisons was called with data that appears to be already transformed")
+        # If any key has _current suffix, this is already transformed data
+        sample_keys = list(consolidated_data.get('month_vs_prior', {}).keys())[:5] if 'month_vs_prior' in consolidated_data else []
+        if sample_keys and any(key.endswith('_current') for key in sample_keys):
+            logger.info("Returning already transformed data to avoid double transformation")
+            return consolidated_data
+    
     def normalize_data(data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """Normalize input data structure"""
         if not data:
+            logger.warning("normalize_data received empty or None data")
             return {}
         
+        logger.info(f"Normalizing data with keys: {list(data.keys())}")
         financials = data.get('financials', data)
         normalized = {}
         
@@ -36,10 +49,12 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         # Extract nested OpEx components if they exist
         if "operating_expenses" in financials and isinstance(financials["operating_expenses"], dict):
             opex_data = financials["operating_expenses"]
+            logger.info(f"Found nested operating_expenses with keys: {list(opex_data.keys())}")
             
             # Set total OpEx
             if "total_operating_expenses" in opex_data:
                 normalized["opex"] = opex_data["total_operating_expenses"]
+                logger.info(f"Extracted opex value: {normalized['opex']}")
             
             # Extract each OpEx component
             component_mapping = {
@@ -56,17 +71,34 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
                     if field in opex_data and opex_data[field] is not None:
                         normalized[normalized_key] = opex_data[field]
                         break
+        else:
+            logger.info("No nested operating_expenses found or it's not a dictionary")
         
         # Handle legacy/flat structure where components might be at the top level
         if "opex" not in normalized and "operating_expenses_total" in financials:
             normalized["opex"] = financials["operating_expenses_total"]
+            logger.info(f"Using flat operating_expenses_total for opex: {normalized['opex']}")
+        elif "opex" not in normalized and "operating_expenses" in financials and not isinstance(financials["operating_expenses"], dict):
+            normalized["opex"] = financials["operating_expenses"]
+            logger.info(f"Using flat operating_expenses for opex: {normalized['opex']}")
+        
+        # Handle nested other_income if it exists
+        if "other_income" in financials and isinstance(financials["other_income"], dict):
+            other_income_data = financials["other_income"]
+            logger.info(f"Found nested other_income with keys: {list(other_income_data.keys())}")
+            
+            # Extract total other_income
+            if "total" in other_income_data:
+                normalized["other_income"] = other_income_data["total"]
+                logger.info(f"Extracted other_income value: {normalized['other_income']}")
         
         # Ensure all OpEx components exist with default values if missing
         opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
         for component in opex_components:
             if component not in normalized:
                 normalized[component] = 0
-                
+        
+        logger.info(f"Normalized data: gpr={normalized.get('gpr')}, opex={normalized.get('opex')}, noi={normalized.get('noi')}")
         return normalized
     
     def safe_percent_change(current: float, previous: float) -> float:
@@ -81,13 +113,15 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         for period, data in consolidated_data.items()
     }
     
-    # Get current period data - transform 'current_month' to 'current'
-    current_data = normalized_data.get("current_month", {})
+    logger.info(f"Normalized data periods: {list(normalized_data.keys())}")
+    
+    # Get current period data - handle either 'current_month' or 'current'
+    current_data = normalized_data.get("current_month", normalized_data.get("current", {}))
     if not current_data:
         logger.error("No current month data available")
         return {"error": "No current month data available"}
     
-    # Store current data under the 'current' key instead of 'current_month'
+    # Store current data under the 'current' key for consistency
     comparison_results["current"] = current_data
     
     # Define metrics to compare, now including OpEx components
@@ -110,6 +144,7 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     for result_key, data_key in comparison_mapping.items():
         comparison_data = normalized_data.get(data_key, {})
         if comparison_data:
+            logger.info(f"Calculating {result_key} comparison with {data_key}")
             results = {}
             
             for metric in metrics:
@@ -126,6 +161,12 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
             
             comparison_results[result_key] = results
             logger.info(f"Calculated {result_key} with {len(results)} metrics")
+            
+            # Add a debug check to verify some key metrics were properly calculated
+            if "noi_current" in results and "noi_compare" in results:
+                logger.info(f"{result_key} - NOI current: {results['noi_current']}, compare: {results['noi_compare']}")
+            else:
+                logger.warning(f"{result_key} - Missing expected NOI fields")
         else:
             logger.warning(f"No {data_key} data available for {result_key} comparison")
     
@@ -149,7 +190,15 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
             if f"{metric}_current" in comparison_results["year_vs_year"]:
                 comparison_results["year_vs_year"][f"{metric}_prior_year"] = comparison_results["year_vs_year"][f"{metric}_compare"]
     
-    logger.info(f"Final comparison results keys: {list(comparison_results.keys())}")
+    # Final structure validation before returning
+    result_keys = list(comparison_results.keys())
+    logger.info(f"Final comparison results keys: {result_keys}")
+    
+    # Verify the expected structure is present
+    if "month_vs_prior" in comparison_results:
+        sample_keys = list(comparison_results["month_vs_prior"].keys())[:5]
+        logger.info(f"Sample keys in month_vs_prior: {sample_keys}")
+    
     return comparison_results
 
 def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:

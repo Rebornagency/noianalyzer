@@ -22,7 +22,7 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         Formatted data for NOI comparison
     """
     logger.info("Formatting API response for NOI comparison")
-    logger.debug(f"API response keys: {list(api_response.keys() if isinstance(api_response, dict) else [])}")
+    logger.info(f"API response keys: {list(api_response.keys() if isinstance(api_response, dict) else [])}")
     
     # Initialize result with default values
     result = {
@@ -68,10 +68,13 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     # If metadata exists, try to extract property_id and period from it
     if 'metadata' in api_response and isinstance(api_response['metadata'], dict):
         metadata = api_response['metadata']
+        logger.info(f"Found metadata: {metadata}")
         if not result['property_id'] and 'property_id' in metadata:
             result['property_id'] = metadata['property_id']
+            logger.info(f"Using property_id from metadata: {result['property_id']}")
         if not result['period'] and 'period' in metadata:
             result['period'] = metadata['period']
+            logger.info(f"Using period from metadata: {result['period']}")
     
     # Helper function to safely extract numeric values
     def safe_float(value):
@@ -134,31 +137,39 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         financials = api_response['financials']
     
     # Handle operating_expenses (could be nested or flat)
-    operating_expenses = financials.get('operating_expenses', None)
+    operating_expenses = financials.get('operating_expenses')
     if operating_expenses is not None:
+        logger.info(f"Found operating_expenses: {type(operating_expenses)}")
         if isinstance(operating_expenses, dict):
             # Extract the total operating expenses from the nested structure
             if 'total_operating_expenses' in operating_expenses:
                 result['opex'] = safe_float(operating_expenses['total_operating_expenses'])
+                logger.info(f"Using nested total_operating_expenses: {result['opex']}")
             
             # Extract OpEx breakdown components if available
             for field in ['property_taxes', 'insurance', 'repairs_and_maintenance', 'utilities', 'management_fees']:
                 if field in operating_expenses:
                     result[field] = safe_float(operating_expenses[field])
+                    logger.info(f"Using nested {field}: {result[field]}")
         else:
             # If operating_expenses is not a dict, assume it's a direct value
             result['opex'] = safe_float(operating_expenses)
-    elif 'operating_expenses_total' in financials:
-        # Legacy format support
+            logger.info(f"Using flat operating_expenses: {result['opex']}")
+    
+    # Also check for operating_expenses_total (flat API format)
+    if result['opex'] == 0.0 and 'operating_expenses_total' in financials:
         result['opex'] = safe_float(financials['operating_expenses_total'])
+        logger.info(f"Using operating_expenses_total: {result['opex']}")
     
     # Handle other_income (could be nested or flat)
-    other_income = financials.get('other_income', None)
+    other_income = financials.get('other_income')
     if other_income is not None:
+        logger.info(f"Found other_income: {type(other_income)}")
         if isinstance(other_income, dict):
             # Extract the total other income from the nested structure
             if 'total' in other_income:
                 result['other_income'] = safe_float(other_income['total'])
+                logger.info(f"Using nested other_income.total: {result['other_income']}")
             
             # Extract other income breakdown components if available
             for field in ['parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 
@@ -166,6 +177,7 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
                          'cleaning_fees', 'cancellation_fees', 'miscellaneous']:
                 if field in other_income:
                     result[field] = safe_float(other_income[field])
+                    logger.info(f"Using nested {field}: {result[field]}")
             
             # Check for additional_items array (like in the example)
             if 'additional_items' in other_income and isinstance(other_income['additional_items'], list):
@@ -175,12 +187,15 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
                         # If we have a field for this item, update it
                         if name in result:
                             result[name] = safe_float(item['amount'])
+                            logger.info(f"Using additional_item {name}: {result[name]}")
                         # Otherwise, add to miscellaneous
                         else:
                             result['miscellaneous'] += safe_float(item['amount'])
+                            logger.info(f"Adding to miscellaneous: {safe_float(item['amount'])}")
         else:
             # If other_income is not a dict, assume it's a direct value
             result['other_income'] = safe_float(other_income)
+            logger.info(f"Using flat other_income: {result['other_income']}")
     
     # Map remaining fields from API response to result
     for api_field, result_field in field_mapping.items():
@@ -195,14 +210,16 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         egi -= result['bad_debt']
         egi += result['other_income']
         result['egi'] = egi
+        logger.info(f"Calculated EGI: {result['egi']}")
     
     # Calculate NOI if not provided
     if result['noi'] == 0.0 and result['egi'] > 0.0 and result['opex'] > 0.0:
         result['noi'] = result['egi'] - result['opex']
+        logger.info(f"Calculated NOI: {result['noi']}")
     
     # Log the formatted result
     logger.info(f"Formatted result: property_id={result['property_id']}, period={result['period']}")
-    logger.debug(f"Financial values: gpr={result['gpr']}, vacancy_loss={result['vacancy_loss']}, egi={result['egi']}, opex={result['opex']}, noi={result['noi']}")
+    logger.info(f"Financial values: gpr={result['gpr']}, vacancy_loss={result['vacancy_loss']}, egi={result['egi']}, opex={result['opex']}, noi={result['noi']}")
     
     return result
 

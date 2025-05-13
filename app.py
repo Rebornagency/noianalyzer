@@ -333,67 +333,47 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     logger.info(f"Starting display_comparison_tab for {name_suffix} comparison")
     logger.info(f"tab_data keys: {list(tab_data.keys())}")
     
-    # Get current data from the tab_data or from the 'current' key in comparison_results
-    current_data = {}
-    
-    # There are three possible formats we need to handle:
-    # 1. tab_data has a 'current' key (processed by calculate_noi_comparisons, then extracted by keys)
-    # 2. tab_data has keys like 'gpr_current', 'noi_current', etc. (direct month_vs_prior data)
-    # 3. tab_data has original raw format keys ('current_month', 'prior_month')
-    
-    # Check for each format and extract current data
-    if "current" in tab_data:
-        current_data = tab_data["current"]
-        logger.info(f"Found 'current' data with keys: {list(current_data.keys())}")
-    elif any(k.endswith("_current") for k in tab_data.keys()):
-        logger.info("Found data in comparison format with _current suffixes")
-        # Extract current values from keys like gpr_current
-        for key in tab_data.keys():
-            if key.endswith("_current"):
-                base_key = key.replace("_current", "")
-                current_data[base_key] = tab_data[key]
-        logger.info(f"Extracted current data with keys: {list(current_data.keys())}")
-    elif "current_month" in tab_data:
-        # This is the original raw format - we'll use current_month data
-        current_data = tab_data.get("current_month", {})
-        logger.info(f"Using current_month data with keys: {list(current_data.keys())}")
-    
-    # Check if we have the expected data format
-    has_current_format = False
-    for key in ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]:
-        if key in current_data:
-            has_current_format = True
-            break
-    
-    logger.info(f"Current data has standard format: {has_current_format}")
-    
-    # If we don't have the expected format, we need to extract data from the comparison structure
-    if not has_current_format and any(f"{key}_current" in tab_data for key in ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]):
-        logger.info(f"Using alternative data format for {name_suffix} comparison")
-        for key in ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]:
-            if f"{key}_current" in tab_data:
-                current_data[key] = tab_data.get(f"{key}_current", 0.0)
+    # Validate that tab_data has the expected format
+    expected_format = any(key.endswith('_current') or key.endswith(f'_{prior_key_suffix}') for key in tab_data.keys())
+    if not expected_format:
+        logger.error(f"Tab data for {name_suffix} does not have the expected format with _current or _{prior_key_suffix} keys")
+        logger.error(f"First 10 keys: {list(tab_data.keys())[:10]}")
+        st.error(f"Error: Data for {name_suffix} comparison is not in the expected format. Please check the logs.")
         
-        logger.info(f"Extracted current data with keys: {list(current_data.keys())}")
-    
-    if not current_data:
-        logger.warning(f"No current data available for {name_suffix} comparison")
-        st.warning(f"No current data available for {name_suffix} comparison.")
+        # Try to help user understand the issue
+        if "current_month" in tab_data or "prior_month" in tab_data or "budget" in tab_data or "prior_year" in tab_data:
+            logger.error("Found raw consolidated data keys - calculation_noi_comparisons may have returned raw data instead of transforming it")
+            st.error("It appears the data hasn't been properly transformed. The raw input data was returned instead of the transformed comparison data.")
         return
-        
-    # Log the data structure for debugging
-    logger.info(f"display_comparison_tab processing {name_suffix} comparison")
-    logger.info(f"current_data keys: {list(current_data.keys())}")
-    logger.info(f"current_data NOI value: {current_data.get('noi', 'Not found')}")
     
-    # Look for prior values in different formats
-    prior_keys = [f"noi_{prior_key_suffix}", "noi_compare", "noi_budget", "noi_prior", "noi_prior_year"]
-    found_prior_keys = [key for key in prior_keys if key in tab_data]
-    logger.info(f"Looking for prior NOI in keys: {prior_keys}")
-    logger.info(f"Found prior NOI keys: {found_prior_keys}")
+    # Extract current values directly from the tab_data
+    current_values = {}
+    for key in tab_data.keys():
+        if key.endswith('_current'):
+            base_metric = key.replace('_current', '')
+            current_values[base_metric] = tab_data[key]
     
-    if found_prior_keys:
-        logger.info(f"Prior NOI value ({found_prior_keys[0]}): {tab_data.get(found_prior_keys[0], 'Not found')}")
+    if not current_values:
+        logger.error(f"No current values found in the tab_data for {name_suffix}")
+        st.error(f"No current values found for {name_suffix} comparison.")
+        return
+    
+    # Extract prior values directly from the tab_data
+    prior_values = {}
+    for key in tab_data.keys():
+        if key.endswith(f'_{prior_key_suffix}'):
+            base_metric = key.replace(f'_{prior_key_suffix}', '')
+            prior_values[base_metric] = tab_data[key]
+        elif key.endswith('_compare'):  # Alternative format
+            base_metric = key.replace('_compare', '')
+            prior_values[base_metric] = tab_data[key]
+    
+    if not prior_values:
+        logger.warning(f"No prior values found in the tab_data for {name_suffix}")
+        # We can still proceed with just current values
+    
+    # Log the extracted values for key metrics
+    logger.info(f"Current NOI: {current_values.get('noi')}, Prior NOI: {prior_values.get('noi')}")
     
     # Create columns for KPI cards
     col1, col2, col3 = st.columns(3)
@@ -401,18 +381,19 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     # Display KPI cards using Streamlit's metric component instead of custom HTML
     with col1:
         # Current value
-        current_noi = current_data.get("noi", 0.0)
+        current_noi = current_values.get("noi", 0.0)
         st.metric(label="Current", value=f"${current_noi:,.0f}")
         
     with col2:
-        # Prior period value - handle both formats (_prior_key_suffix or _compare)
-        prior_noi = tab_data.get(f"noi_{prior_key_suffix}", tab_data.get("noi_compare", 0.0))
+        # Prior period value
+        prior_noi = prior_values.get("noi", 0.0)
         st.metric(label=f"{name_suffix}", value=f"${prior_noi:,.0f}")
         
     with col3:
-        # Change - handle both formats
-        change_val = tab_data.get("noi_change", tab_data.get("noi_variance", 0.0))
-        percent_change = tab_data.get("noi_percent_change", tab_data.get("noi_percent_variance", 0.0))
+        # Change - get directly from tab_data or calculate
+        change_val = tab_data.get("noi_change", tab_data.get("noi_variance", current_noi - prior_noi))
+        percent_change = tab_data.get("noi_percent_change", tab_data.get("noi_percent_variance", 
+                                      (change_val / prior_noi * 100) if prior_noi != 0 else 0))
         
         # Format the percentage value with sign
         percent_display = f"{percent_change:.1f}%"
@@ -437,8 +418,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     df_data = []
     for key, name in zip(data_keys, metrics):
         # Handle both formats for current, prior, and change values
-        current_val = current_data.get(key, tab_data.get(f"{key}_current", 0.0))
-        prior_val = tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0))
+        current_val = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
+        prior_val = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
         change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
         percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
         
@@ -585,15 +566,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # Check if we have OpEx component data
             opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
             
-            if any(component in current_data for component in opex_components):
+            if any(component in current_values for component in opex_components):
                 # Create DataFrame for OpEx components
                 opex_df_data = []
                 opex_metrics = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
                 
                 for key, name in zip(opex_components, opex_metrics):
                     # Handle both formats for current, prior, and change values
-                    current_val = current_data.get(key, tab_data.get(f"{key}_current", 0.0))
-                    prior_val = tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0))
+                    current_val = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
+                    prior_val = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
                     change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
                     percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
                     
@@ -769,14 +750,14 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 "Cleaning Fees", "Cancellation Fees", "Miscellaneous"
             ]
             
-            if any(component in current_data for component in other_income_components):
+            if any(component in current_values for component in other_income_components):
                 # Create DataFrame for Other Income components
                 income_df_data = []
                 
                 for key, name in zip(other_income_components, income_metrics):
                     # Handle both formats for current, prior, and change values
-                    current_val = current_data.get(key, tab_data.get(f"{key}_current", 0.0))
-                    prior_val = tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0))
+                    current_val = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
+                    prior_val = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
                     change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
                     percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
                     
@@ -1180,7 +1161,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             opex_breakdown_data = []
             opex_breakdown_available = False
             
-            opex_total = current_data.get("opex", 0)
+            opex_total = current_values.get("opex", 0)
             
             if opex_total and opex_total > 0:
                 # OpEx components
@@ -1195,7 +1176,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 # Check if we have detailed OpEx data
                 has_detail = False
                 for key, _ in opex_components:
-                    if key in current_data:
+                    if key in current_values:
                         has_detail = True
                         break
                 
@@ -1203,8 +1184,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     opex_breakdown_available = True
                     
                     for key, label in opex_components:
-                        if key in current_data:
-                            current_val = current_data.get(key, 0)
+                        if key in current_values:
+                            current_val = current_values.get(key, 0)
                             percentage = (current_val / opex_total * 100) if opex_total > 0 else 0
                             
                             # Get comparison value if available
@@ -1229,10 +1210,10 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             })
             
             # Calculate KPIs
-            egi = current_data.get("egi", 0)
-            noi = current_data.get("noi", 0)
-            gpr = current_data.get("gpr", 0)
-            opex = current_data.get("opex", 0)
+            egi = current_values.get("egi", 0)
+            noi = current_values.get("noi", 0)
+            gpr = current_values.get("gpr", 0)
+            opex = current_values.get("opex", 0)
             
             operating_expense_ratio = opex / egi if egi else 0
             noi_margin = noi / egi if egi else 0
@@ -1266,8 +1247,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     "opex": opex,
                     "noi": noi,
                     "gpr": gpr,
-                    "vacancy_loss": current_data.get("vacancy_loss", 0),
-                    "other_income": current_data.get("other_income", 0),
+                    "vacancy_loss": current_values.get("vacancy_loss", 0),
+                    "other_income": current_values.get("other_income", 0),
                     "opex_breakdown_data": opex_breakdown_data,
                     "opex_breakdown_available": opex_breakdown_available,
                     "kpis": kpis,
@@ -1693,34 +1674,25 @@ def main():
         st.title(f"NOI Analysis Results{' - ' + st.session_state.property_name if st.session_state.property_name else ''}")
         
         # Display tabs with comparison data
-        cr = st.session_state.comparison_results
-        if cr:
-            logger.info(f"Initial comparison results keys: {list(cr.keys())}")
+        comparison_results = st.session_state.comparison_results
+        if comparison_results:
+            logger.info(f"Comparison results keys: {list(comparison_results.keys())}")
             
-            # Always transform the data right before display to ensure consistency
-            try:
-                # Use the updated calculate_noi_comparisons to handle any data structure
-                transformed_data = calculate_noi_comparisons(cr)
-                logger.info(f"Transformed data keys: {list(transformed_data.keys())}")
-                
-                # Display using the transformed data
-                if "month_vs_prior" in transformed_data:
-                    display_comparison_tab(transformed_data["month_vs_prior"], "prior", "Prior Month")
-                else:
-                    logger.warning("No 'month_vs_prior' key in transformed data")
-                
-                if "actual_vs_budget" in transformed_data:
-                    display_comparison_tab(transformed_data["actual_vs_budget"], "budget", "Budget")
-                else:
-                    logger.warning("No 'actual_vs_budget' key in transformed data")
-                
-                if "year_vs_year" in transformed_data:
-                    display_comparison_tab(transformed_data["year_vs_year"], "prior_year", "Prior Year")
-                else:
-                    logger.warning("No 'year_vs_year' key in transformed data")
-            except Exception as e:
-                logger.error(f"Error transforming data: {str(e)}")
-                st.error("Error transforming financial data for display. Please check the logs.")
+            # Use the already-transformed data directly - don't transform again
+            if "month_vs_prior" in comparison_results:
+                display_comparison_tab(comparison_results["month_vs_prior"], "prior", "Prior Month")
+            else:
+                logger.warning("No 'month_vs_prior' key in comparison results")
+            
+            if "actual_vs_budget" in comparison_results:
+                display_comparison_tab(comparison_results["actual_vs_budget"], "budget", "Budget")
+            else:
+                logger.warning("No 'actual_vs_budget' key in comparison results")
+            
+            if "year_vs_year" in comparison_results:
+                display_comparison_tab(comparison_results["year_vs_year"], "prior_year", "Prior Year")
+            else:
+                logger.warning("No 'year_vs_year' key in comparison results")
             
             # Display insights
             if st.session_state.insights:
@@ -1755,9 +1727,29 @@ def main():
                 # Transform data using calculate_noi_comparisons before storing
                 if raw_consolidated_data and not raw_consolidated_data.get('error'):
                     logger.info(f"Raw consolidated data keys: {list(raw_consolidated_data.keys())}")
+                    
+                    # Log content of current_month for debugging
+                    if 'current_month' in raw_consolidated_data:
+                        current_month = raw_consolidated_data['current_month']
+                        logger.info(f"Raw current_month data keys: {list(current_month.keys())}")
+                        logger.info(f"Raw current_month values - gpr: {current_month.get('gpr')}, opex: {current_month.get('opex')}, noi: {current_month.get('noi')}")
+                    
                     # Always use calculate_noi_comparisons to normalize the data structure
+                    logger.info("Calling calculate_noi_comparisons to transform the data...")
                     comparison_results = calculate_noi_comparisons(raw_consolidated_data)
-                    logger.info(f"Transformed comparison results keys: {list(comparison_results.keys())}")
+                    
+                    # Log the structure of the transformed data
+                    logger.info(f"Transformed comparison_results keys: {list(comparison_results.keys())}")
+                    
+                    # Log the contents of month_vs_prior for debugging
+                    if 'month_vs_prior' in comparison_results:
+                        month_vs_prior = comparison_results['month_vs_prior']
+                        logger.info(f"month_vs_prior keys: {list(month_vs_prior.keys())}")
+                        # Check for the expected keys in the transformed data
+                        if any(key.endswith('_current') or key.endswith('_prior') for key in month_vs_prior.keys()):
+                            logger.info("month_vs_prior contains properly formatted keys (with _current/_prior suffixes)")
+                        else:
+                            logger.warning("month_vs_prior may not be properly formatted - missing expected key format")
                 else:
                     # Pass through errors or empty data directly
                     comparison_results = raw_consolidated_data 
