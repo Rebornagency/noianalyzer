@@ -319,16 +319,6 @@ if 'generated_narrative' not in st.session_state:
 if 'show_narrative_editor' not in st.session_state:
     st.session_state.show_narrative_editor = False
 
-def get_transformed_tab_data(comparison_results, key):
-    # Defensive: If the key is not present, or the value is not a dict with _current keys, transform
-    tab_data = comparison_results.get(key)
-    if not tab_data or not any(k.endswith('_current') for k in tab_data.keys()):
-        logger.warning(f"Tab data for {key} not in expected format, attempting to transform.")
-        from noi_calculations import calculate_noi_comparisons
-        transformed = calculate_noi_comparisons(comparison_results)
-        tab_data = transformed.get(key)
-    return tab_data
-
 # Display comparison tab
 def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name_suffix: str):
     """
@@ -1729,31 +1719,19 @@ def main():
         if comparison_results:
             logger.info(f"Comparison results keys: {list(comparison_results.keys())}")
             
-            # Use the defensive getter to ensure transformed data
+            # Only use the transformed data, do not attempt to re-transform
             if "month_vs_prior" in comparison_results:
-                tab_data = get_transformed_tab_data(comparison_results, "month_vs_prior")
-                if tab_data:
-                    display_comparison_tab(tab_data, "prior", "Prior Month")
-                else:
-                    logger.error("Failed to get transformed month_vs_prior data for display.")
+                display_comparison_tab(comparison_results["month_vs_prior"], "prior", "Prior Month")
             else:
                 logger.warning("No 'month_vs_prior' key in comparison results")
             
             if "actual_vs_budget" in comparison_results:
-                tab_data = get_transformed_tab_data(comparison_results, "actual_vs_budget")
-                if tab_data:
-                    display_comparison_tab(tab_data, "budget", "Budget")
-                else:
-                    logger.error("Failed to get transformed actual_vs_budget data for display.")
+                display_comparison_tab(comparison_results["actual_vs_budget"], "budget", "Budget")
             else:
                 logger.warning("No 'actual_vs_budget' key in comparison results")
             
             if "year_vs_year" in comparison_results:
-                tab_data = get_transformed_tab_data(comparison_results, "year_vs_year")
-                if tab_data:
-                    display_comparison_tab(tab_data, "prior_year", "Prior Year")
-                else:
-                    logger.error("Failed to get transformed year_vs_year data for display.")
+                display_comparison_tab(comparison_results["year_vs_year"], "prior_year", "Prior Year")
             else:
                 logger.warning("No 'year_vs_year' key in comparison results")
             
@@ -1787,41 +1765,18 @@ def main():
                 # Process the documents
                 raw_consolidated_data = process_all_documents()
                 
-                # Transform data using calculate_noi_comparisons before storing
+                # Transform data ONCE using calculate_noi_comparisons before storing
                 if raw_consolidated_data and not raw_consolidated_data.get('error'):
                     logger.info(f"Raw consolidated data keys: {list(raw_consolidated_data.keys())}")
-                    
-                    # Log content of current_month for debugging
-                    if 'current_month' in raw_consolidated_data:
-                        current_month = raw_consolidated_data['current_month']
-                        logger.info(f"Raw current_month data keys: {list(current_month.keys())}")
-                        logger.info(f"Raw current_month values - gpr: {current_month.get('gpr')}, opex: {current_month.get('opex')}, noi: {current_month.get('noi')}")
-                    
-                    # Always use calculate_noi_comparisons to normalize the data structure
-                    logger.info("Calling calculate_noi_comparisons to transform the data...")
                     comparison_results = calculate_noi_comparisons(raw_consolidated_data)
-                    
-                    # Log the structure of the transformed data
-                    logger.info(f"Transformed comparison_results keys: {list(comparison_results.keys())}")
-                    
-                    # Log the contents of month_vs_prior for debugging
-                    if 'month_vs_prior' in comparison_results:
-                        month_vs_prior = comparison_results['month_vs_prior']
-                        logger.info(f"month_vs_prior keys: {list(month_vs_prior.keys())}")
-                        # Check for the expected keys in the transformed data
-                        if any(key.endswith('_current') or key.endswith('_prior') for key in month_vs_prior.keys()):
-                            logger.info("month_vs_prior contains properly formatted keys (with _current/_prior suffixes)")
-                        else:
-                            logger.warning("month_vs_prior may not be properly formatted - missing expected key format")
+                    st.session_state.comparison_results = comparison_results
                 else:
                     # Pass through errors or empty data directly
                     comparison_results = raw_consolidated_data 
                     if comparison_results and comparison_results.get('error'):
                          logger.error(f"Error from process_all_documents: {comparison_results.get('error')}")
+                    st.session_state.comparison_results = comparison_results
 
-
-                # Store results in session state
-                st.session_state.comparison_results = comparison_results
                 st.session_state.processing_completed = True
                 
                 # Generate insights if data is available
