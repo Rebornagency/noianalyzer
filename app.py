@@ -1674,11 +1674,21 @@ def main():
         st.title(f"NOI Analysis Results{' - ' + st.session_state.property_name if st.session_state.property_name else ''}")
         
         # Display tabs with comparison data
-        if st.session_state.comparison_results:
-            # Call our new comparison function
-            display_comparison_tab(st.session_state.comparison_results, "prior", "Prior Month")
-            display_comparison_tab(st.session_state.comparison_results, "budget", "Budget")
-            display_comparison_tab(st.session_state.comparison_results, "prior_year", "Prior Year")
+        cr = st.session_state.comparison_results
+        if cr:
+            logger.info(f"Comparison results top-level keys: {list(cr.keys())}")
+            if "month_vs_prior" in cr:
+                display_comparison_tab(cr["month_vs_prior"], "prior", "Prior Month")
+            else:
+                logger.warning("No 'month_vs_prior' key in comparison results")
+            if "actual_vs_budget" in cr:
+                display_comparison_tab(cr["actual_vs_budget"], "budget", "Budget")
+            else:
+                logger.warning("No 'actual_vs_budget' key in comparison results")
+            if "year_vs_year" in cr:
+                display_comparison_tab(cr["year_vs_year"], "prior_year", "Prior Year")
+            else:
+                logger.warning("No 'year_vs_year' key in comparison results")
             
             # Display insights
             if st.session_state.insights:
