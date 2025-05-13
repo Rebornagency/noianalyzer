@@ -1708,8 +1708,19 @@ def main():
                 # property_name is already in st.session_state.property_name from the text input
 
                 # Process the documents
-                comparison_results = process_all_documents()
+                raw_consolidated_data = process_all_documents()
                 
+                # Transform data using calculate_noi_comparisons before storing
+                if raw_consolidated_data and not raw_consolidated_data.get('error'):
+                    comparison_results = calculate_noi_comparisons(raw_consolidated_data)
+                    logger.info(f"Transformed comparison results with keys: {list(comparison_results.keys())}")
+                else:
+                    # Pass through errors or empty data directly
+                    comparison_results = raw_consolidated_data 
+                    if comparison_results and comparison_results.get('error'):
+                         logger.error(f"Error from process_all_documents: {comparison_results.get('error')}")
+
+
                 # Store results in session state
                 st.session_state.comparison_results = comparison_results
                 st.session_state.processing_completed = True
