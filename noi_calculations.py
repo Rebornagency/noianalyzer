@@ -31,6 +31,43 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         if sample_keys and any(key.endswith('_current') for key in sample_keys):
             logger.info("Returning already transformed data to avoid double transformation")
             return consolidated_data
+        
+    # Handle the legacy format of consolidated_data from utils/helpers.py calculate_noi_comparisons
+    if all(key in ['current', 'actual_vs_budget', 'month_vs_prior', 'year_vs_year'] for key in consolidated_data.keys() if key != 'error'):
+        logger.info("Received data in legacy format - already has transformed structure")
+        # Reformat if needed (e.g., backfill missing keys)
+        # But generally just pass it through
+        return consolidated_data
+    
+    # Handle the new format from process_all_documents (keys like current_month, prior_month, etc.)
+    mapped_keys = {
+        'current_month': 'current', 
+        'prior_month': 'prior_month',
+        'budget': 'budget',
+        'prior_year': 'prior_year'
+    }
+    
+    # Map the consolidated data to our working format
+    working_data = {}
+    for source_key, target_key in mapped_keys.items():
+        if source_key in consolidated_data:
+            if consolidated_data[source_key]:  # Check if not None
+                working_data[target_key] = consolidated_data[source_key]
+                logger.info(f"Mapped {source_key} to {target_key}")
+                if target_key == 'current':
+                    logger.info(f"Current data keys: {list(working_data[target_key].keys())}")
+            else:
+                logger.warning(f"Skipping None value for {source_key}")
+    
+    # If no current data found under current_month, look for it under "current"
+    if 'current' not in working_data and 'current' in consolidated_data:
+        working_data['current'] = consolidated_data['current']
+        logger.info("Using 'current' key directly from input data")
+        
+    # Confirm we have current data
+    if 'current' not in working_data:
+        logger.error("No current data found in any format - cannot calculate comparisons")
+        return {'error': 'No current data found to calculate comparisons'}
     
     def normalize_data(data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """Normalize input data structure"""
@@ -42,9 +79,41 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         financials = data.get('financials', data)
         normalized = {}
         
-        # Copy all top-level financials
+        # Define standard key mappings to normalize different naming conventions
+        standard_keys = {
+            # Standard keys from format_for_noi_comparison
+            'gpr': 'gpr',  
+            'vacancy_loss': 'vacancy_loss',
+            'concessions': 'concessions',
+            'bad_debt': 'bad_debt',
+            'other_income': 'other_income',
+            'egi': 'egi',
+            'opex': 'opex',
+            'noi': 'noi',
+            'property_taxes': 'property_taxes',
+            'insurance': 'insurance',
+            'repairs_and_maintenance': 'repairs_and_maintenance',
+            'utilities': 'utilities',
+            'management_fees': 'management_fees',
+            
+            # Legacy extraction API direct keys
+            'gross_potential_rent': 'gpr',
+            'operating_expenses': 'opex',  # We'll handle nested case separately
+            'net_operating_income': 'noi',
+            'effective_gross_income': 'egi',
+            'operating_expenses_total': 'opex',
+            'repairs_maintenance': 'repairs_and_maintenance'
+        }
+        
+        # Copy known keys with standardized names
+        for source_key, target_key in standard_keys.items():
+            if source_key in financials and financials[source_key] is not None:
+                normalized[target_key] = financials[source_key]
+        
+        # For any keys not covered, copy them as is
         for key, value in financials.items():
-            normalized[key] = value
+            if key not in standard_keys and value is not None:
+                normalized[key] = value
         
         # Extract nested OpEx components if they exist
         if "operating_expenses" in financials and isinstance(financials["operating_expenses"], dict):
@@ -74,11 +143,8 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         else:
             logger.info("No nested operating_expenses found or it's not a dictionary")
         
-        # Handle legacy/flat structure where components might be at the top level
-        if "opex" not in normalized and "operating_expenses_total" in financials:
-            normalized["opex"] = financials["operating_expenses_total"]
-            logger.info(f"Using flat operating_expenses_total for opex: {normalized['opex']}")
-        elif "opex" not in normalized and "operating_expenses" in financials and not isinstance(financials["operating_expenses"], dict):
+        # If opex is still not set, try the operating_expenses as a direct value
+        if "opex" not in normalized and "operating_expenses" in financials and not isinstance(financials["operating_expenses"], dict):
             normalized["opex"] = financials["operating_expenses"]
             logger.info(f"Using flat operating_expenses for opex: {normalized['opex']}")
         
@@ -98,6 +164,12 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
             if component not in normalized:
                 normalized[component] = 0
         
+        # Ensure all standard keys exist with default values
+        for key in ['gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi']:
+            if key not in normalized:
+                normalized[key] = 0
+                logger.warning(f"Adding missing key with default value: {key}=0")
+        
         logger.info(f"Normalized data: gpr={normalized.get('gpr')}, opex={normalized.get('opex')}, noi={normalized.get('noi')}")
         return normalized
     
@@ -110,7 +182,7 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     # Normalize all input data
     normalized_data = {
         period: normalize_data(data)
-        for period, data in consolidated_data.items()
+        for period, data in working_data.items()
     }
     
     logger.info(f"Normalized data periods: {list(normalized_data.keys())}")
@@ -198,6 +270,14 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     if "month_vs_prior" in comparison_results:
         sample_keys = list(comparison_results["month_vs_prior"].keys())[:5]
         logger.info(f"Sample keys in month_vs_prior: {sample_keys}")
+        
+        # Perform additional compatibility checks
+        expected_key_formats = ['_current', '_prior', '_change', '_percent_change']
+        for metric in metrics[:3]:  # Check just a few key metrics
+            for suffix in expected_key_formats:
+                key = f"{metric}{suffix}"
+                if key not in comparison_results["month_vs_prior"]:
+                    logger.warning(f"Expected key {key} missing from month_vs_prior")
     
     return comparison_results
 

@@ -335,16 +335,57 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     
     # Validate that tab_data has the expected format
     expected_format = any(key.endswith('_current') or key.endswith(f'_{prior_key_suffix}') for key in tab_data.keys())
+    
+    # Check if we received raw consolidated data instead of transformed comparison data
     if not expected_format:
-        logger.error(f"Tab data for {name_suffix} does not have the expected format with _current or _{prior_key_suffix} keys")
-        logger.error(f"First 10 keys: {list(tab_data.keys())[:10]}")
-        st.error(f"Error: Data for {name_suffix} comparison is not in the expected format. Please check the logs.")
+        logger.warning(f"Tab data for {name_suffix} does not have the expected format with _current or _{prior_key_suffix} keys")
         
-        # Try to help user understand the issue
-        if "current_month" in tab_data or "prior_month" in tab_data or "budget" in tab_data or "prior_year" in tab_data:
-            logger.error("Found raw consolidated data keys - calculation_noi_comparisons may have returned raw data instead of transforming it")
-            st.error("It appears the data hasn't been properly transformed. The raw input data was returned instead of the transformed comparison data.")
-        return
+        # Check if we have a consolidated data structure
+        consolidated_data_format = "current_month" in tab_data or "prior_month" in tab_data or "budget" in tab_data or "prior_year"
+        if consolidated_data_format:
+            logger.warning("Received consolidated data instead of transformed data. Attempting to transform on the fly")
+            
+            # Map the comparison type to the appropriate keys in consolidated data
+            mapping = {
+                "Prior Month": {"current": "current_month", "compare": "prior_month", "result_key": "month_vs_prior"},
+                "Budget": {"current": "current_month", "compare": "budget", "result_key": "actual_vs_budget"},
+                "Prior Year": {"current": "current_month", "compare": "prior_year", "result_key": "year_vs_year"}
+            }
+            
+            if name_suffix in mapping:
+                current_key = mapping[name_suffix]["current"]
+                compare_key = mapping[name_suffix]["compare"]
+                result_key = mapping[name_suffix]["result_key"]
+                
+                # Check if we have the required data
+                if current_key in tab_data and compare_key in tab_data:
+                    from noi_calculations import calculate_noi_comparisons
+                    
+                    # Create a mini consolidated data structure
+                    mini_consolidated = {
+                        current_key: tab_data[current_key],
+                        compare_key: tab_data[compare_key]
+                    }
+                    
+                    # Transform it
+                    transformed = calculate_noi_comparisons(mini_consolidated)
+                    
+                    # Check if the transformation was successful
+                    if result_key in transformed:
+                        logger.info(f"Successfully transformed data on the fly for {name_suffix}")
+                        tab_data = transformed[result_key]
+                        # Re-check the expected format
+                        expected_format = any(key.endswith('_current') or key.endswith(f'_{prior_key_suffix}') for key in tab_data.keys())
+                    else:
+                        logger.error(f"Failed to transform data on the fly for {name_suffix}")
+                else:
+                    logger.error(f"Missing required keys for {name_suffix} comparison")
+        
+        # If still not in expected format, show error and return
+        if not expected_format:
+            logger.error(f"Tab data for {name_suffix} still not in expected format after transformation attempt")
+            st.error(f"Error: Data for {name_suffix} comparison is not in the expected format. Please check the logs.")
+            return
     
     # Extract current values directly from the tab_data
     current_values = {}
@@ -1678,7 +1719,17 @@ def main():
         if comparison_results:
             logger.info(f"Comparison results keys: {list(comparison_results.keys())}")
             
-            # Use the already-transformed data directly - don't transform again
+            # Check if the data is properly formatted (has 'month_vs_prior', etc. keys)
+            # If not, try to transform it one more time
+            if not any(key in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year'] for key in comparison_results.keys()):
+                logger.warning("Comparison results missing expected transform structure. Transforming now...")
+                # This means we got consolidated data but it wasn't transformed
+                comparison_results = calculate_noi_comparisons(comparison_results)
+                logger.info(f"Transformed results now have keys: {list(comparison_results.keys())}")
+                # Update the session state with properly transformed data
+                st.session_state.comparison_results = comparison_results
+            
+            # Now proceed with the properly transformed data
             if "month_vs_prior" in comparison_results:
                 display_comparison_tab(comparison_results["month_vs_prior"], "prior", "Prior Month")
             else:
