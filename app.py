@@ -335,9 +335,28 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     
     # Get current data from the tab_data or from the 'current' key in comparison_results
     current_data = {}
+    
+    # There are three possible formats we need to handle:
+    # 1. tab_data has a 'current' key (processed by calculate_noi_comparisons, then extracted by keys)
+    # 2. tab_data has keys like 'gpr_current', 'noi_current', etc. (direct month_vs_prior data)
+    # 3. tab_data has original raw format keys ('current_month', 'prior_month')
+    
+    # Check for each format and extract current data
     if "current" in tab_data:
         current_data = tab_data["current"]
         logger.info(f"Found 'current' data with keys: {list(current_data.keys())}")
+    elif any(k.endswith("_current") for k in tab_data.keys()):
+        logger.info("Found data in comparison format with _current suffixes")
+        # Extract current values from keys like gpr_current
+        for key in tab_data.keys():
+            if key.endswith("_current"):
+                base_key = key.replace("_current", "")
+                current_data[base_key] = tab_data[key]
+        logger.info(f"Extracted current data with keys: {list(current_data.keys())}")
+    elif "current_month" in tab_data:
+        # This is the original raw format - we'll use current_month data
+        current_data = tab_data.get("current_month", {})
+        logger.info(f"Using current_month data with keys: {list(current_data.keys())}")
     
     # Check if we have the expected data format
     has_current_format = False
@@ -1676,19 +1695,49 @@ def main():
         # Display tabs with comparison data
         cr = st.session_state.comparison_results
         if cr:
-            logger.info(f"Comparison results top-level keys: {list(cr.keys())}")
-            if "month_vs_prior" in cr:
-                display_comparison_tab(cr["month_vs_prior"], "prior", "Prior Month")
+            logger.info(f"Initial comparison results keys: {list(cr.keys())}")
+            
+            # If the data is in the old format (with current_month/prior_month), transform it here
+            if "current_month" in cr and "current" not in cr:
+                logger.info("Data is in old format, transforming it now...")
+                try:
+                    # Re-transform the data right before display
+                    transformed_data = calculate_noi_comparisons(cr)
+                    logger.info(f"Transformed data keys: {list(transformed_data.keys())}")
+                    
+                    # Now display using the transformed data
+                    if "month_vs_prior" in transformed_data:
+                        display_comparison_tab(transformed_data["month_vs_prior"], "prior", "Prior Month")
+                    else:
+                        logger.warning("No 'month_vs_prior' key in transformed data")
+                    
+                    if "actual_vs_budget" in transformed_data:
+                        display_comparison_tab(transformed_data["actual_vs_budget"], "budget", "Budget")
+                    else:
+                        logger.warning("No 'actual_vs_budget' key in transformed data")
+                    
+                    if "year_vs_year" in transformed_data:
+                        display_comparison_tab(transformed_data["year_vs_year"], "prior_year", "Prior Year")
+                    else:
+                        logger.warning("No 'year_vs_year' key in transformed data")
+                except Exception as e:
+                    logger.error(f"Error transforming data: {str(e)}")
+                    st.error("Error transforming financial data for display. Please check the logs.")
             else:
-                logger.warning("No 'month_vs_prior' key in comparison results")
-            if "actual_vs_budget" in cr:
-                display_comparison_tab(cr["actual_vs_budget"], "budget", "Budget")
-            else:
-                logger.warning("No 'actual_vs_budget' key in comparison results")
-            if "year_vs_year" in cr:
-                display_comparison_tab(cr["year_vs_year"], "prior_year", "Prior Year")
-            else:
-                logger.warning("No 'year_vs_year' key in comparison results")
+                # If the data is already in the right format, use it directly
+                logger.info("Data is already in transformed format")
+                if "month_vs_prior" in cr:
+                    display_comparison_tab(cr["month_vs_prior"], "prior", "Prior Month")
+                else:
+                    logger.warning("No 'month_vs_prior' key in comparison results")
+                if "actual_vs_budget" in cr:
+                    display_comparison_tab(cr["actual_vs_budget"], "budget", "Budget")
+                else:
+                    logger.warning("No 'actual_vs_budget' key in comparison results")
+                if "year_vs_year" in cr:
+                    display_comparison_tab(cr["year_vs_year"], "prior_year", "Prior Year")
+                else:
+                    logger.warning("No 'year_vs_year' key in comparison results")
             
             # Display insights
             if st.session_state.insights:
@@ -1722,8 +1771,9 @@ def main():
                 
                 # Transform data using calculate_noi_comparisons before storing
                 if raw_consolidated_data and not raw_consolidated_data.get('error'):
+                    logger.info(f"Raw consolidated data keys: {list(raw_consolidated_data.keys())}")
                     comparison_results = calculate_noi_comparisons(raw_consolidated_data)
-                    logger.info(f"Transformed comparison results with keys: {list(comparison_results.keys())}")
+                    logger.info(f"Transformed comparison results keys: {list(comparison_results.keys())}")
                 else:
                     # Pass through errors or empty data directly
                     comparison_results = raw_consolidated_data 
