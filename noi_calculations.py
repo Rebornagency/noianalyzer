@@ -81,13 +81,13 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         for period, data in consolidated_data.items()
     }
     
-    # Get current period data
+    # Get current period data - transform 'current_month' to 'current'
     current_data = normalized_data.get("current_month", {})
     if not current_data:
         logger.error("No current month data available")
         return {"error": "No current month data available"}
     
-    # Store current data
+    # Store current data under the 'current' key instead of 'current_month'
     comparison_results["current"] = current_data
     
     # Define metrics to compare, now including OpEx components
@@ -100,15 +100,15 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         "repairs_and_maintenance", "utilities", "management_fees", "noi"
     ]
     
-    # Calculate comparisons for each period type
-    period_types = {
+    # Calculate comparisons with correct output structure for each period type
+    comparison_mapping = {
         "month_vs_prior": "prior_month",
         "actual_vs_budget": "budget",
         "year_vs_year": "prior_year"
     }
     
-    for comparison_type, period_key in period_types.items():
-        comparison_data = normalized_data.get(period_key, {})
+    for result_key, data_key in comparison_mapping.items():
+        comparison_data = normalized_data.get(data_key, {})
         if comparison_data:
             results = {}
             
@@ -116,6 +116,7 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
                 current_val = safe_float(current_data.get(metric))
                 compare_val = safe_float(comparison_data.get(metric))
                 
+                # Store with the correct field suffixes for the display function
                 results[f"{metric}_current"] = current_val
                 results[f"{metric}_compare"] = compare_val
                 results[f"{metric}_change"] = current_val - compare_val
@@ -123,12 +124,32 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
                     current_val, compare_val
                 )
             
-            comparison_results[comparison_type] = results
-            logger.info(f"Calculated {comparison_type} with {len(results)} metrics")
+            comparison_results[result_key] = results
+            logger.info(f"Calculated {result_key} with {len(results)} metrics")
+        else:
+            logger.warning(f"No {data_key} data available for {result_key} comparison")
     
     # Validate results
     validate_comparison_results(comparison_results)
     
+    # Add backward compatibility for display_comparison_tab function
+    # The function expects certain keys with specific suffixes
+    if "month_vs_prior" in comparison_results:
+        for metric in metrics:
+            if f"{metric}_current" in comparison_results["month_vs_prior"]:
+                comparison_results["month_vs_prior"][f"{metric}_prior"] = comparison_results["month_vs_prior"][f"{metric}_compare"]
+    
+    if "actual_vs_budget" in comparison_results:
+        for metric in metrics:
+            if f"{metric}_current" in comparison_results["actual_vs_budget"]:
+                comparison_results["actual_vs_budget"][f"{metric}_budget"] = comparison_results["actual_vs_budget"][f"{metric}_compare"]
+    
+    if "year_vs_year" in comparison_results:
+        for metric in metrics:
+            if f"{metric}_current" in comparison_results["year_vs_year"]:
+                comparison_results["year_vs_year"][f"{metric}_prior_year"] = comparison_results["year_vs_year"][f"{metric}_compare"]
+    
+    logger.info(f"Final comparison results keys: {list(comparison_results.keys())}")
     return comparison_results
 
 def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
