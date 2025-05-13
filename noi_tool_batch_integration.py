@@ -91,8 +91,32 @@ def process_all_documents() -> Dict[str, Any]:
                     error_message += f" Details: {extraction_result['details']}"
                 continue
             
-            # Format data for NOI calculation
+            # Log the raw extraction result for debugging
+            logger.info(f"Raw extraction result structure for {doc_type}: {list(extraction_result.keys())}")
+            
+            # Handle nested structures in the extraction result
+            if 'financials' in extraction_result:
+                financials = extraction_result['financials']
+                logger.info(f"Found 'financials' key in extraction result, keys: {list(financials.keys())}")
+                
+                # Log detailed structure of operating_expenses for debugging
+                if 'operating_expenses' in financials and isinstance(financials['operating_expenses'], dict):
+                    opex = financials['operating_expenses']
+                    logger.info(f"operating_expenses is a dictionary with keys: {list(opex.keys())}")
+                    if 'total_operating_expenses' in opex:
+                        logger.info(f"Found total_operating_expenses: {opex['total_operating_expenses']}")
+                
+                # Log detailed structure of other_income for debugging
+                if 'other_income' in financials and isinstance(financials['other_income'], dict):
+                    other_income = financials['other_income']
+                    logger.info(f"other_income is a dictionary with keys: {list(other_income.keys())}")
+                    if 'total' in other_income:
+                        logger.info(f"Found other_income.total: {other_income['total']}")
+            
+            # Format data for NOI calculation using our enhanced formatter
             formatted_data = format_for_noi_comparison(extraction_result)
+            logger.info(f"Formatted data for {doc_type}: {formatted_data.keys()}")
+            logger.info(f"Key metrics: gpr={formatted_data.get('gpr')}, opex={formatted_data.get('opex')}, noi={formatted_data.get('noi')}")
             
             # Add to results
             if doc_type == "current_month_actuals":
@@ -124,12 +148,14 @@ def process_all_documents() -> Dict[str, Any]:
     if "current_month" in results:
         current_month = results["current_month"]
         logger.info(f"current_month data keys: {list(current_month.keys())}")
+        logger.info(f"Key metrics: gpr={current_month.get('gpr')}, opex={current_month.get('opex')}, noi={current_month.get('noi')}")
     
     # Check other data elements if present
     for key in ["prior_month", "budget", "prior_year"]:
         if key in results:
             data = results[key]
             logger.info(f"{key} data keys: {list(data.keys())}")
+            logger.info(f"Key metrics: gpr={data.get('gpr')}, opex={data.get('opex')}, noi={data.get('noi')}")
     
     return results
 

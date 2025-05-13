@@ -65,6 +65,14 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     result['property_id'] = api_response.get('property_id')
     result['period'] = api_response.get('period')
     
+    # If metadata exists, try to extract property_id and period from it
+    if 'metadata' in api_response and isinstance(api_response['metadata'], dict):
+        metadata = api_response['metadata']
+        if not result['property_id'] and 'property_id' in metadata:
+            result['property_id'] = metadata['property_id']
+        if not result['period'] and 'period' in metadata:
+            result['period'] = metadata['period']
+    
     # Helper function to safely extract numeric values
     def safe_float(value):
         if value is None:
@@ -98,9 +106,7 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         'vacancy_loss': 'vacancy_loss',
         'concessions': 'concessions',
         'bad_debt': 'bad_debt',
-        'other_income': 'other_income',
         'effective_gross_income': 'egi',
-        'operating_expenses': 'opex',
         'net_operating_income': 'noi',
         'property_taxes': 'property_taxes',
         'insurance': 'insurance',
@@ -120,10 +126,66 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         'miscellaneous': 'miscellaneous'
     }
     
-    # Map fields from API response to result
+    # Handle both nested and flat structures
+    # First, check if we're working with an extraction v2 API response that might have 'financials'
+    financials = api_response
+    if 'financials' in api_response and isinstance(api_response['financials'], dict):
+        logger.info("Found nested 'financials' object in API response")
+        financials = api_response['financials']
+    
+    # Handle operating_expenses (could be nested or flat)
+    operating_expenses = financials.get('operating_expenses', None)
+    if operating_expenses is not None:
+        if isinstance(operating_expenses, dict):
+            # Extract the total operating expenses from the nested structure
+            if 'total_operating_expenses' in operating_expenses:
+                result['opex'] = safe_float(operating_expenses['total_operating_expenses'])
+            
+            # Extract OpEx breakdown components if available
+            for field in ['property_taxes', 'insurance', 'repairs_and_maintenance', 'utilities', 'management_fees']:
+                if field in operating_expenses:
+                    result[field] = safe_float(operating_expenses[field])
+        else:
+            # If operating_expenses is not a dict, assume it's a direct value
+            result['opex'] = safe_float(operating_expenses)
+    elif 'operating_expenses_total' in financials:
+        # Legacy format support
+        result['opex'] = safe_float(financials['operating_expenses_total'])
+    
+    # Handle other_income (could be nested or flat)
+    other_income = financials.get('other_income', None)
+    if other_income is not None:
+        if isinstance(other_income, dict):
+            # Extract the total other income from the nested structure
+            if 'total' in other_income:
+                result['other_income'] = safe_float(other_income['total'])
+            
+            # Extract other income breakdown components if available
+            for field in ['parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 
+                         'storage_fees', 'amenity_fees', 'utility_reimbursements', 
+                         'cleaning_fees', 'cancellation_fees', 'miscellaneous']:
+                if field in other_income:
+                    result[field] = safe_float(other_income[field])
+            
+            # Check for additional_items array (like in the example)
+            if 'additional_items' in other_income and isinstance(other_income['additional_items'], list):
+                for item in other_income['additional_items']:
+                    if isinstance(item, dict) and 'name' in item and 'amount' in item:
+                        name = item['name'].lower().replace(' ', '_')
+                        # If we have a field for this item, update it
+                        if name in result:
+                            result[name] = safe_float(item['amount'])
+                        # Otherwise, add to miscellaneous
+                        else:
+                            result['miscellaneous'] += safe_float(item['amount'])
+        else:
+            # If other_income is not a dict, assume it's a direct value
+            result['other_income'] = safe_float(other_income)
+    
+    # Map remaining fields from API response to result
     for api_field, result_field in field_mapping.items():
-        if api_field in api_response:
-            result[result_field] = safe_float(api_response[api_field])
+        if api_field in financials and api_field not in ['operating_expenses', 'other_income']:
+            result[result_field] = safe_float(financials[api_field])
     
     # Calculate EGI if not provided
     if result['egi'] == 0.0 and result['gpr'] > 0.0:
