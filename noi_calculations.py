@@ -27,13 +27,32 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     ):
         return consolidated_data
 
+    # Log input structure to help troubleshoot
+    logger.info(f"calculate_noi_comparisons: Input data keys: {list(consolidated_data.keys())}")
+    
     # Defensive: check for raw keys
     current = consolidated_data.get("current_month")
     prior = consolidated_data.get("prior_month")
     budget = consolidated_data.get("budget")
     prior_year = consolidated_data.get("prior_year")
 
+    # Log availability of each data type
+    logger.info(f"Data available: current={current is not None}, prior={prior is not None}, budget={budget is not None}, prior_year={prior_year is not None}")
+    
+    # If current data exists, log its structure
+    if current:
+        logger.info(f"Current data keys: {list(current.keys())}")
+        logger.info(f"Current data NOI: {current.get('noi')}")
+
     def build_comparison(current, compare, compare_suffix):
+        """
+        Build comparison data structure with proper suffixes.
+        This handles the transformation from flat format to the expected display format.
+        """
+        if not current or not compare:
+            logger.warning(f"Missing data for {compare_suffix} comparison: current={current is not None}, compare={compare is not None}")
+            return {}
+            
         result = {}
         metrics = [
             "gpr", "vacancy_loss", "concessions", "bad_debt", "other_income", "egi", "opex", "noi",
@@ -41,23 +60,69 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
             "parking", "laundry", "late_fees", "pet_fees", "application_fees", "storage_fees",
             "amenity_fees", "utility_reimbursements", "cleaning_fees", "cancellation_fees", "miscellaneous"
         ]
+        
+        # Log metric availability in both datasets
+        metrics_present_current = [m for m in metrics if m in current]
+        metrics_present_compare = [m for m in metrics if m in compare]
+        logger.info(f"Metrics in current: {len(metrics_present_current)}/{len(metrics)}, in {compare_suffix}: {len(metrics_present_compare)}/{len(metrics)}")
+        
         for m in metrics:
-            result[f"{m}_current"] = current.get(m, 0) if current else 0
-            result[f"{m}_{compare_suffix}"] = compare.get(m, 0) if compare else 0
-            change = (current.get(m, 0) if current else 0) - (compare.get(m, 0) if compare else 0)
-            result[f"{m}_change"] = change
-            result[f"{m}_percent_change"] = (change / result[f"{m}_{compare_suffix}"] * 100) if result[f"{m}_{compare_suffix}"] else 0
+            current_val = safe_float(current.get(m, 0))
+            compare_val = safe_float(compare.get(m, 0))
+            
+            # Store values with proper suffixes
+            result[f"{m}_current"] = current_val
+            result[f"{m}_{compare_suffix}"] = compare_val
+            
+            # Calculate changes
+            change = current_val - compare_val
+            
+            # Determine which suffix to use based on comparison type
+            change_suffix = "variance" if compare_suffix == "budget" else "change"
+            pct_change_suffix = "percent_variance" if compare_suffix == "budget" else "percent_change"
+            
+            # Store change values
+            result[f"{m}_{change_suffix}"] = change
+            
+            # Calculate and store percent change, avoiding division by zero
+            if compare_val != 0:
+                result[f"{m}_{pct_change_suffix}"] = (change / compare_val * 100)
+            else:
+                # Handle zero division - if current is positive, treat as 100% increase
+                if current_val > 0:
+                    result[f"{m}_{pct_change_suffix}"] = 100.0
+                # If current is negative, treat as -100% decrease
+                elif current_val < 0:
+                    result[f"{m}_{pct_change_suffix}"] = -100.0
+                else:
+                    # Both zero, no change
+                    result[f"{m}_{pct_change_suffix}"] = 0.0
+        
+        logger.info(f"Built {compare_suffix} comparison with {len(result)} metric fields")
         return result
 
-    return {
-        "month_vs_prior": build_comparison(current, prior, "prior"),
-        "actual_vs_budget": build_comparison(current, budget, "budget"),
-        "year_vs_year": build_comparison(current, prior_year, "prior_year"),
+    # Build the comparison data structures
+    month_vs_prior = build_comparison(current, prior, "prior")
+    actual_vs_budget = build_comparison(current, budget, "budget")
+    year_vs_year = build_comparison(current, prior_year, "prior_year")
+    
+    result = {
+        "month_vs_prior": month_vs_prior,
+        "actual_vs_budget": actual_vs_budget,
+        "year_vs_year": year_vs_year,
         "current": current or {},
         "prior": prior or {},
         "budget": budget or {},
         "prior_year": prior_year or {},
     }
+    
+    # Log the output structure
+    logger.info(f"calculate_noi_comparisons: Output data keys: {list(result.keys())}")
+    logger.info(f"month_vs_prior has {len(result['month_vs_prior'])} fields")
+    logger.info(f"actual_vs_budget has {len(result['actual_vs_budget'])} fields")
+    logger.info(f"year_vs_year has {len(result['year_vs_year'])} fields")
+    
+    return result
 
 def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
     """

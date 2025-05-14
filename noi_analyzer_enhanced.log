@@ -1,0 +1,5 @@
+{
+    "month_vs_prior": {"gpr_current": ..., "gpr_prior": ..., "gpr_change": ...},
+    "actual_vs_budget": {"gpr_current": ..., "gpr_budget": ..., "gpr_variance": ...},
+    "year_vs_year": {"gpr_current": ..., "gpr_prior_year": ..., "gpr_change": ...}
+}

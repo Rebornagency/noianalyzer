@@ -333,6 +333,62 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     logger.info(f"Starting display_comparison_tab for {name_suffix} comparison")
     logger.info(f"tab_data keys: {list(tab_data.keys())}")
     
+    # Check for raw consolidated data structure and handle it
+    if set(tab_data.keys()) == set(['current_month', 'prior_month', 'budget', 'prior_year']):
+        logger.warning(f"Received raw consolidated data in display_comparison_tab for {name_suffix}")
+        
+        # Map suffix to appropriate data key
+        data_key_map = {
+            'prior': 'prior_month',
+            'budget': 'budget',
+            'prior_year': 'prior_year'
+        }
+        
+        # Extract relevant data based on comparison type
+        current_data = tab_data.get('current_month', {})
+        compare_data = tab_data.get(data_key_map.get(prior_key_suffix, ''), {})
+        
+        if not current_data:
+            logger.error(f"No current_month data available for {name_suffix} comparison")
+            st.error(f"No current month data available for {name_suffix} comparison.")
+            return
+            
+        if not compare_data:
+            logger.error(f"No {data_key_map.get(prior_key_suffix, '')} data available for {name_suffix} comparison")
+            st.error(f"No {name_suffix} data available for comparison.")
+            return
+            
+        # Transform the data on-the-fly
+        logger.info(f"Transforming raw data for {name_suffix} comparison")
+        transformed_data = {}
+        
+        # Define metrics to transform
+        metrics = ["gpr", "vacancy_loss", "concessions", "bad_debt", "other_income", 
+                  "egi", "opex", "noi", "property_taxes", "insurance", 
+                  "repairs_and_maintenance", "utilities", "management_fees"]
+        
+        for metric in metrics:
+            current_val = current_data.get(metric, 0)
+            compare_val = compare_data.get(metric, 0)
+            change = current_val - compare_val
+            percent_change = (change / compare_val * 100) if compare_val != 0 else 0
+            
+            # Use different field names based on comparison type
+            if prior_key_suffix == 'budget':
+                transformed_data[f"{metric}_current"] = current_val
+                transformed_data[f"{metric}_budget"] = compare_val
+                transformed_data[f"{metric}_variance"] = change
+                transformed_data[f"{metric}_percent_variance"] = percent_change
+            else:
+                transformed_data[f"{metric}_current"] = current_val
+                transformed_data[f"{metric}_{prior_key_suffix}"] = compare_val
+                transformed_data[f"{metric}_change"] = change
+                transformed_data[f"{metric}_percent_change"] = percent_change
+                
+        # Replace the original tab_data with transformed data
+        tab_data = transformed_data
+        logger.info(f"Transformed tab_data now has {len(tab_data)} fields")
+    
     # Validate that tab_data has the expected format
     expected_format = any(key.endswith('_current') or key.endswith(f'_{prior_key_suffix}') for key in tab_data.keys())
     
@@ -1674,7 +1730,90 @@ def main():
         logger.info(f"Display: Retrieved st.session_state.comparison_results. Top-level keys: {list(comparison_results.keys()) if comparison_results else 'None'}")
 
         def is_transformed(data):
+            """Check if data is in the transformed format expected by display_comparison_tab"""
             return any(k.endswith('_current') for k in data.keys())
+        
+        def transform_raw_to_comparison_format(raw_data):
+            """Transform raw consolidated data into the format expected by display_comparison_tab"""
+            logger.info(f"Emergency transform: Incoming data keys: {list(raw_data.keys())}")
+            
+            # Initialize result structure
+            result = {}
+            
+            # Extract data for each period
+            current = raw_data.get("current_month", {})
+            prior = raw_data.get("prior_month", {})
+            budget = raw_data.get("budget", {})
+            prior_year = raw_data.get("prior_year", {})
+            
+            # Define metrics to transform
+            metrics = [
+                "gpr", "vacancy_loss", "concessions", "bad_debt", "other_income", 
+                "egi", "opex", "noi", "property_taxes", "insurance", 
+                "repairs_and_maintenance", "utilities", "management_fees"
+            ]
+            
+            # Transform data for month_vs_prior comparison
+            if current and prior:
+                month_vs_prior = {}
+                for metric in metrics:
+                    current_val = current.get(metric, 0)
+                    prior_val = prior.get(metric, 0)
+                    change = current_val - prior_val
+                    percent_change = (change / prior_val * 100) if prior_val != 0 else 0
+                    
+                    month_vs_prior[f"{metric}_current"] = current_val
+                    month_vs_prior[f"{metric}_prior"] = prior_val
+                    month_vs_prior[f"{metric}_change"] = change
+                    month_vs_prior[f"{metric}_percent_change"] = percent_change
+                
+                result["month_vs_prior"] = month_vs_prior
+            
+            # Transform data for actual_vs_budget comparison
+            if current and budget:
+                actual_vs_budget = {}
+                for metric in metrics:
+                    current_val = current.get(metric, 0)
+                    budget_val = budget.get(metric, 0)
+                    variance = current_val - budget_val
+                    percent_variance = (variance / budget_val * 100) if budget_val != 0 else 0
+                    
+                    actual_vs_budget[f"{metric}_current"] = current_val
+                    actual_vs_budget[f"{metric}_budget"] = budget_val
+                    actual_vs_budget[f"{metric}_variance"] = variance
+                    actual_vs_budget[f"{metric}_percent_variance"] = percent_variance
+                
+                result["actual_vs_budget"] = actual_vs_budget
+            
+            # Transform data for year_vs_year comparison
+            if current and prior_year:
+                year_vs_year = {}
+                for metric in metrics:
+                    current_val = current.get(metric, 0)
+                    prior_year_val = prior_year.get(metric, 0)
+                    change = current_val - prior_year_val
+                    percent_change = (change / prior_year_val * 100) if prior_year_val != 0 else 0
+                    
+                    year_vs_year[f"{metric}_current"] = current_val
+                    year_vs_year[f"{metric}_prior_year"] = prior_year_val
+                    year_vs_year[f"{metric}_change"] = change
+                    year_vs_year[f"{metric}_percent_change"] = percent_change
+                
+                result["year_vs_year"] = year_vs_year
+            
+            logger.info(f"Emergency transform: Generated result keys: {list(result.keys())}")
+            for key in result:
+                logger.info(f"Emergency transform: {key} contains {len(result[key])} metrics")
+            
+            return result
+
+        # Check if comparison_results needs transformation
+        if comparison_results and not any(key in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year'] for key in comparison_results.keys()):
+            logger.warning("Detected raw data structure in comparison_results, applying emergency transformation")
+            comparison_results = transform_raw_to_comparison_format(comparison_results)
+            # Update session state with transformed data
+            st.session_state.comparison_results = comparison_results
+            logger.info(f"Updated comparison_results with transformed data. New keys: {list(comparison_results.keys())}")
 
         for key, suffix, label in [
             ('month_vs_prior', 'prior', 'Prior Month'),
@@ -1684,7 +1823,6 @@ def main():
             if key in comparison_results:
                 tab_data = comparison_results[key]
                 logger.info(f"Display: Preparing to call display_comparison_tab for {label}. tab_data keys: {list(tab_data.keys()) if tab_data else 'None'}")
-                logger.info(f"Display: Content of tab_data for {label}: {json.dumps(tab_data, indent=2) if tab_data else 'None'}") # Log content
                 if not is_transformed(tab_data):
                     logger.error(f"Tab data for {label} is not transformed! Keys: {list(tab_data.keys())}")
                     st.error(f"Internal error: Data for {label} is not in the expected format. Please contact support.")

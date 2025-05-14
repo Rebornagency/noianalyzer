@@ -157,6 +157,32 @@ def process_all_documents() -> Dict[str, Any]:
             logger.info(f"{key} data keys: {list(data.keys())}")
             logger.info(f"Key metrics: gpr={data.get('gpr')}, opex={data.get('opex')}, noi={data.get('noi')}")
     
+    # Verify data structure before returning
+    for key in ["current_month", "prior_month", "budget", "prior_year"]:
+        if key in results:
+            # Ensure each entry has the required keys
+            required_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
+            missing_keys = [req_key for req_key in required_keys if req_key not in results[key]]
+            
+            if missing_keys:
+                logger.warning(f"Data for {key} is missing required keys: {missing_keys}")
+                # Fill in missing keys with default values to prevent downstream errors
+                for missing_key in missing_keys:
+                    results[key][missing_key] = 0.0
+                    logger.info(f"Added default value 0.0 for missing key {missing_key} in {key}")
+            
+            # Verify gpr_current is numeric
+            for field in required_keys:
+                if not isinstance(results[key].get(field), (int, float)):
+                    try:
+                        results[key][field] = float(results[key].get(field, 0))
+                        logger.info(f"Converted {field} to float in {key}")
+                    except (ValueError, TypeError):
+                        logger.warning(f"Could not convert {field} to float in {key}, using default value 0.0")
+                        results[key][field] = 0.0
+    
+    # All checks passed
+    logger.info("Finished processing all documents, returning consolidated data")
     return results
 
 def validate_formatted_data(data: Dict[str, Any], doc_type: str) -> Dict[str, Any]:
