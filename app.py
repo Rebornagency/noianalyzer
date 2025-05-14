@@ -1716,81 +1716,61 @@ def main():
         
         # Display tabs with comparison data
         comparison_results = st.session_state.comparison_results
-        if comparison_results:
-            logger.info(f"Comparison results keys: {list(comparison_results.keys())}")
-            
-            # Only use the transformed data, do not attempt to re-transform
-            if "month_vs_prior" in comparison_results:
-                display_comparison_tab(comparison_results["month_vs_prior"], "prior", "Prior Month")
-            else:
-                logger.warning("No 'month_vs_prior' key in comparison results")
-            
-            if "actual_vs_budget" in comparison_results:
-                display_comparison_tab(comparison_results["actual_vs_budget"], "budget", "Budget")
-            else:
-                logger.warning("No 'actual_vs_budget' key in comparison results")
-            
-            if "year_vs_year" in comparison_results:
-                display_comparison_tab(comparison_results["year_vs_year"], "prior_year", "Prior Year")
-            else:
-                logger.warning("No 'year_vs_year' key in comparison results")
-            
-            # Display insights
-            if st.session_state.insights:
-                st.markdown('<h2 class="section-header">Financial Insights</h2>', unsafe_allow_html=True)
-                display_insights(st.session_state.insights)
-            
-            # Display NOI Coach with enhanced UI
-            display_noi_coach()
+        logger.info(f"Display: comparison_results keys: {list(comparison_results.keys())}")
+        if 'month_vs_prior' in comparison_results:
+            logger.info(f"Display: month_vs_prior keys: {list(comparison_results['month_vs_prior'].keys())}")
+            display_comparison_tab(comparison_results['month_vs_prior'], "prior", "Prior Month")
+        else:
+            logger.warning("No 'month_vs_prior' key in comparison results")
+        if 'actual_vs_budget' in comparison_results:
+            logger.info(f"Display: actual_vs_budget keys: {list(comparison_results['actual_vs_budget'].keys())}")
+            display_comparison_tab(comparison_results['actual_vs_budget'], "budget", "Budget")
+        else:
+            logger.warning("No 'actual_vs_budget' key in comparison results")
+        if 'year_vs_year' in comparison_results:
+            logger.info(f"Display: year_vs_year keys: {list(comparison_results['year_vs_year'].keys())}")
+            display_comparison_tab(comparison_results['year_vs_year'], "prior_year", "Prior Year")
+        else:
+            logger.warning("No 'year_vs_year' key in comparison results")
+        if st.session_state.insights:
+            st.markdown('<h2 class="section-header">Financial Insights</h2>', unsafe_allow_html=True)
+            display_insights(st.session_state.insights)
+        display_noi_coach()
     
     # Process documents when button is clicked
     if process_clicked:
         try:
-            # Show a spinner while processing
             with st.spinner("Processing documents. This may take a minute..."):
                 logger.info("Processing uploaded documents")
-                
-                # Validate that at least current month file is uploaded
                 if not current_month_file:
                     st.error("Current Month Actuals file is required. Please upload it to proceed.")
                     return
-                
-                # Store uploaded files in session state for process_all_documents
                 st.session_state.current_month_actuals = current_month_file
                 st.session_state.prior_month_actuals = prior_month_file
                 st.session_state.current_month_budget = budget_file
                 st.session_state.prior_year_actuals = prior_year_file
-                # property_name is already in st.session_state.property_name from the text input
 
                 # Process the documents
                 raw_consolidated_data = process_all_documents()
-                
-                # Transform data ONCE using calculate_noi_comparisons before storing
+                logger.info(f"Raw consolidated data: {raw_consolidated_data}")
                 if raw_consolidated_data and not raw_consolidated_data.get('error'):
                     logger.info(f"Raw consolidated data keys: {list(raw_consolidated_data.keys())}")
                     comparison_results = calculate_noi_comparisons(raw_consolidated_data)
+                    logger.info(f"Transformed comparison_results keys: {list(comparison_results.keys())}")
+                    if 'month_vs_prior' in comparison_results:
+                        logger.info(f"month_vs_prior keys: {list(comparison_results['month_vs_prior'].keys())}")
                     st.session_state.comparison_results = comparison_results
                 else:
-                    # Pass through errors or empty data directly
-                    comparison_results = raw_consolidated_data 
-                    if comparison_results and comparison_results.get('error'):
-                         logger.error(f"Error from process_all_documents: {comparison_results.get('error')}")
-                    st.session_state.comparison_results = comparison_results
+                    st.session_state.comparison_results = raw_consolidated_data
 
                 st.session_state.processing_completed = True
-                
-                # Generate insights if data is available
-                if comparison_results and "current" in comparison_results:
-                    insights = generate_insights_with_gpt(comparison_results)
+                if st.session_state.comparison_results and "current" in st.session_state.comparison_results:
+                    insights = generate_insights_with_gpt(st.session_state.comparison_results)
                     st.session_state.insights = insights
-                    
-                    # Generate narrative
-                    narrative = create_narrative(comparison_results, property_name)
+                    narrative = create_narrative(st.session_state.comparison_results, property_name)
                     st.session_state.generated_narrative = narrative
-                
-                # Signal completion
                 st.success("Documents processed successfully!")
-                st.rerun()  # Refresh the app to show results
+                st.rerun()
         except Exception as e:
             logger.error(f"Error processing documents: {str(e)}")
             st.error(f"Error processing documents: {str(e)}")
