@@ -1664,125 +1664,72 @@ def main():
         # Show results after processing
         st.title(f"NOI Analysis Results{' - ' + st.session_state.property_name if st.session_state.property_name else ''}")
         
-        # Get the comparison results
-        if 'all_data' not in st.session_state:
-            st.session_state.all_data = st.session_state.comparison_results
+        # Get the comparison results from session state
+        # The st.session_state.comparison_results should be populated by calculate_noi_comparisons
+        # and is expected to have keys like 'month_vs_prior', 'actual_vs_budget', 'year_vs_year', 
+        # and 'current', 'prior', 'budget', 'prior_year' for raw data.
+
+        if not hasattr(st.session_state, 'comparison_results') or not st.session_state.comparison_results:
+            st.error("Error: Comparison results are not available. Please try processing the documents again.")
+            logger.error("st.session_state.comparison_results is missing or empty when trying to display tabs.")
+            return
+
+        comparison_data_for_tabs = st.session_state.comparison_results
+        logger.info(f"Using comparison_results from session state for tabs. Top-level keys: {list(comparison_data_for_tabs.keys())}")
 
         # Create tabs for each comparison type
-        tabs = st.tabs(["Prior Month", "Budget", "Prior Year"])
+        tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Financial Narrative", "NOI Coach"])
         
-        # Direct transformation of data for display
-        if st.session_state.comparison_results and not any(key.endswith('_current') for key in st.session_state.comparison_results.get('month_vs_prior', {}).keys()):
-            logger.warning("Transforming raw data format before display")
-            
-            # Get raw data
-            raw_data = st.session_state.comparison_results
-            
-            # Create fresh comparison data
-            comparison_data = {}
-            
-            # Extract the data for each document type
-            current_month = raw_data.get('current_month', {})
-            prior_month = raw_data.get('prior_month', {})
-            budget = raw_data.get('budget', {})
-            prior_year = raw_data.get('prior_year', {})
-            
-            # Month vs Prior Month comparison
-            if current_month and prior_month:
-                month_vs_prior = {}
-                
-                # Create transformed structure
-                for metric in ['gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 
-                               'egi', 'opex', 'noi', 'property_taxes', 'insurance', 
-                               'repairs_and_maintenance', 'utilities', 'management_fees']:
-                    current_val = float(current_month.get(metric, 0))
-                    prior_val = float(prior_month.get(metric, 0))
-                    change = current_val - prior_val
-                    percent_change = (change / prior_val * 100) if prior_val != 0 else 0
-                    
-                    month_vs_prior[f"{metric}_current"] = current_val
-                    month_vs_prior[f"{metric}_prior"] = prior_val
-                    month_vs_prior[f"{metric}_change"] = change
-                    month_vs_prior[f"{metric}_percent_change"] = percent_change
-                
-                comparison_data["month_vs_prior"] = month_vs_prior
-                
-            # Actual vs Budget comparison
-            if current_month and budget:
-                actual_vs_budget = {}
-                
-                # Create transformed structure
-                for metric in ['gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 
-                               'egi', 'opex', 'noi', 'property_taxes', 'insurance', 
-                               'repairs_and_maintenance', 'utilities', 'management_fees']:
-                    current_val = float(current_month.get(metric, 0))
-                    budget_val = float(budget.get(metric, 0))
-                    variance = current_val - budget_val
-                    percent_variance = (variance / budget_val * 100) if budget_val != 0 else 0
-                    
-                    actual_vs_budget[f"{metric}_current"] = current_val
-                    actual_vs_budget[f"{metric}_budget"] = budget_val
-                    actual_vs_budget[f"{metric}_variance"] = variance
-                    actual_vs_budget[f"{metric}_percent_variance"] = percent_variance
-                
-                comparison_data["actual_vs_budget"] = actual_vs_budget
-                
-            # Year vs Year comparison
-            if current_month and prior_year:
-                year_vs_year = {}
-                
-                # Create transformed structure
-                for metric in ['gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 
-                               'egi', 'opex', 'noi', 'property_taxes', 'insurance', 
-                               'repairs_and_maintenance', 'utilities', 'management_fees']:
-                    current_val = float(current_month.get(metric, 0))
-                    prior_year_val = float(prior_year.get(metric, 0))
-                    change = current_val - prior_year_val
-                    percent_change = (change / prior_year_val * 100) if prior_year_val != 0 else 0
-                    
-                    year_vs_year[f"{metric}_current"] = current_val
-                    year_vs_year[f"{metric}_prior_year"] = prior_year_val
-                    year_vs_year[f"{metric}_change"] = change
-                    year_vs_year[f"{metric}_percent_change"] = percent_change
-                
-                comparison_data["year_vs_year"] = year_vs_year
-            
-            # Keep original data too
-            comparison_data["current"] = current_month
-            comparison_data["prior"] = prior_month
-            comparison_data["budget"] = budget
-            comparison_data["prior_year"] = prior_year
-            
-            # Replace session state with properly transformed data
-            st.session_state.comparison_results = comparison_data
-            logger.info(f"Transformed data structure. New keys: {list(comparison_data.keys())}")
-        
-        # Display each tab with the appropriate data
-        with tabs[0]:  # Prior Month tab
-            if "month_vs_prior" in st.session_state.comparison_results and st.session_state.comparison_results["month_vs_prior"]:
-                display_comparison_tab(st.session_state.comparison_results["month_vs_prior"], "prior", "Prior Month")
+        with tabs[0]:
+            st.header("Current Month vs. Prior Month")
+            if "month_vs_prior" in comparison_data_for_tabs and comparison_data_for_tabs["month_vs_prior"]:
+                logger.info(f"Displaying Prior Month tab with data keys: {list(comparison_data_for_tabs['month_vs_prior'].keys())}")
+                display_comparison_tab(comparison_data_for_tabs["month_vs_prior"], "prior", "Prior Month")
             else:
-                st.warning("Prior Month comparison data is not available. Please upload Current Month and Prior Month documents.")
+                st.warning("Not enough data for Prior Month comparison.")
+                logger.warning("Month vs Prior data is missing or empty in comparison_data_for_tabs.")
+                # Optionally, display current month summary if available
+                if "current" in comparison_data_for_tabs and comparison_data_for_tabs["current"]:
+                    st.write("Current Month Data Summary:")
+                    # Add a more structured display for current data if needed
+                    current_summary = {k: v for k, v in comparison_data_for_tabs["current"].items() if v is not None and v != 0}
+                    if current_summary:
+                        st.json(current_summary)
+                    else:
+                        st.info("No current month data to display.")
                 
-        with tabs[1]:  # Budget tab
-            if "actual_vs_budget" in st.session_state.comparison_results and st.session_state.comparison_results["actual_vs_budget"]:
-                display_comparison_tab(st.session_state.comparison_results["actual_vs_budget"], "budget", "Budget")
+        with tabs[1]:
+            st.header("Actual vs. Budget")
+            if "actual_vs_budget" in comparison_data_for_tabs and comparison_data_for_tabs["actual_vs_budget"]:
+                logger.info(f"Displaying Budget tab with data keys: {list(comparison_data_for_tabs['actual_vs_budget'].keys())}")
+                display_comparison_tab(comparison_data_for_tabs["actual_vs_budget"], "budget", "Budget")
             else:
-                st.warning("Budget comparison data is not available. Please upload Current Month and Budget documents.")
-                
-        with tabs[2]:  # Prior Year tab
-            if "year_vs_year" in st.session_state.comparison_results and st.session_state.comparison_results["year_vs_year"]:
-                display_comparison_tab(st.session_state.comparison_results["year_vs_year"], "prior_year", "Prior Year")
+                st.warning("Not enough data for Budget comparison.")
+                logger.warning("Actual vs Budget data is missing or empty in comparison_data_for_tabs.")
+
+        with tabs[2]:
+            st.header("Current Year vs. Prior Year")
+            if "year_vs_year" in comparison_data_for_tabs and comparison_data_for_tabs["year_vs_year"]:
+                logger.info(f"Displaying Prior Year tab with data keys: {list(comparison_data_for_tabs['year_vs_year'].keys())}")
+                display_comparison_tab(comparison_data_for_tabs["year_vs_year"], "prior_year", "Prior Year")
             else:
-                st.warning("Prior Year comparison data is not available. Please upload Current Month and Prior Year documents.")
+                st.warning("Not enough data for Prior Year comparison.")
+                logger.warning("Year vs Year data is missing or empty in comparison_data_for_tabs.")
         
-        # Add insights section if available
-        if st.session_state.insights:
-            st.markdown('<h2 class="section-header">Financial Insights</h2>', unsafe_allow_html=True)
-            display_insights(st.session_state.insights)
+        with tabs[3]:
+            # Add financial narrative tab
+            if "edited_narrative" in st.session_state:
+                st.header("Financial Narrative")
+                st.markdown(st.session_state.edited_narrative)
+            elif "generated_narrative" in st.session_state:
+                st.header("Financial Narrative")
+                st.markdown(st.session_state.generated_narrative)
+            else:
+                st.warning("No financial narrative available.")
         
-        # Display NOI Coach
-        display_noi_coach()
+        with tabs[4]:
+            # Add NOI Coach tab
+            display_noi_coach()
     
     # Process documents when button is clicked
     if process_clicked:
