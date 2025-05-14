@@ -1717,21 +1717,25 @@ def main():
         # Display tabs with comparison data
         comparison_results = st.session_state.comparison_results
         logger.info(f"Display: comparison_results keys: {list(comparison_results.keys())}")
-        if 'month_vs_prior' in comparison_results:
-            logger.info(f"Display: month_vs_prior keys: {list(comparison_results['month_vs_prior'].keys())}")
-            display_comparison_tab(comparison_results['month_vs_prior'], "prior", "Prior Month")
-        else:
-            logger.warning("No 'month_vs_prior' key in comparison results")
-        if 'actual_vs_budget' in comparison_results:
-            logger.info(f"Display: actual_vs_budget keys: {list(comparison_results['actual_vs_budget'].keys())}")
-            display_comparison_tab(comparison_results['actual_vs_budget'], "budget", "Budget")
-        else:
-            logger.warning("No 'actual_vs_budget' key in comparison results")
-        if 'year_vs_year' in comparison_results:
-            logger.info(f"Display: year_vs_year keys: {list(comparison_results['year_vs_year'].keys())}")
-            display_comparison_tab(comparison_results['year_vs_year'], "prior_year", "Prior Year")
-        else:
-            logger.warning("No 'year_vs_year' key in comparison results")
+
+        def is_transformed(data):
+            return any(k.endswith('_current') for k in data.keys())
+
+        for key, suffix, label in [
+            ('month_vs_prior', 'prior', 'Prior Month'),
+            ('actual_vs_budget', 'budget', 'Budget'),
+            ('year_vs_year', 'prior_year', 'Prior Year')
+        ]:
+            if key in comparison_results:
+                tab_data = comparison_results[key]
+                logger.info(f"Display: {key} keys: {list(tab_data.keys())}")
+                if not is_transformed(tab_data):
+                    logger.error(f"Tab data for {label} is not transformed! Keys: {list(tab_data.keys())}")
+                    st.error(f"Internal error: Data for {label} is not in the expected format. Please contact support.")
+                    continue
+                display_comparison_tab(tab_data, suffix, label)
+            else:
+                logger.warning(f"No '{key}' key in comparison results")
         if st.session_state.insights:
             st.markdown('<h2 class="section-header">Financial Insights</h2>', unsafe_allow_html=True)
             display_insights(st.session_state.insights)
@@ -1755,13 +1759,12 @@ def main():
                 logger.info(f"Raw consolidated data: {raw_consolidated_data}")
                 if raw_consolidated_data and not raw_consolidated_data.get('error'):
                     logger.info(f"Raw consolidated data keys: {list(raw_consolidated_data.keys())}")
-                    comparison_results = calculate_noi_comparisons(raw_consolidated_data)
-                    logger.info(f"Transformed comparison_results keys: {list(comparison_results.keys())}")
-                    if 'month_vs_prior' in comparison_results:
-                        logger.info(f"month_vs_prior keys: {list(comparison_results['month_vs_prior'].keys())}")
-                    st.session_state.comparison_results = comparison_results
+                    # Always transform the data and only store the transformed result
+                    transformed = calculate_noi_comparisons(raw_consolidated_data)
+                    logger.info(f"Transformed comparison_results keys: {list(transformed.keys())}")
+                    st.session_state.comparison_results = transformed
                 else:
-                    st.session_state.comparison_results = raw_consolidated_data
+                    st.session_state.comparison_results = {}
 
                 st.session_state.processing_completed = True
                 if st.session_state.comparison_results and "current" in st.session_state.comparison_results:
