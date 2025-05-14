@@ -338,54 +338,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     
     # Check if we received raw consolidated data instead of transformed comparison data
     if not expected_format:
-        logger.warning(f"Tab data for {name_suffix} does not have the expected format with _current or _{prior_key_suffix} keys")
-        
-        # Check if we have a consolidated data structure
-        consolidated_data_format = "current_month" in tab_data or "prior_month" in tab_data or "budget" in tab_data or "prior_year"
-        if consolidated_data_format:
-            logger.warning("Received consolidated data instead of transformed data. Attempting to transform on the fly")
-            
-            # Map the comparison type to the appropriate keys in consolidated data
-            mapping = {
-                "Prior Month": {"current": "current_month", "compare": "prior_month", "result_key": "month_vs_prior"},
-                "Budget": {"current": "current_month", "compare": "budget", "result_key": "actual_vs_budget"},
-                "Prior Year": {"current": "current_month", "compare": "prior_year", "result_key": "year_vs_year"}
-            }
-            
-            if name_suffix in mapping:
-                current_key = mapping[name_suffix]["current"]
-                compare_key = mapping[name_suffix]["compare"]
-                result_key = mapping[name_suffix]["result_key"]
-                
-                # Check if we have the required data
-                if current_key in tab_data and compare_key in tab_data:
-                    from noi_calculations import calculate_noi_comparisons
-                    
-                    # Create a mini consolidated data structure
-                    mini_consolidated = {
-                        current_key: tab_data[current_key],
-                        compare_key: tab_data[compare_key]
-                    }
-                    
-                    # Transform it
-                    transformed = calculate_noi_comparisons(mini_consolidated)
-                    
-                    # Check if the transformation was successful
-                    if result_key in transformed:
-                        logger.info(f"Successfully transformed data on the fly for {name_suffix}")
-                        tab_data = transformed[result_key]
-                        # Re-check the expected format
-                        expected_format = any(key.endswith('_current') or key.endswith(f'_{prior_key_suffix}') for key in tab_data.keys())
-                    else:
-                        logger.error(f"Failed to transform data on the fly for {name_suffix}")
-                else:
-                    logger.error(f"Missing required keys for {name_suffix} comparison")
-        
-        # If still not in expected format, show error and return
-        if not expected_format:
-            logger.error(f"Tab data for {name_suffix} still not in expected format after transformation attempt")
-            st.error(f"Error: Data for {name_suffix} comparison is not in the expected format. Please check the logs.")
-            return
+        logger.error(f"Tab data for {name_suffix} does not have the expected format. Keys received: {list(tab_data.keys())}")
+        st.error(f"Error: Data for {name_suffix} comparison is not in the expected format. Please check the logs.")
+        return
     
     # Extract current values directly from the tab_data
     current_values = {}
@@ -1716,7 +1671,7 @@ def main():
         
         # Display tabs with comparison data
         comparison_results = st.session_state.comparison_results
-        logger.info(f"Display: comparison_results keys: {list(comparison_results.keys())}")
+        logger.info(f"Display: Retrieved st.session_state.comparison_results. Top-level keys: {list(comparison_results.keys()) if comparison_results else 'None'}")
 
         def is_transformed(data):
             return any(k.endswith('_current') for k in data.keys())
@@ -1728,7 +1683,8 @@ def main():
         ]:
             if key in comparison_results:
                 tab_data = comparison_results[key]
-                logger.info(f"Display: {key} keys: {list(tab_data.keys())}")
+                logger.info(f"Display: Preparing to call display_comparison_tab for {label}. tab_data keys: {list(tab_data.keys()) if tab_data else 'None'}")
+                logger.info(f"Display: Content of tab_data for {label}: {json.dumps(tab_data, indent=2) if tab_data else 'None'}") # Log content
                 if not is_transformed(tab_data):
                     logger.error(f"Tab data for {label} is not transformed! Keys: {list(tab_data.keys())}")
                     st.error(f"Internal error: Data for {label} is not in the expected format. Please contact support.")
@@ -1773,6 +1729,8 @@ def main():
                     narrative = create_narrative(st.session_state.comparison_results, property_name)
                     st.session_state.generated_narrative = narrative
                 st.success("Documents processed successfully!")
+                logger.info(f"End of process_clicked: st.session_state.comparison_results keys: {list(st.session_state.comparison_results.keys()) if st.session_state.comparison_results else 'None'}")
+                logger.info(f"End of process_clicked: Full st.session_state.comparison_results: {json.dumps(st.session_state.comparison_results, indent=2) if st.session_state.comparison_results else 'None'}")
                 st.rerun()
         except Exception as e:
             logger.error(f"Error processing documents: {str(e)}")
