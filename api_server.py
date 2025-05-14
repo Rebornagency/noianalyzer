@@ -1,5 +1,5 @@
 """
-Data Extraction AI API Server (Enhanced + Fixed FilePreprocessor + Health Check)
+Data Extraction AI API Server (Enhanced + Fixed FilePreprocessor + Health Check + Debug Logger)
 
 This file contains the FastAPI server for the Data Extraction AI project.
 It includes endpoints for extracting financial data from various document types.
@@ -9,6 +9,8 @@ Enhancements:
 - Added health check endpoint for Render
 - Fixed data structure for NOI Analyzer compatibility
 - Improved error handling and logging
+- Added comprehensive debug logging middleware
+- Added test endpoint to demonstrate error logging
 """
 
 import os
@@ -33,6 +35,9 @@ from pydantic import BaseModel, Field, validator
 from config.settings import get_settings, API_TITLE, API_DESCRIPTION, API_VERSION
 from src.utils.helpers import get_api_key, validate_required_fields, validate_data, determine_document_type
 
+# Import the debug logger
+from utils.debug_logger import DebugContextLogger, DebugLoggerSettings
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -55,6 +60,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize the debug logger with our app
+debug_settings = DebugLoggerSettings(
+    LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO"),
+    LOG_DIR=os.getenv("LOG_DIR", "logs"),
+    ENV_VARS_TO_CAPTURE=[
+        "ENV", "DEBUG", "PORT", "LOG_LEVEL", "ENVIRONMENT", 
+        "RENDER_EXTERNAL_URL", "RENDER_SERVICE_ID", "OPENAI_API_KEY"
+    ],
+    # Mask authorization headers to protect API keys
+    MASK_HEADERS=["authorization", "cookie", "x-api-key", "api-key", "openai-api-key"]
+)
+debug_logger = DebugContextLogger(app, debug_settings)
 
 #################################################
 # FilePreprocessor Class Definition
@@ -653,6 +671,31 @@ async def extract_financials_v2(
     except Exception as e:
         logger.error(f"Extraction error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+
+# Add test endpoints for the debug logger
+@app.get("/debug/raise-error")
+async def raise_error():
+    """Test endpoint that raises an exception to demonstrate error logging"""
+    # Create a chained exception
+    try:
+        # First level exception
+        try:
+            # Second level exception
+            1 / 0
+        except ZeroDivisionError as zde:
+            # Wrap the zero division error
+            raise ValueError("Invalid calculation during test") from zde
+    except ValueError as ve:
+        # Wrap the value error
+        raise RuntimeError("Test exception to demonstrate error logging") from ve
+
+@app.get("/debug/http-error")
+async def http_error():
+    """Test endpoint that raises an HTTP exception"""
+    raise HTTPException(
+        status_code=404, 
+        detail="Resource not found - This is a test error to demonstrate logging"
+    )
 
 if __name__ == "__main__":
     # Get settings

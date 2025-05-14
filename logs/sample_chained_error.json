@@ -1,0 +1,54 @@
+{
+  "timestamp": "2023-06-15T13:45:23.456789",
+  "error_id": "a47bc231-f8e9-42d1-b4c8-567f98765432",
+  "request": {
+    "method": "GET",
+    "url": "https://api.example.com/chained-exception",
+    "path": "/chained-exception",
+    "path_params": {},
+    "query_params": {},
+    "headers": {
+      "accept": "application/json",
+      "user-agent": "curl/7.68.0",
+      "host": "api.example.com"
+    },
+    "client": {
+      "host": "192.168.1.100",
+      "port": 54321
+    },
+    "body": "<body unavailable>"
+  },
+  "exception": {
+    "type": "HTTPException",
+    "message": "An error occurred processing the request",
+    "traceback": "Traceback (most recent call last):\n  File \"/app/utils/debug_logger.py\", line 126, in dispatch\n    return await call_next(request)\n  File \"/app/debug_integration.py\", line 82, in chained_exception\n    raise HTTPException(status_code=500, detail=\"An error occurred processing the request\") from te\nstarlette.exceptions.HTTPException: An error occurred processing the request",
+    "cause_chain": [
+      {
+        "type": "TypeError",
+        "message": "Processing error with input data",
+        "traceback": "Traceback (most recent call last):\n  File \"/app/debug_integration.py\", line 76, in chained_exception\n    raise TypeError(\"Processing error with input data\") from ve\nTypeError: Processing error with input data"
+      },
+      {
+        "type": "ValueError",
+        "message": "Could not find required key",
+        "traceback": "Traceback (most recent call last):\n  File \"/app/debug_integration.py\", line 73, in chained_exception\n    raise ValueError(\"Could not find required key\") from ke\nValueError: Could not find required key"
+      },
+      {
+        "type": "KeyError",
+        "message": "'nonexistent_key'",
+        "traceback": "Traceback (most recent call last):\n  File \"/app/debug_integration.py\", line 70, in chained_exception\n    value = result[\"nonexistent_key\"]\nKeyError: 'nonexistent_key'"
+      }
+    ]
+  },
+  "environment": {
+    "ENV": "development",
+    "DEBUG": "true",
+    "PORT": "8000",
+    "LOG_LEVEL": "DEBUG",
+    "ENVIRONMENT": "development",
+    "config.API_TITLE": "Debug Logger Demo",
+    "config.API_VERSION": "1.0.0",
+    "config.LOG_DIR": "logs",
+    "config.MASK_HEADERS": "authorization,cookie,x-api-key,api-key"
+  }
+} 

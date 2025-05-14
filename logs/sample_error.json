@@ -1,0 +1,48 @@
+{
+  "timestamp": "2023-06-15T12:34:56.789012",
+  "error_id": "550e8400-e29b-41d4-a716-446655440000",
+  "request": {
+    "method": "POST",
+    "url": "https://api.example.com/api/v2/extraction/financials",
+    "path": "/api/v2/extraction/financials",
+    "path_params": {},
+    "query_params": {
+      "debug": "true"
+    },
+    "headers": {
+      "content-type": "application/json",
+      "authorization": "********",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "accept": "application/json",
+      "host": "api.example.com",
+      "content-length": "164"
+    },
+    "client": {
+      "host": "192.168.1.100",
+      "port": 53312
+    },
+    "body": {
+      "document_type": "income_statement",
+      "property_id": "prop123",
+      "period": "2023-05"
+    }
+  },
+  "exception": {
+    "type": "ValueError",
+    "message": "Invalid document type: income_statement is not supported",
+    "traceback": "Traceback (most recent call last):\n  File \"/app/api_server.py\", line 524, in extract_financials_v2\n    document_type = validate_document_type(request.document_type)\n  File \"/app/api_server.py\", line 201, in validate_document_type\n    raise ValueError(f\"Invalid document type: {doc_type} is not supported\")\nValueError: Invalid document type: income_statement is not supported",
+    "cause_chain": []
+  },
+  "environment": {
+    "ENV": "production",
+    "DEBUG": "false",
+    "PORT": "8000",
+    "LOG_LEVEL": "INFO",
+    "ENVIRONMENT": "production",
+    "RENDER_EXTERNAL_URL": "https://api.example.com",
+    "RENDER_SERVICE_ID": "srv-123abc",
+    "config.API_TITLE": "Financial Data Extraction API",
+    "config.API_VERSION": "2.0.0",
+    "config.ALLOWED_DOCUMENT_TYPES": "income_statement,balance_sheet,cash_flow,property_summary,rent_roll"
+  }
+} 
