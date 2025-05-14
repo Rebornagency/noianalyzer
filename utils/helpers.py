@@ -22,7 +22,14 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         Formatted data for NOI comparison
     """
     logger.info("Formatting API response for NOI comparison")
-    logger.info(f"API response keys: {list(api_response.keys() if isinstance(api_response, dict) else [])}")
+    try:
+        logger.info(f"Incoming api_response (keys): {list(api_response.keys() if isinstance(api_response, dict) else [])}")
+        if isinstance(api_response, dict):
+            # Log a snippet of the api_response for structure, be mindful of potentially large values
+            loggable_api_response = {k: (type(v).__name__ if not isinstance(v, (str, int, float, bool, list, dict)) else v) for k, v in api_response.items()}
+            logger.info(f"Incoming api_response (structure snippet): {json.dumps(loggable_api_response, default=str, indent=2)}")
+    except Exception as e:
+        logger.error(f"Error logging incoming api_response structure: {e}")
     
     # Initialize result with default values
     result = {
@@ -219,7 +226,11 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     
     # Log the formatted result
     logger.info(f"Formatted result: property_id={result['property_id']}, period={result['period']}")
-    logger.info(f"Financial values: gpr={result['gpr']}, vacancy_loss={result['vacancy_loss']}, egi={result['egi']}, opex={result['opex']}, noi={result['noi']}")
+    logger.info(f"Financial values: gpr={result.get('gpr')}, vacancy_loss={result.get('vacancy_loss')}, egi={result.get('egi')}, opex={result.get('opex')}, noi={result.get('noi')}")
+    try:
+        logger.info(f"Full formatted result for NOI comparison: {json.dumps(result, default=str, indent=2)}")
+    except Exception as e:
+        logger.error(f"Error logging full formatted result: {e}")
     
     return result
 

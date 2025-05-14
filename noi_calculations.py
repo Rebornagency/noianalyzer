@@ -1,5 +1,6 @@
 import logging
 from typing import Dict, Any, List, Optional
+import json
 
 # Configure logging
 logging.basicConfig(
@@ -29,7 +30,18 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
 
     # Log input structure to help troubleshoot
     logger.info(f"calculate_noi_comparisons: Input data keys: {list(consolidated_data.keys())}")
-    
+    for key, data_item in consolidated_data.items():
+        if isinstance(data_item, dict):
+            logger.info(f"calculate_noi_comparisons: Input '{key}' (keys): {list(data_item.keys())}")
+            try:
+                # Log only a few key metrics to avoid overly verbose logs if the dict is huge
+                log_snippet = {k: data_item[k] for k in ['period', 'gpr', 'noi', 'opex'] if k in data_item}
+                logger.info(f"calculate_noi_comparisons: Input '{key}' (snippet): {json.dumps(log_snippet, default=str)}")
+            except Exception as e:
+                logger.error(f"Error logging input snippet for {key}: {e}")
+        elif data_item is not None:
+            logger.info(f"calculate_noi_comparisons: Input '{key}' is not a dict, type: {type(data_item)}")
+
     # Defensive: check for raw keys
     current = consolidated_data.get("current_month")
     prior = consolidated_data.get("prior_month")
@@ -49,6 +61,22 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
         Build comparison data structure with proper suffixes.
         This handles the transformation from flat format to the expected display format.
         """
+        logger.info(f"Building comparison for '{compare_suffix}'")
+        if not current:
+            logger.warning(f"Build_comparison for '{compare_suffix}': Current data is missing or None.")
+        else:
+            try:
+                logger.info(f"Build_comparison for '{compare_suffix}' - Current data (snippet): {json.dumps({k: current[k] for k in ['period', 'gpr', 'noi'] if k in current}, default=str)}")
+            except Exception as e:
+                logger.error(f"Error logging current data snippet for {compare_suffix}: {e}")
+        if not compare:
+            logger.warning(f"Build_comparison for '{compare_suffix}': Compare data is missing or None.")
+        else:
+            try:
+                logger.info(f"Build_comparison for '{compare_suffix}' - Compare data (snippet): {json.dumps({k: compare[k] for k in ['period', 'gpr', 'noi'] if k in compare}, default=str)}")
+            except Exception as e:
+                logger.error(f"Error logging compare data snippet for {compare_suffix}: {e}")
+
         if not current or not compare:
             logger.warning(f"Missing data for {compare_suffix} comparison: current={current is not None}, compare={compare is not None}")
             return {}
@@ -89,16 +117,22 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
                 result[f"{m}_{pct_change_suffix}"] = (change / compare_val * 100)
             else:
                 # Handle zero division - if current is positive, treat as 100% increase
-                if current_val > 0:
+                # Ensure current_val is treated as float for this logic
+                current_val_float = float(current_val) # Explicit cast for safety
+                if current_val_float > 0:
                     result[f"{m}_{pct_change_suffix}"] = 100.0
                 # If current is negative, treat as -100% decrease
-                elif current_val < 0:
+                elif current_val_float < 0:
                     result[f"{m}_{pct_change_suffix}"] = -100.0
                 else:
                     # Both zero, no change
                     result[f"{m}_{pct_change_suffix}"] = 0.0
         
-        logger.info(f"Built {compare_suffix} comparison with {len(result)} metric fields")
+        logger.info(f"Built {compare_suffix} comparison with {len(result)} metric fields. Result keys: {list(result.keys())}")
+        try:
+            logger.info(f"Full result for {compare_suffix} comparison: {json.dumps(result, default=str, indent=2)}")
+        except Exception as e:
+            logger.error(f"Error logging full result for {compare_suffix}: {e}")
         return result
 
     # Build the comparison data structures
@@ -117,10 +151,25 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
     }
     
     # Log the output structure
-    logger.info(f"calculate_noi_comparisons: Output data keys: {list(result.keys())}")
-    logger.info(f"month_vs_prior has {len(result['month_vs_prior'])} fields")
-    logger.info(f"actual_vs_budget has {len(result['actual_vs_budget'])} fields")
-    logger.info(f"year_vs_year has {len(result['year_vs_year'])} fields")
+    logger.info(f"calculate_noi_comparisons: Final Output data (top-level keys): {list(result.keys())}")
+    for key, data_item in result.items():
+        if isinstance(data_item, dict):
+            logger.info(f"calculate_noi_comparisons: Output section '{key}' (keys): {list(data_item.keys())}")
+            try:
+                # Log snippet for comparison sections, full for raw data sections
+                if "_vs_" in key: # Heuristic for comparison sections
+                    log_snippet = {k: data_item[k] for k in list(data_item.keys())[:5]} # Log first 5 key-value pairs
+                    logger.info(f"calculate_noi_comparisons: Output section '{key}' (snippet): {json.dumps(log_snippet, default=str)}")
+                else: # For 'current', 'prior', etc.
+                    logger.info(f"calculate_noi_comparisons: Output section '{key}' (full): {json.dumps(data_item, default=str, indent=2)}")
+            except Exception as e:
+                logger.error(f"Error logging output section {key}: {e}")
+        elif data_item is not None:
+             logger.info(f"calculate_noi_comparisons: Output section '{key}' is not a dict, type: {type(data_item)}")
+
+    logger.info(f"month_vs_prior has {len(result.get('month_vs_prior', {}))} fields")
+    logger.info(f"actual_vs_budget has {len(result.get('actual_vs_budget', {}))} fields")
+    logger.info(f"year_vs_year has {len(result.get('year_vs_year', {}))} fields")
     
     return result
 

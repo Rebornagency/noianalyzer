@@ -93,6 +93,12 @@ def process_all_documents() -> Dict[str, Any]:
             
             # Log the raw extraction result for debugging
             logger.info(f"Raw extraction result structure for {doc_type}: {list(extraction_result.keys())}")
+            try:
+                # Attempt to log a serializable snippet of the extraction_result
+                loggable_extraction_result = {k: (type(v).__name__ if not isinstance(v, (str, int, float, bool, list, dict)) else v) for k, v in extraction_result.items()}
+                logger.info(f"Raw extraction result snippet for {doc_type}: {json.dumps(loggable_extraction_result, default=str, indent=2)}")
+            except Exception as e:
+                logger.error(f"Error logging raw extraction result snippet for {doc_type}: {e}")
             
             # Handle nested structures in the extraction result
             if 'financials' in extraction_result:
@@ -115,8 +121,11 @@ def process_all_documents() -> Dict[str, Any]:
             
             # Format data for NOI calculation using our enhanced formatter
             formatted_data = format_for_noi_comparison(extraction_result)
-            logger.info(f"Formatted data for {doc_type}: {formatted_data.keys()}")
-            logger.info(f"Key metrics: gpr={formatted_data.get('gpr')}, opex={formatted_data.get('opex')}, noi={formatted_data.get('noi')}")
+            logger.info(f"Formatted data keys for {doc_type}: {list(formatted_data.keys())}")
+            try:
+                logger.info(f"Full formatted_data for {doc_type}: {json.dumps(formatted_data, default=str, indent=2)}")
+            except Exception as e:
+                logger.error(f"Error logging full formatted_data for {doc_type}: {e}")
             
             # Add to results
             if doc_type == "current_month_actuals":
@@ -142,7 +151,19 @@ def process_all_documents() -> Dict[str, Any]:
         # We can still continue with partial data if at least current_month is available
     
     # Log structure of consolidated data
-    logger.info(f"Consolidated data structure: {list(results.keys())}")
+    logger.info(f"Consolidated data structure (top-level keys): {list(results.keys())}")
+    for key, data_item in results.items():
+        if key == 'error':
+            logger.info(f"Consolidated data contains error: {data_item}")
+            continue
+        if isinstance(data_item, dict):
+            logger.info(f"Consolidated data for '{key}' (keys): {list(data_item.keys())}")
+            try:
+                logger.info(f"Consolidated data for '{key}' (full): {json.dumps(data_item, default=str, indent=2)}")
+            except Exception as e:
+                logger.error(f"Error logging full consolidated data for {key}: {e}")
+        else:
+            logger.info(f"Consolidated data for '{key}' is not a dict: {type(data_item)}")
     
     # Check that current_month has the expected data
     if "current_month" in results:

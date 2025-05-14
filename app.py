@@ -329,10 +329,13 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         prior_key_suffix: Suffix for prior period keys (e.g., 'prior', 'budget', 'prior_year')
         name_suffix: Display name for the prior period (e.g., 'Prior Month', 'Budget', 'Prior Year')
     """
-    # Log detailed debugging information
-    logger.info(f"Starting display_comparison_tab for {name_suffix} comparison")
-    logger.info(f"tab_data keys: {list(tab_data.keys())}")
-    
+    logger.info(f"--- display_comparison_tab START for {name_suffix} ---")
+    try:
+        logger.info(f"display_comparison_tab for {name_suffix}: Received tab_data (keys): {list(tab_data.keys())}")
+        logger.info(f"display_comparison_tab for {name_suffix}: Full tab_data: {json.dumps(tab_data, default=str, indent=2)}")
+    except Exception as e:
+        logger.error(f"Error logging incoming tab_data in display_comparison_tab for {name_suffix}: {e}")
+
     # Check if we're receiving raw data instead of properly transformed data
     if any(key in ['current_month', 'prior_month', 'budget', 'prior_year'] for key in tab_data.keys()):
         logger.error(f"Raw data format detected in display_comparison_tab for {name_suffix}. Keys: {list(tab_data.keys())}")
@@ -352,6 +355,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         if key.endswith('_current'):
             base_metric = key.replace('_current', '')
             current_values[base_metric] = tab_data[key]
+    logger.info(f"display_comparison_tab for {name_suffix}: Extracted current_values (keys): {list(current_values.keys())}")
+    try:
+        logger.info(f"display_comparison_tab for {name_suffix}: Full current_values: {json.dumps(current_values, default=str, indent=2)}")
+    except Exception as e:
+        logger.error(f"Error logging full current_values for {name_suffix}: {e}")
     
     # Extract prior values from the tab_data
     prior_values = {}
@@ -362,6 +370,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         elif key.endswith('_compare'):  # Alternative format
             base_metric = key.replace('_compare', '')
             prior_values[base_metric] = tab_data[key]
+    logger.info(f"display_comparison_tab for {name_suffix}: Extracted prior_values (keys): {list(prior_values.keys())}")
+    try:
+        logger.info(f"display_comparison_tab for {name_suffix}: Full prior_values: {json.dumps(prior_values, default=str, indent=2)}")
+    except Exception as e:
+        logger.error(f"Error logging full prior_values for {name_suffix}: {e}")
     
     # Log the extracted values for key metrics
     logger.info(f"Current NOI: {current_values.get('noi')}, Prior NOI: {prior_values.get('noi')}")
@@ -421,7 +434,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
             continue
             
-        df_data.append({
+        df_row = {
             "Metric": name,
             "Current": current_val,
             name_suffix: prior_val,
@@ -429,7 +442,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             "Change (%)": percent_change,
             # Add business impact direction for proper color coding
             "Direction": "inverse" if name in ["Vacancy Loss", "Total OpEx"] else "normal"
-        })
+        }
+        df_data.append(df_row)
+        logger.debug(f"display_comparison_tab for {name_suffix}: Appended to df_data: {json.dumps(df_row, default=str)}")
 
     # Create DataFrame for display
     if not df_data:
@@ -1269,6 +1284,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         logger.error(f"An unexpected error occurred in display_comparison_tab for {name_suffix}: {str(e)}")
         st.error(f"An error occurred while displaying the comparison tab for {name_suffix}: {name_suffix}.")
     # Return for display_comparison_tab, ensuring it's at the same indent level as the try/except
+    logger.info(f"--- display_comparison_tab END for {name_suffix} ---")
     return
 
 # Function to handle user questions about NOI data
@@ -1676,6 +1692,10 @@ def main():
 
         comparison_data_for_tabs = st.session_state.comparison_results
         logger.info(f"Using comparison_results from session state for tabs. Top-level keys: {list(comparison_data_for_tabs.keys())}")
+        try:
+            logger.info(f"Full comparison_data_for_tabs (structure insight): {json.dumps({k: list(v.keys()) if isinstance(v, dict) else type(v).__name__ for k, v in comparison_data_for_tabs.items()}, default=str, indent=2)}")
+        except Exception as e:
+            logger.error(f"Error logging full comparison_data_for_tabs structure: {e}")
 
         # Create tabs for each comparison type
         tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Financial Narrative", "NOI Coach"])
@@ -1683,8 +1703,14 @@ def main():
         with tabs[0]:
             st.header("Current Month vs. Prior Month")
             if "month_vs_prior" in comparison_data_for_tabs and comparison_data_for_tabs["month_vs_prior"]:
-                logger.info(f"Displaying Prior Month tab with data keys: {list(comparison_data_for_tabs['month_vs_prior'].keys())}")
-                display_comparison_tab(comparison_data_for_tabs["month_vs_prior"], "prior", "Prior Month")
+                logger.info(f"Preparing to display Prior Month tab.")
+                month_vs_prior_data = comparison_data_for_tabs["month_vs_prior"]
+                try:
+                    logger.info(f"Data for Prior Month tab (keys): {list(month_vs_prior_data.keys())}")
+                    logger.info(f"Data for Prior Month tab (full): {json.dumps(month_vs_prior_data, default=str, indent=2)}")
+                except Exception as e:
+                    logger.error(f"Error logging data for Prior Month tab: {e}")
+                display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
             else:
                 st.warning("Not enough data for Prior Month comparison.")
                 logger.warning("Month vs Prior data is missing or empty in comparison_data_for_tabs.")
@@ -1701,8 +1727,14 @@ def main():
         with tabs[1]:
             st.header("Actual vs. Budget")
             if "actual_vs_budget" in comparison_data_for_tabs and comparison_data_for_tabs["actual_vs_budget"]:
-                logger.info(f"Displaying Budget tab with data keys: {list(comparison_data_for_tabs['actual_vs_budget'].keys())}")
-                display_comparison_tab(comparison_data_for_tabs["actual_vs_budget"], "budget", "Budget")
+                logger.info(f"Preparing to display Budget tab.")
+                actual_vs_budget_data = comparison_data_for_tabs["actual_vs_budget"]
+                try:
+                    logger.info(f"Data for Budget tab (keys): {list(actual_vs_budget_data.keys())}")
+                    logger.info(f"Data for Budget tab (full): {json.dumps(actual_vs_budget_data, default=str, indent=2)}")
+                except Exception as e:
+                    logger.error(f"Error logging data for Budget tab: {e}")
+                display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
             else:
                 st.warning("Not enough data for Budget comparison.")
                 logger.warning("Actual vs Budget data is missing or empty in comparison_data_for_tabs.")
@@ -1710,8 +1742,14 @@ def main():
         with tabs[2]:
             st.header("Current Year vs. Prior Year")
             if "year_vs_year" in comparison_data_for_tabs and comparison_data_for_tabs["year_vs_year"]:
-                logger.info(f"Displaying Prior Year tab with data keys: {list(comparison_data_for_tabs['year_vs_year'].keys())}")
-                display_comparison_tab(comparison_data_for_tabs["year_vs_year"], "prior_year", "Prior Year")
+                logger.info(f"Preparing to display Prior Year tab.")
+                year_vs_year_data = comparison_data_for_tabs["year_vs_year"]
+                try:
+                    logger.info(f"Data for Prior Year tab (keys): {list(year_vs_year_data.keys())}")
+                    logger.info(f"Data for Prior Year tab (full): {json.dumps(year_vs_year_data, default=str, indent=2)}")
+                except Exception as e:
+                    logger.error(f"Error logging data for Prior Year tab: {e}")
+                display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
             else:
                 st.warning("Not enough data for Prior Year comparison.")
                 logger.warning("Year vs Year data is missing or empty in comparison_data_for_tabs.")
@@ -1735,7 +1773,7 @@ def main():
     if process_clicked:
         try:
             with st.spinner("Processing documents. This may take a minute..."):
-                logger.info("Processing uploaded documents")
+                logger.info("--- Document Processing START ---")
                 if not current_month_file:
                     st.error("Current Month Actuals file is required. Please upload it to proceed.")
                     return
@@ -1746,7 +1784,12 @@ def main():
 
                 # Process the documents
                 raw_consolidated_data = process_all_documents()
-                logger.info(f"Raw consolidated data keys: {list(raw_consolidated_data.keys()) if raw_consolidated_data else 'None'}")
+                logger.info(f"Raw consolidated data from process_all_documents (top-level keys): {list(raw_consolidated_data.keys()) if raw_consolidated_data else 'None'}")
+                if raw_consolidated_data and isinstance(raw_consolidated_data.get('current_month'), dict):
+                    try:
+                        logger.info(f"Raw 'current_month' data from process_all_documents: {json.dumps(raw_consolidated_data['current_month'], default=str, indent=2)}")
+                    except Exception as e:
+                        logger.error(f"Error logging raw_consolidated_data['current_month']: {e}")
                 
                 if raw_consolidated_data and not raw_consolidated_data.get('error'):
                     # Always transform raw data into the expected format
@@ -1754,12 +1797,16 @@ def main():
                     transformed_data = calculate_noi_comparisons(raw_consolidated_data)
                     
                     # Log the transformation results
-                    logger.info(f"Transformed data keys: {list(transformed_data.keys())}")
-                    for section in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year']:
-                        if section in transformed_data:
-                            logger.info(f"{section} has {len(transformed_data[section])} fields")
-                            sample_keys = list(transformed_data[section].keys())[:5]
-                            logger.info(f"{section} sample keys: {sample_keys}")
+                    logger.info(f"Transformed data from calculate_noi_comparisons (top-level keys): {list(transformed_data.keys())}")
+                    for section in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year', 'current', 'prior', 'budget', 'prior_year']:
+                        if section in transformed_data and isinstance(transformed_data[section], dict):
+                            logger.info(f"Transformed data section '{section}' (keys): {list(transformed_data[section].keys())}")
+                            try:
+                                logger.info(f"Transformed data section '{section}' (full): {json.dumps(transformed_data[section], default=str, indent=2)}")
+                            except Exception as e:
+                                logger.error(f"Error logging full transformed data for section {section}: {e}")
+                        elif section in transformed_data:
+                            logger.info(f"Transformed data section '{section}' is not a dict: {type(transformed_data[section])}")
                     
                     # Store the transformed data
                     st.session_state.comparison_results = transformed_data
@@ -1774,12 +1821,15 @@ def main():
                 st.session_state.processing_completed = True
                 if st.session_state.comparison_results:
                     # Generate insights using the transformed data
+                    logger.info("Calling debug_comparison_structure with st.session_state.comparison_results")
+                    debug_comparison_structure(st.session_state.comparison_results)
                     insights = generate_insights_with_gpt(st.session_state.comparison_results)
                     st.session_state.insights = insights
                     narrative = create_narrative(st.session_state.comparison_results, property_name)
                     st.session_state.generated_narrative = narrative
                 
                 st.success("Documents processed successfully!")
+                logger.info("--- Document Processing END ---")
                 st.rerun()
         except Exception as e:
             logger.error(f"Error processing documents: {str(e)}")
