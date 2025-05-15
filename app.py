@@ -1702,57 +1702,57 @@ def main():
         
         with tabs[0]:
             st.header("Current Month vs. Prior Month")
-            if "month_vs_prior" in comparison_data_for_tabs and comparison_data_for_tabs["month_vs_prior"]:
-                logger.info(f"Preparing to display Prior Month tab.")
-                month_vs_prior_data = comparison_data_for_tabs["month_vs_prior"]
+            # Ensure 'month_vs_prior' data exists and is not empty
+            month_vs_prior_data = comparison_data_for_tabs.get('month_vs_prior', {})
+            if month_vs_prior_data:
+                logger.info(f"APP.PY: Preparing to display Prior Month tab with data: {list(month_vs_prior_data.keys())}")
                 try:
-                    logger.info(f"Data for Prior Month tab (keys): {list(month_vs_prior_data.keys())}")
-                    logger.info(f"Data for Prior Month tab (full): {json.dumps(month_vs_prior_data, default=str, indent=2)}")
-                except Exception as e:
-                    logger.error(f"Error logging data for Prior Month tab: {e}")
+                    logger.info(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_data, default=str, indent=2)}")
+                except Exception as e_log_json:
+                    logger.error(f"APP.PY: Error logging JSON for Prior Month tab data: {e_log_json}")
                 display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
             else:
                 st.warning("Not enough data for Prior Month comparison.")
-                logger.warning("Month vs Prior data is missing or empty in comparison_data_for_tabs.")
+                logger.warning("APP.PY: 'month_vs_prior' data is missing or empty in comparison_data_for_tabs.")
                 # Optionally, display current month summary if available
-                if "current" in comparison_data_for_tabs and comparison_data_for_tabs["current"]:
+                current_data_summary = comparison_data_for_tabs.get('current', {})
+                if current_data_summary:
                     st.write("Current Month Data Summary:")
-                    # Add a more structured display for current data if needed
-                    current_summary = {k: v for k, v in comparison_data_for_tabs["current"].items() if v is not None and v != 0}
-                    if current_summary:
-                        st.json(current_summary)
+                    current_summary_to_display = {k: v for k, v in current_data_summary.items() if v is not None and v != 0}
+                    if current_summary_to_display:
+                        st.json(current_summary_to_display)
                     else:
-                        st.info("No current month data to display.")
+                        st.info("No current month data values to display.")
                 
         with tabs[1]:
             st.header("Actual vs. Budget")
-            if "actual_vs_budget" in comparison_data_for_tabs and comparison_data_for_tabs["actual_vs_budget"]:
-                logger.info(f"Preparing to display Budget tab.")
-                actual_vs_budget_data = comparison_data_for_tabs["actual_vs_budget"]
+            # Ensure 'actual_vs_budget' data exists and is not empty
+            actual_vs_budget_data = comparison_data_for_tabs.get('actual_vs_budget', {})
+            if actual_vs_budget_data:
+                logger.info(f"APP.PY: Preparing to display Budget tab with data: {list(actual_vs_budget_data.keys())}")
                 try:
-                    logger.info(f"Data for Budget tab (keys): {list(actual_vs_budget_data.keys())}")
-                    logger.info(f"Data for Budget tab (full): {json.dumps(actual_vs_budget_data, default=str, indent=2)}")
-                except Exception as e:
-                    logger.error(f"Error logging data for Budget tab: {e}")
+                    logger.info(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_data, default=str, indent=2)}")
+                except Exception as e_log_json:
+                    logger.error(f"APP.PY: Error logging JSON for Budget tab data: {e_log_json}")
                 display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
             else:
                 st.warning("Not enough data for Budget comparison.")
-                logger.warning("Actual vs Budget data is missing or empty in comparison_data_for_tabs.")
+                logger.warning("APP.PY: 'actual_vs_budget' data is missing or empty in comparison_data_for_tabs.")
 
         with tabs[2]:
             st.header("Current Year vs. Prior Year")
-            if "year_vs_year" in comparison_data_for_tabs and comparison_data_for_tabs["year_vs_year"]:
-                logger.info(f"Preparing to display Prior Year tab.")
-                year_vs_year_data = comparison_data_for_tabs["year_vs_year"]
+            # Ensure 'year_vs_year' data exists and is not empty
+            year_vs_year_data = comparison_data_for_tabs.get('year_vs_year', {})
+            if year_vs_year_data:
+                logger.info(f"APP.PY: Preparing to display Prior Year tab with data: {list(year_vs_year_data.keys())}")
                 try:
-                    logger.info(f"Data for Prior Year tab (keys): {list(year_vs_year_data.keys())}")
-                    logger.info(f"Data for Prior Year tab (full): {json.dumps(year_vs_year_data, default=str, indent=2)}")
-                except Exception as e:
-                    logger.error(f"Error logging data for Prior Year tab: {e}")
+                    logger.info(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_data, default=str, indent=2)}")
+                except Exception as e_log_json:
+                    logger.error(f"APP.PY: Error logging JSON for Prior Year tab data: {e_log_json}")
                 display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
             else:
                 st.warning("Not enough data for Prior Year comparison.")
-                logger.warning("Year vs Year data is missing or empty in comparison_data_for_tabs.")
+                logger.warning("APP.PY: 'year_vs_year' data is missing or empty in comparison_data_for_tabs.")
         
         with tabs[3]:
             # Add financial narrative tab
