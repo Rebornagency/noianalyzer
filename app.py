@@ -1773,9 +1773,10 @@ def main():
     if process_clicked:
         try:
             with st.spinner("Processing documents. This may take a minute..."):
-                logger.info("--- Document Processing START ---")
+                logger.info("APP.PY: --- Document Processing START ---")
                 if not current_month_file:
                     st.error("Current Month Actuals file is required. Please upload it to proceed.")
+                    st.session_state.processing_completed = False # Ensure it's false if we exit early
                     return
                 st.session_state.current_month_actuals = current_month_file
                 st.session_state.prior_month_actuals = prior_month_file
@@ -1784,57 +1785,77 @@ def main():
 
                 # Process the documents
                 raw_consolidated_data = process_all_documents()
-                logger.info(f"Raw consolidated data from process_all_documents (top-level keys): {list(raw_consolidated_data.keys()) if raw_consolidated_data else 'None'}")
-                if raw_consolidated_data and isinstance(raw_consolidated_data.get('current_month'), dict):
+                logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
+                if isinstance(raw_consolidated_data, dict) and isinstance(raw_consolidated_data.get('current_month'), dict):
                     try:
-                        logger.info(f"Raw 'current_month' data from process_all_documents: {json.dumps(raw_consolidated_data['current_month'], default=str, indent=2)}")
-                    except Exception as e:
-                        logger.error(f"Error logging raw_consolidated_data['current_month']: {e}")
-                
-                if raw_consolidated_data and not raw_consolidated_data.get('error'):
-                    # Always transform raw data into the expected format
-                    logger.info("Transforming raw consolidated data")
-                    transformed_data = calculate_noi_comparisons(raw_consolidated_data)
-                    
-                    # Log the transformation results
-                    logger.info(f"Transformed data from calculate_noi_comparisons (top-level keys): {list(transformed_data.keys())}")
-                    for section in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year', 'current', 'prior', 'budget', 'prior_year']:
-                        if section in transformed_data and isinstance(transformed_data[section], dict):
-                            logger.info(f"Transformed data section '{section}' (keys): {list(transformed_data[section].keys())}")
-                            try:
-                                logger.info(f"Transformed data section '{section}' (full): {json.dumps(transformed_data[section], default=str, indent=2)}")
-                            except Exception as e:
-                                logger.error(f"Error logging full transformed data for section {section}: {e}")
-                        elif section in transformed_data:
-                            logger.info(f"Transformed data section '{section}' is not a dict: {type(transformed_data[section])}")
-                    
-                    # Store the transformed data
-                    st.session_state.comparison_results = transformed_data
-                    logger.info("Successfully stored transformed data in session state")
-                else:
-                    st.session_state.comparison_results = {}
-                    if raw_consolidated_data and raw_consolidated_data.get('error'):
-                        logger.error(f"Error in consolidated data: {raw_consolidated_data.get('error')}")
-                        st.error(f"Error processing documents: {raw_consolidated_data.get('error')}")
-                        return
+                        logger.info(f"APP.PY: Snippet of raw_consolidated_data['current_month']: {json.dumps({k: raw_consolidated_data['current_month'][k] for k in list(raw_consolidated_data['current_month'].keys())[:5]}, default=str)}")
+                    except Exception as e_log_snippet:
+                        logger.error(f"APP.PY: Error logging raw_consolidated_data snippet: {e_log_snippet}")
 
-                st.session_state.processing_completed = True
-                if st.session_state.comparison_results:
-                    # Generate insights using the transformed data
-                    logger.info("Calling debug_comparison_structure with st.session_state.comparison_results")
+
+                if raw_consolidated_data and isinstance(raw_consolidated_data, dict) and not raw_consolidated_data.get('error'):
+                    logger.info("APP.PY: Condition to transform data met. Calling calculate_noi_comparisons.")
+                    try:
+                        transformed_data = calculate_noi_comparisons(raw_consolidated_data)
+                        logger.info(f"APP.PY: calculate_noi_comparisons returned. Transformed_data type: {type(transformed_data)}. Keys: {list(transformed_data.keys()) if isinstance(transformed_data, dict) else 'Not a dict'}")
+                        
+                        if isinstance(transformed_data, dict) and "month_vs_prior" in transformed_data:
+                            mvp_data = transformed_data["month_vs_prior"]
+                            logger.info(f"APP.PY: transformed_data['month_vs_prior'] type: {type(mvp_data)}. Keys: {list(mvp_data.keys()) if isinstance(mvp_data, dict) else 'Not a dict'}")
+                            if isinstance(mvp_data, dict):
+                                try:
+                                    logger.info(f"APP.PY: Snippet of transformed_data['month_vs_prior']: {json.dumps({k: mvp_data[k] for k in list(mvp_data.keys())[:5]}, default=str)}")
+                                except Exception as e_log_snippet_mvp:
+                                    logger.error(f"APP.PY: Error logging transformed_data['month_vs_prior'] snippet: {e_log_snippet_mvp}")
+                        else:
+                            logger.warning("APP.PY: 'month_vs_prior' key missing in transformed_data or transformed_data is not a dict.")
+
+                        st.session_state.comparison_results = transformed_data
+                        logger.info(f"APP.PY: st.session_state.comparison_results assigned. Type: {type(st.session_state.comparison_results)}. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
+                    except Exception as e_calc:
+                        logger.error(f"APP.PY: Error during calculate_noi_comparisons or assignment: {str(e_calc)}", exc_info=True)
+                        st.session_state.comparison_results = {"error": f"Calculation error: {str(e_calc)}"}
+                elif isinstance(raw_consolidated_data, dict) and raw_consolidated_data.get('error'):
+                    logger.error(f"APP.PY: Error reported by process_all_documents: {raw_consolidated_data.get('error')}")
+                    st.session_state.comparison_results = raw_consolidated_data
+                else:
+                    logger.warning(f"APP.PY: Condition to transform data NOT met or raw_consolidated_data is not as expected. raw_consolidated_data type: {type(raw_consolidated_data)}")
+                    st.session_state.comparison_results = {"error": "No data from document processing or unexpected data structure."}
+                
+                # Generate insights and narrative only if comparison results are valid
+                if isinstance(st.session_state.comparison_results, dict) and not st.session_state.comparison_results.get("error"):
+                    logger.info("APP.PY: comparison_results seem okay. Generating insights and narrative.")
+                    logger.info(f"APP.PY: Calling debug_comparison_structure with st.session_state.comparison_results. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
                     debug_comparison_structure(st.session_state.comparison_results)
+                    
                     insights = generate_insights_with_gpt(st.session_state.comparison_results)
                     st.session_state.insights = insights
-                    narrative = create_narrative(st.session_state.comparison_results, property_name)
+                    logger.info(f"APP.PY: Insights generated. Keys: {list(insights.keys()) if isinstance(insights, dict) else 'Not a dict'}")
+                    
+                    narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
                     st.session_state.generated_narrative = narrative
+                    logger.info("APP.PY: Narrative generated.")
+                    
+                    st.session_state.processing_completed = True
+                    st.success("Documents processed successfully!")
+                else:
+                    error_msg = "Unknown processing error"
+                    if isinstance(st.session_state.comparison_results, dict) and st.session_state.comparison_results.get("error"):
+                        error_msg = st.session_state.comparison_results.get("error")
+                    elif not isinstance(st.session_state.comparison_results, dict) :
+                         error_msg = "Comparison results are not in the expected format."
+
+                    logger.error(f"APP.PY: Processing failed or comparison_results has an error or is not a dict. Results: {st.session_state.comparison_results}")
+                    st.error(f"Failed to process documents fully. Error: {error_msg}")
+                    st.session_state.processing_completed = False
                 
-                st.success("Documents processed successfully!")
-                logger.info("--- Document Processing END ---")
+                logger.info(f"APP.PY: --- Document Processing END --- processing_completed: {st.session_state.processing_completed}")
                 st.rerun()
         except Exception as e:
-            logger.error(f"Error processing documents: {str(e)}")
-            st.error(f"Error processing documents: {str(e)}")
+            logger.error(f"APP.PY: Unhandled error in process_clicked block: {str(e)}", exc_info=True)
+            st.error(f"An unexpected error occurred: {str(e)}")
             st.session_state.processing_completed = False
+            st.rerun() # Rerun to reflect the error state
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
