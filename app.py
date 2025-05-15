@@ -12,6 +12,7 @@ import io
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 import tempfile
+import jinja2
 
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
@@ -225,7 +226,7 @@ def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
     logger.info(f"Top level keys: {list(comparison_results.keys())}")
     
     # Check for current data
-    if "current" in comparison_results:
+    if "current" in comparison_results and isinstance(comparison_results["current"], dict):
         logger.info(f"Current data keys: {list(comparison_results['current'].keys())}")
         
         # Check for financial metrics in current data
@@ -236,35 +237,53 @@ def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
             else:
                 logger.warning(f"Missing key in current data: {key}")
     else:
-        logger.warning("No 'current' key in comparison results")
+        logger.warning("No 'current' key in comparison results or it's not a dictionary")
     
     # Check comparison data sections
-    for section in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
-        if section in comparison_results:
-            logger.info(f"{section} keys: {list(comparison_results[section].keys())}")
+    for section_key_name in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
+        if section_key_name in comparison_results and isinstance(comparison_results[section_key_name], dict):
+            section_data = comparison_results[section_key_name]
+            logger.info(f"{section_key_name} keys: {list(section_data.keys())}")
             
-            # Check for common patterns in the data
-            patterns = [
-                "_current",    # current values
-                "_compare",    # comparison values 
-                "_change",     # absolute change
-                "_percent_change"  # percentage change
-            ]
+            # Define patterns based on section type
+            if section_key_name == "actual_vs_budget":
+                # Suffix for the comparison period's actual value (e.g., gpr_budget)
+                compare_suffix_pattern = "_budget" 
+                # Suffix for the difference amount (e.g., gpr_variance)
+                change_suffix_pattern = "_variance" 
+                # Suffix for the percentage difference (e.g., gpr_percent_variance)
+                percent_change_suffix_pattern = "_percent_variance" 
+            elif section_key_name == "month_vs_prior":
+                compare_suffix_pattern = "_prior"
+                change_suffix_pattern = "_change"
+                percent_change_suffix_pattern = "_percent_change"
+            elif section_key_name == "year_vs_year":
+                compare_suffix_pattern = "_prior_year"
+                change_suffix_pattern = "_change"
+                percent_change_suffix_pattern = "_percent_change"
+            else:
+                # Fallback for any other unexpected section, though unlikely
+                compare_suffix_pattern = "_compare" # Generic fallback
+                change_suffix_pattern = "_change"
+                percent_change_suffix_pattern = "_percent_change"
+
+            patterns_to_check = {
+                "_current": "_current",
+                "compare_values": compare_suffix_pattern,
+                "change_values": change_suffix_pattern,
+                "percent_change_values": percent_change_suffix_pattern
+            }
             
-            found_patterns = {}
-            for pattern in patterns:
-                matches = [key for key in comparison_results[section].keys() if key.endswith(pattern)]
-                found_patterns[pattern] = matches
-                
+            for pattern_name, pattern_suffix in patterns_to_check.items():
+                matches = [key for key in section_data.keys() if key.endswith(pattern_suffix)]
                 if matches:
-                    logger.info(f"  Found {len(matches)} keys with pattern '{pattern}': {matches[:3]}...")
-                    # Show sample values
-                    if matches:
-                        logger.info(f"  Sample value ({matches[0]}): {comparison_results[section][matches[0]]}")
+                    logger.info(f"  Found {len(matches)} keys with pattern '{pattern_suffix}' for {pattern_name} in {section_key_name}: {matches[:3]}...")
+                    # Show sample values from the first match
+                    logger.info(f"    Sample value ({matches[0]}): {section_data[matches[0]]}")
                 else:
-                    logger.warning(f"  No keys found with pattern '{pattern}'")
+                    logger.warning(f"  No keys found with pattern '{pattern_suffix}' for {pattern_name} in {section_key_name}")
         else:
-            logger.warning(f"Missing comparison section: {section}")
+            logger.warning(f"Missing comparison section: {section_key_name} or it's not a dictionary")
     
     logger.info("=== END COMPARISON RESULTS STRUCTURE DEBUG ===")
 
@@ -713,12 +732,13 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             comp_fig.update_layout(
                                 title=f"OpEx Components: Current vs {name_suffix}",
                                 barmode='group',
-                                xaxis_title="Amount ($)",
+                                xaxis_title="Amount ($)", # This is the value axis for horizontal bars
+                                yaxis_title=None, # Categories are on y, no title needed if clear
                                 xaxis=dict(tickprefix="$"),
                                 template="plotly_dark",
                                 plot_bgcolor='rgba(30, 41, 59, 0.8)',
                                 paper_bgcolor='rgba(16, 23, 42, 0)',
-                                margin=dict(l=20, r=20, t=60, b=80),
+                                margin=dict(l=120, r=20, t=60, b=100), # Increased left margin for longer y-axis labels, increased bottom margin
                                 font=dict(
                                     family="Inter, sans-serif",
                                     size=12,
@@ -728,7 +748,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                 legend=dict(
                                     orientation="h",
                                     yanchor="bottom",
-                                    y=-0.2,
+                                    y=-0.25, # Adjusted legend position slightly lower
                                     xanchor="center",
                                     x=0.5,
                                     font=dict(size=10, color="#F0F0F0")
@@ -1158,95 +1178,76 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # Display chart
             st.plotly_chart(fig, use_container_width=True)
             logger.info(f"Successfully displayed chart for {name_suffix} comparison")
+
+            # --- Display Executive Summary and Insights in UI ---
+            logger.info(f"Attempting to display Executive Summary and Insights for {name_suffix} in UI.")
+            insights_data = st.session_state.get("insights")
+
+            if insights_data and isinstance(insights_data, dict):
+                executive_summary = insights_data.get("summary")
+                if executive_summary:
+                    st.subheader("Executive Summary")
+                    st.markdown(executive_summary)
+                    logger.info(f"Displayed Executive Summary for {name_suffix}.")
+
+                # Determine the key for specific insights based on name_suffix
+                specific_insights_key = None
+                if name_suffix == "Prior Month":
+                    specific_insights_key = "month_vs_prior"
+                elif name_suffix == "Budget":
+                    specific_insights_key = "actual_vs_budget"
+                elif name_suffix == "Prior Year":
+                    specific_insights_key = "year_vs_year"
+
+                if specific_insights_key:
+                    specific_insights = insights_data.get(specific_insights_key)
+                    if specific_insights:
+                        st.subheader(f"Key Insights & Recommendations for {name_suffix}")
+                        st.markdown(specific_insights)
+                        logger.info(f"Displayed Specific Insights for {name_suffix} using key {specific_insights_key}.")
+                    else:
+                        logger.info(f"No specific insights found for {name_suffix} using key {specific_insights_key}.")
+                else:
+                    logger.info(f"Could not determine specific_insights_key for name_suffix: {name_suffix}.")
+            else:
+                logger.info(f"No insights_data found in session state or not a dict, for {name_suffix}.")
+            # --- End Display Executive Summary and Insights in UI ---
+
         except Exception as e:
             logger.error(f"Error creating visualization: {str(e)}")
             st.error(f"Error creating visualization: {str(e)}")
         
+        # PDF Generation Block
         try:
-            # Prepare OpEx breakdown data
-            opex_breakdown_data = []
-            opex_breakdown_available = False
+            # Prepare OpEx breakdown data for PDF context (already done above for UI, can reuse)
+            # KPIs for PDF context (already calculated above for UI, can reuse)
+            # Executive Summary and Financial Narrative for PDF context (already fetched above for UI, can reuse)
+
+            # Initialize template variable
+            loaded_template = None
+
+            template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+            logger.info(f"PDF EXPORT: Template directory path determined as: {template_dir}")
+
+            if not os.path.isdir(template_dir):
+                logger.error(f"PDF EXPORT: Template directory NOT FOUND: {template_dir}")
+                raise FileNotFoundError(f"Template directory '{template_dir}' not found. Ensure it exists relative to app.py.")
             
-            opex_total = current_values.get("opex", 0)
+            logger.info(f"PDF EXPORT: Template directory found. Initializing FileSystemLoader.")
+            file_loader = FileSystemLoader(template_dir)
+            env = Environment(loader=file_loader)
+            logger.info(f"PDF EXPORT: Jinja Environment created. Attempting to load 'report_template.html'.")
             
-            if opex_total and opex_total > 0:
-                # OpEx components
-                opex_components = [
-                    ("property_taxes", "Property Taxes"),
-                    ("insurance", "Insurance"),
-                    ("repairs_and_maintenance", "Repairs & Maintenance"),
-                    ("utilities", "Utilities"),
-                    ("management_fees", "Management Fees")
-                ]
-                
-                # Check if we have detailed OpEx data
-                has_detail = False
-                for key, _ in opex_components:
-                    if key in current_values:
-                        has_detail = True
-                        break
-                
-                if has_detail:
-                    opex_breakdown_available = True
-                    
-                    for key, label in opex_components:
-                        if key in current_values:
-                            current_val = current_values.get(key, 0)
-                            percentage = (current_val / opex_total * 100) if opex_total > 0 else 0
-                            
-                            # Get comparison value if available
-                            if "compare" in tab_data:
-                                compare_val = tab_data["compare"].get(key, 0)
-                                
-                                # Calculate percent change safely
-                                if compare_val and compare_val != 0:
-                                    variance = (current_val - compare_val) / compare_val
-                                else:
-                                    variance = 0
-                            else:
-                                compare_val = 0
-                                variance = 0
-                            
-                            opex_breakdown_data.append({
-                                "category": label,
-                                "current": current_val,
-                                "prior": compare_val,
-                                "variance": variance,
-                                "percentage": percentage
-                            })
+            loaded_template = env.get_template('report_template.html') 
+            logger.info("PDF EXPORT: Successfully loaded PDF report template 'report_template.html'.")
             
-            # Calculate KPIs
-            egi = current_values.get("egi", 0)
-            noi = current_values.get("noi", 0)
-            gpr = current_values.get("gpr", 0)
-            opex = current_values.get("opex", 0)
+            # Create context for template (ensure all these variables are defined)
+            # executive_summary and financial_narrative are fetched before this try-block now by UI display logic
+            # opex_breakdown_data, opex_breakdown_available, kpis, egi, opex, noi, gpr are from UI part
+            current_prop_name = st.session_state.property_name if st.session_state.property_name else "N/A"
             
-            operating_expense_ratio = opex / egi if egi else 0
-            noi_margin = noi / egi if egi else 0
-            gross_rent_multiplier = 10  # Placeholder value
-            
-            kpis = {
-                "egi": egi,
-                "operating_expense_ratio": operating_expense_ratio,
-                "noi_margin": noi_margin,
-                "gross_rent_multiplier": gross_rent_multiplier
-            }
-            
-            # Get executive summary if available
-            executive_summary = ""
-            if hasattr(st.session_state, "insights") and st.session_state.insights:
-                executive_summary = st.session_state.insights.get("summary", "")
-            
-            # Include financial narrative if available
-            financial_narrative = None
-            if "edited_narrative" in st.session_state:
-                financial_narrative = st.session_state.edited_narrative
-            elif "generated_narrative" in st.session_state:
-                financial_narrative = st.session_state.generated_narrative
-            
-            # Create context for template
             context = {
-                "property_name": name_suffix,
+                "property_name": current_prop_name,
                 "datetime": datetime,
                 "performance_data": {
                     "egi": egi,
@@ -1255,33 +1256,45 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     "gpr": gpr,
                     "vacancy_loss": current_values.get("vacancy_loss", 0),
                     "other_income": current_values.get("other_income", 0),
-                    "opex_breakdown_data": opex_breakdown_data,
-                    "opex_breakdown_available": opex_breakdown_available,
-                    "kpis": kpis,
-                    "executive_summary": executive_summary,
-                    "financial_narrative": financial_narrative,
-                    "comparison_title": name_suffix
+                    "opex_breakdown_data": opex_breakdown_data, # Make sure this is defined from UI section
+                    "opex_breakdown_available": opex_breakdown_available, # Make sure this is defined
+                    "kpis": kpis, # Make sure this is defined
+                    "executive_summary": st.session_state.get("insights", {}).get("summary", ""),
+                    "financial_narrative": st.session_state.get("generated_narrative") or st.session_state.get("edited_narrative"),
                 },
-                "comparison_results": tab_data
+                "comparison_title": name_suffix, 
+                "comparison_results": tab_data 
             }
+            logger.info("PDF EXPORT: Context for PDF template created successfully.")
             
-            # Render template
-            html_content = template.render(**context)
+            html_content = loaded_template.render(**context)
+            logger.info("PDF EXPORT: HTML content rendered from template.")
             
-            # Create a temporary file for the PDF
             with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
                 tmp.write(html_content.encode('utf-8'))
                 tmp_path = tmp.name
+            logger.info(f"PDF EXPORT: HTML content written to temporary file: {tmp_path}")
             
-            # Convert HTML to PDF using weasyprint
             pdf_bytes = HTML(filename=tmp_path).write_pdf()
-        except Exception as e:
-            logger.error(f"Error in data preparation or PDF generation: {str(e)}")
-            st.error(f"Error preparing data for export: {str(e)}")
-    # THIS IS THE END OF THE INNER TRY-EXCEPT FOR PDF
-    # NOW, ADD THE EXCEPT FOR THE OUTER TRY (started at line 471)
-    except Exception as e:
-        logger.error(f"An unexpected error occurred in display_comparison_tab for {name_suffix}: {str(e)}")
+            logger.info("PDF EXPORT: PDF bytes generated successfully.")
+            # (Add st.download_button for PDF here if this is where export is triggered)
+
+        except FileNotFoundError as e_fnf:
+            logger.error(f"PDF EXPORT: FileNotFoundError during template setup: {str(e_fnf)}", exc_info=True)
+            st.error(f"Error preparing PDF for export: A required file or directory was not found. Details: {str(e_fnf)}")
+        except jinja2.exceptions.TemplateNotFound as e_tnf: # Specific Jinja2 import needed for this
+            logger.error(f"PDF EXPORT: jinja2.exceptions.TemplateNotFound: {str(e_tnf)} (Template directory was: {template_dir})", exc_info=True)
+            st.error(f"Error preparing PDF for export: The report template '{str(e_tnf)}' was not found in the expected directory.")
+        except NameError as e_name:
+            logger.error(f"PDF EXPORT: NameError occurred: {str(e_name)}", exc_info=True)
+            st.error(f"Error preparing PDF for export (NameError): {str(e_name)}. Check logs for traceback.")
+        except Exception as e_pdf_gen:
+            logger.error(f"Error in data preparation or PDF generation: {str(e_pdf_gen)}", exc_info=True)
+            st.error(f"Error preparing PDF for export: {str(e_pdf_gen)}")
+    
+    # THIS IS THE END OF THE display_comparison_tab function's main try block
+    except Exception as e_main_display: # Catch-all for the entire display_comparison_tab function
+        logger.error(f"An unexpected error occurred in display_comparison_tab for {name_suffix}: {str(e_main_display)}", exc_info=True)
         st.error(f"An error occurred while displaying the comparison tab for {name_suffix}: {name_suffix}.")
     # Return for display_comparison_tab, ensuring it's at the same indent level as the try/except
     logger.info(f"--- display_comparison_tab END for {name_suffix} ---")
@@ -1569,6 +1582,10 @@ def main():
     Main function for the NOI Analyzer Enhanced application.
     Sets up the UI and coordinates all functionality.
     """
+    # Log session state at the beginning of a run for debugging narrative
+    logger.info(f"APP.PY (main start): st.session_state.generated_narrative is: {st.session_state.get('generated_narrative')}")
+    logger.info(f"APP.PY (main start): st.session_state.edited_narrative is: {st.session_state.get('edited_narrative')}")
+
     # Display app header and logo
     display_logo()
     
@@ -1833,8 +1850,10 @@ def main():
                     logger.info(f"APP.PY: Insights generated. Keys: {list(insights.keys()) if isinstance(insights, dict) else 'Not a dict'}")
                     
                     narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
+                    # Log the raw narrative content and type BEFORE assigning to session state
+                    logger.info(f"APP.PY: 'narrative' var from create_narrative. Type: {type(narrative)}. Content snippet: {(str(narrative)[:200] + '...') if narrative else 'None'}")
                     st.session_state.generated_narrative = narrative
-                    logger.info("APP.PY: Narrative generated.")
+                    logger.info("APP.PY: Narrative generated and assigned to st.session_state.generated_narrative.")
                     
                     st.session_state.processing_completed = True
                     st.success("Documents processed successfully!")
