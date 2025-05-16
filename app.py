@@ -36,6 +36,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_analyzer')
 
+# Helper function to summarize data structures for logging
+def summarize_data_for_log(data_dict, max_items=3):
+    """Summarize a data structure for more concise logging"""
+    if not isinstance(data_dict, dict):
+        return str(data_dict)
+    keys = list(data_dict.keys())
+    summary = {k: data_dict[k] for k in keys[:max_items]}
+    if len(keys) > max_items:
+        summary[f"...and {len(keys) - max_items} more keys"] = "..."
+    return summary
+
 # --- Initialize Jinja2 Environment and Load Template Globally ---
 report_template = None  # Initialize to None to prevent NameError if loading fails
 env = None              # Initialize to None
@@ -256,7 +267,13 @@ def load_css():
 # Debug helper function to diagnose comparison structure issues
 def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
     """
-    Debug function to analyze and log the structure of comparison results
+    Debug function to analyze and log the structure of comparison results.
+    
+    This function uses INFO level for its logs by design. If these logs are too verbose,
+    you have two options:
+    1. Temporarily comment out calls to this function when not actively debugging
+    2. Modify the log levels inside this function from INFO to DEBUG if you want 
+       to retain the ability to see these logs when setting the logger to DEBUG level
     """
     if not comparison_results:
         logger.error("No comparison results available for debugging")
@@ -393,7 +410,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     logger.info(f"--- display_comparison_tab START for {name_suffix} ---")
     try:
         logger.info(f"display_comparison_tab for {name_suffix}: Received tab_data (keys): {list(tab_data.keys())}")
-        logger.info(f"display_comparison_tab for {name_suffix}: Full tab_data: {json.dumps(tab_data, default=str, indent=2)}")
+        # Move full JSON dumps to DEBUG level
+        logger.debug(f"display_comparison_tab for {name_suffix}: Full tab_data: {json.dumps(tab_data, default=str, indent=2)}")
     except Exception as e:
         logger.error(f"Error logging incoming tab_data in display_comparison_tab for {name_suffix}: {e}")
 
@@ -418,7 +436,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             current_values[base_metric] = tab_data[key]
     logger.info(f"display_comparison_tab for {name_suffix}: Extracted current_values (keys): {list(current_values.keys())}")
     try:
-        logger.info(f"display_comparison_tab for {name_suffix}: Full current_values: {json.dumps(current_values, default=str, indent=2)}")
+        # Move full JSON dumps to DEBUG level
+        logger.debug(f"display_comparison_tab for {name_suffix}: Full current_values: {json.dumps(current_values, default=str, indent=2)}")
     except Exception as e:
         logger.error(f"Error logging full current_values for {name_suffix}: {e}")
     
@@ -433,7 +452,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             prior_values[base_metric] = tab_data[key]
     logger.info(f"display_comparison_tab for {name_suffix}: Extracted prior_values (keys): {list(prior_values.keys())}")
     try:
-        logger.info(f"display_comparison_tab for {name_suffix}: Full prior_values: {json.dumps(prior_values, default=str, indent=2)}")
+        # Move full JSON dumps to DEBUG level
+        logger.debug(f"display_comparison_tab for {name_suffix}: Full prior_values: {json.dumps(prior_values, default=str, indent=2)}")
     except Exception as e:
         logger.error(f"Error logging full prior_values for {name_suffix}: {e}")
     
@@ -1755,9 +1775,12 @@ def main():
         comparison_data_for_tabs = st.session_state.comparison_results
         logger.info(f"Using comparison_results from session state for tabs. Top-level keys: {list(comparison_data_for_tabs.keys())}")
         try:
-            logger.info(f"Full comparison_data_for_tabs (structure insight): {json.dumps({k: list(v.keys()) if isinstance(v, dict) else type(v).__name__ for k, v in comparison_data_for_tabs.items()}, default=str, indent=2)}")
+            # Use structure summary for INFO level instead of full structure
+            logger.info(f"comparison_data_for_tabs summary: {len(comparison_data_for_tabs)} top-level keys, data types: {set(type(v).__name__ for v in comparison_data_for_tabs.values())}")
+            # Full structure details moved to DEBUG level
+            logger.debug(f"Full comparison_data_for_tabs structure: {json.dumps({k: list(v.keys()) if isinstance(v, dict) else type(v).__name__ for k, v in comparison_data_for_tabs.items()}, default=str, indent=2)}")
         except Exception as e:
-            logger.error(f"Error logging full comparison_data_for_tabs structure: {e}")
+            logger.error(f"Error logging comparison_data_for_tabs structure: {e}")
 
         # Create tabs for each comparison type
         tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Financial Narrative", "NOI Coach"])
@@ -1769,7 +1792,8 @@ def main():
             if month_vs_prior_data:
                 logger.info(f"APP.PY: Preparing to display Prior Month tab with data: {list(month_vs_prior_data.keys())}")
                 try:
-                    logger.info(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_data, default=str, indent=2)}")
+                    # Move full JSON dumps to DEBUG level
+                    logger.debug(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_data, default=str, indent=2)}")
                 except Exception as e_log_json:
                     logger.error(f"APP.PY: Error logging JSON for Prior Month tab data: {e_log_json}")
                 display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
@@ -1793,7 +1817,8 @@ def main():
             if actual_vs_budget_data:
                 logger.info(f"APP.PY: Preparing to display Budget tab with data: {list(actual_vs_budget_data.keys())}")
                 try:
-                    logger.info(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_data, default=str, indent=2)}")
+                    # Move full JSON dumps to DEBUG level
+                    logger.debug(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_data, default=str, indent=2)}")
                 except Exception as e_log_json:
                     logger.error(f"APP.PY: Error logging JSON for Budget tab data: {e_log_json}")
                 display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
@@ -1808,7 +1833,8 @@ def main():
             if year_vs_year_data:
                 logger.info(f"APP.PY: Preparing to display Prior Year tab with data: {list(year_vs_year_data.keys())}")
                 try:
-                    logger.info(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_data, default=str, indent=2)}")
+                    # Move full JSON dumps to DEBUG level
+                    logger.debug(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_data, default=str, indent=2)}")
                 except Exception as e_log_json:
                     logger.error(f"APP.PY: Error logging JSON for Prior Year tab data: {e_log_json}")
                 display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
@@ -2132,7 +2158,10 @@ def main():
                 logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
                 if isinstance(raw_consolidated_data, dict) and isinstance(raw_consolidated_data.get('current_month'), dict):
                     try:
-                        logger.info(f"APP.PY: Snippet of raw_consolidated_data['current_month']: {json.dumps({k: raw_consolidated_data['current_month'][k] for k in list(raw_consolidated_data['current_month'].keys())[:5]}, default=str)}")
+                        # Use the summarize function for more concise INFO logging
+                        logger.info(f"APP.PY: Snippet of raw_consolidated_data['current_month']: {summarize_data_for_log(raw_consolidated_data['current_month'])}")
+                        # Full details moved to DEBUG level
+                        logger.debug(f"APP.PY: Full raw_consolidated_data['current_month']: {json.dumps(raw_consolidated_data['current_month'], default=str, indent=2)}")
                     except Exception as e_log_snippet:
                         logger.error(f"APP.PY: Error logging raw_consolidated_data snippet: {e_log_snippet}")
 
@@ -2148,7 +2177,10 @@ def main():
                             logger.info(f"APP.PY: transformed_data['month_vs_prior'] type: {type(mvp_data)}. Keys: {list(mvp_data.keys()) if isinstance(mvp_data, dict) else 'Not a dict'}")
                             if isinstance(mvp_data, dict):
                                 try:
-                                    logger.info(f"APP.PY: Snippet of transformed_data['month_vs_prior']: {json.dumps({k: mvp_data[k] for k in list(mvp_data.keys())[:5]}, default=str)}")
+                                    # Use the summarize function for more concise INFO logging
+                                    logger.info(f"APP.PY: Snippet of transformed_data['month_vs_prior']: {summarize_data_for_log(mvp_data)}")
+                                    # Full details moved to DEBUG level
+                                    logger.debug(f"APP.PY: Full transformed_data['month_vs_prior']: {json.dumps(mvp_data, default=str, indent=2)}")
                                 except Exception as e_log_snippet_mvp:
                                     logger.error(f"APP.PY: Error logging transformed_data['month_vs_prior'] snippet: {e_log_snippet_mvp}")
                         else:
@@ -2169,8 +2201,12 @@ def main():
                 # Generate insights and narrative only if comparison results are valid
                 if isinstance(st.session_state.comparison_results, dict) and not st.session_state.comparison_results.get("error"):
                     logger.info("APP.PY: comparison_results seem okay. Generating insights and narrative.")
-                    logger.info(f"APP.PY: Calling debug_comparison_structure with st.session_state.comparison_results. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
-                    debug_comparison_structure(st.session_state.comparison_results)
+                    
+                    # Optional debugging of comparison structure - can be disabled to reduce log volume
+                    enable_structure_debug = True  # Set to False to disable detailed structure logging
+                    if enable_structure_debug:
+                        logger.info(f"APP.PY: Calling debug_comparison_structure with st.session_state.comparison_results. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
+                        debug_comparison_structure(st.session_state.comparison_results)
                     
                     insights = generate_insights_with_gpt(st.session_state.comparison_results)
                     st.session_state.insights = insights
