@@ -818,7 +818,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 "Cleaning Fees", "Cancellation Fees", "Miscellaneous"
             ]
             
-            if any(component in current_values for component in other_income_components):
+            # MODIFIED: Check if any component exists with _current suffix in tab_data
+            if any(f"{component}_current" in tab_data for component in other_income_components):
+                logger.info(f"Found other income components in tab_data for {name_suffix}. Preparing breakdown.")
                 # Create DataFrame for Other Income components
                 income_df_data = []
                 
@@ -1049,10 +1051,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         st.markdown("- **Opportunity alert:** The following income sources had values previously but are now at zero:")
                         for item in low_components:
                             st.markdown(f"  - **{item['Income Category']}** (previously ${item[name_suffix]:,.2f})")
+                    else:
+                        st.info("No other income details available for this period.")
+                        logger.info(f"No other income component keys (e.g., parking_current) found in tab_data for {name_suffix}. Displaying 'no details' message.")
                 else:
-                    st.info("No other income details available for this period.")
+                    st.info("Other income components were identified, but all had zero values for both current and prior periods (and 'Show Zero Values' is off).")
+                    logger.info(f"Other income components found but resulted in empty df_data for {name_suffix} (likely all zeros and show_zero_values is False).")
             else:
-                st.info("Other income breakdown is not available for this comparison.")
+                st.info("No other income details available for this period.")
+                logger.info(f"No other income component keys (e.g., parking_current) found in tab_data for {name_suffix}. Displaying 'no details' message.")
         
         try:
             logger.info(f"Creating charts for {name_suffix} comparison")
