@@ -275,7 +275,7 @@ def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
             if key in comparison_results["current"]:
                 logger.info(f"Current.{key} = {comparison_results['current'][key]}")
             else:
-                logger.warning(f"Missing key in current data: {key}")
+                logger.info(f"[Debug] Missing key in current data: {key}. This is expected if this metric was not provided or extracted.")
     else:
         logger.warning("No 'current' key in comparison results or it's not a dictionary")
     
@@ -321,9 +321,11 @@ def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
                     # Show sample values from the first match
                     logger.info(f"    Sample value ({matches[0]}): {section_data[matches[0]]}")
                 else:
-                    logger.warning(f"  No keys found with pattern '{pattern_suffix}' for {pattern_name} in {section_key_name}")
+                    # MODIFIED LINE: Changed from WARNING to INFO with more context
+                    logger.info(f"  [Debug] In section '{section_key_name}', no keys found with pattern '{pattern_suffix}' for {pattern_name}. This may be expected if comparison data is incomplete or not applicable.")
         else:
-            logger.warning(f"Missing comparison section: {section_key_name} or it's not a dictionary")
+            # MODIFIED LINE: Changed from WARNING to INFO with more context
+            logger.info(f"[Debug] Comparison section '{section_key_name}' not found in results. This is expected if data for this comparison was not uploaded or processed.")
     
     logger.info("=== END COMPARISON RESULTS STRUCTURE DEBUG ===")
 
