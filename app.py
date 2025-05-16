@@ -45,10 +45,20 @@ def display_logo():
     try:
         logo_base64 = get_reborn_logo_base64()
         
-        # Direct embedding of the logo with proper sizing and alignment
+        # Direct embedding of the logo with proper sizing, alignment, and subtle enhancement
         logo_html = f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 25px; margin-top: 10px;">
-            <img src="data:image/png;base64,{logo_base64}" width="180px" alt="Reborn Logo" style="object-fit: contain;">
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 25px; margin-top: 10px; padding: 5px;">
+            <img 
+                src="data:image/png;base64,{logo_base64}" 
+                width="180px" 
+                alt="Reborn Logo" 
+                style="
+                    object-fit: contain;
+                    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1)); 
+                    -webkit-filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1));
+                    max-width: 100%;
+                "
+            >
         </div>
         """
         st.markdown(logo_html, unsafe_allow_html=True)
@@ -64,13 +74,20 @@ def display_logo_small():
     try:
         logo_b64 = get_reborn_logo_base64()
         
-        # Inline logo with proper sizing and alignment
+        # Inline logo with proper sizing, alignment and subtle enhancement
         logo_html = f"""
         <div style="display:flex; align-items:center; margin:0; padding:0;">
             <img src="data:image/png;base64,{logo_b64}"
                  height="32px"
-                 style="background:transparent; object-fit:contain; margin-right:8px;"
-                 alt="Reborn Logo" />
+                 style="
+                     background:transparent; 
+                     object-fit:contain; 
+                     margin-right:8px;
+                     filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.1));
+                     -webkit-filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.1));
+                 "
+                 alt="Reborn Logo" 
+            />
         </div>
         """
         st.markdown(logo_html, unsafe_allow_html=True)
