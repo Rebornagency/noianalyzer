@@ -1,0 +1,30 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Log files
+*.log
+
+# Environment variables
+.env
+
+# Local development specific files
+.vscode/
+.idea/
+
+# Streamlit specific
+.streamlit/secrets.toml
+
+# Keep templates directory
+# Ensure template files are included
+!templates/
+!templates/*.html 

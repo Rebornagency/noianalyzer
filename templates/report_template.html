@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOI Analysis Report</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            max-width: 180px;
+            margin-bottom: 15px;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        h3 {
+            font-size: 18px;
+            margin-top: 25px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .metric-row {
+            margin-bottom: 10px;
+        }
+        .metric-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 200px;
+        }
+        .positive-change {
+            color: green;
+        }
+        .negative-change {
+            color: red;
+        }
+        .chart-container {
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        .page-break {
+            page-break-after: always;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_base64 %}
+        <img src="data:image/png;base64,{{ logo_base64 }}" alt="Reborn Logo" class="logo">
+        {% endif %}
+        <h1>NOI Analysis Report - {{ property_name }}</h1>
+        <p>Generated on {{ datetime.now().strftime('%Y-%m-%d %H:%M:%S') }}</p>
+    </div>
+
+    <div class="summary-section">
+        <h2>Executive Summary</h2>
+        {% if performance_data.executive_summary %}
+        <p>{{ performance_data.executive_summary }}</p>
+        {% else %}
+        <p>No executive summary available.</p>
+        {% endif %}
+    </div>
+
+    <div class="key-metrics-section">
+        <h2>Key Financial Metrics</h2>
+        
+        <div class="metric-row">
+            <span class="metric-label">Current NOI:</span> ${{ performance_data.noi|default(0)|round|int|format_number }}
+        </div>
+        
+        {% if performance_data.get('prior_noi') %}
+        <div class="metric-row">
+            <span class="metric-label">Prior Month NOI:</span> ${{ performance_data.prior_noi|round|int|format_number }}
+        </div>
+        <div class="metric-row">
+            <span class="metric-label">Month-over-Month Change:</span> 
+            <span class="{{ 'positive-change' if performance_data.noi_change >= 0 else 'negative-change' }}">
+                ${{ performance_data.noi_change|round|int|format_number }} ({{ performance_data.noi_percent_change|round(1) }}%)
+            </span>
+        </div>
+        {% endif %}
+        
+        {% if performance_data.get('budget_noi') %}
+        <div class="metric-row">
+            <span class="metric-label">Budgeted NOI:</span> ${{ performance_data.budget_noi|round|int|format_number }}
+        </div>
+        <div class="metric-row">
+            <span class="metric-label">Budget Variance:</span>
+            <span class="{{ 'positive-change' if performance_data.noi_budget_variance >= 0 else 'negative-change' }}">
+                ${{ performance_data.noi_budget_variance|round|int|format_number }} ({{ performance_data.noi_budget_percent_variance|round(1) }}%)
+            </span>
+        </div>
+        {% endif %}
+        
+        {% if performance_data.get('prior_year_noi') %}
+        <div class="metric-row">
+            <span class="metric-label">Prior Year NOI:</span> ${{ performance_data.prior_year_noi|round|int|format_number }}
+        </div>
+        <div class="metric-row">
+            <span class="metric-label">Year-over-Year Change:</span>
+            <span class="{{ 'positive-change' if performance_data.noi_yoy_change >= 0 else 'negative-change' }}">
+                ${{ performance_data.noi_yoy_change|round|int|format_number }} ({{ performance_data.noi_yoy_percent_change|round(1) }}%)
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="metrics-breakdown">
+        <h2>Financial Metrics Breakdown</h2>
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Current</th>
+                <th>{{ comparison_title }}</th>
+                <th>Change ($)</th>
+                <th>Change (%)</th>
+            </tr>
+            <tr>
+                <td>Gross Potential Rent (GPR)</td>
+                <td>${{ performance_data.gpr|default(0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('gpr_compare', 0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('gpr_change', 0)|round|int|format_number }}</td>
+                <td>{{ comparison_results.get('gpr_percent_change', 0)|round(1) }}%</td>
+            </tr>
+            <tr>
+                <td>Vacancy Loss</td>
+                <td>${{ performance_data.vacancy_loss|default(0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('vacancy_loss_compare', 0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('vacancy_loss_change', 0)|round|int|format_number }}</td>
+                <td>{{ comparison_results.get('vacancy_loss_percent_change', 0)|round(1) }}%</td>
+            </tr>
+            <tr>
+                <td>Other Income</td>
+                <td>${{ performance_data.other_income|default(0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('other_income_compare', 0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('other_income_change', 0)|round|int|format_number }}</td>
+                <td>{{ comparison_results.get('other_income_percent_change', 0)|round(1) }}%</td>
+            </tr>
+            <tr>
+                <td>Effective Gross Income (EGI)</td>
+                <td>${{ performance_data.egi|default(0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('egi_compare', 0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('egi_change', 0)|round|int|format_number }}</td>
+                <td>{{ comparison_results.get('egi_percent_change', 0)|round(1) }}%</td>
+            </tr>
+            <tr>
+                <td>Operating Expenses (OpEx)</td>
+                <td>${{ performance_data.opex|default(0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('opex_compare', 0)|round|int|format_number }}</td>
+                <td>${{ comparison_results.get('opex_change', 0)|round|int|format_number }}</td>
+                <td>{{ comparison_results.get('opex_percent_change', 0)|round(1) }}%</td>
+            </tr>
+            <tr>
+                <td><strong>Net Operating Income (NOI)</strong></td>
+                <td><strong>${{ performance_data.noi|default(0)|round|int|format_number }}</strong></td>
+                <td><strong>${{ comparison_results.get('noi_compare', 0)|round|int|format_number }}</strong></td>
+                <td><strong>${{ comparison_results.get('noi_change', 0)|round|int|format_number }}</strong></td>
+                <td><strong>{{ comparison_results.get('noi_percent_change', 0)|round(1) }}%</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    {% if performance_data.get('financial_narrative') %}
+    <div class="narrative-section page-break">
+        <h2>Financial Narrative</h2>
+        <p>{{ performance_data.financial_narrative }}</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated by NOI Analyzer | © {{ datetime.now().year }} Reborn</p>
+    </div>
+</body>
+</html> 
