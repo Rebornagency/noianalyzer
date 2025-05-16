@@ -36,6 +36,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_analyzer')
 
+# --- Initialize Jinja2 Environment and Load Template Globally ---
+report_template = None  # Initialize to None to prevent NameError if loading fails
+env = None              # Initialize to None
+try:
+    # Define the path to your templates directory (assumes 'templates' is alongside app.py)
+    template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+    
+    if not os.path.isdir(template_dir):
+        logger.error(f"Templates directory not found at: {template_dir}. PDF generation will fail.")
+        # We'll display a warning in the UI when PDF generation is attempted
+    else:
+        env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
+        # Try to load the report template file
+        template_filename = 'report_template.html'  # Name from the existing code
+        if os.path.exists(os.path.join(template_dir, template_filename)):
+            report_template = env.get_template(template_filename)
+            logger.info(f"Successfully loaded Jinja2 environment and '{template_filename}' template.")
+        else:
+            logger.error(f"'{template_filename}' not found in {template_dir}. PDF generation will be affected.")
+except Exception as e:
+    logger.error(f"Failed to initialize Jinja2 environment or load template: {e}", exc_info=True)
+# --- End of Jinja2 initialization ---
+
 # Import the logo function
 from reborn_logo import get_reborn_logo_base64
 
@@ -1240,23 +1263,13 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # KPIs for PDF context (already calculated above for UI, can reuse)
             # Executive Summary and Financial Narrative for PDF context (already fetched above for UI, can reuse)
 
-            # Initialize template variable
-            loaded_template = None
+            # Use the globally defined report_template
+            if report_template is None:
+                logger.error("PDF EXPORT: Global report_template is None. PDF generation will fail.")
+                st.error("PDF generation is not available because the report template could not be loaded during initialization.")
+                return
 
-            template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-            logger.info(f"PDF EXPORT: Template directory path determined as: {template_dir}")
-
-            if not os.path.isdir(template_dir):
-                logger.error(f"PDF EXPORT: Template directory NOT FOUND: {template_dir}")
-                raise FileNotFoundError(f"Template directory '{template_dir}' not found. Ensure it exists relative to app.py.")
-            
-            logger.info(f"PDF EXPORT: Template directory found. Initializing FileSystemLoader.")
-            file_loader = FileSystemLoader(template_dir)
-            env = Environment(loader=file_loader)
-            logger.info(f"PDF EXPORT: Jinja Environment created. Attempting to load 'report_template.html'.")
-            
-            loaded_template = env.get_template('report_template.html') 
-            logger.info("PDF EXPORT: Successfully loaded PDF report template 'report_template.html'.")
+            logger.info("PDF EXPORT: Using globally loaded report template.")
             
             # Create context for template (ensure all these variables are defined)
             # executive_summary and financial_narrative are fetched before this try-block now by UI display logic
@@ -1284,7 +1297,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             }
             logger.info("PDF EXPORT: Context for PDF template created successfully.")
             
-            html_content = loaded_template.render(**context)
+            html_content = report_template.render(**context)
             logger.info("PDF EXPORT: HTML content rendered from template.")
             
             with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
@@ -1294,17 +1307,23 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             
             pdf_bytes = HTML(filename=tmp_path).write_pdf()
             logger.info("PDF EXPORT: PDF bytes generated successfully.")
-            # (Add st.download_button for PDF here if this is where export is triggered)
+            
+            # Add download button for PDF
+            pdf_filename = f"{current_prop_name.replace(' ', '_')}_NOI_Analysis_{datetime.now().strftime('%Y%m%d')}.pdf"
+            st.download_button(
+                label="Download PDF Report",
+                data=pdf_bytes,
+                file_name=pdf_filename,
+                mime="application/pdf"
+            )
+            logger.info(f"PDF EXPORT: Download button displayed for: {pdf_filename}")
 
-        except FileNotFoundError as e_fnf:
-            logger.error(f"PDF EXPORT: FileNotFoundError during template setup: {str(e_fnf)}", exc_info=True)
-            st.error(f"Error preparing PDF for export: A required file or directory was not found. Details: {str(e_fnf)}")
-        except jinja2.exceptions.TemplateNotFound as e_tnf: # Specific Jinja2 import needed for this
-            logger.error(f"PDF EXPORT: jinja2.exceptions.TemplateNotFound: {str(e_tnf)} (Template directory was: {template_dir})", exc_info=True)
-            st.error(f"Error preparing PDF for export: The report template '{str(e_tnf)}' was not found in the expected directory.")
+        except jinja2.exceptions.TemplateNotFound as e_tnf:
+            logger.error(f"PDF EXPORT: Template not found error: {str(e_tnf)}", exc_info=True)
+            st.error(f"Error preparing PDF for export: The report template was not found.")
         except NameError as e_name:
             logger.error(f"PDF EXPORT: NameError occurred: {str(e_name)}", exc_info=True)
-            st.error(f"Error preparing PDF for export (NameError): {str(e_name)}. Check logs for traceback.")
+            st.error(f"Error preparing PDF for export (NameError): {str(e_name)}. This is likely due to missing template initialization.")
         except Exception as e_pdf_gen:
             logger.error(f"Error in data preparation or PDF generation: {str(e_pdf_gen)}", exc_info=True)
             st.error(f"Error preparing PDF for export: {str(e_pdf_gen)}")
@@ -1789,15 +1808,297 @@ def main():
                 logger.warning("APP.PY: 'year_vs_year' data is missing or empty in comparison_data_for_tabs.")
         
         with tabs[3]:
-            # Add financial narrative tab
-            if "edited_narrative" in st.session_state:
-                st.header("Financial Narrative")
-                st.markdown(st.session_state.edited_narrative)
-            elif "generated_narrative" in st.session_state:
-                st.header("Financial Narrative")
-                st.markdown(st.session_state.generated_narrative)
+            # Enhanced financial narrative tab with better display of recommendations and insights
+            st.header("Financial Narrative & Insights")
+            
+            # Log the raw narrative and insights data to help debug display issues
+            logger.info(f"Financial Narrative Data - generated_narrative type: {type(st.session_state.get('generated_narrative'))}")
+            logger.info(f"Financial Narrative Data - edited_narrative type: {type(st.session_state.get('edited_narrative'))}")
+            if st.session_state.get('generated_narrative'):
+                logger.info(f"Financial Narrative Content (snippet): {str(st.session_state.get('generated_narrative'))[:100]}...")
+            
+            # Get narrative content with robust handling of different formats
+            narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative")
+            
+            # More robust checks for narrative data and insights
+            has_narrative = narrative_data is not None and narrative_data != "None" and narrative_data != ""
+            has_insights = "insights" in st.session_state and isinstance(st.session_state.get("insights"), dict) and st.session_state.get("insights")
+            
+            if has_narrative or has_insights:
+                # Create subtabs for different types of content
+                subtabs = []
+                
+                # Only add the Financial Narrative tab if we actually have content
+                if has_narrative:
+                    subtabs.append("Financial Narrative")
+                
+                if has_insights:
+                    insights_data = st.session_state.get("insights", {})
+                    if "summary" in insights_data and insights_data["summary"]:
+                        subtabs.append("Executive Summary")
+                    
+                    # Check for specific insights
+                    if "month_vs_prior" in insights_data or "actual_vs_budget" in insights_data or "year_vs_year" in insights_data:
+                        subtabs.append("Key Performance Insights")
+                
+                # Only add recommendations tab if we can find recommendations content
+                if has_narrative:
+                    if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
+                        subtabs.append("Recommendations")
+                    # Look for recommendations in string narrative
+                    elif isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
+                        if "Recommendations" not in subtabs:
+                            subtabs.append("Recommendations")
+                
+                # Display content in subtabs if we have enough for multiple tabs
+                if len(subtabs) > 1:
+                    insight_tabs = st.tabs(subtabs)
+                    tab_index = 0
+                    
+                    # Financial Narrative Tab
+                    if "Financial Narrative" in subtabs:
+                        with insight_tabs[tab_index]:
+                            # --- START OF THE FIX for Financial Narrative content display ---
+                            if has_narrative:
+                                if isinstance(narrative_data, dict):
+                                    # Try various possible keys for narrative content in dictionary
+                                    possible_keys = ["narrative", "detailed_story", "full_narrative", "story", "narrative_text", "text"]
+                                    content_found = False
+                                    
+                                    for key in possible_keys:
+                                        if key in narrative_data and narrative_data[key]:
+                                            content = narrative_data[key]
+                                            if content and content != "None" and isinstance(content, str):
+                                                st.markdown(content)
+                                                logger.info(f"Successfully displayed narrative content from key: {key}")
+                                                content_found = True
+                                                break
+                                    
+                                    if not content_found:
+                                        # If no specific narrative key found, display the whole structure
+                                        logger.warning(f"No standard narrative content key found in dictionary: {list(narrative_data.keys())}")
+                                        
+                                        # Concatenate all string values from the dictionary
+                                        combined_text = []
+                                        for key, value in narrative_data.items():
+                                            if isinstance(value, str) and value and value != "None":
+                                                combined_text.append(f"### {key.replace('_', ' ').title()}\n\n{value}")
+                                        
+                                        if combined_text:
+                                            st.markdown("\n\n".join(combined_text))
+                                        else:
+                                            st.info("Narrative data is in dictionary format but doesn't contain usable text content.")
+                                            st.json(narrative_data)  # Show the structure for debugging
+                                
+                                elif isinstance(narrative_data, str):
+                                    # Handle string narrative
+                                    if narrative_data and narrative_data != "None":
+                                        st.markdown(narrative_data)
+                                        logger.info("Successfully displayed string narrative content")
+                                    else:
+                                        st.info("Narrative content appears to be empty or 'None'.")
+                                        logger.warning(f"Empty string narrative: '{narrative_data}'")
+                                
+                                else:
+                                    # Handle unexpected data type
+                                    st.info(f"Narrative content is in an unexpected format (type: {type(narrative_data)}).")
+                                    logger.warning(f"Unexpected narrative data type: {type(narrative_data)}")
+                                    if narrative_data is not None:
+                                        st.caption("Narrative Data Structure:")
+                                        st.json({"type": str(type(narrative_data)), "value": str(narrative_data)})
+                            else:
+                                st.info("No financial narrative is available.")
+                                logger.warning("Narrative data expected but not found.")
+                            # --- END OF THE FIX ---
+                        tab_index += 1
+                    
+                    # Executive Summary Tab
+                    if "Executive Summary" in subtabs:
+                        with insight_tabs[tab_index]:
+                            executive_summary = st.session_state.get("insights", {}).get("summary", "")
+                            if executive_summary and executive_summary != "None":
+                                st.markdown(executive_summary)
+                            else:
+                                st.info("Executive summary is not available.")
+                        tab_index += 1
+                    
+                    # Key Performance Insights Tab
+                    if "Key Performance Insights" in subtabs:
+                        with insight_tabs[tab_index]:
+                            insights_data = st.session_state.get("insights", {})
+                            
+                            # Create expanders for each comparison type
+                            insights_found = False
+                            
+                            if "month_vs_prior" in insights_data and insights_data["month_vs_prior"]:
+                                with st.expander("Month vs Prior Month Insights", expanded=True):
+                                    st.markdown(insights_data["month_vs_prior"])
+                                insights_found = True
+                            
+                            if "actual_vs_budget" in insights_data and insights_data["actual_vs_budget"]:
+                                with st.expander("Actual vs Budget Insights", expanded=True):
+                                    st.markdown(insights_data["actual_vs_budget"])
+                                insights_found = True
+                            
+                            if "year_vs_year" in insights_data and insights_data["year_vs_year"]:
+                                with st.expander("Year vs Year Insights", expanded=True):
+                                    st.markdown(insights_data["year_vs_year"])
+                                insights_found = True
+                                
+                            if not insights_found:
+                                st.info("No detailed insights are available for the comparisons.")
+                        tab_index += 1
+                    
+                    # Recommendations Tab
+                    if "Recommendations" in subtabs:
+                        with insight_tabs[tab_index]:
+                            if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
+                                recommendations = narrative_data["recommendations"]
+                                if isinstance(recommendations, list) and recommendations:
+                                    for i, rec in enumerate(recommendations):
+                                        st.markdown(f"**Recommendation {i+1}:** {rec}")
+                                elif recommendations and isinstance(recommendations, str):
+                                    st.markdown(recommendations)
+                                else:
+                                    st.info("Recommendations data exists but is empty or in an unexpected format.")
+                            elif isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
+                                # Try to extract recommendations section from the text
+                                sections = narrative_data.split("\n\n")
+                                recs_found = False
+                                
+                                for section in sections:
+                                    if "recommend" in section.lower():
+                                        st.markdown(section)
+                                        recs_found = True
+                                        break
+                                
+                                if not recs_found:
+                                    # Look for recommendations in the entire text
+                                    recommendations_pattern = r"(?i).*recommend.*"
+                                    import re
+                                    recommendation_lines = []
+                                    
+                                    for line in narrative_data.split('\n'):
+                                        if re.match(recommendations_pattern, line):
+                                            recommendation_lines.append(line)
+                                    
+                                    if recommendation_lines:
+                                        for line in recommendation_lines:
+                                            st.markdown(f"- {line}")
+                                    else:
+                                        st.info("Could not identify specific recommendations in the narrative.")
+                            else:
+                                st.info("No recommendations are available.")
+                else:
+                    # If only one type of content, display it directly without tabs
+                    if has_narrative:
+                        # --- Direct display of narrative with robust handling ---
+                        if isinstance(narrative_data, dict):
+                            # Try different potential keys for narrative content
+                            possible_keys = ["narrative", "detailed_story", "full_narrative", "story", "narrative_text", "text"]
+                            content_found = False
+                            
+                            for key in possible_keys:
+                                if key in narrative_data and narrative_data[key]:
+                                    content = narrative_data[key]
+                                    if content and content != "None" and isinstance(content, str):
+                                        st.subheader("Financial Narrative")
+                                        st.markdown(content)
+                                        logger.info(f"Successfully displayed narrative content from key: {key}")
+                                        content_found = True
+                                        break
+                            
+                            if not content_found:
+                                # If no specific narrative key found but has other content
+                                all_content = []
+                                for key, value in narrative_data.items():
+                                    if isinstance(value, str) and value and value != "None":
+                                        all_content.append(f"### {key.replace('_', ' ').title()}\n\n{value}")
+                                
+                                if all_content:
+                                    st.subheader("Financial Narrative")
+                                    st.markdown("\n\n".join(all_content))
+                                else:
+                                    st.info("Narrative data structure exists but doesn't contain usable text content.")
+                        
+                        elif isinstance(narrative_data, str):
+                            # Display string narrative directly
+                            if narrative_data and narrative_data != "None":
+                                st.subheader("Financial Narrative")
+                                st.markdown(narrative_data)
+                            else:
+                                st.info("Narrative content exists but appears to be empty.")
+                        else:
+                            st.info(f"Narrative content exists but is in an unexpected format (type: {type(narrative_data)}).")
+                    
+                    elif has_insights:
+                        # Display insights without tabs
+                        insights_data = st.session_state.get("insights", {})
+                        if "summary" in insights_data and insights_data["summary"]:
+                            st.subheader("Executive Summary")
+                            st.markdown(insights_data["summary"])
+                        
+                        # Display any specific insights
+                        for key in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
+                            if key in insights_data and insights_data[key]:
+                                st.subheader(f"{key.replace('_', ' ').title()} Insights")
+                                st.markdown(insights_data[key])
             else:
-                st.warning("No financial narrative available.")
+                st.warning("No financial narrative or insights are available. Please process your documents to generate analysis.")
+                logger.warning("No narrative or insights data found in session state. has_narrative: {has_narrative}, has_insights: {has_insights}")
+                
+            # Add a download PDF button in the narrative tab
+            if "comparison_results" in st.session_state and report_template is not None:
+                try:
+                    st.markdown("---")
+                    st.subheader("Export Report")
+                    with st.spinner("Preparing PDF report..."):
+                        # Create a simplified context for the PDF that doesn't depend on display_comparison_tab variables
+                        current_prop_name = st.session_state.property_name if st.session_state.property_name else "Property Analysis"
+                        comparison_results = st.session_state.comparison_results
+                        
+                        current_data = comparison_results.get("current", {})
+                        
+                        # Create simplified context for PDF generation
+                        context = {
+                            "property_name": current_prop_name,
+                            "datetime": datetime,
+                            "performance_data": {
+                                "egi": current_data.get("egi", 0),
+                                "opex": current_data.get("opex", 0),
+                                "noi": current_data.get("noi", 0),
+                                "gpr": current_data.get("gpr", 0),
+                                "vacancy_loss": current_data.get("vacancy_loss", 0),
+                                "other_income": current_data.get("other_income", 0),
+                                "executive_summary": st.session_state.get("insights", {}).get("summary", ""),
+                                "financial_narrative": st.session_state.get("generated_narrative") or st.session_state.get("edited_narrative"),
+                            },
+                            "comparison_title": "Analysis", 
+                            "comparison_results": comparison_results
+                        }
+                        
+                        # Render the template
+                        html_content = report_template.render(**context)
+                        
+                        # Generate the PDF
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
+                            tmp.write(html_content.encode('utf-8'))
+                            tmp_path = tmp.name
+                        
+                        pdf_bytes = HTML(filename=tmp_path).write_pdf()
+                        
+                        # Offer download
+                        pdf_filename = f"{current_prop_name.replace(' ', '_')}_NOI_Analysis_{datetime.now().strftime('%Y%m%d')}.pdf"
+                        st.download_button(
+                            label="Download Full PDF Report",
+                            data=pdf_bytes,
+                            file_name=pdf_filename,
+                            mime="application/pdf"
+                        )
+                        
+                except Exception as e:
+                    logger.error(f"Error generating PDF in narrative tab: {str(e)}", exc_info=True)
+                    st.error(f"An error occurred while preparing the PDF: {str(e)}")
         
         with tabs[4]:
             # Add NOI Coach tab
