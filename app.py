@@ -2276,62 +2276,7 @@ def main():
                 logger.warning("No narrative or insights data found in session state. has_narrative: {has_narrative}, has_insights: {has_insights}")
                 
             # Note: PDF button has been moved to each comparison tab, so we don't need it here anymore
-            # The commented code below was previously showing a PDF button in the Financial Narrative tab
-            """
-            # Add a download PDF button in the narrative tab
-            if "comparison_results" in st.session_state and report_template is not None:
-                try:
-                    st.markdown("---")
-                    st.subheader("Export Report")
-                    with st.spinner("Preparing PDF report..."):
-                        # Create a simplified context for the PDF that doesn't depend on display_comparison_tab variables
-                        current_prop_name = st.session_state.property_name if st.session_state.property_name else "Property Analysis"
-                        comparison_results = st.session_state.comparison_results
-                        
-                        current_data = comparison_results.get("current", {})
-                        
-                        # Create simplified context for PDF generation
-                        context = {
-                            "property_name": current_prop_name,
-                            "datetime": datetime,
-                            "performance_data": {
-                                "egi": current_data.get("egi", 0),
-                                "opex": current_data.get("opex", 0),
-                                "noi": current_data.get("noi", 0),
-                                "gpr": current_data.get("gpr", 0),
-                                "vacancy_loss": current_data.get("vacancy_loss", 0),
-                                "other_income": current_data.get("other_income", 0),
-                                "executive_summary": st.session_state.get("insights", {}).get("summary", ""),
-                                "financial_narrative": st.session_state.get("generated_narrative") or st.session_state.get("edited_narrative"),
-                            },
-                            "comparison_title": "Analysis", 
-                            "comparison_results": comparison_results
-                        }
-                        
-                        # Render the template
-                        html_content = report_template.render(**context)
-                        
-                        # Generate the PDF
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
-                            tmp.write(html_content.encode('utf-8'))
-                            tmp_path = tmp.name
-                        
-                        pdf_bytes = HTML(filename=tmp_path).write_pdf()
-                        
-                        # Offer download
-                        pdf_filename = f"{current_prop_name.replace(' ', '_')}_NOI_Analysis_{datetime.now().strftime('%Y%m%d')}.pdf"
-                        st.download_button(
-                            label="Download Full PDF Report",
-                            data=pdf_bytes,
-                            file_name=pdf_filename,
-                            mime="application/pdf"
-                        )
-                        
-                except Exception as e:
-                    logger.error(f"Error generating PDF in narrative tab: {str(e)}", exc_info=True)
-                    st.error(f"An error occurred while preparing the PDF: {str(e)}")
-            """
-        
+            
         with tabs[4]:
             # Add NOI Coach tab
             display_noi_coach()
