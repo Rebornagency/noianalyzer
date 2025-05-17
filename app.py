@@ -36,6 +36,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger('noi_analyzer')
 
+# Helper function to inject custom CSS
+def inject_custom_css():
+    """Inject custom CSS to ensure font consistency across the application"""
+    st.markdown("""
+    <style>
+    /* Force Inter font on all elements */
+    body, .stApp, .stMarkdown, .stText, .stTextInput, .stTextArea, 
+    .stSelectbox, .stMultiselect, .stDateInput, .stTimeInput, .stNumberInput,
+    .stButton > button, .stDataFrame, .stTable, .stExpander, .stTabs {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+    }
+    
+    /* Ensure markdown content uses Inter */
+    .stMarkdown p, .stMarkdown li, .stMarkdown div {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+    }
+    
+    /* Remove top margin from main container */
+    .main .block-container {
+        padding-top: 1rem !important;
+        max-width: 1200px;
+    }
+    
+    /* Enhanced section titles */
+    .reborn-section-title {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+        font-size: 1.5rem !important;
+        font-weight: 600 !important;
+        color: var(--reborn-accent-blue) !important;
+        margin-top: 1.5rem !important;
+        margin-bottom: 1rem !important;
+        padding: 0.5rem 0.75rem !important;
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border-radius: 6px !important;
+        border-left: 4px solid var(--reborn-accent-blue) !important;
+        line-height: 1.4 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # Helper function to summarize data structures for logging
 def summarize_data_for_log(data_dict, max_items=3):
     """Summarize a data structure for more concise logging"""
@@ -57,14 +97,24 @@ FALLBACK_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <title>NOI Analysis Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1, h2 { color: #333; }
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; 
+            margin: 20px; 
+            line-height: 1.6;
+        }
+        h1, h2 { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            color: #333; 
+            font-weight: 600;
+        }
         table { border-collapse: collapse; width: 100%; margin: 15px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-family: 'Inter', sans-serif; }
         th { background-color: #f2f2f2; }
         .positive-change { color: green; }
         .negative-change { color: red; }
+        p { font-family: 'Inter', sans-serif; }
     </style>
 </head>
 <body>
@@ -1353,7 +1403,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
             # --- Consolidated Insights, Executive Summary, and Recommendations Section ---
             st.markdown("---")
-            st.header("Analysis and Recommendations")
+            st.markdown("""
+                <div class="reborn-section-title">Analysis and Recommendations</div>
+            """, unsafe_allow_html=True)
             
             insights_data = st.session_state.get("insights")
             narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative")
@@ -1361,7 +1413,12 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # Display Executive Summary (if available)
             if insights_data and isinstance(insights_data, dict) and insights_data.get("summary"):
                 with st.expander("Executive Summary", expanded=True):
-                    st.markdown(insights_data.get("summary", ""))
+                    st.markdown("""
+                        <div class="reborn-section-title executive-summary">Executive Summary</div>
+                    """, unsafe_allow_html=True)
+                    st.markdown(f"""
+                        <div class="reborn-content">{insights_data.get("summary", "")}</div>
+                    """, unsafe_allow_html=True)
             
             # Display All Key Insights (from all comparison types)
             if insights_data and isinstance(insights_data, dict):
@@ -1369,22 +1426,32 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 
                 insights_expander = st.expander("Key Performance Insights", expanded=True)
                 with insights_expander:
+                    st.markdown("""
+                        <div class="reborn-section-title insights">Key Performance Insights</div>
+                    """, unsafe_allow_html=True)
+                    
                     # Month vs Prior insights
                     if "month_vs_prior" in insights_data and insights_data["month_vs_prior"]:
-                        st.subheader("Month vs Prior Month")
-                        st.markdown(insights_data["month_vs_prior"])
+                        st.markdown("""<h4 style="color: #64B5F6; font-family: var(--reborn-font-heading); margin-top: 1rem;">Month vs Prior Month</h4>""", unsafe_allow_html=True)
+                        st.markdown(f"""
+                            <div class="reborn-content">{insights_data["month_vs_prior"]}</div>
+                        """, unsafe_allow_html=True)
                         all_insights_found = True
                     
                     # Budget insights
                     if "actual_vs_budget" in insights_data and insights_data["actual_vs_budget"]:
-                        st.subheader("Actual vs Budget")
-                        st.markdown(insights_data["actual_vs_budget"])
+                        st.markdown("""<h4 style="color: #64B5F6; font-family: var(--reborn-font-heading); margin-top: 1rem;">Actual vs Budget</h4>""", unsafe_allow_html=True)
+                        st.markdown(f"""
+                            <div class="reborn-content">{insights_data["actual_vs_budget"]}</div>
+                        """, unsafe_allow_html=True)
                         all_insights_found = True
                     
                     # Year vs Year insights
                     if "year_vs_year" in insights_data and insights_data["year_vs_year"]:
-                        st.subheader("Year vs Prior Year")
-                        st.markdown(insights_data["year_vs_year"])
+                        st.markdown("""<h4 style="color: #64B5F6; font-family: var(--reborn-font-heading); margin-top: 1rem;">Year vs Prior Year</h4>""", unsafe_allow_html=True)
+                        st.markdown(f"""
+                            <div class="reborn-content">{insights_data["year_vs_year"]}</div>
+                        """, unsafe_allow_html=True)
                         all_insights_found = True
                     
                     if not all_insights_found:
@@ -1394,14 +1461,25 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             recommendations_found = False
             recommendations_expander = st.expander("Recommendations", expanded=True)
             with recommendations_expander:
+                st.markdown("""
+                    <div class="reborn-section-title recommendations">Recommendations</div>
+                """, unsafe_allow_html=True)
+                
                 if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
                     recommendations = narrative_data["recommendations"]
                     if isinstance(recommendations, list) and recommendations:
+                        recommendations_html = ""
                         for i, rec in enumerate(recommendations):
-                            st.markdown(f"**Recommendation {i+1}:** {rec}")
+                            recommendations_html += f"<p><strong>Recommendation {i+1}:</strong> {rec}</p>"
+                        
+                        st.markdown(f"""
+                            <div class="reborn-content">{recommendations_html}</div>
+                        """, unsafe_allow_html=True)
                         recommendations_found = True
                     elif recommendations and isinstance(recommendations, str):
-                        st.markdown(recommendations)
+                        st.markdown(f"""
+                            <div class="reborn-content">{recommendations}</div>
+                        """, unsafe_allow_html=True)
                         recommendations_found = True
                 
                 elif isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
@@ -1409,7 +1487,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     sections = narrative_data.split("\n\n")
                     for section in sections:
                         if "recommend" in section.lower():
-                            st.markdown(section)
+                            st.markdown(f"""
+                                <div class="reborn-content">{section}</div>
+                            """, unsafe_allow_html=True)
                             recommendations_found = True
                             break
                     
@@ -1424,8 +1504,13 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                 recommendation_lines.append(line)
                         
                         if recommendation_lines:
+                            recommendations_html = ""
                             for line in recommendation_lines:
-                                st.markdown(f"- {line}")
+                                recommendations_html += f"<p>• {line}</p>"
+                            
+                            st.markdown(f"""
+                                <div class="reborn-content">{recommendations_html}</div>
+                            """, unsafe_allow_html=True)
                             recommendations_found = True
                 
                 if not recommendations_found:
@@ -1435,6 +1520,10 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             if narrative_data and (isinstance(narrative_data, str) or isinstance(narrative_data, dict)):
                 narrative_expander = st.expander("Full Financial Narrative", expanded=False)
                 with narrative_expander:
+                    st.markdown("""
+                        <div class="reborn-section-title narrative">Full Financial Narrative</div>
+                    """, unsafe_allow_html=True)
+                    
                     if isinstance(narrative_data, dict):
                         # Try different potential keys for narrative content
                         possible_keys = ["narrative", "detailed_story", "full_narrative", "story", "narrative_text", "text"]
@@ -1444,28 +1533,41 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             if key in narrative_data and narrative_data[key]:
                                 content = narrative_data[key]
                                 if content and content != "None" and isinstance(content, str):
-                                    st.markdown(content)
+                                    st.markdown("""
+                                        <div class="reborn-section-title narrative">Financial Narrative</div>
+                                    """, unsafe_allow_html=True)
+                                    st.markdown(f"""
+                                        <div class="reborn-content">{content}</div>
+                                    """, unsafe_allow_html=True)
+                                    logger.info(f"Successfully displayed narrative content from key: {key}")
                                     content_found = True
                                     break
                         
                         if not content_found:
                             # Concatenate all string values from the dictionary
-                            combined_text = []
+                            combined_text = ""
                             for key, value in narrative_data.items():
                                 if isinstance(value, str) and value and value != "None" and key != "recommendations":
-                                    combined_text.append(f"### {key.replace('_', ' ').title()}\n\n{value}")
+                                    combined_text += f"<h4>{key.replace('_', ' ').title()}</h4><p>{value}</p>"
                             
                             if combined_text:
-                                st.markdown("\n\n".join(combined_text))
+                                st.markdown(f"""
+                                    <div class="reborn-content">{combined_text}</div>
+                                """, unsafe_allow_html=True)
                             else:
                                 st.info("No additional narrative content available.")
                     
                     elif isinstance(narrative_data, str):
                         # Display string narrative directly
                         if narrative_data and narrative_data != "None":
-                            st.markdown(narrative_data)
+                            st.markdown("""
+                                <div class="reborn-section-title narrative">Financial Narrative</div>
+                            """, unsafe_allow_html=True)
+                            st.markdown(f"""
+                                <div class="reborn-content">{narrative_data}</div>
+                            """, unsafe_allow_html=True)
                         else:
-                            st.info("Narrative content is empty.")
+                            st.info("Narrative content exists but appears to be empty.")
             
             st.markdown("---")
             
@@ -1858,7 +1960,10 @@ def main():
     Main function for the NOI Analyzer Enhanced application.
     Sets up the UI and coordinates all functionality.
     """
-    # Load custom CSS first
+    # Inject custom CSS to ensure font consistency
+    inject_custom_css()
+    
+    # Load custom CSS
     load_css()
     
     # Display logo at the very top of the app
@@ -2125,7 +2230,12 @@ def main():
                                         if key in narrative_data and narrative_data[key]:
                                             content = narrative_data[key]
                                             if content and content != "None" and isinstance(content, str):
-                                                st.markdown(content)
+                                                st.markdown("""
+                                                    <div class="reborn-section-title narrative">Financial Narrative</div>
+                                                """, unsafe_allow_html=True)
+                                                st.markdown(f"""
+                                                    <div class="reborn-content">{content}</div>
+                                                """, unsafe_allow_html=True)
                                                 logger.info(f"Successfully displayed narrative content from key: {key}")
                                                 content_found = True
                                                 break
@@ -2152,7 +2262,7 @@ def main():
                                         st.markdown(narrative_data)
                                         logger.info("Successfully displayed string narrative content")
                                     else:
-                                        st.info("Narrative content appears to be empty or 'None'.")
+                                        st.info("Narrative content exists but appears to be empty.")
                                         logger.warning(f"Empty string narrative: '{narrative_data}'")
                                 
                                 else:
@@ -2285,8 +2395,12 @@ def main():
                                         all_content.append(f"### {key.replace('_', ' ').title()}\n\n{value}")
                                 
                                 if all_content:
-                                    st.subheader("Financial Narrative")
-                                    st.markdown("\n\n".join(all_content))
+                                    st.markdown("""
+                                        <div class="reborn-section-title narrative">Financial Narrative</div>
+                                    """, unsafe_allow_html=True)
+                                    st.markdown(f"""
+                                        <div class="reborn-content">{"<br>".join(all_content)}</div>
+                                    """, unsafe_allow_html=True)
                                 else:
                                     st.info("Narrative data structure exists but doesn't contain usable text content.")
                         
@@ -2304,14 +2418,22 @@ def main():
                         # Display insights without tabs
                         insights_data = st.session_state.get("insights", {})
                         if "summary" in insights_data and insights_data["summary"]:
-                            st.subheader("Executive Summary")
-                            st.markdown(insights_data["summary"])
+                            st.markdown("""
+                                <div class="reborn-section-title executive-summary">Executive Summary</div>
+                            """, unsafe_allow_html=True)
+                            st.markdown(f"""
+                                <div class="reborn-content">{insights_data["summary"]}</div>
+                            """, unsafe_allow_html=True)
                         
                         # Display any specific insights
                         for key in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
                             if key in insights_data and insights_data[key]:
-                                st.subheader(f"{key.replace('_', ' ').title()} Insights")
-                                st.markdown(insights_data[key])
+                                st.markdown(f"""
+                                    <div class="reborn-section-title insights">{key.replace('_', ' ').title()} Insights</div>
+                                """, unsafe_allow_html=True)
+                                st.markdown(f"""
+                                    <div class="reborn-content">{insights_data[key]}</div>
+                                """, unsafe_allow_html=True)
             else:
                 st.warning("No financial narrative or insights are available. Please process your documents to generate analysis.")
                 logger.warning("No narrative or insights data found in session state. has_narrative: {has_narrative}, has_insights: {has_insights}")
