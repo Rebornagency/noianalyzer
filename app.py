@@ -146,7 +146,7 @@ def display_logo():
         
         # Direct embedding of the logo with proper sizing, alignment, and subtle enhancement
         logo_html = f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 25px; margin-top: 10px; padding: 5px;">
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px; margin-top: 0px; padding: 5px;">
             <img 
                 src="data:image/png;base64,{logo_base64}" 
                 width="180px" 
@@ -221,8 +221,24 @@ def load_css():
         css_path = os.path.join(os.path.dirname(__file__), "static/css/reborn_theme.css")
         if os.path.exists(css_path):
             with open(css_path) as f:
-                st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-                logger.info(f"Successfully loaded CSS from {css_path}")
+                css_content = f.read()
+                
+                # Add CSS to reduce top padding
+                css_content += """
+                /* Reduce top padding */
+                .block-container {
+                    padding-top: 1rem !important;
+                }
+                
+                /* Ensure no extra padding in main content area */
+                .main .block-container {
+                    padding-top: 0.5rem !important;
+                    margin-top: 0 !important;
+                }
+                """
+                
+                st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
+                logger.info(f"Successfully loaded CSS from {css_path} with additional padding reduction")
         else:
             logger.warning(f"CSS file not found at path: {css_path}")
             # Apply fallback comprehensive styling
@@ -232,6 +248,17 @@ def load_css():
             .stApp {
                 background-color: #0A0F1E;
                 color: #F0F0F0;
+            }
+            
+            /* Reduce top padding */
+            .block-container {
+                padding-top: 1rem !important;
+            }
+            
+            /* Ensure no extra padding in main content area */
+            .main .block-container {
+                padding-top: 0.5rem !important;
+                margin-top: 0 !important;
             }
             
             /* Headers */
@@ -322,6 +349,17 @@ def load_css():
         # Apply minimal fallback styling
         st.markdown("""
         <style>
+        /* Reduce top padding */
+        .block-container {
+            padding-top: 1rem !important;
+        }
+        
+        /* Ensure no extra padding in main content area */
+        .main .block-container {
+            padding-top: 0.5rem !important;
+            margin-top: 0 !important;
+        }
+        
         h1, h2, h3, h4, h5 {color: #4DB6AC !important;}
         .section-header {color: #4DB6AC; font-size: 1.5rem; margin-top: 2rem;}
         .positive-change {color: #22C55E !important;}
@@ -1820,12 +1858,15 @@ def main():
     Main function for the NOI Analyzer Enhanced application.
     Sets up the UI and coordinates all functionality.
     """
+    # Load custom CSS first
+    load_css()
+    
+    # Display logo at the very top of the app
+    display_logo()
+    
     # Log session state at the beginning of a run for debugging narrative
     logger.info(f"APP.PY (main start): st.session_state.generated_narrative is: {st.session_state.get('generated_narrative')}")
     logger.info(f"APP.PY (main start): st.session_state.edited_narrative is: {st.session_state.get('edited_narrative')}")
-
-    # Display app header and logo
-    display_logo()
     
     # Sidebar configuration
     with st.sidebar:
