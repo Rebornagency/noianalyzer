@@ -2037,6 +2037,13 @@ def main():
                         if "Recommendations" not in subtabs:
                             subtabs.append("Recommendations")
                 
+                # Also check for recommendations in insights data
+                if has_insights:
+                    insights_data = st.session_state.get("insights", {})
+                    if "recommendations" in insights_data and insights_data["recommendations"]:
+                        if "Recommendations" not in subtabs:
+                            subtabs.append("Recommendations")
+                
                 # Display content in subtabs if we have enough for multiple tabs
                 if len(subtabs) > 1:
                     insight_tabs = st.tabs(subtabs)
@@ -2139,42 +2146,55 @@ def main():
                     # Recommendations Tab
                     if "Recommendations" in subtabs:
                         with insight_tabs[tab_index]:
-                            if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
-                                recommendations = narrative_data["recommendations"]
-                                if isinstance(recommendations, list) and recommendations:
-                                    for i, rec in enumerate(recommendations):
-                                        st.markdown(f"**Recommendation {i+1}:** {rec}")
-                                elif recommendations and isinstance(recommendations, str):
-                                    st.markdown(recommendations)
-                                else:
-                                    st.info("Recommendations data exists but is empty or in an unexpected format.")
-                            elif isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
-                                # Try to extract recommendations section from the text
-                                sections = narrative_data.split("\n\n")
-                                recs_found = False
+                            recommendations_found = False
+                            
+                            # First check insights for recommendations
+                            if "insights" in st.session_state and isinstance(st.session_state.insights, dict):
+                                insights_data = st.session_state.insights
+                                if "recommendations" in insights_data and insights_data["recommendations"]:
+                                    st.markdown(insights_data["recommendations"])
+                                    recommendations_found = True
+                            
+                            # If not found in insights, check narrative data as before
+                            if not recommendations_found:
+                                if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
+                                    recommendations = narrative_data["recommendations"]
+                                    if isinstance(recommendations, list) and recommendations:
+                                        for i, rec in enumerate(recommendations):
+                                            st.markdown(f"**Recommendation {i+1}:** {rec}")
+                                        recommendations_found = True
+                                    elif recommendations and isinstance(recommendations, str):
+                                        st.markdown(recommendations)
+                                        recommendations_found = True
                                 
-                                for section in sections:
-                                    if "recommend" in section.lower():
-                                        st.markdown(section)
-                                        recs_found = True
-                                        break
-                                
-                                if not recs_found:
-                                    # Look for recommendations in the entire text
-                                    recommendations_pattern = r"(?i).*recommend.*"
-                                    import re
-                                    recommendation_lines = []
+                                # Try to extract from narrative text if still not found
+                                if not recommendations_found and isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
+                                    # Existing code for extracting from text...
+                                    sections = narrative_data.split("\n\n")
+                                    recs_found = False
                                     
-                                    for line in narrative_data.split('\n'):
-                                        if re.match(recommendations_pattern, line):
-                                            recommendation_lines.append(line)
+                                    for section in sections:
+                                        if "recommend" in section.lower():
+                                            st.markdown(section)
+                                            recs_found = True
+                                            break
                                     
-                                    if recommendation_lines:
-                                        for line in recommendation_lines:
-                                            st.markdown(f"- {line}")
-                                    else:
-                                        st.info("Could not identify specific recommendations in the narrative.")
-                            else:
+                                    if not recs_found:
+                                        # Look for recommendations in the entire text
+                                        recommendations_pattern = r"(?i).*recommend.*"
+                                        import re
+                                        recommendation_lines = []
+                                        
+                                        for line in narrative_data.split('\n'):
+                                            if re.match(recommendations_pattern, line):
+                                                recommendation_lines.append(line)
+                                        
+                                        if recommendation_lines:
+                                            for line in recommendation_lines:
+                                                st.markdown(f"- {line}")
+                                            recommendations_found = True
+                            
+                            if not recommendations_found:
                                 st.info("No recommendations are available.")
                 else:
                     # If only one type of content, display it directly without tabs
@@ -2365,8 +2385,29 @@ def main():
                         debug_comparison_structure(st.session_state.comparison_results)
                     
                     insights = generate_insights_with_gpt(st.session_state.comparison_results)
-                    st.session_state.insights = insights
-                    logger.info(f"APP.PY: Insights generated. Keys: {list(insights.keys()) if isinstance(insights, dict) else 'Not a dict'}")
+                    # Create a properly structured insights dictionary that matches UI expectations
+                    structured_insights = {
+                        "summary": insights.get("summary", "")
+                    }
+
+                    # Map the performance insights to the comparison-specific keys
+                    if "performance" in insights and insights["performance"]:
+                        # Convert the performance array to a string for each comparison type
+                        performance_text = "\n\n".join([f"• {point}" for point in insights["performance"]])
+                        
+                        # Add the same insights to all comparison types for now
+                        structured_insights["month_vs_prior"] = performance_text
+                        structured_insights["actual_vs_budget"] = performance_text
+                        structured_insights["year_vs_year"] = performance_text
+
+                    # Add recommendations to the structured insights
+                    if "recommendations" in insights and insights["recommendations"]:
+                        recommendations_text = "\n\n".join([f"• {rec}" for rec in insights["recommendations"]])
+                        structured_insights["recommendations"] = recommendations_text
+
+                    # Store the properly structured insights in session state
+                    st.session_state.insights = structured_insights
+                    logger.info(f"Structured insights keys: {list(structured_insights.keys())}")
                     
                     narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
                     # Log the raw narrative content and type BEFORE assigning to session state
