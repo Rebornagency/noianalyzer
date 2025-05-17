@@ -1456,21 +1456,42 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # opex_breakdown_data, opex_breakdown_available, kpis, egi, opex, noi, gpr are from UI part
             current_prop_name = st.session_state.property_name if st.session_state.property_name else "N/A"
             
+            # Safely extract all required variables from current_values with defaults
+            # This prevents NameError exceptions if any variable is undefined
+            egi_value = current_values.get("egi", 0)
+            opex_value = current_values.get("opex", 0)
+            noi_value = current_values.get("noi", 0)
+            gpr_value = current_values.get("gpr", 0)
+            vacancy_loss_value = current_values.get("vacancy_loss", 0)
+            other_income_value = current_values.get("other_income", 0)
+            
+            # Ensure opex_breakdown_data and opex_breakdown_available are defined
+            if 'opex_breakdown_data' not in locals() or opex_breakdown_data is None:
+                opex_breakdown_data = []
+            
+            if 'opex_breakdown_available' not in locals() or opex_breakdown_available is None:
+                opex_breakdown_available = False
+            
+            # Ensure kpis is defined
+            if 'kpis' not in locals() or kpis is None:
+                kpis = {}
+            
+            # Create the context dictionary with safely extracted values
             context = {
                 "property_name": current_prop_name,
                 "datetime": datetime,
                 "performance_data": {
-                    "egi": egi,
-                    "opex": opex,
-                    "noi": noi,
-                    "gpr": gpr,
-                    "vacancy_loss": current_values.get("vacancy_loss", 0),
-                    "other_income": current_values.get("other_income", 0),
-                    "opex_breakdown_data": opex_breakdown_data, # Make sure this is defined from UI section
-                    "opex_breakdown_available": opex_breakdown_available, # Make sure this is defined
-                    "kpis": kpis, # Make sure this is defined
+                    "egi": egi_value,
+                    "opex": opex_value,
+                    "noi": noi_value,
+                    "gpr": gpr_value,
+                    "vacancy_loss": vacancy_loss_value,
+                    "other_income": other_income_value,
+                    "opex_breakdown_data": opex_breakdown_data,
+                    "opex_breakdown_available": opex_breakdown_available,
+                    "kpis": kpis,
                     "executive_summary": st.session_state.get("insights", {}).get("summary", ""),
-                    "financial_narrative": st.session_state.get("generated_narrative") or st.session_state.get("edited_narrative"),
+                    "financial_narrative": st.session_state.get("generated_narrative") or st.session_state.get("edited_narrative", ""),
                 },
                 "comparison_title": name_suffix, 
                 "comparison_results": tab_data 
@@ -1504,7 +1525,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             st.error(f"Error preparing PDF for export: The report template was not found.")
         except NameError as e_name:
             logger.error(f"PDF EXPORT: NameError occurred: {str(e_name)}", exc_info=True)
-            st.error(f"Error preparing PDF for export (NameError): {str(e_name)}. This is likely due to missing template initialization.")
+            st.error(f"Error preparing PDF for export (NameError): {str(e_name)}. This is likely due to missing variable definitions.")
         except Exception as e_pdf_gen:
             logger.error(f"Error in data preparation or PDF generation: {str(e_pdf_gen)}", exc_info=True)
             st.error(f"Error preparing PDF for export: {str(e_pdf_gen)}")
