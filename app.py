@@ -1401,181 +1401,84 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             st.plotly_chart(fig, use_container_width=True)
             logger.info(f"Successfully displayed chart for {name_suffix} comparison")
 
+            # --- Tab-specific PDF Export --- 
+            st.subheader(f"Export {name_suffix} Report")
+            try:
+                # Prepare context for tab-specific PDF
+                pdf_context = {
+                    "property_name": current_prop_name,
+                    "datetime": datetime,
+                    "performance_data": {
+                        # Include current values and specific comparison data for this tab
+                        "noi": current_values.get("noi", 0),
+                        "egi": current_values.get("egi", 0),
+                        "opex": current_values.get("opex", 0),
+                        "gpr": current_values.get("gpr", 0),
+                        # Add other relevant current values as needed
+                        
+                        # Specific comparison data for this tab
+                        f"{prior_key_suffix}_data": tab_data, # Pass the whole tab_data for this comparison
+                        
+                        # Include narrative and summary if desired for tab-specific reports
+                        "financial_narrative": st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative", ""),
+                        "executive_summary": st.session_state.get("insights", {}).get("summary", "")
+                        # Add more specific insights if needed for tab reports
+                    },
+                    "logo_base64": get_reborn_logo_base64(),
+                    # A flag to indicate this is a tab-specific report for template logic if needed
+                    "is_tab_specific_report": True,
+                    "tab_name": name_suffix 
+                }
+                
+                # Render the template (you might want a simplified template or logic within the main template for tab reports)
+                if report_template:
+                    html_content_tab = report_template.render(**pdf_context)
+                    
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp_tab:
+                        tmp_tab.write(html_content_tab.encode('utf-8'))
+                        tmp_tab_path = tmp_tab.name
+                    
+                    pdf_bytes_tab = HTML(filename=tmp_tab_path).write_pdf()
+                    
+                    pdf_filename_tab = f"{current_prop_name.replace(' ', '_')}_{name_suffix.replace(' ', '_')}_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    st.download_button(
+                        label=f"Download {name_suffix} PDF Report",
+                        data=pdf_bytes_tab,
+                        file_name=pdf_filename_tab,
+                        mime="application/pdf",
+                        key=f"download_pdf_{name_suffix.lower().replace(' ', '_')}"  # Unique key based on tab name
+                    )
+                else:
+                    st.warning("PDF template not loaded. Cannot generate tab-specific PDF.")
+
+            except Exception as e_pdf_tab:
+                logger.error(f"Error generating PDF for {name_suffix} tab: {e_pdf_tab}", exc_info=True)
+                st.error(f"Could not generate PDF for {name_suffix} report.")
+
             # --- Consolidated Insights, Executive Summary, and Recommendations Section ---
             st.markdown("---")
             st.markdown("""
-                <div class="reborn-section-title">Analysis and Recommendations</div>
+                <div class="reborn-section-title">Analysis and Recommendations (for {name_suffix})</div>
             """, unsafe_allow_html=True)
-            
+
             insights_data = st.session_state.get("insights")
-            narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative")
-            
-            # Display Executive Summary (if available)
-            if insights_data and isinstance(insights_data, dict) and insights_data.get("summary"):
-                with st.expander("Executive Summary", expanded=True):
-                    st.markdown("""
-                        <div class="reborn-section-title executive-summary">Executive Summary</div>
-                    """, unsafe_allow_html=True)
-                    st.markdown(f"""
-                        <div class="reborn-content">{insights_data.get("summary", "")}</div>
-                    """, unsafe_allow_html=True)
-            
-            # Display All Key Insights (from all comparison types)
+            # narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative") # narrative_data is not directly used here for insights
+
+            # Use the unified insights display function
             if insights_data and isinstance(insights_data, dict):
-                all_insights_found = False
-                
-                insights_expander = st.expander("Key Performance Insights", expanded=True)
-                with insights_expander:
-                    st.markdown("""
-                        <div class="reborn-section-title insights">Key Performance Insights</div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Month vs Prior insights
-                    if "month_vs_prior" in insights_data and insights_data["month_vs_prior"]:
-                        st.markdown("""<h4 style="color: #64B5F6; font-family: var(--reborn-font-heading); margin-top: 1rem;">Month vs Prior Month</h4>""", unsafe_allow_html=True)
-                        st.markdown(f"""
-                            <div class="reborn-content">{insights_data["month_vs_prior"]}</div>
-                        """, unsafe_allow_html=True)
-                        all_insights_found = True
-                    
-                    # Budget insights
-                    if "actual_vs_budget" in insights_data and insights_data["actual_vs_budget"]:
-                        st.markdown("""<h4 style="color: #64B5F6; font-family: var(--reborn-font-heading); margin-top: 1rem;">Actual vs Budget</h4>""", unsafe_allow_html=True)
-                        st.markdown(f"""
-                            <div class="reborn-content">{insights_data["actual_vs_budget"]}</div>
-                        """, unsafe_allow_html=True)
-                        all_insights_found = True
-                    
-                    # Year vs Year insights
-                    if "year_vs_year" in insights_data and insights_data["year_vs_year"]:
-                        st.markdown("""<h4 style="color: #64B5F6; font-family: var(--reborn-font-heading); margin-top: 1rem;">Year vs Prior Year</h4>""", unsafe_allow_html=True)
-                        st.markdown(f"""
-                            <div class="reborn-content">{insights_data["year_vs_year"]}</div>
-                        """, unsafe_allow_html=True)
-                        all_insights_found = True
-                    
-                    if not all_insights_found:
-                        st.info("No detailed insights are available.")
-            
-            # Display Recommendations (extracted from narrative)
-            recommendations_found = False
-            recommendations_expander = st.expander("Recommendations", expanded=True)
-            with recommendations_expander:
-                st.markdown("""
-                    <div class="reborn-section-title recommendations">Recommendations</div>
-                """, unsafe_allow_html=True)
-                
-                if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
-                    recommendations = narrative_data["recommendations"]
-                    if isinstance(recommendations, list) and recommendations:
-                        recommendations_html = ""
-                        for i, rec in enumerate(recommendations):
-                            recommendations_html += f"<p><strong>Recommendation {i+1}:</strong> {rec}</p>"
-                        
-                        st.markdown(f"""
-                            <div class="reborn-content">{recommendations_html}</div>
-                        """, unsafe_allow_html=True)
-                        recommendations_found = True
-                    elif recommendations and isinstance(recommendations, str):
-                        st.markdown(f"""
-                            <div class="reborn-content">{recommendations}</div>
-                        """, unsafe_allow_html=True)
-                        recommendations_found = True
-                
-                elif isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
-                    # Try to extract recommendations section from the text
-                    sections = narrative_data.split("\n\n")
-                    for section in sections:
-                        if "recommend" in section.lower():
-                            st.markdown(f"""
-                                <div class="reborn-content">{section}</div>
-                            """, unsafe_allow_html=True)
-                            recommendations_found = True
-                            break
-                    
-                    if not recommendations_found:
-                        # Look for recommendations in the entire text
-                        import re
-                        recommendations_pattern = r"(?i).*recommend.*"
-                        recommendation_lines = []
-                        
-                        for line in narrative_data.split('\n'):
-                            if re.match(recommendations_pattern, line):
-                                recommendation_lines.append(line)
-                        
-                        if recommendation_lines:
-                            recommendations_html = ""
-                            for line in recommendation_lines:
-                                recommendations_html += f"<p>• {line}</p>"
-                            
-                            st.markdown(f"""
-                                <div class="reborn-content">{recommendations_html}</div>
-                            """, unsafe_allow_html=True)
-                            recommendations_found = True
-                
-                if not recommendations_found:
-                    st.info("No specific recommendations are available.")
-            
-            # Display Financial Narrative (if needed and not already covered by recommendations)
-            if narrative_data and (isinstance(narrative_data, str) or isinstance(narrative_data, dict)):
-                narrative_expander = st.expander("Full Financial Narrative", expanded=False)
-                with narrative_expander:
-                    st.markdown("""
-                        <div class="reborn-section-title narrative">Full Financial Narrative</div>
-                    """, unsafe_allow_html=True)
-                    
-                    if isinstance(narrative_data, dict):
-                        # Try different potential keys for narrative content
-                        possible_keys = ["narrative", "detailed_story", "full_narrative", "story", "narrative_text", "text"]
-                        content_found = False
-                        
-                        for key in possible_keys:
-                            if key in narrative_data and narrative_data[key]:
-                                content = narrative_data[key]
-                                if content and content != "None" and isinstance(content, str):
-                                    st.markdown("""
-                                        <div class="reborn-section-title narrative">Financial Narrative</div>
-                                    """, unsafe_allow_html=True)
-                                    st.markdown(f"""
-                                        <div class="reborn-content">{content}</div>
-                                    """, unsafe_allow_html=True)
-                                    logger.info(f"Successfully displayed narrative content from key: {key}")
-                                    content_found = True
-                                    break
-                        
-                        if not content_found:
-                            # Concatenate all string values from the dictionary
-                            combined_text = ""
-                            for key, value in narrative_data.items():
-                                if isinstance(value, str) and value and value != "None" and key != "recommendations":
-                                    combined_text += f"<h4>{key.replace('_', ' ').title()}</h4><p>{value}</p>"
-                            
-                            if combined_text:
-                                st.markdown(f"""
-                                    <div class="reborn-content">{combined_text}</div>
-                                """, unsafe_allow_html=True)
-                            else:
-                                st.info("No additional narrative content available.")
-                    
-                    elif isinstance(narrative_data, str):
-                        # Display string narrative directly
-                        if narrative_data and narrative_data != "None":
-                            st.markdown("""
-                                <div class="reborn-section-title narrative">Financial Narrative</div>
-                            """, unsafe_allow_html=True)
-                            st.markdown(f"""
-                                <div class="reborn-content">{narrative_data}</div>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.info("Narrative content exists but appears to be empty.")
-            
-            st.markdown("---")
-            
-            # --- End Consolidated Insights and Recommendations Section ---
+                # We might want to pass a filtered version of insights_data specific to this tab 
+                # or the full one if display_unified_insights handles context appropriately.
+                # For now, passing the full insights_data as per instruction.
+                display_unified_insights(insights_data)
+            else:
+                st.info(f"No overall insights data available to display for {name_suffix} context.")
+
+            # The old detailed breakdown of insights per comparison type within this tab is now handled by display_unified_insights.
+            # The recommendations and narrative sections (if they were part of the old structure here) are also covered 
+            # by display_unified_insights or by the main Financial Narrative tab.
 
         except Exception as e:
-            logger.error(f"Error creating visualization: {str(e)}")
-            st.error(f"Error creating visualization: {str(e)}")
+            logger.error(f"Error displaying comparison tab {name_suffix}: {str(e)}", exc_info=True)
         
         # PDF Generation Block - Moved to the bottom
         try:
@@ -2161,287 +2064,21 @@ def main():
                 st.warning("Not enough data for Prior Year comparison.")
                 logger.warning("APP.PY: 'year_vs_year' data is missing or empty in comparison_data_for_tabs.")
         
-        with tabs[3]:
-            # Enhanced financial narrative tab with better display of recommendations and insights
+        with tabs[3]: # Financial Narrative & Insights Tab
             st.header("Financial Narrative & Insights")
             
-            # Log the raw narrative and insights data to help debug display issues
-            logger.info(f"Financial Narrative Data - generated_narrative type: {type(st.session_state.get('generated_narrative'))}")
-            logger.info(f"Financial Narrative Data - edited_narrative type: {type(st.session_state.get('edited_narrative'))}")
-            if st.session_state.get('generated_narrative'):
-                logger.info(f"Financial Narrative Content (snippet): {str(st.session_state.get('generated_narrative'))[:100]}...")
+            # Display the narrative text and editor
+            display_narrative_in_tabs()
             
-            # Get narrative content with robust handling of different formats
-            narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative")
-            
-            # More robust checks for narrative data and insights
-            has_narrative = narrative_data is not None and narrative_data != "None" and narrative_data != ""
-            has_insights = "insights" in st.session_state and isinstance(st.session_state.get("insights"), dict) and st.session_state.get("insights")
-            
-            if has_narrative or has_insights:
-                # Create subtabs for different types of content
-                subtabs = []
-                
-                # Only add the Financial Narrative tab if we actually have content
-                if has_narrative:
-                    subtabs.append("Financial Narrative")
-                
-                if has_insights:
-                    insights_data = st.session_state.get("insights", {})
-                    if "summary" in insights_data and insights_data["summary"]:
-                        subtabs.append("Executive Summary")
-                    
-                    # Check for specific insights
-                    if "month_vs_prior" in insights_data or "actual_vs_budget" in insights_data or "year_vs_year" in insights_data:
-                        subtabs.append("Key Performance Insights")
-                
-                # Only add recommendations tab if we can find recommendations content
-                if has_narrative:
-                    if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
-                        subtabs.append("Recommendations")
-                    # Look for recommendations in string narrative
-                    elif isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
-                        if "Recommendations" not in subtabs:
-                            subtabs.append("Recommendations")
-                
-                # Also check for recommendations in insights data
-                if has_insights:
-                    insights_data = st.session_state.get("insights", {})
-                    if "recommendations" in insights_data and insights_data["recommendations"]:
-                        if "Recommendations" not in subtabs:
-                            subtabs.append("Recommendations")
-                
-                # Display content in subtabs if we have enough for multiple tabs
-                if len(subtabs) > 1:
-                    insight_tabs = st.tabs(subtabs)
-                    tab_index = 0
-                    
-                    # Financial Narrative Tab
-                    if "Financial Narrative" in subtabs:
-                        with insight_tabs[tab_index]:
-                            # --- START OF THE FIX for Financial Narrative content display ---
-                            if has_narrative:
-                                if isinstance(narrative_data, dict):
-                                    # Try various possible keys for narrative content in dictionary
-                                    possible_keys = ["narrative", "detailed_story", "full_narrative", "story", "narrative_text", "text"]
-                                    content_found = False
-                                    
-                                    for key in possible_keys:
-                                        if key in narrative_data and narrative_data[key]:
-                                            content = narrative_data[key]
-                                            if content and content != "None" and isinstance(content, str):
-                                                st.markdown("""
-                                                    <div class="reborn-section-title narrative">Financial Narrative</div>
-                                                """, unsafe_allow_html=True)
-                                                st.markdown(f"""
-                                                    <div class="reborn-content">{content}</div>
-                                                """, unsafe_allow_html=True)
-                                                logger.info(f"Successfully displayed narrative content from key: {key}")
-                                                content_found = True
-                                                break
-                                    
-                                    if not content_found:
-                                        # If no specific narrative key found, display the whole structure
-                                        logger.warning(f"No standard narrative content key found in dictionary: {list(narrative_data.keys())}")
-                                        
-                                        # Concatenate all string values from the dictionary
-                                        combined_text = []
-                                        for key, value in narrative_data.items():
-                                            if isinstance(value, str) and value and value != "None":
-                                                combined_text.append(f"### {key.replace('_', ' ').title()}\n\n{value}")
-                                        
-                                        if combined_text:
-                                            st.markdown("\n\n".join(combined_text))
-                                        else:
-                                            st.info("Narrative data is in dictionary format but doesn't contain usable text content.")
-                                            st.json(narrative_data)  # Show the structure for debugging
-                                
-                                elif isinstance(narrative_data, str):
-                                    # Handle string narrative
-                                    if narrative_data and narrative_data != "None":
-                                        st.markdown(narrative_data)
-                                        logger.info("Successfully displayed string narrative content")
-                                    else:
-                                        st.info("Narrative content exists but appears to be empty.")
-                                        logger.warning(f"Empty string narrative: '{narrative_data}'")
-                                
-                                else:
-                                    # Handle unexpected data type
-                                    st.info(f"Narrative content is in an unexpected format (type: {type(narrative_data)}).")
-                                    logger.warning(f"Unexpected narrative data type: {type(narrative_data)}")
-                                    if narrative_data is not None:
-                                        st.caption("Narrative Data Structure:")
-                                        st.json({"type": str(type(narrative_data)), "value": str(narrative_data)})
-                            else:
-                                st.info("No financial narrative is available.")
-                                logger.warning("Narrative data expected but not found.")
-                            # --- END OF THE FIX ---
-                        tab_index += 1
-                    
-                    # Executive Summary Tab
-                    if "Executive Summary" in subtabs:
-                        with insight_tabs[tab_index]:
-                            executive_summary = st.session_state.get("insights", {}).get("summary", "")
-                            if executive_summary and executive_summary != "None":
-                                st.markdown(executive_summary)
-                            else:
-                                st.info("Executive summary is not available.")
-                        tab_index += 1
-                    
-                    # Key Performance Insights Tab
-                    if "Key Performance Insights" in subtabs:
-                        with insight_tabs[tab_index]:
-                            insights_data = st.session_state.get("insights", {})
-                            
-                            # Create expanders for each comparison type
-                            insights_found = False
-                            
-                            if "month_vs_prior" in insights_data and insights_data["month_vs_prior"]:
-                                with st.expander("Month vs Prior Month Insights", expanded=True):
-                                    st.markdown(insights_data["month_vs_prior"])
-                                insights_found = True
-                            
-                            if "actual_vs_budget" in insights_data and insights_data["actual_vs_budget"]:
-                                with st.expander("Actual vs Budget Insights", expanded=True):
-                                    st.markdown(insights_data["actual_vs_budget"])
-                                insights_found = True
-                            
-                            if "year_vs_year" in insights_data and insights_data["year_vs_year"]:
-                                with st.expander("Year vs Year Insights", expanded=True):
-                                    st.markdown(insights_data["year_vs_year"])
-                                insights_found = True
-                                
-                            if not insights_found:
-                                st.info("No detailed insights are available for the comparisons.")
-                        tab_index += 1
-                    
-                    # Recommendations Tab
-                    if "Recommendations" in subtabs:
-                        with insight_tabs[tab_index]:
-                            recommendations_found = False
-                            
-                            # First check insights for recommendations
-                            if "insights" in st.session_state and isinstance(st.session_state.insights, dict):
-                                insights_data = st.session_state.insights
-                                if "recommendations" in insights_data and insights_data["recommendations"]:
-                                    st.markdown(insights_data["recommendations"])
-                                    recommendations_found = True
-                            
-                            # If not found in insights, check narrative data as before
-                            if not recommendations_found:
-                                if isinstance(narrative_data, dict) and "recommendations" in narrative_data:
-                                    recommendations = narrative_data["recommendations"]
-                                    if isinstance(recommendations, list) and recommendations:
-                                        for i, rec in enumerate(recommendations):
-                                            st.markdown(f"**Recommendation {i+1}:** {rec}")
-                                        recommendations_found = True
-                                    elif recommendations and isinstance(recommendations, str):
-                                        st.markdown(recommendations)
-                                        recommendations_found = True
-                                
-                                # Try to extract from narrative text if still not found
-                                if not recommendations_found and isinstance(narrative_data, str) and "recommend" in narrative_data.lower():
-                                    # Existing code for extracting from text...
-                                    sections = narrative_data.split("\n\n")
-                                    recs_found = False
-                                    
-                                    for section in sections:
-                                        if "recommend" in section.lower():
-                                            st.markdown(section)
-                                            recs_found = True
-                                            break
-                                    
-                                    if not recs_found:
-                                        # Look for recommendations in the entire text
-                                        recommendations_pattern = r"(?i).*recommend.*"
-                                        import re
-                                        recommendation_lines = []
-                                        
-                                        for line in narrative_data.split('\n'):
-                                            if re.match(recommendations_pattern, line):
-                                                recommendation_lines.append(line)
-                                        
-                                        if recommendation_lines:
-                                            for line in recommendation_lines:
-                                                st.markdown(f"- {line}")
-                                            recommendations_found = True
-                            
-                            if not recommendations_found:
-                                st.info("No recommendations are available.")
-                else:
-                    # If only one type of content, display it directly without tabs
-                    if has_narrative:
-                        # --- Direct display of narrative with robust handling ---
-                        if isinstance(narrative_data, dict):
-                            # Try different potential keys for narrative content
-                            possible_keys = ["narrative", "detailed_story", "full_narrative", "story", "narrative_text", "text"]
-                            content_found = False
-                            
-                            for key in possible_keys:
-                                if key in narrative_data and narrative_data[key]:
-                                    content = narrative_data[key]
-                                    if content and content != "None" and isinstance(content, str):
-                                        st.subheader("Financial Narrative")
-                                        st.markdown(content)
-                                        logger.info(f"Successfully displayed narrative content from key: {key}")
-                                        content_found = True
-                                        break
-                            
-                            if not content_found:
-                                # If no specific narrative key found but has other content
-                                all_content = []
-                                for key, value in narrative_data.items():
-                                    if isinstance(value, str) and value and value != "None":
-                                        all_content.append(f"### {key.replace('_', ' ').title()}\n\n{value}")
-                                
-                                if all_content:
-                                    st.markdown("""
-                                        <div class="reborn-section-title narrative">Financial Narrative</div>
-                                    """, unsafe_allow_html=True)
-                                    st.markdown(f"""
-                                        <div class="reborn-content">{"<br>".join(all_content)}</div>
-                                    """, unsafe_allow_html=True)
-                                else:
-                                    st.info("Narrative data structure exists but doesn't contain usable text content.")
-                        
-                        elif isinstance(narrative_data, str):
-                            # Display string narrative directly
-                            if narrative_data and narrative_data != "None":
-                                st.subheader("Financial Narrative")
-                                st.markdown(narrative_data)
-                            else:
-                                st.info("Narrative content exists but appears to be empty.")
-                        else:
-                            st.info(f"Narrative content exists but is in an unexpected format (type: {type(narrative_data)}).")
-                    
-                    elif has_insights:
-                        # Display insights without tabs
-                        insights_data = st.session_state.get("insights", {})
-                        if "summary" in insights_data and insights_data["summary"]:
-                            st.markdown("""
-                                <div class="reborn-section-title executive-summary">Executive Summary</div>
-                            """, unsafe_allow_html=True)
-                            st.markdown(f"""
-                                <div class="reborn-content">{insights_data["summary"]}</div>
-                            """, unsafe_allow_html=True)
-                        
-                        # Display any specific insights
-                        for key in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
-                            if key in insights_data and insights_data[key]:
-                                st.markdown(f"""
-                                    <div class="reborn-section-title insights">{key.replace('_', ' ').title()} Insights</div>
-                                """, unsafe_allow_html=True)
-                                st.markdown(f"""
-                                    <div class="reborn-content">{insights_data[key]}</div>
-                                """, unsafe_allow_html=True)
+            # Display the consolidated insights (summary, performance, recommendations)
+            if "insights" in st.session_state and st.session_state.insights:
+                display_unified_insights(st.session_state.insights)
             else:
-                st.warning("No financial narrative or insights are available. Please process your documents to generate analysis.")
-                logger.warning("No narrative or insights data found in session state. has_narrative: {has_narrative}, has_insights: {has_insights}")
-                
-            # Note: PDF button has been moved to each comparison tab, so we don't need it here anymore
-            
-        with tabs[4]:
-            # Add NOI Coach tab
+                logger.info("No insights data found in session state for Financial Narrative & Insights tab.")
+                st.info("Insights (including summary and recommendations) will be displayed here once generated.")
+
+        # Display NOI Coach section
+        with tabs[4]: # NOI Coach tab
             display_noi_coach()
     
     # Process documents when button is clicked
@@ -2565,7 +2202,226 @@ def main():
             st.session_state.processing_completed = False
             st.rerun() # Rerun to reflect the error state
 
+    # Add this code in the main UI section after displaying all tabs
+    # (after the st.tabs() section in the main function)
+
+    st.markdown("---")
+    st.subheader("Export Complete Analysis")
+
+    # Generate PDF button with a unique key
+    if st.button("Generate Complete PDF Report", key="global_pdf_export"):
+        with st.spinner("Generating comprehensive PDF report..."):
+            pdf_bytes = generate_comprehensive_pdf()
+            
+            if pdf_bytes:
+                # Create a unique filename
+                current_prop_name = st.session_state.property_name if hasattr(st.session_state, "property_name") else "Property"
+                pdf_filename = f"{current_prop_name.replace(' ', '_')}_Complete_NOI_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                
+                # Display download button with a unique key
+                st.download_button(
+                    label="Download Complete PDF Report",
+                    data=pdf_bytes,
+                    file_name=pdf_filename,
+                    mime="application/pdf",
+                    key="global_pdf_download"
+                )
+                st.success("PDF report generated successfully!")
+            else:
+                st.error("Failed to generate PDF report. Please check the logs for details.")
+
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
     main()
+
+# Add this function to app.py, outside any other function
+def generate_comprehensive_pdf():
+    """
+    Generate a comprehensive PDF report that includes all available data,
+    insights, and recommendations regardless of the active tab.
+    """
+    logger.info("PDF EXPORT: Generating comprehensive PDF with all available data")
+    
+    try:
+        # Use the globally defined report_template
+        if report_template is None:
+            logger.error("PDF EXPORT: Global report_template is None. PDF generation will fail.")
+            st.error("PDF generation is not available. Please check if the template file exists and is properly loaded.")
+            return None
+
+        # Get property name
+        current_prop_name = st.session_state.property_name if hasattr(st.session_state, "property_name") else "Property"
+        
+        # Get all comparison results from session state
+        comparison_results = st.session_state.get("comparison_results", {})
+        
+        # Get current values
+        current_values = comparison_results.get("current", {})
+        
+        # Get narrative and insights
+        narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative", "")
+        insights_data = st.session_state.get("insights", {})
+        
+        # Create a comprehensive context dictionary with all available data
+        context = {
+            "property_name": current_prop_name,
+            "datetime": datetime,
+            "performance_data": {
+                # Current period metrics
+                "noi": current_values.get("noi", 0),
+                "egi": current_values.get("egi", 0),
+                "opex": current_values.get("opex", 0),
+                "gpr": current_values.get("gpr", 0),
+                "vacancy_loss": current_values.get("vacancy_loss", 0),
+                "other_income": current_values.get("other_income", 0),
+                
+                # Prior month comparison
+                "prior_noi": comparison_results.get("month_vs_prior", {}).get("noi_prior", 0),
+                "noi_change": comparison_results.get("month_vs_prior", {}).get("noi_change", 0),
+                "noi_percent_change": comparison_results.get("month_vs_prior", {}).get("noi_percent_change", 0),
+                
+                # Budget comparison
+                "budget_noi": comparison_results.get("actual_vs_budget", {}).get("noi_budget", 0),
+                "noi_budget_variance": comparison_results.get("actual_vs_budget", {}).get("noi_variance", 0),
+                "noi_budget_percent_variance": comparison_results.get("actual_vs_budget", {}).get("noi_percent_variance", 0),
+                
+                # Year-over-year comparison
+                "prior_year_noi": comparison_results.get("year_vs_year", {}).get("noi_prior_year", 0),
+                "noi_yoy_change": comparison_results.get("year_vs_year", {}).get("noi_change", 0),
+                "noi_yoy_percent_change": comparison_results.get("year_vs_year", {}).get("noi_percent_change", 0),
+                
+                # Insights and narrative
+                "executive_summary": insights_data.get("summary", ""),
+                "financial_narrative": narrative_data,
+                
+                # Add all insights sections
+                "month_vs_prior_insights": insights_data.get("month_vs_prior", ""),
+                "actual_vs_budget_insights": insights_data.get("actual_vs_budget", ""),
+                "year_vs_year_insights": insights_data.get("year_vs_year", ""),
+                
+                # Add recommendations
+                "recommendations": insights_data.get("recommendations", [])
+            },
+            # Include all comparison results for template access
+            "comparison_results": comparison_results,
+            "month_vs_prior": comparison_results.get("month_vs_prior", {}),
+            "actual_vs_budget": comparison_results.get("actual_vs_budget", {}),
+            "year_vs_year": comparison_results.get("year_vs_year", {}),
+            
+            # Add logo
+            "logo_base64": get_reborn_logo_base64()
+        }
+        
+        # Render the template with the comprehensive context
+        html_content = report_template.render(**context)
+        logger.info("PDF EXPORT: Comprehensive HTML content rendered from template")
+        
+        # Generate PDF from HTML
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
+            tmp.write(html_content.encode('utf-8'))
+            tmp_path = tmp.name
+        
+        pdf_bytes = HTML(filename=tmp_path).write_pdf()
+        logger.info("PDF EXPORT: Comprehensive PDF bytes generated successfully")
+        
+        return pdf_bytes
+        
+    except Exception as e:
+        logger.error(f"PDF EXPORT: Error generating comprehensive PDF: {str(e)}", exc_info=True)
+        st.error(f"Error generating PDF report: {str(e)}")
+        return None
+
+def display_unified_insights(insights_data):
+    """
+    Display insights in a unified, non-repetitive manner.
+    
+    Args:
+        insights_data: Dictionary containing insights from GPT
+    """
+    if not insights_data or not isinstance(insights_data, dict):
+        st.info("No insights data available.")
+        return
+    
+    # Display Executive Summary
+    st.markdown("""
+        <div class="reborn-section-title executive-summary">Executive Summary</div>
+    """, unsafe_allow_html=True)
+    
+    if "summary" in insights_data and insights_data["summary"]:
+        st.markdown(f"""
+            <div class="reborn-content">{insights_data["summary"]}</div>
+        """, unsafe_allow_html=True)
+    else:
+        st.info("No executive summary available.")
+    
+    # Display unified performance insights
+    st.markdown("""
+        <div class="reborn-section-title insights">Key Performance Insights</div>
+    """, unsafe_allow_html=True)
+    
+    # Check if we have the new format with a single "performance" list
+    if "performance" in insights_data and isinstance(insights_data["performance"], list) and insights_data["performance"]:
+        insights_html = ""
+        for point in insights_data["performance"]:
+            insights_html += f"<p>• {point}</p>"
+        
+        st.markdown(f"""
+            <div class="reborn-content">{insights_html}</div>
+        """, unsafe_allow_html=True)
+    
+    # Otherwise, try to consolidate insights from different comparison types
+    else:
+        # Track insights to avoid duplication
+        seen_insights = set()
+        consolidated_insights = []
+        
+        # Process insights from each comparison type
+        for comparison_type in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
+            if comparison_type in insights_data and insights_data[comparison_type]:
+                # If it's a string, split into lines
+                if isinstance(insights_data[comparison_type], str):
+                    lines = insights_data[comparison_type].split('\n')
+                    for line in lines:
+                        line = line.strip()
+                        if line and line not in seen_insights:
+                            seen_insights.add(line)
+                            consolidated_insights.append(line)
+                # If it's a list, add each item
+                elif isinstance(insights_data[comparison_type], list):
+                    for item in insights_data[comparison_type]:
+                        if item and item not in seen_insights:
+                            seen_insights.add(item)
+                            consolidated_insights.append(item)
+        
+        if consolidated_insights:
+            insights_html = ""
+            for insight in consolidated_insights:
+                insights_html += f"<p>• {insight}</p>"
+            
+            st.markdown(f"""
+                <div class="reborn-content">{insights_html}</div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("No detailed insights available.")
+    
+    # Display recommendations
+    st.markdown("""
+        <div class="reborn-section-title recommendations">Recommendations</div>
+    """, unsafe_allow_html=True)
+    
+    if "recommendations" in insights_data and insights_data["recommendations"]:
+        if isinstance(insights_data["recommendations"], list):
+            recommendations_html = ""
+            for rec in insights_data["recommendations"]:
+                recommendations_html += f"<p>• {rec}</p>"
+            
+            st.markdown(f"""
+                <div class="reborn-content">{recommendations_html}</div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class="reborn-content">{insights_data["recommendations"]}</div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No recommendations available.")
 
