@@ -54,10 +54,10 @@ def inject_custom_css():
     }
     
     /* Remove top margin from main container */
-    .main .block-container {
+    /* .main .block-container {
         padding-top: 1rem !important;
         max-width: 1200px;
-    }
+    } Remove this as per new instructions */
     
     /* Enhanced section titles */
     .reborn-section-title {
@@ -72,6 +72,29 @@ def inject_custom_css():
         border-radius: 6px !important;
         border-left: 4px solid var(--reborn-accent-blue) !important;
         line-height: 1.4 !important;
+    }
+
+    /* Remove top spacing from Streamlit containers */
+    .main .block-container {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Ensure header has no extra spacing */
+    .stApp header {
+        background-color: transparent !important;
+    }
+    
+    /* Remove default Streamlit margins */
+    .stApp > header {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    /* Ensure logo container has no extra spacing */
+    .stMarkdown:first-child {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -194,18 +217,19 @@ def display_logo():
     try:
         logo_base64 = get_reborn_logo_base64()
         
-        # Direct embedding of the logo with proper sizing, alignment, and subtle enhancement
+        # Direct embedding of the logo with proper sizing, alignment, and no extra spacing
         logo_html = f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px; margin-top: 0px; padding: 5px;">
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px; margin-top: 0; padding: 0;">
             <img 
                 src="data:image/png;base64,{logo_base64}" 
-                width="180px" 
+                width="150px" 
                 alt="Reborn Logo" 
                 style="
                     object-fit: contain;
-                    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1)); 
-                    -webkit-filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1));
+                    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2)); 
+                    -webkit-filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2));
                     max-width: 100%;
+                    background: transparent;
                 "
             >
         </div>
@@ -215,7 +239,7 @@ def display_logo():
     except Exception as e:
         logger.error(f"Error displaying logo: {str(e)}")
         # Fallback to text
-        st.markdown("<h2 style='text-align: center; color: #4DB6AC;'>REBORN NOI ANALYZER</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #4DB6AC; margin-top: 0;'>REBORN NOI ANALYZER</h2>", unsafe_allow_html=True)
 
 # New function for small logo display
 def display_logo_small():
