@@ -1792,8 +1792,8 @@ def display_noi_coach():
     """
     st.markdown('<h2 class="section-header">NOI Coach</h2>', unsafe_allow_html=True)
     
-    # Create an expander for the NOI Coach
-    with st.expander("Ask questions about your NOI data", expanded=False):
+    # Create an expander for the NOI Coach, set to be open by default
+    with st.expander("Ask questions about your NOI data", expanded=True):
         st.markdown("""
         Ask questions about your NOI data and get AI-powered insights. Examples:
         - What factors are driving the change in NOI?
