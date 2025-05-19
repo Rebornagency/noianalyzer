@@ -48,21 +48,28 @@ def inject_custom_css():
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
     }
     
-    /* Ensure markdown content uses Inter */
-    .stMarkdown p, .stMarkdown li, .stMarkdown div {
+    /* Ensure markdown content uses Inter and has appropriate sizing */
+    .stMarkdown p, .stMarkdown li { /* Target p and li specifically for content text */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+        font-size: 1rem !important; /* e.g., 16px base for content */
+        line-height: 1.6 !important;
+        color: #D1D5DB !important; /* Light gray for readability */
+    }
+
+    .stMarkdown div { /* General divs in markdown, only font-family */
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
     }
     
-    /* Remove top margin from main container */
-    /* .main .block-container {
-        padding-top: 1rem !important;
-        max-width: 1200px;
-    } Remove this as per new instructions */
+    /* Remove top spacing from Streamlit containers */
+    .main .block-container {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
     
-    /* Enhanced section titles */
+    /* Enhanced section titles (used for Executive Summary, Key Perf. Insights etc.) */
     .reborn-section-title {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-        font-size: 1.5rem !important;
+        font-size: 1.6rem !important; /* Increased from 1.5rem */
         font-weight: 600 !important;
         color: var(--reborn-accent-blue) !important;
         margin-top: 1.5rem !important;
@@ -72,12 +79,20 @@ def inject_custom_css():
         border-radius: 6px !important;
         border-left: 4px solid var(--reborn-accent-blue) !important;
         line-height: 1.4 !important;
+        display: block; /* Ensure it takes full width if needed */
     }
 
-    /* Remove top spacing from Streamlit containers */
-    .main .block-container {
-        padding-top: 0 !important;
-        margin-top: 0 !important;
+    /* Styling for Streamlit Expander Headers (e.g., Full Financial Narrative) */
+    .streamlit-expanderHeader { /* General expander header style */
+        background-color: rgba(30, 41, 59, 0.7) !important; /* From load_css fallback, good to have consistently */
+        border-radius: 5px !important;
+    }
+
+    .streamlit-expanderHeader p { /* Specifically target the text within the expander header */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+        font-size: 1.25rem !important; /* Larger than content text */
+        font-weight: 600 !important;
+        color: #E0E0E0 !important; /* Light color for header text */
     }
     
     /* Ensure header has no extra spacing */
@@ -2029,7 +2044,7 @@ def main():
             logger.error(f"Error logging comparison_data_for_tabs structure: {e}")
 
         # Create tabs for each comparison type
-        tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Financial Narrative", "NOI Coach"])
+        tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Summary", "NOI Coach"])
         
         with tabs[0]:
             st.header("Current Month vs. Prior Month")
@@ -2088,8 +2103,8 @@ def main():
                 st.warning("Not enough data for Prior Year comparison.")
                 logger.warning("APP.PY: 'year_vs_year' data is missing or empty in comparison_data_for_tabs.")
         
-        with tabs[3]: # Financial Narrative & Insights Tab
-            st.header("Financial Narrative & Insights")
+        with tabs[3]: # Summary Tab (formerly Financial Narrative & Insights)
+            st.header("Overall Summary & Insights")
             
             # Display the narrative text and editor
             display_narrative_in_tabs()
