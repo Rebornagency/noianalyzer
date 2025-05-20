@@ -1441,61 +1441,65 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             logger.info(f"Successfully displayed chart for {name_suffix} comparison")
 
             # --- Tab-specific PDF Export --- 
-            st.subheader(f"Export {name_suffix} Report")
-            try:
-                # Prepare context for tab-specific PDF
-                pdf_context = {
-                    "property_name": current_prop_name,
-                    "datetime": datetime,
-                    "performance_data": {
-                        # Include current values and specific comparison data for this tab
-                        "noi": current_values.get("noi", 0),
-                        "egi": current_values.get("egi", 0),
-                        "opex": current_values.get("opex", 0),
-                        "gpr": current_values.get("gpr", 0),
-                        # Add other relevant current values as needed
-                        
-                        # Specific comparison data for this tab
-                        f"{prior_key_suffix}_data": tab_data, # Pass the whole tab_data for this comparison
-                        
-                        # Include narrative and summary if desired for tab-specific reports
-                        "financial_narrative": st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative", ""),
-                        "executive_summary": st.session_state.get("insights", {}).get("summary", "")
-                        # Add more specific insights if needed for tab reports
-                    },
-                    "logo_base64": get_reborn_logo_base64(),
-                    # A flag to indicate this is a tab-specific report for template logic if needed
-                    "is_tab_specific_report": True,
-                    "tab_name": name_suffix 
-                }
-                
-                # Render the template (you might want a simplified template or logic within the main template for tab reports)
-                if report_template:
-                    html_content_tab = report_template.render(**pdf_context)
-                    
-                    # Remove font-display property to prevent WeasyPrint warnings
-                    html_content_tab = html_content_tab.replace('font-display: swap;', '/* font-display: swap; */')
+            # st.subheader(f"Export {name_suffix} Report") # Commented out as per instructions
+            # try:
+            #     # Prepare context for tab-specific PDF
+            #     pdf_context = {
+            #         "property_name": st.session_state.property_name if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property", # Fix for variable scope
+            #         "datetime": datetime,
+            #         "performance_data": {
+            #             # Include current values and specific comparison data for this tab
+            #             "noi": current_values.get("noi", 0),
+            #             "egi": current_values.get("egi", 0),
+            #             "opex": current_values.get("opex", 0),
+            #             "gpr": current_values.get("gpr", 0),
+            #             # Add other relevant current values as needed
+            #             
+            #             # Specific comparison data for this tab
+            #             f"{prior_key_suffix}_data": tab_data, # Pass the whole tab_data for this comparison
+            #             
+            #             # Include narrative and summary if desired for tab-specific reports
+            #             "financial_narrative": st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative", ""),
+            #             "executive_summary": st.session_state.get("insights", {}).get("summary", "")
+            #             # Add more specific insights if needed for tab reports
+            #         },
+            #         "logo_base64": get_reborn_logo_base64(),
+            #         # A flag to indicate this is a tab-specific report for template logic if needed
+            #         "is_tab_specific_report": True,
+            #         "tab_name": name_suffix 
+            #     }
+            #     
+            #     # Render the template (you might want a simplified template or logic within the main template for tab reports)
+            #     if report_template:
+            #         html_content_tab = report_template.render(**pdf_context)
+            #         
+            #         # Remove font-display property to prevent WeasyPrint warnings
+            #         html_content_tab = html_content_tab.replace('font-display: swap;', '/* font-display: swap; */')
 
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp_tab:
-                        tmp_tab.write(html_content_tab.encode('utf-8'))
-                        tmp_tab_path = tmp_tab.name
-                    
-                    pdf_bytes_tab = HTML(filename=tmp_tab_path).write_pdf()
-                    
-                    pdf_filename_tab = f"{current_prop_name.replace(' ', '_')}_{name_suffix.replace(' ', '_')}_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    st.download_button(
-                        label=f"Download {name_suffix} PDF Report",
-                        data=pdf_bytes_tab,
-                        file_name=pdf_filename_tab,
-                        mime="application/pdf",
-                        key=f"download_pdf_{name_suffix.lower().replace(' ', '_')}"  # Unique key based on tab name
-                    )
-                else:
-                    st.warning("PDF template not loaded. Cannot generate tab-specific PDF.")
+            #         with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp_tab:
+            #             tmp_tab.write(html_content_tab.encode('utf-8'))
+            #             tmp_tab_path = tmp_tab.name
+            #         
+            #         pdf_bytes_tab = HTML(filename=tmp_tab_path).write_pdf()
+            #         
+            #         # Ensure property_name is fetched correctly for filename
+            #         prop_name_for_filename = st.session_state.property_name if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
+            #         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S') # For unique key
+            #         pdf_filename_tab = f"{prop_name_for_filename.replace(' ', '_')}_{name_suffix.replace(' ', '_')}_Analysis_{timestamp}.pdf"
+            #         
+            #         st.download_button(
+            #             label=f"Download {name_suffix} PDF Report",
+            #             data=pdf_bytes_tab,
+            #             file_name=pdf_filename_tab,
+            #             mime="application/pdf",
+            #             key=f"download_pdf_tab_{name_suffix.lower().replace(' ', '_')}_{timestamp}"  # Unique key based on tab name and timestamp
+            #         )
+            #     else:
+            #         st.warning("PDF template not loaded. Cannot generate tab-specific PDF.")
 
-            except Exception as e_pdf_tab:
-                logger.error(f"Error generating PDF for {name_suffix} tab: {e_pdf_tab}", exc_info=True)
-                st.error(f"Could not generate PDF for {name_suffix} report.")
+            # except Exception as e_pdf_tab:
+            #     logger.error(f"Error generating PDF for {name_suffix} tab: {e_pdf_tab}", exc_info=True)
+            #     st.error(f"Could not generate PDF for {name_suffix} report.")
 
             # --- Consolidated Insights, Executive Summary, and Recommendations Section ---
             st.markdown("---")
@@ -2261,138 +2265,164 @@ def main():
 
     # Add this code in the main UI section after displaying all tabs
     # (after the st.tabs() section in the main function)
-    if st.session_state.processing_completed: # Add this conditional wrapper
+    if st.session_state.processing_completed:
+        # Add a separator
         st.markdown("---")
-        st.subheader("Export Complete Analysis")
 
-        # Generate PDF button with a unique key
-        if st.button("Generate Complete PDF Report", key="global_pdf_export"):
-            with st.spinner("Generating comprehensive PDF report..."):
-                pdf_bytes = generate_comprehensive_pdf()
-                
-                if pdf_bytes:
-                    # Create a unique filename
-                    current_prop_name = st.session_state.property_name if hasattr(st.session_state, "property_name") else "Property"
-                    pdf_filename = f"{current_prop_name.replace(' ', '_')}_Complete_NOI_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    
-                    # Display download button with a unique key
-                    st.download_button(
-                        label="Download Complete PDF Report",
-                        data=pdf_bytes,
-                        file_name=pdf_filename,
-                        mime="application/pdf",
-                        key="global_pdf_download"
-                    )
-                    st.success("PDF report generated successfully!")
-                else:
-                    st.error("Failed to generate PDF report. Please check the logs for details.")
+        # Add export options in a container at the bottom
+        with st.container():
+            st.subheader("Export Options")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # PDF Export button
+                if st.button("Generate Complete PDF Report", key="global_pdf_export_new"):
+                    with st.spinner("Generating comprehensive PDF report..."):
+                        try:
+                            pdf_bytes = generate_comprehensive_pdf() # Corrected function call
+                            
+                            if pdf_bytes:
+                                # Create a unique filename with timestamp
+                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
+                                pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
+                                
+                                # Display download button
+                                st.download_button(
+                                    label="Download Complete PDF Report",
+                                    data=pdf_bytes,
+                                    file_name=pdf_filename,
+                                    mime="application/pdf",
+                                    key=f"download_comprehensive_pdf_{timestamp}" # Unique key
+                                )
+                                st.success("PDF report generated successfully!")
+                            else:
+                                st.error("Failed to generate PDF report. Please check the logs for details.")
+                        except Exception as e:
+                            logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
+                            st.error(f"Error generating PDF report: {str(e)}")
+            
+            with col2:
+                # Excel Export button (if implemented)
+                if st.button("Export to Excel", key="global_excel_export"):
+                    with st.spinner("Generating Excel export..."):
+                        # Excel export logic here
+                        st.info("Excel export functionality coming soon!")
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
     main()
 
 # Add this function to app.py, outside any other function
-def generate_comprehensive_pdf():
+def generate_comprehensive_pdf_report(): # New function as per user instructions
     """
     Generate a comprehensive PDF report that includes all available data,
-    insights, and recommendations regardless of the active tab.
+    insights, and visualizations from the NOI analysis.
+    
+    Returns:
+        bytes: PDF file as bytes if successful, None otherwise
     """
-    logger.info("PDF EXPORT: Generating comprehensive PDF with all available data")
+    logger.info("PDF EXPORT (NEW): Generating comprehensive PDF with all available data")
     
     try:
-        # Use the globally defined report_template
-        if report_template is None:
-            logger.error("PDF EXPORT: Global report_template is None. PDF generation will fail.")
+        # Verify we have the necessary data
+        if not report_template:
+            logger.error("PDF EXPORT (NEW): Global report_template is None. PDF generation will fail.")
             st.error("PDF generation is not available. Please check if the template file exists and is properly loaded.")
             return None
-
-        # Get property name
-        current_prop_name = st.session_state.property_name if hasattr(st.session_state, "property_name") else "Property"
-        
-        # Get all comparison results from session state
-        comparison_results = st.session_state.get("comparison_results", {})
-        if not comparison_results:
-            logger.error("PDF EXPORT: No comparison results found in session state")
+            
+        if not hasattr(st.session_state, 'comparison_results') or not st.session_state.comparison_results:
+            logger.error("PDF EXPORT (NEW): No comparison results found in session state")
             st.error("No analysis data available for PDF export. Please process documents first.")
             return None
             
-        # Get current values
-        current_values = comparison_results.get("current", {})
+        # Get property name
+        property_name = st.session_state.property_name if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
         
-        # Get narrative and insights
-        narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative", "")
-        insights_data = st.session_state.get("insights", {})
-        
-        # Create a comprehensive context dictionary with all available data
+        # Prepare context for the template
         context = {
-            "property_name": current_prop_name,
-            "datetime": datetime,
-            "performance_data": {
-                # Current period metrics
-                "noi": current_values.get("noi", 0),
-                "egi": current_values.get("egi", 0),
-                "opex": current_values.get("opex", 0),
-                "gpr": current_values.get("gpr", 0),
-                "vacancy_loss": current_values.get("vacancy_loss", 0),
-                "other_income": current_values.get("other_income", 0),
-                
-                # Prior month comparison
-                "prior_noi": comparison_results.get("prior", {}).get("noi", 0),
-                "noi_change": comparison_results.get("month_vs_prior", {}).get("noi_change", 0),
-                "noi_percent_change": comparison_results.get("month_vs_prior", {}).get("noi_percent_change", 0),
-                
-                # Budget comparison
-                "budget_noi": comparison_results.get("budget", {}).get("noi", 0),
-                "noi_budget_variance": comparison_results.get("actual_vs_budget", {}).get("noi_variance", 0),
-                "noi_budget_percent_variance": comparison_results.get("actual_vs_budget", {}).get("noi_percent_variance", 0),
-                
-                # Year-over-year comparison
-                "prior_year_noi": comparison_results.get("prior_year", {}).get("noi", 0),
-                "noi_yoy_change": comparison_results.get("year_vs_year", {}).get("noi_change", 0),
-                "noi_yoy_percent_change": comparison_results.get("year_vs_year", {}).get("noi_percent_change", 0),
-                
-                # Insights and narrative
-                "executive_summary": insights_data.get("summary", ""),
-                "financial_narrative": narrative_data,
-                
-                # Add all insights sections
-                "month_vs_prior_insights": insights_data.get("month_vs_prior", ""),
-                "actual_vs_budget_insights": insights_data.get("actual_vs_budget", ""),
-                "year_vs_year_insights": insights_data.get("year_vs_year", ""),
-                
-                # Add recommendations
-                "recommendations": insights_data.get("recommendations", [])
-            },
-            # Include all comparison results for template access
-            "comparison_results": comparison_results,
-            "month_vs_prior": comparison_results.get("month_vs_prior", {}),
-            "actual_vs_budget": comparison_results.get("actual_vs_budget", {}),
-            "year_vs_year": comparison_results.get("year_vs_year", {}),
-            
-            # Add logo
-            "logo_base64": get_reborn_logo_base64()
+            'datetime': datetime,
+            'property_name': property_name,
+            'performance_data': {}
         }
         
-        # Render the template with the comprehensive context
-        html_content = report_template.render(**context)
-        logger.info("PDF EXPORT: Comprehensive HTML content rendered from template")
+        # Add current period data
+        if 'current' in st.session_state.comparison_results:
+            current_data = st.session_state.comparison_results['current']
+            context['performance_data'].update(current_data)
+            
+            # Format key metrics for display
+            for key in ['gpr', 'vacancy_loss', 'other_income', 'egi', 'opex', 'noi']:
+                if key in current_data:
+                    context['performance_data'][f'{key}_formatted'] = f"${current_data[key]:,.2f}" if current_data[key] is not None else "N/A"
         
-        # Remove font-display property to prevent WeasyPrint warnings
-        html_content = html_content.replace('font-display: swap;', '/* font-display: swap; */')
+        # Add comparison data
+        comparison_sections = ['month_vs_prior', 'actual_vs_budget', 'year_vs_year']
+        for section in comparison_sections:
+            if section in st.session_state.comparison_results:
+                # Ensure the section itself is a dictionary before trying to access its keys
+                if isinstance(st.session_state.comparison_results[section], dict):
+                    context['performance_data'][section] = st.session_state.comparison_results[section]
+                    
+                    # Format key metrics for display
+                    section_data = st.session_state.comparison_results[section]
+                    for key_comp in section_data: 
+                        if isinstance(section_data[key_comp], (int, float)):
+                            context['performance_data'][section][f'{key_comp}_formatted'] = f"${section_data[key_comp]:,.2f}"
+                else:
+                    logger.warning(f"PDF EXPORT (NEW): Section {section} is not a dictionary, skipping.")
+                    context['performance_data'][section] = {} # Initialize as empty dict
+        
+        # Add insights if available
+        if hasattr(st.session_state, 'insights') and st.session_state.insights:
+            insights_copy = st.session_state.insights.copy() 
+            if 'summary' not in insights_copy or not isinstance(insights_copy['summary'], str):
+                insights_copy['summary'] = ""
+            if 'performance' not in insights_copy or not isinstance(insights_copy['performance'], list):
+                insights_copy['performance'] = []
+            if 'recommendations' not in insights_copy or not isinstance(insights_copy['recommendations'], list):
+                insights_copy['recommendations'] = []
+            context['performance_data']['insights'] = insights_copy
+        else: 
+             context['performance_data']['insights'] = {
+                'summary': "", 'performance': [], 'recommendations': []
+            }
 
-        # Generate PDF from HTML
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
-            tmp.write(html_content.encode('utf-8'))
-            tmp_path = tmp.name
+        # Add narrative if available
+        if hasattr(st.session_state, 'generated_narrative') and st.session_state.generated_narrative and isinstance(st.session_state.generated_narrative, str):
+            context['performance_data']['financial_narrative'] = st.session_state.generated_narrative
+        elif hasattr(st.session_state, 'edited_narrative') and st.session_state.edited_narrative and isinstance(st.session_state.edited_narrative, str):
+            context['performance_data']['financial_narrative'] = st.session_state.edited_narrative
+        else:
+            context['performance_data']['financial_narrative'] = "No narrative available."
+        
+        # Add executive summary (already part of insights, but can be explicitly set for template convenience)
+        context['performance_data']['executive_summary'] = context['performance_data']['insights'].get('summary', "No executive summary available.")
+        
+        # Render the template to HTML
+        html_content = report_template.render(**context)
+        logger.info("PDF EXPORT (NEW): Comprehensive HTML content rendered from template")
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as tmp_file:
+            tmp_file.write(html_content)
+            tmp_path = tmp_file.name
+        logger.info(f"PDF EXPORT (NEW): HTML content written to temporary file: {tmp_path}")
         
         pdf_bytes = HTML(filename=tmp_path).write_pdf()
-        logger.info("PDF EXPORT: Comprehensive PDF bytes generated successfully")
+        logger.info("PDF EXPORT (NEW): Comprehensive PDF bytes generated successfully")
         
+        try:
+            os.remove(tmp_path)
+            logger.info(f"PDF EXPORT (NEW): Cleaned up temporary HTML file: {tmp_path}")
+        except OSError as e_remove:
+            logger.warning(f"PDF EXPORT (NEW): Could not remove temporary HTML file {tmp_path}: {e_remove}")
+            
         return pdf_bytes
         
     except Exception as e:
-        logger.error(f"PDF EXPORT: Error generating comprehensive PDF: {str(e)}", exc_info=True)
-        st.error(f"Error generating PDF report: {str(e)}")
+        logger.error(f"PDF EXPORT (NEW): Error generating comprehensive PDF: {str(e)}", exc_info=True)
+        st.error(f"Error generating PDF report: {str(e)}") 
         return None
 
 def display_unified_insights(insights_data):
