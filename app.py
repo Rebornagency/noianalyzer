@@ -1832,7 +1832,7 @@ def display_noi_coach():
     st.markdown('<h2 class="section-header">NOI Coach</h2>', unsafe_allow_html=True)
     
     # Create an expander for the NOI Coach, set to be open by default
-    with st.expander("Ask questions about your NOI data", expanded=True):
+    with st.expander("Ask questions about your NOI data", expanded=True): # Ensure expanded=True
         st.markdown("""
         Ask questions about your NOI data and get AI-powered insights. Examples:
         - What factors are driving the change in NOI?
@@ -2195,20 +2195,13 @@ def main():
                         "summary": insights.get("summary", "")
                     }
 
-                    # Map the performance insights to the comparison-specific keys
+                    # Store performance insights as a single global list instead of duplicating across comparison types
                     if "performance" in insights and insights["performance"]:
-                        # Convert the performance array to a string for each comparison type
-                        performance_text = "\n\n".join([f"• {point}" for point in insights["performance"]])
-                        
-                        # Add the same insights to all comparison types for now
-                        structured_insights["month_vs_prior"] = performance_text
-                        structured_insights["actual_vs_budget"] = performance_text
-                        structured_insights["year_vs_year"] = performance_text
+                        structured_insights["performance"] = insights["performance"]
 
                     # Add recommendations to the structured insights
                     if "recommendations" in insights and insights["recommendations"]:
-                        recommendations_text = "\n\n".join([f"• {rec}" for rec in insights["recommendations"]])
-                        structured_insights["recommendations"] = recommendations_text
+                        structured_insights["recommendations"] = insights["recommendations"]
 
                     # Store the properly structured insights in session state
                     st.session_state.insights = structured_insights
@@ -2243,31 +2236,31 @@ def main():
 
     # Add this code in the main UI section after displaying all tabs
     # (after the st.tabs() section in the main function)
+    if st.session_state.processing_completed: # Add this conditional wrapper
+        st.markdown("---")
+        st.subheader("Export Complete Analysis")
 
-    st.markdown("---")
-    st.subheader("Export Complete Analysis")
-
-    # Generate PDF button with a unique key
-    if st.button("Generate Complete PDF Report", key="global_pdf_export"):
-        with st.spinner("Generating comprehensive PDF report..."):
-            pdf_bytes = generate_comprehensive_pdf()
-            
-            if pdf_bytes:
-                # Create a unique filename
-                current_prop_name = st.session_state.property_name if hasattr(st.session_state, "property_name") else "Property"
-                pdf_filename = f"{current_prop_name.replace(' ', '_')}_Complete_NOI_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        # Generate PDF button with a unique key
+        if st.button("Generate Complete PDF Report", key="global_pdf_export"):
+            with st.spinner("Generating comprehensive PDF report..."):
+                pdf_bytes = generate_comprehensive_pdf()
                 
-                # Display download button with a unique key
-                st.download_button(
-                    label="Download Complete PDF Report",
-                    data=pdf_bytes,
-                    file_name=pdf_filename,
-                    mime="application/pdf",
-                    key="global_pdf_download"
-                )
-                st.success("PDF report generated successfully!")
-            else:
-                st.error("Failed to generate PDF report. Please check the logs for details.")
+                if pdf_bytes:
+                    # Create a unique filename
+                    current_prop_name = st.session_state.property_name if hasattr(st.session_state, "property_name") else "Property"
+                    pdf_filename = f"{current_prop_name.replace(' ', '_')}_Complete_NOI_Analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    
+                    # Display download button with a unique key
+                    st.download_button(
+                        label="Download Complete PDF Report",
+                        data=pdf_bytes,
+                        file_name=pdf_filename,
+                        mime="application/pdf",
+                        key="global_pdf_download"
+                    )
+                    st.success("PDF report generated successfully!")
+                else:
+                    st.error("Failed to generate PDF report. Please check the logs for details.")
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
@@ -2293,7 +2286,11 @@ def generate_comprehensive_pdf():
         
         # Get all comparison results from session state
         comparison_results = st.session_state.get("comparison_results", {})
-        
+        if not comparison_results:
+            logger.error("PDF EXPORT: No comparison results found in session state")
+            st.error("No analysis data available for PDF export. Please process documents first.")
+            return None
+            
         # Get current values
         current_values = comparison_results.get("current", {})
         
@@ -2315,17 +2312,17 @@ def generate_comprehensive_pdf():
                 "other_income": current_values.get("other_income", 0),
                 
                 # Prior month comparison
-                "prior_noi": comparison_results.get("month_vs_prior", {}).get("noi_prior", 0),
+                "prior_noi": comparison_results.get("prior", {}).get("noi", 0),
                 "noi_change": comparison_results.get("month_vs_prior", {}).get("noi_change", 0),
                 "noi_percent_change": comparison_results.get("month_vs_prior", {}).get("noi_percent_change", 0),
                 
                 # Budget comparison
-                "budget_noi": comparison_results.get("actual_vs_budget", {}).get("noi_budget", 0),
+                "budget_noi": comparison_results.get("budget", {}).get("noi", 0),
                 "noi_budget_variance": comparison_results.get("actual_vs_budget", {}).get("noi_variance", 0),
                 "noi_budget_percent_variance": comparison_results.get("actual_vs_budget", {}).get("noi_percent_variance", 0),
                 
                 # Year-over-year comparison
-                "prior_year_noi": comparison_results.get("year_vs_year", {}).get("noi_prior_year", 0),
+                "prior_year_noi": comparison_results.get("prior_year", {}).get("noi", 0),
                 "noi_yoy_change": comparison_results.get("year_vs_year", {}).get("noi_change", 0),
                 "noi_yoy_percent_change": comparison_results.get("year_vs_year", {}).get("noi_percent_change", 0),
                 
@@ -2372,95 +2369,85 @@ def generate_comprehensive_pdf():
 
 def display_unified_insights(insights_data):
     """
-    Display insights in a unified, non-repetitive manner.
+    Display unified insights including summary, performance insights, and recommendations
+    without repeating them across different comparison types.
     
     Args:
-        insights_data: Dictionary containing insights from GPT
+        insights_data: Dictionary containing insights data
     """
-    if not insights_data or not isinstance(insights_data, dict):
-        st.info("No insights data available.")
-        return
+    logger.info("Displaying unified insights")
     
     # Display Executive Summary
     st.markdown("""
         <div class="reborn-section-title executive-summary">Executive Summary</div>
     """, unsafe_allow_html=True)
     
-    if "summary" in insights_data and insights_data["summary"]:
+    if insights_data and "summary" in insights_data and insights_data["summary"]:
         st.markdown(f"""
             <div class="reborn-content">{insights_data["summary"]}</div>
         """, unsafe_allow_html=True)
     else:
-        st.info("No executive summary available.")
+        st.info("No executive summary is available.")
     
-    # Display unified performance insights
+    # Display Key Performance Insights
     st.markdown("""
         <div class="reborn-section-title insights">Key Performance Insights</div>
     """, unsafe_allow_html=True)
     
-    # Check if we have the new format with a single "performance" list
-    if "performance" in insights_data and isinstance(insights_data["performance"], list) and insights_data["performance"]:
-        insights_html = ""
-        for point in insights_data["performance"]:
-            insights_html += f"<p>• {point}</p>"
-        
-        st.markdown(f"""
-            <div class="reborn-content">{insights_html}</div>
-        """, unsafe_allow_html=True)
+    # Check for performance insights in both formats (list or string)
+    performance_insights = None
+    if "performance" in insights_data and insights_data["performance"]:
+        performance_insights = insights_data["performance"]
     
-    # Otherwise, try to consolidate insights from different comparison types
-    else:
-        # Track insights to avoid duplication
-        seen_insights = set()
-        consolidated_insights = []
-        
-        # Process insights from each comparison type
-        for comparison_type in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
-            if comparison_type in insights_data and insights_data[comparison_type]:
-                # If it's a string, split into lines
-                if isinstance(insights_data[comparison_type], str):
-                    lines = insights_data[comparison_type].split('\n')
-                    for line in lines:
-                        line = line.strip()
-                        if line and line not in seen_insights:
-                            seen_insights.add(line)
-                            consolidated_insights.append(line)
-                # If it's a list, add each item
-                elif isinstance(insights_data[comparison_type], list):
-                    for item in insights_data[comparison_type]:
-                        if item and item not in seen_insights:
-                            seen_insights.add(item)
-                            consolidated_insights.append(item)
-        
-        if consolidated_insights:
+    if performance_insights:
+        # Handle both list and string formats
+        if isinstance(performance_insights, list):
             insights_html = ""
-            for insight in consolidated_insights:
-                insights_html += f"<p>• {insight}</p>"
-            
+            for point in performance_insights:
+                insights_html += f"<p>• {point}</p>"
             st.markdown(f"""
                 <div class="reborn-content">{insights_html}</div>
             """, unsafe_allow_html=True)
         else:
-            st.info("No detailed insights available.")
+            # If it's a string, display as is
+            st.markdown(f"""
+                <div class="reborn-content">{performance_insights}</div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No performance insights are available.")
     
-    # Display recommendations
+    # Display Recommendations
     st.markdown("""
         <div class="reborn-section-title recommendations">Recommendations</div>
     """, unsafe_allow_html=True)
     
+    # Check for recommendations in multiple possible locations and formats
+    recommendations = None
+    
+    # First check direct recommendations key
     if "recommendations" in insights_data and insights_data["recommendations"]:
-        if isinstance(insights_data["recommendations"], list):
+        recommendations = insights_data["recommendations"]
+    
+    # If not found, check in narrative data
+    if not recommendations and "narrative" in st.session_state: # This check should be 'generated_narrative' or 'edited_narrative'
+        narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative")
+        if narrative_data and isinstance(narrative_data, dict) and "recommendations" in narrative_data: # Ensure narrative_data is dict
+            recommendations = narrative_data["recommendations"]
+    
+    if recommendations:
+        # Handle both list and string formats
+        if isinstance(recommendations, list):
             recommendations_html = ""
-            for rec in insights_data["recommendations"]:
+            for rec in recommendations:
                 recommendations_html += f"<p>• {rec}</p>"
-            
             st.markdown(f"""
                 <div class="reborn-content">{recommendations_html}</div>
             """, unsafe_allow_html=True)
         else:
+            # If it's a string, display as is
             st.markdown(f"""
-                <div class="reborn-content">{insights_data["recommendations"]}</div>
+                <div class="reborn-content">{recommendations}</div>
             """, unsafe_allow_html=True)
     else:
-        st.info("No recommendations available.")
+        st.info("No specific recommendations are available.")
 
