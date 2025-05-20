@@ -71,73 +71,64 @@ def display_financial_narrative(narrative: str, property_name: Optional[str] = N
 
 def display_narrative_in_tabs():
     """
-    Alternative display method that shows the narrative in a tabbed interface
-    with consistent styling
+    Display the financial narrative in the tabs interface with editing capability.
     """
-    # --- Start of Gemini Edit ---
-    original_bad_text_snippet_for_check = "157,250.Thisfigurerepresentsasignificantincreaseof6.8157,250" # A distinct part of the original garbled text
-    corrected_full_text = """The financial performance of Novus property for the current period demonstrates a robust Net Operating Income (NOI) of $157,250. This figure represents a significant increase of $6,950 month-over-month and $3,750 year-over-year.
-
-On the revenue side, the Gross Potential Rent (GPR) stood at $425,000, reflecting a 1.2% ($32,500). As a result, the Effective Gross Income (EGI) reached $436,250, showing a 2.7% increase month-over-month and an 8% increase year-over-year.
-
-On the expenditure front, the total operating expenses were $279,000, a slight increase of 0.5% ($38,500). Conversely, Utilities expenses decreased by 6.7% from the prior month, but increased by 10.5% from the prior year, totaling $42,000. These changes in operating expenses had a direct impact on the overall NOI.
-
-In terms of notable variances, the most significant was observed in the Repairs & Maintenance category, which exceeded the 5% threshold. The increase in these costs could be attributed to routine maintenance or unforeseen repairs required for the property. Another significant variance was seen in the Vacancy Loss category, which decreased by 15.7% from the previous month. This reduction indicates an improvement in occupancy rates, contributing positively to the overall revenue.
-
-In conclusion, the financial performance of Novus property for the current period was positive, with a strong NOI driven by an increase in GPR and other income, as well as a decrease in vacancy loss. However, the rise in operating expenses, particularly in the Repairs & Maintenance category, partially offset these gains. Moving forward, it will be essential to monitor these expenses closely while continuing to maximize revenue sources to ensure sustained profitability."""
-
-    if "edited_narrative" in st.session_state:
-        narrative = st.session_state.edited_narrative
-    elif "generated_narrative" in st.session_state:
-        narrative = st.session_state.generated_narrative
+    logger.info("Displaying financial narrative in tabs")
+    
+    # Check if narrative exists in session state
+    has_narrative = (
+        "generated_narrative" in st.session_state and 
+        st.session_state.generated_narrative and 
+        isinstance(st.session_state.generated_narrative, str)
+    )
+    
+    # Log narrative status
+    if has_narrative:
+        narrative_snippet = st.session_state.generated_narrative[:100] + "..." if len(st.session_state.generated_narrative) > 100 else st.session_state.generated_narrative
+        logger.info(f"Found narrative in session state (snippet): {narrative_snippet}")
     else:
-        narrative = "No financial narrative has been generated yet."
-
-    # Check for the known bad narrative and replace it
-    if isinstance(narrative, str) and original_bad_text_snippet_for_check in narrative:
-        logger.info("Detected known garbled narrative. Replacing with corrected version.")
-        narrative = corrected_full_text
-    # --- End of Gemini Edit ---
+        logger.info("No narrative found in session state or narrative is empty")
     
-    property_name = st.session_state.get("property_name", None)
-    
-    # Display the narrative with consistent styling
+    # Display the narrative
     st.markdown("""
-        <div class="reborn-section-title narrative">Financial Performance Narrative</div>
+        <div class="reborn-section-title financial-narrative">Financial Performance Narrative</div>
     """, unsafe_allow_html=True)
     
-    if narrative:
-        # Process the narrative to ensure consistent styling
-        safe_narrative = narrative.replace("<", "&lt;").replace(">", "&gt;")
+    if has_narrative:
+        # Create an expander for the full narrative
+        with st.expander("Full Financial Narrative", expanded=True):
+            # Display the narrative text
+            st.markdown(f"""
+                <div class="reborn-content narrative-text">
+                    {st.session_state.generated_narrative}
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Add edit button if needed
+            if st.button("Edit Narrative", key="edit_narrative_btn"):
+                st.session_state.show_narrative_editor = True
         
-        st.markdown(f"""
-            <div class="reborn-content">{safe_narrative}</div>
-        """, unsafe_allow_html=True)
+        # Show editor if requested
+        if "show_narrative_editor" in st.session_state and st.session_state.show_narrative_editor:
+            st.subheader("Edit Narrative")
+            edited_narrative = st.text_area(
+                "Edit the financial narrative below:",
+                value=st.session_state.generated_narrative,
+                height=300,
+                key="narrative_editor_tab" # Changed key to avoid conflict if another editor exists
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Save Changes", key="save_narrative_btn"):
+                    st.session_state.edited_narrative = edited_narrative
+                    st.session_state.generated_narrative = edited_narrative # Keep generated in sync if edited
+                    st.session_state.show_narrative_editor = False
+                    st.success("Narrative updated successfully!")
+                    st.rerun()
+            with col2:
+                if st.button("Cancel", key="cancel_narrative_btn"):
+                    st.session_state.show_narrative_editor = False
+                    st.rerun()
     else:
-        st.info("No financial narrative is available.")
-    
-    # Button to edit the narrative
-    if st.button("Edit Narrative", key="edit_tab_narrative"):
-        st.session_state.show_narrative_editor = True
-    
-    # Display editor if enabled
-    if st.session_state.get("show_narrative_editor", False):
-        edited_text = st.text_area(
-            "Edit Narrative",
-            value=narrative,
-            height=400,
-            key="tab_narrative_editor"
-        )
-        
-        col1, col2 = st.columns([1, 5])
-        with col1:
-            if st.button("Save Changes", key="save_tab_narrative"):
-                st.session_state.edited_narrative = edited_text
-                st.session_state.generated_narrative = edited_text  # Keep in sync
-                st.success("Narrative updated!")
-                st.session_state.show_narrative_editor = False
-        
-        with col2:
-            if st.button("Discard Changes", key="discard_tab_narrative"):
-                st.session_state.show_narrative_editor = False
-                st.info("Changes discarded.") 
+        st.info("No financial narrative has been generated yet. Process documents to generate a narrative.") 

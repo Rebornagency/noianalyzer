@@ -1473,6 +1473,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 if report_template:
                     html_content_tab = report_template.render(**pdf_context)
                     
+                    # Remove font-display property to prevent WeasyPrint warnings
+                    html_content_tab = html_content_tab.replace('font-display: swap;', '/* font-display: swap; */')
+
                     with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp_tab:
                         tmp_tab.write(html_content_tab.encode('utf-8'))
                         tmp_tab_path = tmp_tab.name
@@ -1583,6 +1586,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             html_content = report_template.render(**context)
             logger.info("PDF EXPORT: HTML content rendered from template.")
             
+            # Remove font-display property to prevent WeasyPrint warnings
+            html_content = html_content.replace('font-display: swap;', '/* font-display: swap; */')
+
             with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
                 tmp.write(html_content.encode('utf-8'))
                 tmp_path = tmp.name
@@ -2111,7 +2117,11 @@ def main():
             
             # Display the consolidated insights (summary, performance, recommendations)
             if "insights" in st.session_state and st.session_state.insights:
-                display_unified_insights(st.session_state.insights)
+                try:
+                    display_unified_insights(st.session_state.insights)
+                except Exception as e:
+                    logger.error(f"Error displaying insights: {e}")
+                    st.error("An error occurred while displaying insights. Please try processing documents again.")
             else:
                 logger.info("No insights data found in session state for Financial Narrative & Insights tab.")
                 st.info("Insights (including summary and recommendations) will be displayed here once generated.")
@@ -2192,26 +2202,41 @@ def main():
                     insights = generate_insights_with_gpt(st.session_state.comparison_results)
                     # Create a properly structured insights dictionary that matches UI expectations
                     structured_insights = {
-                        "summary": insights.get("summary", "")
+                        "summary": insights.get("summary", "No summary available"),
+                        "performance": insights.get("performance", []),
+                        "recommendations": insights.get("recommendations", [])
                     }
 
                     # Store performance insights as a single global list instead of duplicating across comparison types
-                    if "performance" in insights and insights["performance"]:
-                        structured_insights["performance"] = insights["performance"]
+                    # if "performance" in insights and insights["performance"]:
+                    #     structured_insights["performance"] = insights["performance"]
+                    # This part is now handled by the direct assignment with .get above
 
                     # Add recommendations to the structured insights
-                    if "recommendations" in insights and insights["recommendations"]:
-                        structured_insights["recommendations"] = insights["recommendations"]
+                    # if "recommendations" in insights and insights["recommendations"]:
+                    #     structured_insights["recommendations"] = insights["recommendations"]
+                    # This part is also handled by the direct assignment with .get above
 
                     # Store the properly structured insights in session state
                     st.session_state.insights = structured_insights
                     logger.info(f"Structured insights keys: {list(structured_insights.keys())}")
                     
-                    narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
-                    # Log the raw narrative content and type BEFORE assigning to session state
-                    logger.info(f"APP.PY: 'narrative' var from create_narrative. Type: {type(narrative)}. Content snippet: {(str(narrative)[:200] + '...') if narrative else 'None'}")
-                    st.session_state.generated_narrative = narrative
-                    logger.info("APP.PY: Narrative generated and assigned to st.session_state.generated_narrative.")
+                    # narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
+                    # # Log the raw narrative content and type BEFORE assigning to session state
+                    # logger.info(f"APP.PY: 'narrative' var from create_narrative. Type: {type(narrative)}. Content snippet: {(str(narrative)[:200] + '...') if narrative else 'None'}")
+                    # st.session_state.generated_narrative = narrative
+                    # logger.info("APP.PY: Narrative generated and assigned to st.session_state.generated_narrative.")
+                    try:
+                        narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
+                        if narrative and isinstance(narrative, str):
+                            st.session_state.generated_narrative = narrative
+                            logger.info(f"Narrative generated successfully: {len(narrative)} characters")
+                        else:
+                            logger.warning(f"create_narrative returned invalid data: {type(narrative)}")
+                            st.session_state.generated_narrative = "Unable to generate narrative due to data issues."
+                    except Exception as e:
+                        logger.error(f"Error generating narrative: {e}")
+                        st.session_state.generated_narrative = "An error occurred while generating the narrative."
                     
                     st.session_state.processing_completed = True
                     st.success("Documents processed successfully!")
@@ -2352,6 +2377,9 @@ def generate_comprehensive_pdf():
         html_content = report_template.render(**context)
         logger.info("PDF EXPORT: Comprehensive HTML content rendered from template")
         
+        # Remove font-display property to prevent WeasyPrint warnings
+        html_content = html_content.replace('font-display: swap;', '/* font-display: swap; */')
+
         # Generate PDF from HTML
         with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp:
             tmp.write(html_content.encode('utf-8'))
@@ -2369,85 +2397,92 @@ def generate_comprehensive_pdf():
 
 def display_unified_insights(insights_data):
     """
-    Display unified insights including summary, performance insights, and recommendations
-    without repeating them across different comparison types.
+    Display unified insights in the Streamlit UI.
+    This function serves as a wrapper around display_insights to ensure
+    consistent error handling and data validation.
     
     Args:
         insights_data: Dictionary containing insights data
     """
     logger.info("Displaying unified insights")
     
-    # Display Executive Summary
-    st.markdown("""
-        <div class="reborn-section-title executive-summary">Executive Summary</div>
-    """, unsafe_allow_html=True)
+    # Validate insights data
+    if not insights_data:
+        logger.warning("No insights data provided to display_unified_insights")
+        st.info("No insights data available. Please process documents to generate insights.")
+        return
     
-    if insights_data and "summary" in insights_data and insights_data["summary"]:
-        st.markdown(f"""
-            <div class="reborn-content">{insights_data["summary"]}</div>
+    # Log insights structure for debugging
+    try:
+        logger.info(f"Insights data keys: {list(insights_data.keys())}")
+    except Exception as e:
+        logger.error(f"Error logging insights data keys: {e}")
+    
+    # Ensure insights data has the expected structure
+    if not isinstance(insights_data, dict):
+        logger.error(f"Insights data is not a dictionary: {type(insights_data)}")
+        st.error("Insights data is in an unexpected format. Please try processing documents again.")
+        return
+    
+    # Create a container with a distinctive background
+    with st.container():
+        # Display the executive summary
+        st.markdown("""
+            <div class="reborn-section-title executive-summary">Executive Summary</div>
         """, unsafe_allow_html=True)
-    else:
-        st.info("No executive summary is available.")
-    
-    # Display Key Performance Insights
-    st.markdown("""
-        <div class="reborn-section-title insights">Key Performance Insights</div>
-    """, unsafe_allow_html=True)
-    
-    # Check for performance insights in both formats (list or string)
-    performance_insights = None
-    if "performance" in insights_data and insights_data["performance"]:
-        performance_insights = insights_data["performance"]
-    
-    if performance_insights:
-        # Handle both list and string formats
-        if isinstance(performance_insights, list):
+        
+        if "summary" in insights_data and insights_data["summary"]:
+            st.markdown(f"""
+                <div class="reborn-content">{insights_data["summary"]}</div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("No executive summary is available.")
+
+        # Display performance insights
+        st.markdown("""
+            <div class="reborn-section-title insights">Key Performance Insights</div>
+        """, unsafe_allow_html=True)
+        
+        if "performance" in insights_data and insights_data["performance"]:
             insights_html = ""
-            for point in performance_insights:
+            # Ensure performance is a list before iterating
+            performance_list = insights_data["performance"]
+            if not isinstance(performance_list, list):
+                performance_list = [str(performance_list)] # Convert to list if not already
+
+            for point in performance_list:
                 insights_html += f"<p>• {point}</p>"
+            
             st.markdown(f"""
                 <div class="reborn-content">{insights_html}</div>
             """, unsafe_allow_html=True)
         else:
-            # If it's a string, display as is
-            st.markdown(f"""
-                <div class="reborn-content">{performance_insights}</div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No performance insights are available.")
-    
-    # Display Recommendations
-    st.markdown("""
-        <div class="reborn-section-title recommendations">Recommendations</div>
-    """, unsafe_allow_html=True)
-    
-    # Check for recommendations in multiple possible locations and formats
-    recommendations = None
-    
-    # First check direct recommendations key
-    if "recommendations" in insights_data and insights_data["recommendations"]:
-        recommendations = insights_data["recommendations"]
-    
-    # If not found, check in narrative data
-    if not recommendations and "narrative" in st.session_state: # This check should be 'generated_narrative' or 'edited_narrative'
-        narrative_data = st.session_state.get("edited_narrative") or st.session_state.get("generated_narrative")
-        if narrative_data and isinstance(narrative_data, dict) and "recommendations" in narrative_data: # Ensure narrative_data is dict
-            recommendations = narrative_data["recommendations"]
-    
-    if recommendations:
-        # Handle both list and string formats
-        if isinstance(recommendations, list):
+            st.info("No performance insights are available.")
+
+        # Display recommendations
+        st.markdown("""
+            <div class="reborn-section-title recommendations">Recommendations</div>
+        """, unsafe_allow_html=True)
+        
+        if "recommendations" in insights_data and insights_data["recommendations"]:
             recommendations_html = ""
-            for rec in recommendations:
+            # Ensure recommendations is a list before iterating
+            recommendations_list = insights_data["recommendations"]
+            if not isinstance(recommendations_list, list):
+                recommendations_list = [str(recommendations_list)] # Convert to list if not already
+
+            for rec in recommendations_list:
                 recommendations_html += f"<p>• {rec}</p>"
+            
             st.markdown(f"""
                 <div class="reborn-content">{recommendations_html}</div>
             """, unsafe_allow_html=True)
         else:
-            # If it's a string, display as is
-            st.markdown(f"""
-                <div class="reborn-content">{recommendations}</div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No specific recommendations are available.")
+            st.info("No recommendations are available.")
+
+        # Add a divider
+        st.markdown("---")
+
+        # Add a note about AI generation
+        st.caption("These insights were generated by AI based on the financial data provided.")
 
