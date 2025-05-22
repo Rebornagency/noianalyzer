@@ -95,18 +95,29 @@ def display_narrative_in_tabs():
     """, unsafe_allow_html=True)
     
     if has_narrative:
-        # Create an expander for the full narrative
-        with st.expander("Full Financial Narrative", expanded=True):
-            # Display the narrative text
-            st.markdown(f"""
-                <div class="reborn-content narrative-text">
-                    {st.session_state.generated_narrative}
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Add edit button if needed
-            if st.button("Edit Narrative", key="edit_narrative_btn"):
-                st.session_state.show_narrative_editor = True
+        # MODIFIED: Remove the expander and display directly to avoid redundant title
+        # Process the narrative to ensure consistent styling by removing any potential HTML elements
+        narrative_text = st.session_state.generated_narrative.replace("<", "&lt;").replace(">", "&gt;")
+        
+        # Ensure consistent styling by wrapping in a div with specific styling
+        st.markdown(f"""
+            <div class="reborn-content narrative-text" style="
+                color: #E0E0E0; 
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 1rem;
+                line-height: 1.6;
+                background-color: rgba(30, 41, 59, 0.8);
+                padding: 1rem;
+                border-radius: 6px;
+                margin-bottom: 1rem;
+            ">
+                {narrative_text}
+            </div>
+        """, unsafe_allow_html=True)
+        
+        # Add edit button
+        if st.button("Edit Narrative", key="edit_narrative_btn"):
+            st.session_state.show_narrative_editor = True
         
         # Show editor if requested
         if "show_narrative_editor" in st.session_state and st.session_state.show_narrative_editor:
