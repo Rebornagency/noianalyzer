@@ -153,6 +153,36 @@ def inject_custom_css():
     .financial-narrative + .streamlit-expanderHeader {
         display: none !important;
     }
+    
+    /* Styling for narrative container */
+    .narrative-container {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        padding: 1rem !important;
+        border-radius: 6px !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Ensure consistent styling for all elements within the narrative */
+    .narrative-container p, 
+    .narrative-container span, 
+    .narrative-container div {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    /* Ensure consistent styling for numbers and currency values */
+    .narrative-container .currency,
+    .narrative-container .number {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1485,7 +1515,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # --- Consolidated Insights, Executive Summary, and Recommendations Section ---
             st.markdown("---")
             st.markdown("""
-                <div class="reborn-section-title">Analysis and Recommendations (for {name_suffix})</div>
+                <div class="reborn-section-title">Analysis and Recommendations</div>
             """, unsafe_allow_html=True)
 
             insights_data = st.session_state.get("insights")
@@ -1729,70 +1759,69 @@ def display_noi_coach():
     """
     st.markdown('<h2 class="section-header">NOI Coach</h2>', unsafe_allow_html=True)
     
-    # Create an expander for the NOI Coach, set to be open by default
-    with st.expander("Ask questions about your NOI data", expanded=True): # Ensure expanded=True
-        st.markdown("""
-        Ask questions about your NOI data and get AI-powered insights. Examples:
-        - What factors are driving the change in NOI?
-        - How does my vacancy loss compare to industry standards?
-        - What actions could improve my NOI?
-        """)
+    # Directly display instructions without expander
+    st.markdown("""
+    Ask questions about your NOI data and get AI-powered insights. Examples:
+    - What factors are driving the change in NOI?
+    - How does my vacancy loss compare to industry standards?
+    - What actions could improve my NOI?
+    """)
+    
+    # Input for user questions
+    user_question = st.text_input(
+        "Your question:",
+        key="noi_coach_question",
+        help="Ask a question about your financial data"
+    )
+    
+    # Get currently selected comparison context
+    context = st.session_state.current_comparison_view
+    
+    # Submit button
+    if st.button("Get Answer", key="noi_coach_submit"):
+        if user_question:
+            with st.spinner("Analyzing your data and generating insights..."):
+                try:
+                    # Use the ask_noi_coach function to get AI-powered insights
+                    answer = ask_noi_coach(
+                        user_question, 
+                        st.session_state.comparison_results,
+                        context
+                    )
+                    
+                    # Add the Q&A to the history
+                    if "noi_coach_history" not in st.session_state:
+                        st.session_state.noi_coach_history = []
+                    
+                    st.session_state.noi_coach_history.append({
+                        "question": user_question,
+                        "answer": answer,
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+                    
+                    # Display the answer
+                    st.markdown("### Answer")
+                    st.markdown(answer)
+                except Exception as e:
+                    logger.error(f"Error in NOI Coach: {str(e)}")
+                    st.error(f"Error generating insights: {str(e)}")
+        else:
+            st.warning("Please enter a question to get insights.")
+    
+    # Show history of questions and answers
+    if "noi_coach_history" in st.session_state and st.session_state.noi_coach_history:
+        st.markdown("### Previous Questions")
         
-        # Input for user questions
-        user_question = st.text_input(
-            "Your question:",
-            key="noi_coach_question",
-            help="Ask a question about your financial data"
-        )
-        
-        # Get currently selected comparison context
-        context = st.session_state.current_comparison_view
-        
-        # Submit button
-        if st.button("Get Answer", key="noi_coach_submit"):
-            if user_question:
-                with st.spinner("Analyzing your data and generating insights..."):
-                    try:
-                        # Use the ask_noi_coach function to get AI-powered insights
-                        answer = ask_noi_coach(
-                            user_question, 
-                            st.session_state.comparison_results,
-                            context
-                        )
-                        
-                        # Add the Q&A to the history
-                        if "noi_coach_history" not in st.session_state:
-                            st.session_state.noi_coach_history = []
-                        
-                        st.session_state.noi_coach_history.append({
-                            "question": user_question,
-                            "answer": answer,
-                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        })
-                        
-                        # Display the answer
-                        st.markdown("### Answer")
-                        st.markdown(answer)
-                    except Exception as e:
-                        logger.error(f"Error in NOI Coach: {str(e)}")
-                        st.error(f"Error generating insights: {str(e)}")
-            else:
-                st.warning("Please enter a question to get insights.")
-        
-        # Show history of questions and answers
-        if "noi_coach_history" in st.session_state and st.session_state.noi_coach_history:
-            st.markdown("### Previous Questions")
+        for i, qa in enumerate(reversed(st.session_state.noi_coach_history)):
+            # Only show the 5 most recent Q&As
+            if i >= 5:
+                break
             
-            for i, qa in enumerate(reversed(st.session_state.noi_coach_history)):
-                # Only show the 5 most recent Q&As
-                if i >= 5:
-                    break
-                
-                with st.container():
-                    st.markdown(f"**Q: {qa['question']}**")
-                    st.markdown(f"A: {qa['answer']}")
-                    st.markdown(f"<small>Asked on {qa['timestamp']}</small>", unsafe_allow_html=True)
-                    st.markdown("---")
+            with st.container():
+                st.markdown(f"**Q: {qa['question']}**")
+                st.markdown(f"A: {qa['answer']}")
+                st.markdown(f"<small>Asked on {qa['timestamp']}</small>", unsafe_allow_html=True)
+                st.markdown("---")
 
 def display_unified_insights(insights_data):
     """
@@ -1831,8 +1860,15 @@ def display_unified_insights(insights_data):
         """, unsafe_allow_html=True)
         
         if "summary" in insights_data and insights_data["summary"]:
+            # Remove redundant "Executive Summary:" prefix if present
+            summary_text = insights_data["summary"]
+            if summary_text.startswith("Executive Summary:"):
+                summary_text = summary_text[len("Executive Summary:"):].strip()
+            elif summary_text.startswith("**Executive Summary:**"):
+                summary_text = summary_text[len("**Executive Summary:**"):].strip()
+                
             st.markdown(f"""
-                <div class="reborn-content">{insights_data["summary"]}</div>
+                <div class="reborn-content">{summary_text}</div>
             """, unsafe_allow_html=True)
         else:
             st.info("No executive summary is available.")
@@ -1934,7 +1970,7 @@ def generate_comprehensive_pdf():
                 
                 # Format key metrics for display
                 section_data = st.session_state.comparison_results[section]
-                for key in section_data:
+                for key in list(section_data.keys()):
                     if isinstance(section_data[key], (int, float)):
                         context['performance_data'][section][f'{key}_formatted'] = f"${section_data[key]:,.2f}"
         

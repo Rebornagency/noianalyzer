@@ -95,22 +95,12 @@ def display_narrative_in_tabs():
     """, unsafe_allow_html=True)
     
     if has_narrative:
-        # MODIFIED: Remove the expander and display directly to avoid redundant title
-        # Process the narrative to ensure consistent styling by removing any potential HTML elements
-        narrative_text = st.session_state.generated_narrative.replace("<", "&lt;").replace(">", "&gt;")
+        # Process the narrative to ensure consistent styling
+        narrative_text = st.session_state.generated_narrative
         
-        # Ensure consistent styling by wrapping in a div with specific styling
+        # Display narrative with consistent styling
         st.markdown(f"""
-            <div class="reborn-content narrative-text" style="
-                color: #E0E0E0; 
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                font-size: 1rem;
-                line-height: 1.6;
-                background-color: rgba(30, 41, 59, 0.8);
-                padding: 1rem;
-                border-radius: 6px;
-                margin-bottom: 1rem;
-            ">
+            <div class="narrative-container">
                 {narrative_text}
             </div>
         """, unsafe_allow_html=True)
@@ -126,7 +116,7 @@ def display_narrative_in_tabs():
                 "Edit the financial narrative below:",
                 value=st.session_state.generated_narrative,
                 height=300,
-                key="narrative_editor_tab" # Changed key to avoid conflict if another editor exists
+                key="narrative_editor_tab"
             )
             
             col1, col2 = st.columns(2)
