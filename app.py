@@ -1812,6 +1812,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         try:
             logger.info(f"Creating charts for {name_suffix} comparison")
             # Create bar chart for visual comparison
+            
+            # Add chart container and title for modern styling
+            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+            st.markdown(f'<div class="chart-title">Current vs {name_suffix}</div>', unsafe_allow_html=True)
+
             fig = go.Figure()
 
             # Calculate change percentages for hover data
@@ -1829,21 +1834,9 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     # For other metrics (NOI, GPR, EGI, etc.), an increase (positive change) is good
                     return change_val > 0
             
-            # Create custom color scales based on values to add visual contrast
-            current_colors = []
-            compare_colors = []
-            
-            # Use a gradient of blue shades for current values
-            current_max = max(df["Current"]) if not df["Current"].empty else 0
-            for val in df["Current"]:
-                intensity = min(1.0, 0.3 + 0.7 * (val / current_max)) if current_max > 0 else 0.5
-                current_colors.append(f'rgba(13, 110, 253, {intensity})')
-                
-            # Use a gradient of teal shades for comparison values
-            compare_max = max(df[name_suffix]) if not df[name_suffix].empty else 0
-            for val in df[name_suffix]:
-                intensity = min(1.0, 0.3 + 0.7 * (val / compare_max)) if compare_max > 0 else 0.5
-                compare_colors.append(f'rgba(32, 201, 151, {intensity})')
+            # Use consistent vibrant colors instead of gradients
+            current_color = '#1e88e5'  # Vibrant blue
+            compare_color = '#00bfa5'  # Teal green
 
             # Add current period bars with enhanced styling
             fig.add_trace(go.Bar(
@@ -1851,8 +1844,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 y=df["Current"],
                 name="Current",
                 marker=dict(
-                    color=current_colors,
-                    line=dict(width=1, color='white')
+                    color=current_color,
+                    line=dict(width=0)  # Remove bar borders
                 ),
                 opacity=0.9,
                 customdata=list(zip(change_vals, change_pcts, directions)),
@@ -1865,8 +1858,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 y=df[name_suffix],
                 name=name_suffix,
                 marker=dict(
-                    color=compare_colors,
-                    line=dict(width=1, color='white')
+                    color=compare_color,
+                    line=dict(width=0)  # Remove bar borders
                 ),
                 opacity=0.9,
                 customdata=list(zip(df["Metric"])),
@@ -1885,95 +1878,115 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 # Create annotation text based on whether NOI increased or decreased
                 # For NOI, an increase is positive (green), decrease is negative (red)
                 if noi_diff > 0:
-                    annotation_text = f"NOI increased by ${noi_diff:,.0f}<br>({noi_pct:.1f}%)"
-                    arrow_color = "green"
+                    annotation_text = f"NOI increased by<br>${noi_diff:,.0f}<br>({noi_pct:.1f}%)"
+                    arrow_color = "#00bfa5"  # Teal green for positive
                 elif noi_diff < 0:
-                    annotation_text = f"NOI decreased by ${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)"
-                    arrow_color = "red"
+                    annotation_text = f"NOI decreased by<br>${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)"
+                    arrow_color = "#f44336"  # Red for negative
                 else:
                     annotation_text = "NOI unchanged"
-                    arrow_color = "gray"
+                    arrow_color = "#78909c"  # Gray for neutral
                     
-                # Add annotation for NOI
+                # Add annotation for NOI with improved styling
                 fig.add_annotation(
                     x='NOI', 
-                    y=max(current_noi, prior_noi) * 1.1,
+                    y=max(current_noi, prior_noi) * 1.15,  # Position higher above the bar
                     text=annotation_text,
                     showarrow=True,
                     arrowhead=2,
                     arrowsize=1,
                     arrowwidth=2,
                     arrowcolor=arrow_color,
-                    bgcolor="rgba(30, 41, 59, 0.8)",
+                    bgcolor="rgba(13, 17, 23, 0.8)",
                     bordercolor=arrow_color,
                     borderwidth=1,
-                    borderpad=4,
-                    font=dict(color="#F0F0F0", size=12)
+                    borderpad=8,  # Increased padding
+                    font=dict(
+                        family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                        color="#e6edf3",
+                        size=14
+                    ),
+                    align="center"
                 )
 
-            # Update layout with dark theme styling
+            # Update layout with modern theme styling
             fig.update_layout(
                 barmode='group',
-                title=f"Current vs {name_suffix}",
-                title_font=dict(size=18, color="#F0F0F0", family="Inter, sans-serif"),
+                title=None,  # Remove title as we use custom title above
                 template="plotly_dark",
-                plot_bgcolor='rgba(30, 41, 59, 0.8)',
-                paper_bgcolor='rgba(16, 23, 42, 0)',
+                plot_bgcolor='rgba(13, 17, 23, 0)',  # Transparent background
+                paper_bgcolor='rgba(13, 17, 23, 0)',  # Transparent paper
                 font=dict(
-                    family="Inter, sans-serif",
+                    family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
                     size=14,
-                    color="#F0F0F0"
+                    color="#e6edf3"
                 ),
-                margin=dict(l=20, r=20, t=60, b=80),
+                margin=dict(l=40, r=40, t=20, b=100),  # Increased bottom margin for legend
                 legend=dict(
                     orientation="h",
                     yanchor="bottom",
-                    y=-0.15,
+                    y=-0.25,  # Moved further down to avoid overlap
                     xanchor="center",
                     x=0.5,
-                    bgcolor="rgba(10, 15, 30, 0.6)",
-                    bordercolor="rgba(255, 255, 255, 0.1)",
+                    bgcolor="rgba(13, 17, 23, 0.5)",  # Semi-transparent background
+                    bordercolor="rgba(56, 139, 253, 0.15)",
                     borderwidth=1,
                     font=dict(
-                        color="#F0F0F0"
+                        size=14,
+                        color="#e6edf3"
                     )
                 ),
                 xaxis=dict(
-                    title="",
-                    tickfont=dict(size=14),
+                    title=None,
+                    tickfont=dict(
+                        family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                        size=14,
+                        color="#e6edf3"
+                    ),
                     showgrid=False,
                     zeroline=False,
-                    color="#F0F0F0"
+                    showline=False
                 ),
                 yaxis=dict(
-                    title="Amount ($)",
-                    titlefont=dict(size=14, color="#F0F0F0"),
-                    tickfont=dict(size=12, color="#F0F0F0"),
+                    title=dict(
+                        text="Amount ($)",
+                        font=dict(
+                            family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                            size=14,
+                            color="#e6edf3"
+                        )
+                    ),
                     showgrid=True,
                     gridcolor='rgba(255, 255, 255, 0.1)',
-                    zeroline=False
+                    gridwidth=0.5,
+                    zeroline=False,
+                    showline=False,
+                    tickfont=dict(
+                        family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                        size=14,
+                        color="#e6edf3"
+                    )
                 ),
                 hoverlabel=dict(
-                    bgcolor="#1E293B",
+                    bgcolor="rgba(13, 17, 23, 0.8)",
                     font_size=14,
-                    font_family="Inter, sans-serif",
-                    font_color="#F0F0F0"
-                )
+                    font_family="Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                    font_color="#e6edf3",
+                    bordercolor="rgba(56, 139, 253, 0.15)"
+                ),
+                bargap=0.15,  # Adjust bar gap
+                bargroupgap=0.05  # Adjust gap between grouped bars
             )
 
             # Add dollar sign to y-axis labels
-            fig.update_yaxes(tickprefix="$")
+            fig.update_yaxes(tickprefix="$", tickformat=",.0f")
             
-            # Add subtle pattern and depth to bars
-            for trace in fig.data:
-                trace.update(
-                    marker_pattern_shape="",
-                    marker_line_width=1,
-                    marker_line_color="white"
-                )
-
-            # Display chart
+            # Wrap the chart display in the container div
             st.plotly_chart(fig, use_container_width=True)
+            
+            # Close the chart container div
+            st.markdown('</div>', unsafe_allow_html=True)
+            
             logger.info(f"Successfully displayed chart for {name_suffix} comparison")
 
             # --- Consolidated Insights, Executive Summary, and Recommendations Section ---
