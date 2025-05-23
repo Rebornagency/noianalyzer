@@ -95,6 +95,86 @@ def inject_custom_css():
         display: block; /* Ensure it takes full width if needed */
     }
 
+    /* NEW STYLES FOR RESULTS UI */
+    /* Main title for Analysis and Recommendations */
+    .results-main-title {
+        font-size: 2.5rem !important;
+        font-weight: 500 !important;
+        color: #79b8f3 !important;
+        margin-bottom: 2rem !important;
+        padding: 0 !important;
+        background: none !important;
+        border: none !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Section headers (Executive Summary, Key Performance Insights, etc.) */
+    .results-section-header {
+        font-size: 1.8rem !important;
+        font-weight: 500 !important;
+        color: #79b8f3 !important;
+        margin-top: 2rem !important;
+        margin-bottom: 1.5rem !important;
+        padding: 0 !important;
+        background: none !important;
+        border: none !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Content cards with better styling */
+    .results-card {
+        background-color: rgba(22, 27, 34, 0.8) !important;
+        border: 1px solid rgba(56, 68, 77, 0.5) !important;
+        border-radius: 8px !important;
+        padding: 1.5rem !important;
+        margin-bottom: 2rem !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Text styling within results */
+    .results-text {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        color: #e6edf3 !important;
+        margin-bottom: 1rem !important;
+    }
+
+    /* Number prefix for summary */
+    .results-summary-number {
+        font-weight: 500 !important;
+        margin-right: 0.5rem !important;
+        color: #79b8f3 !important;
+    }
+
+    /* Bullet list styling */
+    .results-bullet-list {
+        list-style-type: none !important;
+        padding-left: 0 !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .results-bullet-item {
+        display: flex !important;
+        align-items: flex-start !important;
+        margin-bottom: 1rem !important;
+        line-height: 1.6 !important;
+    }
+
+    .results-bullet-marker {
+        color: #79b8f3 !important;
+        margin-right: 0.75rem !important;
+        font-size: 1.5rem !important;
+        line-height: 1 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .results-bullet-text {
+        flex: 1 !important;
+        color: #e6edf3 !important;
+    }
+    /* END NEW STYLES */
+
     /* Styling for Streamlit Expander Headers (e.g., Full Financial Narrative) */
     .streamlit-expanderHeader { /* General expander header style */
         background-color: rgba(30, 41, 59, 0.7) !important; /* From load_css fallback, good to have consistently */
@@ -1822,7 +1902,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # --- Consolidated Insights, Executive Summary, and Recommendations Section ---
             st.markdown("---")
             st.markdown("""
-                <div class="reborn-section-title">Analysis and Recommendations</div>
+                <div class="results-main-title">Analysis and Recommendations</div>
             """, unsafe_allow_html=True)
 
             insights_data = st.session_state.get("insights")
@@ -2132,9 +2212,8 @@ def display_noi_coach():
 
 def display_unified_insights(insights_data):
     """
-    Display unified insights in the Streamlit UI.
-    This function serves as a wrapper around display_insights to ensure
-    consistent error handling and data validation.
+    Display unified insights in the Streamlit UI with enhanced styling.
+    This function displays the insights data in a modern, visually appealing format.
     
     Args:
         insights_data: Dictionary containing insights data
@@ -2159,73 +2238,120 @@ def display_unified_insights(insights_data):
         st.error("Insights data is in an unexpected format. Please try processing documents again.")
         return
     
+    # Get property name for title (or fallback to "this property")
+    property_name = st.session_state.property_name if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "this property"
+    
     # Create a container with a distinctive background
     with st.container():
+        # Display the main title with property name
+        st.markdown(f"""
+            <div class="results-main-title">Analysis and Recommendations</div>
+        """, unsafe_allow_html=True)
+        
         # Display the executive summary
         st.markdown("""
-            <div class="reborn-section-title executive-summary">Executive Summary</div>
+            <div class="results-section-header">Executive Summary</div>
         """, unsafe_allow_html=True)
         
         if "summary" in insights_data and insights_data["summary"]:
-            # Remove redundant "Executive Summary:" prefix if present
+            # Clean up the summary text
             summary_text = insights_data["summary"]
+            
+            # Remove redundant "Executive Summary:" prefix if present
             if summary_text.startswith("Executive Summary:"):
                 summary_text = summary_text[len("Executive Summary:"):].strip()
             elif summary_text.startswith("**Executive Summary:**"):
                 summary_text = summary_text[len("**Executive Summary:**"):].strip()
-                
-            st.markdown(f"""
-                <div class="reborn-content">{summary_text}</div>
-            """, unsafe_allow_html=True)
+            
+            # Remove any markdown formatting
+            summary_text = summary_text.replace("**", "")
+            
+            # Add the number prefix for the executive summary
+            summary_html = f"""
+            <div class="results-card">
+                <div class="results-text"><span class="results-summary-number">1.</span>{summary_text}</div>
+            </div>
+            """
+            
+            st.markdown(summary_html, unsafe_allow_html=True)
         else:
             st.info("No executive summary is available.")
 
         # Display performance insights
         st.markdown("""
-            <div class="reborn-section-title insights">Key Performance Insights</div>
+            <div class="results-section-header">Key Performance Insights</div>
         """, unsafe_allow_html=True)
         
         if "performance" in insights_data and insights_data["performance"]:
-            insights_html = ""
             # Ensure performance is a list before iterating
             performance_list = insights_data["performance"]
             if not isinstance(performance_list, list):
                 performance_list = [str(performance_list)] # Convert to list if not already
-
-            for point in performance_list:
-                insights_html += f"<p>• {point}</p>"
             
-            st.markdown(f"""
-                <div class="reborn-content">{insights_html}</div>
-            """, unsafe_allow_html=True)
+            # Format the bullet points
+            bullet_points_html = ""
+            for point in performance_list:
+                # Clean up any markdown formatting
+                clean_point = point.replace("**", "")
+                
+                bullet_points_html += f"""
+                <li class="results-bullet-item">
+                    <div class="results-bullet-marker">•</div>
+                    <div class="results-bullet-text">{clean_point}</div>
+                </li>
+                """
+            
+            # Create the insights card
+            insights_html = f"""
+            <div class="results-card">
+                <ul class="results-bullet-list">
+                    {bullet_points_html}
+                </ul>
+            </div>
+            """
+            
+            st.markdown(insights_html, unsafe_allow_html=True)
         else:
             st.info("No performance insights are available.")
 
         # Display recommendations
         st.markdown("""
-            <div class="reborn-section-title recommendations">Recommendations</div>
+            <div class="results-section-header">Recommendations</div>
         """, unsafe_allow_html=True)
         
         if "recommendations" in insights_data and insights_data["recommendations"]:
-            recommendations_html = ""
             # Ensure recommendations is a list before iterating
             recommendations_list = insights_data["recommendations"]
             if not isinstance(recommendations_list, list):
                 recommendations_list = [str(recommendations_list)] # Convert to list if not already
-
-            for rec in recommendations_list:
-                recommendations_html += f"<p>• {rec}</p>"
             
-            st.markdown(f"""
-                <div class="reborn-content">{recommendations_html}</div>
-            """, unsafe_allow_html=True)
+            # Format the bullet points
+            bullet_points_html = ""
+            for rec in recommendations_list:
+                # Clean up any markdown formatting
+                clean_rec = rec.replace("**", "")
+                
+                bullet_points_html += f"""
+                <li class="results-bullet-item">
+                    <div class="results-bullet-marker">•</div>
+                    <div class="results-bullet-text">{clean_rec}</div>
+                </li>
+                """
+            
+            # Create the recommendations card
+            recommendations_html = f"""
+            <div class="results-card">
+                <ul class="results-bullet-list">
+                    {bullet_points_html}
+                </ul>
+            </div>
+            """
+            
+            st.markdown(recommendations_html, unsafe_allow_html=True)
         else:
             st.info("No recommendations are available.")
 
-        # Add a divider
-        st.markdown("---")
-
-        # Add a note about AI generation
+        # Add a note about AI generation with more subtle styling
         st.caption("These insights were generated by AI based on the financial data provided.")
 
 # Define the generate_comprehensive_pdf function before it's called in main()
