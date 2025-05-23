@@ -1304,10 +1304,26 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # Check if we have OpEx component data
             opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
             
+            # Check if any opex components exist in the data
             if any(component in current_values for component in opex_components):
+                # Apply modern container styling
+                st.markdown('<div class="opex-container">', unsafe_allow_html=True)
+                
+                # Modern header styling
+                st.markdown('<div class="opex-header">Operating Expense Breakdown</div>', unsafe_allow_html=True)
+                
                 # Create DataFrame for OpEx components
                 opex_df_data = []
                 opex_metrics = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
+                
+                # Define color map for categories (will be used for both table indicators and charts)
+                category_colors = {
+                    "Property Taxes": "#4ecdc4",
+                    "Insurance": "#1e88e5",
+                    "Repairs & Maintenance": "#8ed1fc",
+                    "Utilities": "#ff6b6b",
+                    "Management Fees": "#ba68c8"
+                }
                 
                 for key, name in zip(opex_components, opex_metrics):
                     # Handle both formats for current, prior, and change values
@@ -1326,10 +1342,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         name_suffix: prior_val,
                         "Change ($)": change_val,
                         "Change (%)": percent_change,
-                        # Operating expenses are positive when they decrease
-                        # Removing Direction column as requested
+                        # Add color for the category
+                        "Color": category_colors.get(name, "#a9a9a9")  # Default gray if not in map
                     })
                 
+                # Check if we have data to display after filtering
                 if opex_df_data:
                     opex_df = pd.DataFrame(opex_df_data)
                     
@@ -1340,138 +1357,198 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     opex_df_display["Change ($)"] = opex_df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
                     opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
                     
-                    # Apply styling and display - no need to drop Direction column as it's no longer added
-                    opex_styled_df = opex_df_display
+                    # Instead of using Streamlit's dataframe with styling,
+                    # we'll create a custom HTML table with our modern design
+                    html_table = """
+                    <div class="opex-table-container">
+                        <table class="opex-table">
+                            <thead>
+                                <tr>
+                                    <th>Expense Category</th>
+                                    <th>Current</th>
+                                    <th>""" + name_suffix + """</th>
+                                    <th>Change ($)</th>
+                                    <th>Change (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    """
                     
-                    # Create a function to apply styling
-                    def style_opex_df(row):
-                        styles = [''] * len(row)
-                        
-                        # Get indices of the columns to style
-                        pct_change_idx = list(row.index).index("Change (%)")
-                        dollar_change_idx = list(row.index).index("Change ($)")
-                        
+                    # Add rows to the table
+                    for _, row in opex_df_display.iterrows():
+                        # Determine CSS class for values based on change direction
                         try:
                             change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
                             change_pct = float(change_pct_str)
-                            
-                            # For expenses, a decrease (negative change) is favorable
-                            # and an increase (positive change) is unfavorable
                             if change_pct < 0:
-                                color = "color: green"  # Negative change (decrease in expenses) is favorable
-                                impact = "Favorable"
+                                value_class = "opex-positive-value"  # Green for decrease in expenses (favorable)
                             elif change_pct > 0:
-                                color = "color: red"    # Positive change (increase in expenses) is unfavorable
-                                impact = "Unfavorable"
+                                value_class = "opex-negative-value"   # Red for increase in expenses (unfavorable)
                             else:
-                                color = ""              # No change, neutral impact
-                            
-                            # Apply to both dollar and percentage columns
-                            styles[pct_change_idx] = color
-                            styles[dollar_change_idx] = color
-                            
-                            # If we ever want to add an Impact column to this table too:
-                            # row["Impact"] = impact
-                            
+                                value_class = "opex-neutral-value"    # Neutral if no change
                         except (ValueError, TypeError):
-                            # If there's an error parsing the percentage, don't apply styling
-                            pass
+                            value_class = "opex-neutral-value"        # Default to neutral if error
                         
-                        return styles
+                        # Get category color
+                        color = row["Color"]
+                        category = row["Expense Category"]
+                        
+                        # Add the row with color indicator
+                        html_table += f"""
+                        <tr>
+                            <td>
+                                <div class="opex-category-cell">
+                                    <span class="opex-category-indicator" style="background-color: {color};"></span>
+                                    {category}
+                                </div>
+                            </td>
+                            <td class="opex-neutral-value">{row["Current"]}</td>
+                            <td class="opex-neutral-value">{row[name_suffix]}</td>
+                            <td class="{value_class}">{row["Change ($)"]}</td>
+                            <td class="{value_class}">{row["Change (%)"]}</td>
+                        </tr>
+                        """
                     
-                    # Apply styling and display
-                    opex_styled = opex_styled_df.style.apply(style_opex_df, axis=1)
-                    st.dataframe(opex_styled, use_container_width=True)
+                    # Close the table
+                    html_table += """
+                            </tbody>
+                        </table>
+                    </div>
+                    """
                     
-                    # Display a pie chart to visualize the breakdown
+                    # Display the custom HTML table
+                    st.markdown(html_table, unsafe_allow_html=True)
+                    
+                    # Create columns for charts with enhanced styling
                     col1, col2 = st.columns(2)
                     
                     with col1:
+                        # Wrap the chart in a container with our custom styling
+                        st.markdown('<div class="opex-chart-container">', unsafe_allow_html=True)
+                        st.markdown('<div class="opex-chart-title">Current Operating Expenses Breakdown</div>', unsafe_allow_html=True)
+                        
                         # Filter out zero values for the pie chart
                         pie_data = opex_df[opex_df["Current"] > 0]
                         if not pie_data.empty:
+                            # Create a custom color map based on our category colors
+                            color_map = {row["Expense Category"]: row["Color"] for _, row in pie_data.iterrows()}
+                            
                             fig = px.pie(
                                 pie_data, 
                                 values="Current", 
                                 names="Expense Category",
-                                title="Current Operating Expenses Breakdown",
-                                color_discrete_sequence=px.colors.qualitative.Set3,
+                                color="Expense Category",
+                                color_discrete_map=color_map,
                                 hole=0.4
                             )
                             fig.update_layout(
                                 template="plotly_dark",
-                                plot_bgcolor='rgba(30, 41, 59, 0.8)',
-                                paper_bgcolor='rgba(16, 23, 42, 0)',
+                                plot_bgcolor='rgba(13, 17, 23, 0)',
+                                paper_bgcolor='rgba(13, 17, 23, 0)',
                                 font=dict(
                                     family="Inter, sans-serif",
-                                    size=12,
-                                    color="#F0F0F0"
+                                    size=14,
+                                    color="#e6edf3"
                                 ),
-                                title_font=dict(size=16, color="#F0F0F0", family="Inter, sans-serif"),
-                                legend=dict(font=dict(size=10, color="#F0F0F0"))
-                            )
-                            st.plotly_chart(fig, use_container_width=True)
-                    
-                    with col2:
-                        # Create a horizontal bar chart for comparison
-                        if not opex_df.empty:
-                            comp_fig = go.Figure()
-                            
-                            # Add current period bars
-                            comp_fig.add_trace(go.Bar(
-                                y=opex_df["Expense Category"],
-                                x=opex_df["Current"],
-                                name="Current",
-                                orientation='h',
-                                marker=dict(
-                                    color='rgba(13, 110, 253, 0.8)',
-                                    line=dict(width=1, color='white')
-                                )
-                            ))
-                            
-                            # Add prior period bars
-                            comp_fig.add_trace(go.Bar(
-                                y=opex_df["Expense Category"],
-                                x=opex_df[name_suffix],
-                                name=name_suffix,
-                                orientation='h',
-                                marker=dict(
-                                    color='rgba(32, 201, 151, 0.8)',
-                                    line=dict(width=1, color='white')
-                                )
-                            ))
-                            
-                            # Update layout
-                            comp_fig.update_layout(
-                                title=f"OpEx Components: Current vs {name_suffix}",
-                                barmode='group',
-                                xaxis_title="Amount ($)", # This is the value axis for horizontal bars
-                                yaxis_title=None, # Categories are on y, no title needed if clear
-                                xaxis=dict(tickprefix="$"),
-                                template="plotly_dark",
-                                plot_bgcolor='rgba(30, 41, 59, 0.8)',
-                                paper_bgcolor='rgba(16, 23, 42, 0)',
-                                margin=dict(l=120, r=20, t=60, b=100), # Increased left margin for longer y-axis labels, increased bottom margin
-                                font=dict(
-                                    family="Inter, sans-serif",
-                                    size=12,
-                                    color="#F0F0F0"
-                                ),
-                                title_font=dict(size=16, color="#F0F0F0", family="Inter, sans-serif"),
+                                margin=dict(l=20, r=20, t=20, b=20),
                                 legend=dict(
                                     orientation="h",
                                     yanchor="bottom",
-                                    y=-0.25, # Adjusted legend position slightly lower
+                                    y=-0.2,
                                     xanchor="center",
                                     x=0.5,
-                                    font=dict(size=10, color="#F0F0F0")
+                                    font=dict(size=12, color="#e6edf3")
+                                ),
+                                showlegend=False  # Hide legend as we have colored indicators in the table
+                            )
+                            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                        
+                        # Close the chart container
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    with col2:
+                        # Wrap the chart in a container with our custom styling
+                        st.markdown('<div class="opex-chart-container">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="opex-chart-title">OpEx Components: Current vs {name_suffix}</div>', unsafe_allow_html=True)
+                        
+                        # Create a horizontal bar chart for comparison
+                        if not opex_df.empty:
+                            # Prepare the data in a format suitable for the horizontal bar chart
+                            bar_data = []
+                            for _, row in opex_df.iterrows():
+                                bar_data.append({
+                                    "Expense Category": row["Expense Category"],
+                                    "Amount": row["Current"],
+                                    "Period": "Current",
+                                    "Color": row["Color"]
+                                })
+                                bar_data.append({
+                                    "Expense Category": row["Expense Category"],
+                                    "Amount": opex_df[opex_df["Expense Category"] == row["Expense Category"]][name_suffix].values[0],
+                                    "Period": name_suffix,
+                                    "Color": row["Color"]
+                                })
+                            
+                            bar_df = pd.DataFrame(bar_data)
+                            
+                            # Create the bar chart with improved styling
+                            comp_fig = px.bar(
+                                bar_df,
+                                x="Amount",
+                                y="Expense Category",
+                                color="Period",
+                                barmode="group",
+                                orientation="h",
+                                color_discrete_map={
+                                    "Current": "#1e88e5",
+                                    name_suffix: "#4ecdc4"
+                                },
+                                labels={"Amount": "Amount ($)", "Expense Category": ""}
+                            )
+                            
+                            # Update layout for modern appearance
+                            comp_fig.update_layout(
+                                template="plotly_dark",
+                                plot_bgcolor='rgba(13, 17, 23, 0)',
+                                paper_bgcolor='rgba(13, 17, 23, 0)',
+                                margin=dict(l=20, r=20, t=20, b=50),
+                                font=dict(
+                                    family="Inter, sans-serif",
+                                    size=14,
+                                    color="#e6edf3"
+                                ),
+                                xaxis=dict(
+                                    showgrid=True,
+                                    gridcolor='rgba(255, 255, 255, 0.1)',
+                                    tickprefix="$",
+                                    tickformat=',',
+                                    title=dict(text="Amount ($)", font=dict(size=14))
+                                ),
+                                yaxis=dict(
+                                    showgrid=False
+                                ),
+                                legend=dict(
+                                    orientation="h",
+                                    yanchor="bottom",
+                                    y=-0.25,
+                                    xanchor="right",
+                                    x=1,
+                                    font=dict(size=12, color="#e6edf3")
                                 )
                             )
                             
-                            st.plotly_chart(comp_fig, use_container_width=True)
+                            st.plotly_chart(comp_fig, use_container_width=True, config={'displayModeBar': False})
+                        
+                        # Close the chart container
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Close the main container
+                    st.markdown('</div>', unsafe_allow_html=True)
                 else:
+                    # We have components but no data to display
                     st.info("No operating expense details available for this period.")
             else:
+                # No operating expense components in the data
                 st.info("Operating expense breakdown is not available for this comparison.")
                 
         # Add Other Income Breakdown expander section
