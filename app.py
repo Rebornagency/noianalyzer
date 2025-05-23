@@ -2243,11 +2243,6 @@ def display_unified_insights(insights_data):
     
     # Create a container with a distinctive background
     with st.container():
-        # Display the main title with property name
-        st.markdown(f"""
-            <div class="results-main-title">Analysis and Recommendations</div>
-        """, unsafe_allow_html=True)
-        
         # Display the executive summary
         st.markdown("""
             <div class="results-section-header">Executive Summary</div>
@@ -2301,7 +2296,7 @@ def display_unified_insights(insights_data):
                 </li>
                 """
             
-            # Create the insights card
+            # Create the insights card with properly concatenated HTML
             insights_html = f"""
             <div class="results-card">
                 <ul class="results-bullet-list">
@@ -2310,6 +2305,7 @@ def display_unified_insights(insights_data):
             </div>
             """
             
+            # Pass the concatenated HTML string to st.markdown
             st.markdown(insights_html, unsafe_allow_html=True)
         else:
             st.info("No performance insights are available.")
@@ -2338,7 +2334,7 @@ def display_unified_insights(insights_data):
                 </li>
                 """
             
-            # Create the recommendations card
+            # Create the recommendations card with properly concatenated HTML
             recommendations_html = f"""
             <div class="results-card">
                 <ul class="results-bullet-list">
@@ -2347,6 +2343,7 @@ def display_unified_insights(insights_data):
             </div>
             """
             
+            # Pass the concatenated HTML string to st.markdown
             st.markdown(recommendations_html, unsafe_allow_html=True)
         else:
             st.info("No recommendations are available.")
