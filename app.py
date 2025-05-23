@@ -66,17 +66,38 @@ def inject_custom_css():
         color: #E5E7EB !important;
     }
     
+    /* Full-width layout for better space utilization */
     .stApp {
         background-color: #111827 !important;
-        max-width: 1200px !important;
+        max-width: 100% !important;
         margin: 0 auto !important;
+        padding: 0 !important;
     }
     
-    /* Remove top spacing from Streamlit containers */
+    /* Expand main content area and reduce unnecessary spacing */
     .main .block-container {
+        max-width: 95% !important;
         padding-top: 1rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
         margin-top: 0 !important;
-        max-width: 1200px !important;
+    }
+    
+    /* Adjust sidebar width for better proportions */
+    [data-testid="stSidebar"] {
+        width: 18rem !important;
+    }
+    
+    /* Make sure content sections use the available space */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-left: 0px !important;
+        padding-right: 0px !important;
+    }
+    
+    /* Remove extra padding from containers */
+    .stMarkdown, .stText {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
     
     /* Enhanced section titles (used for Executive Summary, Key Perf. Insights etc.) */
@@ -2563,10 +2584,56 @@ def main():
     
     # Sidebar configuration
     with st.sidebar:
-        st.title("NOI Analyzer")
+        # Modern sidebar title
+        st.markdown("""
+        <div class="sidebar-title">
+            <span class="noi-title-accent">NOI</span> Analyzer
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Modern style overrides for sidebar
+        st.markdown("""
+        <style>
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {
+            background-color: rgba(16, 23, 42, 0.8) !important;
+            border-right: 1px solid rgba(59, 130, 246, 0.1) !important;
+        }
+        
+        .sidebar-title {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1.8rem !important;
+            font-weight: 600 !important;
+            color: #e6edf3 !important;
+            margin-bottom: 1.5rem !important;
+            padding-bottom: 0.5rem !important;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
+        }
+        
+        /* Sidebar headers */
+        .sidebar-section-header {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1.2rem !important;
+            font-weight: 500 !important;
+            color: #64B5F6 !important;
+            margin-top: 1.5rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        
+        /* Sidebar subheaders */
+        .sidebar-subsection-header {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1rem !important;
+            font-weight: 500 !important;
+            color: #e6edf3 !important;
+            margin-top: 1rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         
         # File uploaders for NOI data
-        st.header("Upload Documents")
+        st.markdown('<div class="sidebar-section-header">Upload Documents</div>', unsafe_allow_html=True)
         
         # Upload current month actuals
         current_month_file = st.file_uploader(
@@ -2619,7 +2686,7 @@ def main():
         )
         
         # Options
-        st.header("Options")
+        st.markdown('<div class="sidebar-section-header">Options</div>', unsafe_allow_html=True)
         
         # Show zero values toggle
         show_zero_values = st.checkbox(
@@ -2633,7 +2700,7 @@ def main():
             st.rerun()
         
         # NOI Coach context selection
-        st.subheader("NOI Coach Context")
+        st.markdown('<div class="sidebar-subsection-header">NOI Coach Context</div>', unsafe_allow_html=True)
         view_options = {
             "budget": "Budget Comparison",
             "prior_year": "Year-over-Year",
@@ -2653,58 +2720,200 @@ def main():
     # Main content area
     if not st.session_state.processing_completed:
         # Show welcome content when no data has been processed
-        st.title("NOI Analyzer Enhanced")
-        show_instructions()
+        # Modern title with accent color
+        st.markdown("""
+        <h1 class="noi-title">
+            <span class="noi-title-accent">NOI</span> Analyzer
+        </h1>
+        """, unsafe_allow_html=True)
         
-        # Add sample screenshots or overview
-        st.markdown('<div class="reborn-section-title">Features</div>', unsafe_allow_html=True)
+        # Two-column layout for better space utilization
+        col1, col2 = st.columns([1, 1.2])
         
-        features_html = """
-        <div class="card-container">
-            <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
-                <li style="margin-bottom: 1rem; display: flex; align-items: flex-start;">
-                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
-                        <span style="color: white; font-weight: bold; font-size: 16px;">1</span>
+        with col1:
+            # Modern Upload Documents section
+            st.markdown('<h2 class="section-header">Upload Documents</h2>', unsafe_allow_html=True)
+            
+            # Create modern file upload cards
+            st.markdown('<div class="upload-container">', unsafe_allow_html=True)
+            
+            # Current Month Actuals (Required)
+            st.markdown("""
+            <div class="upload-card">
+                <div class="upload-card-header">Current Month Actuals <span class="required-badge">Required</span></div>
+            """, unsafe_allow_html=True)
+            current_month_file = st.file_uploader(
+                "", 
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="current_month_upload",
+                help="Upload your current month's financial data"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Prior Month Actuals
+            st.markdown("""
+            <div class="upload-card">
+                <div class="upload-card-header">Prior Month Actuals</div>
+            """, unsafe_allow_html=True)
+            prior_month_file = st.file_uploader(
+                "", 
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="prior_month_upload",
+                help="Upload your prior month's financial data for month-over-month comparison"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Current Month Budget
+            st.markdown("""
+            <div class="upload-card">
+                <div class="upload-card-header">Current Month Budget</div>
+            """, unsafe_allow_html=True)
+            budget_file = st.file_uploader(
+                "", 
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="budget_upload",
+                help="Upload your budget data for budget vs actuals comparison"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Prior Year Same Month
+            st.markdown("""
+            <div class="upload-card">
+                <div class="upload-card-header">Prior Year Same Month</div>
+            """, unsafe_allow_html=True)
+            prior_year_file = st.file_uploader(
+                "", 
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="prior_year_upload",
+                help="Upload the same month from prior year for year-over-year comparison"
+            )
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Property name input with modern styling
+            st.markdown('<div class="upload-card">', unsafe_allow_html=True)
+            st.markdown('<div class="upload-card-header">Property Information</div>', unsafe_allow_html=True)
+            property_name = st.text_input(
+                "Property Name (Optional)",
+                value=st.session_state.property_name,
+                help="Enter the name of the property being analyzed"
+            )
+            
+            if property_name != st.session_state.property_name:
+                st.session_state.property_name = property_name
+                
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Modern process button
+            st.markdown("""
+            <style>
+            /* Override button styling for process button */
+            .stButton > button[kind="primary"] {
+                background-color: #3B82F6 !important;
+                color: white !important;
+                font-size: 1.1rem !important;
+                font-weight: 500 !important;
+                padding: 0.75rem 1.5rem !important;
+                border-radius: 8px !important;
+                border: none !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+                transition: all 0.3s ease !important;
+                margin-top: 1rem !important;
+                margin-bottom: 1.5rem !important;
+                width: 100% !important;
+            }
+            
+            .stButton > button[kind="primary"]:hover {
+                background-color: #2563EB !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+                transform: translateY(-2px) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Process button
+            process_clicked = st.button(
+                "Process Documents", 
+                type="primary",
+                use_container_width=True,
+                help="Process the uploaded documents to generate NOI analysis"
+            )
+        
+        with col2:
+            # Enhanced Instructions section
+            st.markdown("""
+            <div class="info-card">
+                <h3 class="info-card-header">Instructions:</h3>
+                <ol class="info-list">
+                    <li>Upload your financial documents using the file uploaders</li>
+                    <li>At minimum, upload a <span class="highlight">Current Month Actuals</span> file</li>
+                    <li>For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)</li>
+                    <li>Click "<span class="highlight">Process Documents</span>" to analyze the data</li>
+                    <li>View the results in the analysis tabs</li>
+                    <li>Export your results as PDF or Excel using the export options</li>
+                </ol>
+                <p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Enhanced Features section
+            st.markdown("""
+            <div class="features-card">
+                <h3 class="features-header">Features</h3>
+                
+                <div class="feature-item">
+                    <div class="feature-number">1</div>
+                    <div class="feature-content">
+                        <div class="feature-title">Comparative Analysis</div>
+                        <div class="feature-description">Compare current performance against budget, prior month, and prior year</div>
                     </div>
-                    <div>
-                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">Comparative Analysis</span>
-                        <span style="color: #E0E0E0;">Compare current performance against budget, prior month, and prior year</span>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-number">2</div>
+                    <div class="feature-content">
+                        <div class="feature-title">Financial Insights</div>
+                        <div class="feature-description">AI-generated analysis of key metrics and trends</div>
                     </div>
-                </li>
-                <li style="margin-bottom: 1rem; display: flex; align-items: flex-start;">
-                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
-                        <span style="color: white; font-weight: bold; font-size: 16px;">2</span>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-number">3</div>
+                    <div class="feature-content">
+                        <div class="feature-title">NOI Coach</div>
+                        <div class="feature-description">Ask questions about your financial data and get AI-powered insights</div>
                     </div>
-                    <div>
-                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">Financial Insights</span>
-                        <span style="color: #E0E0E0;">AI-generated analysis of key metrics and trends</span>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-number">4</div>
+                    <div class="feature-content">
+                        <div class="feature-title">Export Options</div>
+                        <div class="feature-description">Save results as PDF or Excel for sharing and reporting</div>
                     </div>
-                </li>
-                <li style="margin-bottom: 1rem; display: flex; align-items: flex-start;">
-                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
-                        <span style="color: white; font-weight: bold; font-size: 16px;">3</span>
-                    </div>
-                    <div>
-                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">NOI Coach</span>
-                        <span style="color: #E0E0E0;">Ask questions about your financial data and get AI-powered insights</span>
-                    </div>
-                </li>
-                <li style="display: flex; align-items: flex-start;">
-                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
-                        <span style="color: white; font-weight: bold; font-size: 16px;">4</span>
-                    </div>
-                    <div>
-                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">Export Options</span>
-                        <span style="color: #E0E0E0;">Save results as PDF or Excel for sharing and reporting</span>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        """
-        st.markdown(features_html, unsafe_allow_html=True)
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
     else:
         # Show results after processing
-        st.title(f"NOI Analysis Results{' - ' + st.session_state.property_name if st.session_state.property_name else ''}")
+        # Modern styled title
+        st.markdown(f"""
+        <h1 class="noi-title">
+            <span class="noi-title-accent">NOI</span> Analysis Results
+            {' - <span class="noi-title-property">' + st.session_state.property_name + '</span>' if st.session_state.property_name else ''}
+        </h1>
+        """, unsafe_allow_html=True)
+        
+        # Add styling for property name
+        st.markdown("""
+        <style>
+        .noi-title-property {
+            color: #e6edf3;
+            font-weight: 400;
+        }
+        </style>
+        """, unsafe_allow_html=True)
         
         # Get the comparison results from session state
         # The st.session_state.comparison_results should be populated by calculate_noi_comparisons
@@ -2726,7 +2935,50 @@ def main():
         except Exception as e:
             logger.error(f"Error logging comparison_data_for_tabs structure: {e}")
 
-        # Create tabs for each comparison type
+        # Create tabs for each comparison type with modern styling
+        st.markdown("""
+        <style>
+        /* Tabs styling */
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: rgba(16, 23, 42, 0.5) !important;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 0.25rem 0.25rem 0 0.25rem !important;
+            gap: 0 !important;
+            border-bottom: none !important;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 8px 8px 0 0 !important;
+            padding: 0.75rem 1.25rem !important;
+            margin: 0 0.125rem !important;
+            background-color: rgba(16, 23, 42, 0.3) !important;
+            border: none !important;
+            color: rgba(230, 237, 243, 0.7) !important;
+            font-size: 1rem !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            background-color: #3B82F6 !important;
+            color: white !important;
+        }
+        
+        .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+            background-color: rgba(16, 23, 42, 0.5) !important;
+            color: #e6edf3 !important;
+        }
+        
+        .stTabs [data-baseweb="tab-panel"] {
+            background-color: rgba(16, 23, 42, 0.2) !important;
+            border-radius: 0 0 10px 10px !important;
+            padding: 1.5rem !important;
+            border: 1px solid rgba(59, 130, 246, 0.1) !important;
+            border-top: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
         tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Summary", "NOI Coach"])
         
         with tabs[0]:
@@ -2942,51 +3194,96 @@ def main():
         # Add a separator
         st.markdown("---")
 
-        # Add export options in a container at the bottom
-        with st.container():
-            st.subheader("Export Options")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # PDF Export button
-                if st.button("Generate Complete PDF Report", key="global_pdf_export"):
-                    # Use our custom status indicator instead of spinner
-                    show_processing_status("Generating comprehensive PDF report...", is_running=True)
-                    try:
-                        pdf_bytes = generate_comprehensive_pdf() 
+        # Add export options in a container at the bottom with modern styling
+        st.markdown("""
+        <div class="export-container">
+            <h2 class="export-title">Export Options</h2>
+            <div class="export-description">Download your analysis as PDF or Excel for sharing and reporting.</div>
+        </div>
+        
+        <style>
+        .export-container {
+            margin-bottom: 1.5rem;
+        }
+        
+        .export-title {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1.75rem;
+            font-weight: 500;
+            color: #3B82F6;
+            margin-bottom: 0.5rem;
+        }
+        
+        .export-description {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1rem;
+            color: #e6edf3;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Export button styling */
+        .export-button {
+            background-color: rgba(16, 23, 42, 0.7) !important;
+            border: 1px solid rgba(59, 130, 246, 0.3) !important;
+            border-radius: 8px !important;
+            padding: 1.5rem !important;
+            transition: all 0.3s ease !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        .export-button:hover {
+            background-color: rgba(16, 23, 42, 0.9) !important;
+            border-color: rgba(59, 130, 246, 0.5) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # PDF Export button with modern styling
+            st.markdown('<div class="export-button">', unsafe_allow_html=True)
+            if st.button("Generate Complete PDF Report", key="global_pdf_export"):
+                # Use our custom status indicator instead of spinner
+                show_processing_status("Generating comprehensive PDF report...", is_running=True)
+                try:
+                    pdf_bytes = generate_comprehensive_pdf() 
+                    
+                    if pdf_bytes:
+                        # Create a unique filename with timestamp
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
+                        pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
                         
-                        if pdf_bytes:
-                            # Create a unique filename with timestamp
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
-                            pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
-                            
-                            # Display download button
-                            st.download_button(
-                                label="Download Complete PDF Report",
-                                data=pdf_bytes,
-                                file_name=pdf_filename,
-                                mime="application/pdf",
-                                key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
-                            )
-                            # Show success message
-                            show_processing_status("PDF report generated successfully!", status_type="success")
-                        else:
-                            # Show error message
-                            show_processing_status("Failed to generate PDF report. Please check the logs for details.", status_type="error")
-                    except Exception as e:
-                        logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
+                        # Display download button
+                        st.download_button(
+                            label="Download Complete PDF Report",
+                            data=pdf_bytes,
+                            file_name=pdf_filename,
+                            mime="application/pdf",
+                            key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
+                        )
+                        # Show success message
+                        show_processing_status("PDF report generated successfully!", status_type="success")
+                    else:
                         # Show error message
-                        show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
-            
-            with col2:
-                # Excel Export button (if implemented)
-                if st.button("Export to Excel", key="global_excel_export"):
-                    # Use our custom status indicator
-                    show_processing_status("Generating Excel export...", is_running=True)
-                    # Excel export logic here
-                    show_processing_status("Excel export functionality coming soon!", status_type="info")
+                        show_processing_status("Failed to generate PDF report. Please check the logs for details.", status_type="error")
+                except Exception as e:
+                    logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
+                    # Show error message
+                    show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        with col2:
+            # Excel Export button (if implemented) with modern styling
+            st.markdown('<div class="export-button">', unsafe_allow_html=True)
+            if st.button("Export to Excel", key="global_excel_export"):
+                # Use our custom status indicator
+                show_processing_status("Generating Excel export...", is_running=True)
+                # Excel export logic here
+                show_processing_status("Excel export functionality coming soon!", status_type="info")
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":

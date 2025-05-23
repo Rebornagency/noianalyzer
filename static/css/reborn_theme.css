@@ -363,17 +363,56 @@ p, .body-text {
 }
 
 /* File uploader styling */
-.stFileUploader > div {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px dashed var(--reborn-border);
-    border-radius: var(--reborn-radius-md);
-    padding: var(--reborn-spacing-md);
-    transition: background-color 0.3s ease;
+[data-testid="stFileUploader"] {
+    background-color: rgba(30, 41, 59, 0.6) !important;
+    border: 2px dashed rgba(148, 163, 184, 0.4) !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+    transition: all 0.3s ease !important;
 }
 
-.stFileUploader > div:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: var(--reborn-accent-blue);
+[data-testid="stFileUploader"]:hover {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    border-color: rgba(148, 163, 184, 0.6) !important;
+}
+
+/* Enhanced file uploader styling */
+.stFileUploader > div:first-child {
+    background-color: rgba(16, 23, 42, 0.4) !important;
+    border: 1px dashed rgba(59, 130, 246, 0.3) !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.stFileUploader > div:first-child:hover {
+    background-color: rgba(16, 23, 42, 0.6) !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Style the browse files button */
+.stFileUploader button {
+    background-color: rgba(59, 130, 246, 0.8) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500 !important;
+    border: none !important;
+    transition: all 0.3s ease !important;
+}
+
+.stFileUploader button:hover {
+    background-color: rgba(59, 130, 246, 1) !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* File drag area text */
+.uploadIcon {
+    color: rgba(59, 130, 246, 0.8) !important;
+}
+
+.stFileUploader p {
+    color: #e6edf3 !important;
 }
 
 /* Metric styling */
@@ -579,5 +618,325 @@ p, .body-text {
 @media (max-width: 600px) {
     .stat-card {
         flex-basis: 100%;
+    }
+}
+
+/* ----- Enhanced Home UI Styling ----- */
+
+/* Full-width layout for better space utilization */
+.main .block-container {
+    max-width: 1400px !important;
+    padding-top: 1rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+/* Enhanced title styling */
+.noi-title {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 2.5rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 1.5rem !important;
+    padding-left: 0.5rem !important;
+    color: #e6edf3 !important;
+}
+
+.noi-title-accent {
+    color: #3B82F6 !important;
+}
+
+/* Enhanced section headers */
+.section-header {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 2rem !important;
+    font-weight: 500 !important;
+    color: #3B82F6 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+    padding-left: 0.5rem !important;
+}
+
+/* File upload styling */
+.upload-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.upload-card {
+    background-color: rgba(16, 23, 42, 0.7);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.upload-card:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.upload-card-header {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #e6edf3;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.required-badge {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #3B82F6;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+}
+
+/* Enhanced instructions and features cards */
+.info-card {
+    background-color: rgba(16, 23, 42, 0.7);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.info-card-header {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #64B5F6;
+    margin-bottom: 1rem;
+}
+
+.info-list {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.1rem;
+    color: #e6edf3;
+    margin-left: 1rem;
+    padding-left: 1rem;
+}
+
+.info-list li {
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+}
+
+.highlight {
+    color: #64B5F6;
+    font-weight: 500;
+}
+
+.features-card {
+    background-color: rgba(16, 23, 42, 0.7);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.features-header {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #64B5F6;
+    margin-bottom: 1.5rem;
+}
+
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+}
+
+.feature-number {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #3B82F6;
+    font-size: 1rem;
+    font-weight: 600;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.feature-content {
+    flex-grow: 1;
+}
+
+.feature-title {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #64B5F6;
+    margin-bottom: 0.25rem;
+}
+
+.feature-description {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1rem;
+    color: #e6edf3;
+    line-height: 1.5;
+}
+
+/* Enhanced button styling */
+.primary-button {
+    background-color: #3B82F6 !important;
+    color: white !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 8px !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.3s ease !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.primary-button:hover {
+    background-color: #2563EB !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(-2px) !important;
+}
+
+.primary-button:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Column adjustments */
+[data-testid="column"] {
+    padding: 0 0.75rem !important;
+}
+
+[data-testid="column"]:first-child {
+    padding-left: 0 !important;
+}
+
+[data-testid="column"]:last-child {
+    padding-right: 0 !important;
+}
+
+/* ----- Responsive Layout Adjustments ----- */
+
+/* Large screens (desktops) */
+@media (min-width: 1200px) {
+    .main .block-container {
+        max-width: 90% !important;
+    }
+}
+
+/* Medium screens (tablets and small desktops) */
+@media (max-width: 1199px) and (min-width: 768px) {
+    .main .block-container {
+        max-width: 95% !important;
+    }
+    
+    .upload-container {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .noi-title {
+        font-size: 2.25rem !important;
+    }
+    
+    .section-header {
+        font-size: 1.75rem !important;
+    }
+}
+
+/* Small screens (tablets and large phones) */
+@media (max-width: 767px) and (min-width: 576px) {
+    .main .block-container {
+        max-width: 100% !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+    
+    .upload-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .noi-title {
+        font-size: 2rem !important;
+    }
+    
+    .section-header {
+        font-size: 1.5rem !important;
+    }
+    
+    .feature-item {
+        margin-bottom: 1rem !important;
+    }
+    
+    .info-card, .features-card {
+        padding: 1.25rem !important;
+    }
+}
+
+/* Extra small screens (phones) */
+@media (max-width: 575px) {
+    .main .block-container {
+        max-width: 100% !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    .upload-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .noi-title {
+        font-size: 1.75rem !important;
+    }
+    
+    .section-header {
+        font-size: 1.25rem !important;
+    }
+    
+    .feature-item {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .feature-number {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .feature-title {
+        font-size: 1rem !important;
+    }
+    
+    .feature-description {
+        font-size: 0.9rem !important;
+    }
+    
+    .info-card, .features-card {
+        padding: 1rem !important;
+    }
+    
+    .info-list {
+        font-size: 0.9rem !important;
+        padding-left: 0.75rem !important;
+        margin-left: 0.75rem !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.9rem !important;
     }
 }
