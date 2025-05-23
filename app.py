@@ -60,10 +60,23 @@ def inject_custom_css():
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
     }
     
+    /* Base layout styling - improved spacing and background */
+    body {
+        background-color: #111827 !important;
+        color: #E5E7EB !important;
+    }
+    
+    .stApp {
+        background-color: #111827 !important;
+        max-width: 1200px !important;
+        margin: 0 auto !important;
+    }
+    
     /* Remove top spacing from Streamlit containers */
     .main .block-container {
-        padding-top: 0 !important;
+        padding-top: 1rem !important;
         margin-top: 0 !important;
+        max-width: 1200px !important;
     }
     
     /* Enhanced section titles (used for Executive Summary, Key Perf. Insights etc.) */
@@ -76,7 +89,7 @@ def inject_custom_css():
         margin-bottom: 1rem !important;
         padding: 0.5rem 0.75rem !important;
         background-color: rgba(30, 41, 59, 0.8) !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
         border-left: 4px solid var(--reborn-accent-blue) !important;
         line-height: 1.4 !important;
         display: block; /* Ensure it takes full width if needed */
@@ -85,7 +98,13 @@ def inject_custom_css():
     /* Styling for Streamlit Expander Headers (e.g., Full Financial Narrative) */
     .streamlit-expanderHeader { /* General expander header style */
         background-color: rgba(30, 41, 59, 0.7) !important; /* From load_css fallback, good to have consistently */
-        border-radius: 5px !important;
+        border-radius: 8px !important;
+        margin-bottom: 0.5rem !important;
+        transition: background-color 0.3s ease !important;
+    }
+    
+    .streamlit-expanderHeader:hover {
+        background-color: rgba(30, 41, 59, 0.9) !important;
     }
 
     .streamlit-expanderHeader p { /* Specifically target the text within the expander header */
@@ -112,16 +131,17 @@ def inject_custom_css():
         padding-top: 0 !important;
     }
 
-    /* NEW: Enhanced styling for narrative text */
+    /* Enhanced styling for narrative text */
     .narrative-text {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         color: #E0E0E0 !important;
         font-size: 1rem !important;
         line-height: 1.6 !important;
         background-color: rgba(30, 41, 59, 0.8) !important;
-        padding: 1rem !important;
-        border-radius: 6px !important;
-        margin-bottom: 1rem !important;
+        padding: 1.25rem !important;
+        border-radius: 8px !important;
+        margin-bottom: 1.25rem !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
     }
     
     /* Force consistent styling for all elements within narrative text */
@@ -161,9 +181,10 @@ def inject_custom_css():
         font-size: 1rem !important;
         line-height: 1.6 !important;
         background-color: rgba(30, 41, 59, 0.8) !important;
-        padding: 1rem !important;
-        border-radius: 6px !important;
-        margin-bottom: 1rem !important;
+        padding: 1.25rem !important;
+        border-radius: 8px !important;
+        margin-bottom: 1.25rem !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
     }
     
     /* Ensure consistent styling for all elements within the narrative */
@@ -182,6 +203,114 @@ def inject_custom_css():
     .narrative-container .number {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
         color: #E0E0E0 !important;
+    }
+    
+    /* Enhanced button styling */
+    .stButton > button {
+        background-color: #1E40AF !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.6rem 1.25rem !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #2563EB !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    .stButton > button:active {
+        transform: translateY(1px) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Card-style elements */
+    .card-container {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border-radius: 8px !important;
+        padding: 1.25rem !important;
+        margin-bottom: 1.25rem !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+        transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+    }
+    
+    .card-container:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* Info, warning, error messages styling */
+    .stInfo, .element-container .alert-info {
+        background-color: rgba(56, 189, 248, 0.1) !important;
+        border-left: 4px solid #38BDF8 !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .stWarning, .element-container .alert-warning {
+        background-color: rgba(251, 191, 36, 0.1) !important;
+        border-left: 4px solid #FBBF24 !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .stError, .element-container .alert-danger {
+        background-color: rgba(239, 68, 68, 0.1) !important;
+        border-left: 4px solid #EF4444 !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .stSuccess, .element-container .alert-success {
+        background-color: rgba(34, 197, 94, 0.1) !important;
+        border-left: 4px solid #22C55E !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    /* File uploader styling */
+    [data-testid="stFileUploader"] {
+        background-color: rgba(30, 41, 59, 0.6) !important;
+        border: 2px dashed rgba(148, 163, 184, 0.4) !important;
+        border-radius: 8px !important;
+        padding: 1rem !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    [data-testid="stFileUploader"]:hover {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border-color: rgba(148, 163, 184, 0.6) !important;
+    }
+    
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(30, 41, 59, 0.6) !important;
+        border-radius: 8px !important;
+        padding: 0.25rem !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 6px !important;
+        margin: 0.25rem !important;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background-color: #1E40AF !important;
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -306,15 +435,22 @@ def display_logo():
         
         # Direct embedding of the logo with proper sizing, alignment, and no extra spacing
         logo_html = f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px; margin-top: 0; padding: 0;">
+        <div style="
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin-bottom: 15px; 
+            margin-top: 0; 
+            padding: 5px 0;
+        ">
             <img 
                 src="data:image/png;base64,{logo_base64}" 
-                width="150px" 
+                width="180px" 
                 alt="Reborn Logo" 
                 style="
                     object-fit: contain;
-                    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2)); 
-                    -webkit-filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2));
+                    filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
+                    -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
                     max-width: 100%;
                     background: transparent;
                 "
@@ -325,8 +461,20 @@ def display_logo():
         logger.info("Successfully displayed logo")
     except Exception as e:
         logger.error(f"Error displaying logo: {str(e)}")
-        # Fallback to text
-        st.markdown("<h2 style='text-align: center; color: #4DB6AC; margin-top: 0;'>REBORN NOI ANALYZER</h2>", unsafe_allow_html=True)
+        # Fallback to text with better styling
+        st.markdown("""
+        <h2 style='
+            text-align: center; 
+            color: #4DB6AC; 
+            margin-top: 0; 
+            padding: 15px 0; 
+            font-size: 2rem;
+            font-weight: 600;
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        '>
+            REBORN NOI ANALYZER
+        </h2>
+        """, unsafe_allow_html=True)
 
 # New function for small logo display
 def display_logo_small():
@@ -336,17 +484,23 @@ def display_logo_small():
         
         # Inline logo with proper sizing, alignment and subtle enhancement
         logo_html = f"""
-        <div style="display:flex; align-items:center; margin:0; padding:0;">
-            <img src="data:image/png;base64,{logo_b64}"
-                 height="32px"
-                 style="
-                     background:transparent; 
-                     object-fit:contain; 
-                     margin-right:8px;
-                     filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.1));
-                     -webkit-filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.1));
-                 "
-                 alt="Reborn Logo" 
+        <div style="
+            display: flex; 
+            align-items: center; 
+            margin: 0; 
+            padding: 5px 0;
+        ">
+            <img 
+                src="data:image/png;base64,{logo_b64}"
+                height="36px"
+                style="
+                    background: transparent; 
+                    object-fit: contain; 
+                    margin-right: 10px;
+                    filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.2));
+                    -webkit-filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.2));
+                "
+                alt="Reborn Logo" 
             />
         </div>
         """
@@ -360,20 +514,173 @@ def display_logo_small():
 def show_instructions():
     """Display instructions for using the NOI Analyzer"""
     instructions_html = """
-    <div style="background-color: rgba(30, 41, 59, 0.8); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-        <h3 style="color: #4DB6AC;">Instructions:</h3>
-        <ol style="color: #F0F0F0;">
-            <li>Upload your financial documents using the file uploaders</li>
-            <li>At minimum, upload a <b>Current Month Actuals</b> file</li>
-            <li>For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)</li>
-            <li>Click "Process Documents" to analyze the data</li>
-            <li>View the results in the analysis tabs</li>
-            <li>Export your results as PDF or Excel using the export options</li>
+    <div style="background-color: rgba(30, 41, 59, 0.8); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #4DB6AC; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3 style="color: #4DB6AC; font-size: 1.3rem; margin-bottom: 1rem; font-weight: 600;">Instructions:</h3>
+        <ol style="color: #F0F0F0; padding-left: 1.5rem; margin-bottom: 1.25rem;">
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">Upload your financial documents using the file uploaders</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">At minimum, upload a <b style="color: #4DB6AC;">Current Month Actuals</b> file</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">Click "<b style="color: #4DB6AC;">Process Documents</b>" to analyze the data</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">View the results in the analysis tabs</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">Export your results as PDF or Excel using the export options</li>
         </ol>
-        <p style="color: #F0F0F0; font-style: italic;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>
+        <p style="color: #E0E0E0; font-style: italic; font-size: 0.9rem; background-color: rgba(77, 182, 172, 0.1); padding: 0.75rem; border-radius: 4px; display: inline-block;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>
     </div>
     """
     st.markdown(instructions_html, unsafe_allow_html=True)
+
+# Function to show processing status with better visual indicators
+def show_processing_status(message, is_running=False, status_type="info"):
+    """
+    Display a processing status message with enhanced visual styling.
+    
+    Parameters:
+    - message (str): The status message to display
+    - is_running (bool): Whether the process is currently running (adds an animation)
+    - status_type (str): Type of status - "info", "success", "warning", or "error"
+    """
+    # Define colors based on status type
+    colors = {
+        "info": "#38BDF8",      # Blue
+        "success": "#22C55E",   # Green
+        "warning": "#FBBF24",   # Yellow
+        "error": "#EF4444"      # Red
+    }
+    
+    color = colors.get(status_type, colors["info"])
+    
+    # Define the animation for running status
+    if is_running:
+        animation = f"""
+        <style>
+        @keyframes pulse {{
+            0% {{ transform: scale(1); opacity: 1; }}
+            50% {{ transform: scale(1.1); opacity: 0.8; }}
+            100% {{ transform: scale(1); opacity: 1; }}
+        }}
+        .status-dot {{
+            animation: pulse 1.5s infinite ease-in-out;
+        }}
+        </style>
+        """
+    else:
+        animation = ""
+    
+    # Create the HTML for the status indicator
+    status_html = f"""
+    {animation}
+    <div style="
+        display: flex;
+        align-items: center;
+        background-color: rgba(30, 41, 59, 0.8);
+        border-left: 4px solid {color};
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    ">
+        <div class="status-dot" style="
+            background-color: {color};
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        "></div>
+        <div style="
+            color: #E0E0E0;
+            font-size: 1rem;
+            line-height: 1.5;
+        ">
+            {message}
+        </div>
+    </div>
+    """
+    
+    # Display the status
+    st.markdown(status_html, unsafe_allow_html=True)
+
+# Function to display file information with enhanced styling
+def show_file_info(file_name, file_size=None, file_type=None, uploaded=False):
+    """
+    Display uploaded file information with enhanced visual styling.
+    
+    Parameters:
+    - file_name (str): Name of the file
+    - file_size (str, optional): Size of the file (e.g., "2.5 MB")
+    - file_type (str, optional): Type of file (e.g., "Excel", "PDF", "CSV")
+    - uploaded (bool): Whether the file has been successfully uploaded
+    """
+    # Set icon based on file type
+    icon = "📄"  # Default
+    if file_type:
+        if "excel" in file_type.lower() or "xlsx" in file_type.lower() or "xls" in file_type.lower():
+            icon = "📊"
+        elif "pdf" in file_type.lower():
+            icon = "📑"
+        elif "csv" in file_type.lower():
+            icon = "📋"
+    
+    # Set status color based on uploaded status
+    status_color = "#22C55E" if uploaded else "#94A3B8"  # Green if uploaded, gray if not
+    status_text = "Uploaded" if uploaded else "Ready"
+    
+    # Create the HTML for the file info
+    file_info_html = f"""
+    <div style="
+        display: flex;
+        align-items: center;
+        background-color: rgba(30, 41, 59, 0.7);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    ">
+        <div style="
+            font-size: 1.5rem;
+            margin-right: 12px;
+            flex-shrink: 0;
+        ">
+            {icon}
+        </div>
+        <div style="flex-grow: 1;">
+            <div style="
+                color: #E0E0E0;
+                font-weight: 500;
+                font-size: 0.95rem;
+                margin-bottom: 0.25rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 250px;
+            ">
+                {file_name}
+            </div>
+            <div style="
+                color: #94A3B8;
+                font-size: 0.8rem;
+            ">
+                {file_size if file_size else ""}
+                {" • " if file_size and file_type else ""}
+                {file_type if file_type else ""}
+            </div>
+        </div>
+        <div style="
+            color: {status_color};
+            font-size: 0.8rem;
+            font-weight: 500;
+            background-color: rgba(30, 41, 59, 0.5);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        ">
+            {status_text}
+        </div>
+    </div>
+    """
+    
+    # Display the file info
+    st.markdown(file_info_html, unsafe_allow_html=True)
 
 # Load custom CSS function (defined here before it's used)
 def load_css():
@@ -2137,14 +2444,51 @@ def main():
         show_instructions()
         
         # Add sample screenshots or overview
-        st.subheader("Features")
-        st.markdown("""
-        - **Comparative Analysis:** Compare current performance against budget, prior month, and prior year
-        - **Financial Insights:** AI-generated analysis of key metrics and trends
-        - **NOI Coach:** Ask questions about your financial data and get AI-powered insights
-        - **Export Options:** Save results as PDF or Excel for sharing and reporting
-        """)
+        st.markdown('<div class="reborn-section-title">Features</div>', unsafe_allow_html=True)
         
+        features_html = """
+        <div class="card-container">
+            <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
+                <li style="margin-bottom: 1rem; display: flex; align-items: flex-start;">
+                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+                        <span style="color: white; font-weight: bold; font-size: 16px;">1</span>
+                    </div>
+                    <div>
+                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">Comparative Analysis</span>
+                        <span style="color: #E0E0E0;">Compare current performance against budget, prior month, and prior year</span>
+                    </div>
+                </li>
+                <li style="margin-bottom: 1rem; display: flex; align-items: flex-start;">
+                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+                        <span style="color: white; font-weight: bold; font-size: 16px;">2</span>
+                    </div>
+                    <div>
+                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">Financial Insights</span>
+                        <span style="color: #E0E0E0;">AI-generated analysis of key metrics and trends</span>
+                    </div>
+                </li>
+                <li style="margin-bottom: 1rem; display: flex; align-items: flex-start;">
+                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+                        <span style="color: white; font-weight: bold; font-size: 16px;">3</span>
+                    </div>
+                    <div>
+                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">NOI Coach</span>
+                        <span style="color: #E0E0E0;">Ask questions about your financial data and get AI-powered insights</span>
+                    </div>
+                </li>
+                <li style="display: flex; align-items: flex-start;">
+                    <div style="background-color: #1E40AF; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;">
+                        <span style="color: white; font-weight: bold; font-size: 16px;">4</span>
+                    </div>
+                    <div>
+                        <span style="font-weight: 600; color: #4DB6AC; margin-bottom: 0.25rem; display: block;">Export Options</span>
+                        <span style="color: #E0E0E0;">Save results as PDF or Excel for sharing and reporting</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        """
+        st.markdown(features_html, unsafe_allow_html=True)
     else:
         # Show results after processing
         st.title(f"NOI Analysis Results{' - ' + st.session_state.property_name if st.session_state.property_name else ''}")
@@ -2253,131 +2597,131 @@ def main():
     # Process documents when button is clicked
     if process_clicked:
         try:
-            with st.spinner("Processing documents. This may take a minute..."):
-                logger.info("APP.PY: --- Document Processing START ---")
-                if not current_month_file:
-                    st.error("Current Month Actuals file is required. Please upload it to proceed.")
-                    st.session_state.processing_completed = False # Ensure it's false if we exit early
-                    return
-                st.session_state.current_month_actuals = current_month_file
-                st.session_state.prior_month_actuals = prior_month_file
-                st.session_state.current_month_budget = budget_file
-                st.session_state.prior_year_actuals = prior_year_file
+            # Display enhanced status message instead of spinner
+            show_processing_status("Processing documents. This may take a minute...", is_running=True)
+            
+            logger.info("APP.PY: --- Document Processing START ---")
+            if not current_month_file:
+                show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
+                st.session_state.processing_completed = False # Ensure it's false if we exit early
+                return
+                
+            st.session_state.current_month_actuals = current_month_file
+            st.session_state.prior_month_actuals = prior_month_file
+            st.session_state.current_month_budget = budget_file
+            st.session_state.prior_year_actuals = prior_year_file
 
-                # Process the documents
-                raw_consolidated_data = process_all_documents()
-                logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
-                if isinstance(raw_consolidated_data, dict) and isinstance(raw_consolidated_data.get('current_month'), dict):
-                    try:
-                        # Use the summarize function for more concise INFO logging
-                        logger.info(f"APP.PY: Snippet of raw_consolidated_data['current_month']: {summarize_data_for_log(raw_consolidated_data['current_month'])}")
-                        # Full details moved to DEBUG level
-                        logger.debug(f"APP.PY: Full raw_consolidated_data['current_month']: {json.dumps(raw_consolidated_data['current_month'], default=str, indent=2)}")
-                    except Exception as e_log_snippet:
-                        logger.error(f"APP.PY: Error logging raw_consolidated_data snippet: {e_log_snippet}")
+            # Process the documents
+            raw_consolidated_data = process_all_documents()
+            logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
+            
+            # Log the details of raw_consolidated_data if available
+            if isinstance(raw_consolidated_data, dict) and isinstance(raw_consolidated_data.get('current_month'), dict):
+                try:
+                    logger.info(f"APP.PY: Snippet of raw_consolidated_data['current_month']: {summarize_data_for_log(raw_consolidated_data['current_month'])}")
+                    logger.debug(f"APP.PY: Full raw_consolidated_data['current_month']: {json.dumps(raw_consolidated_data['current_month'], default=str, indent=2)}")
+                except Exception as e_log_snippet:
+                    logger.error(f"APP.PY: Error logging raw_consolidated_data snippet: {e_log_snippet}")
 
+            # Process the data if it's valid
+            if raw_consolidated_data and isinstance(raw_consolidated_data, dict) and not raw_consolidated_data.get('error'):
+                logger.info("APP.PY: Condition to transform data met. Calling calculate_noi_comparisons.")
+                try:
+                    transformed_data = calculate_noi_comparisons(raw_consolidated_data)
+                    logger.info(f"APP.PY: calculate_noi_comparisons returned. Transformed_data type: {type(transformed_data)}. Keys: {list(transformed_data.keys()) if isinstance(transformed_data, dict) else 'Not a dict'}")
+                    
+                    # Log the month_vs_prior data if available
+                    if isinstance(transformed_data, dict) and "month_vs_prior" in transformed_data:
+                        mvp_data = transformed_data["month_vs_prior"]
+                        logger.info(f"APP.PY: transformed_data['month_vs_prior'] type: {type(mvp_data)}. Keys: {list(mvp_data.keys()) if isinstance(mvp_data, dict) else 'Not a dict'}")
+                        if isinstance(mvp_data, dict):
+                            try:
+                                logger.info(f"APP.PY: Snippet of transformed_data['month_vs_prior']: {summarize_data_for_log(mvp_data)}")
+                                logger.debug(f"APP.PY: Full transformed_data['month_vs_prior']: {json.dumps(mvp_data, default=str, indent=2)}")
+                            except Exception as e_log_snippet_mvp:
+                                logger.error(f"APP.PY: Error logging transformed_data['month_vs_prior'] snippet: {e_log_snippet_mvp}")
+                    else:
+                        logger.warning("APP.PY: 'month_vs_prior' key missing in transformed_data or transformed_data is not a dict.")
 
-                if raw_consolidated_data and isinstance(raw_consolidated_data, dict) and not raw_consolidated_data.get('error'):
-                    logger.info("APP.PY: Condition to transform data met. Calling calculate_noi_comparisons.")
-                    try:
-                        transformed_data = calculate_noi_comparisons(raw_consolidated_data)
-                        logger.info(f"APP.PY: calculate_noi_comparisons returned. Transformed_data type: {type(transformed_data)}. Keys: {list(transformed_data.keys()) if isinstance(transformed_data, dict) else 'Not a dict'}")
+                    # Save the transformed data to session state
+                    st.session_state.comparison_results = transformed_data
+                    logger.info(f"APP.PY: st.session_state.comparison_results assigned. Type: {type(st.session_state.comparison_results)}. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
+                    
+                    # Generate insights and narrative only if comparison results are valid
+                    if not st.session_state.comparison_results.get("error"):
+                        logger.info("APP.PY: comparison_results seem okay. Generating insights and narrative.")
+                        show_processing_status("Generating insights and narrative...", is_running=True)
                         
-                        if isinstance(transformed_data, dict) and "month_vs_prior" in transformed_data:
-                            mvp_data = transformed_data["month_vs_prior"]
-                            logger.info(f"APP.PY: transformed_data['month_vs_prior'] type: {type(mvp_data)}. Keys: {list(mvp_data.keys()) if isinstance(mvp_data, dict) else 'Not a dict'}")
-                            if isinstance(mvp_data, dict):
-                                try:
-                                    # Use the summarize function for more concise INFO logging
-                                    logger.info(f"APP.PY: Snippet of transformed_data['month_vs_prior']: {summarize_data_for_log(mvp_data)}")
-                                    # Full details moved to DEBUG level
-                                    logger.debug(f"APP.PY: Full transformed_data['month_vs_prior']: {json.dumps(mvp_data, default=str, indent=2)}")
-                                except Exception as e_log_snippet_mvp:
-                                    logger.error(f"APP.PY: Error logging transformed_data['month_vs_prior'] snippet: {e_log_snippet_mvp}")
-                        else:
-                            logger.warning("APP.PY: 'month_vs_prior' key missing in transformed_data or transformed_data is not a dict.")
-
-                        st.session_state.comparison_results = transformed_data
-                        logger.info(f"APP.PY: st.session_state.comparison_results assigned. Type: {type(st.session_state.comparison_results)}. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
-                    except Exception as e_calc:
-                        logger.error(f"APP.PY: Error during calculate_noi_comparisons or assignment: {str(e_calc)}", exc_info=True)
-                        st.session_state.comparison_results = {"error": f"Calculation error: {str(e_calc)}"}
-                elif isinstance(raw_consolidated_data, dict) and raw_consolidated_data.get('error'):
-                    logger.error(f"APP.PY: Error reported by process_all_documents: {raw_consolidated_data.get('error')}")
-                    st.session_state.comparison_results = raw_consolidated_data
-                else:
-                    logger.warning(f"APP.PY: Condition to transform data NOT met or raw_consolidated_data is not as expected. raw_consolidated_data type: {type(raw_consolidated_data)}")
-                    st.session_state.comparison_results = {"error": "No data from document processing or unexpected data structure."}
-                
-                # Generate insights and narrative only if comparison results are valid
-                if isinstance(st.session_state.comparison_results, dict) and not st.session_state.comparison_results.get("error"):
-                    logger.info("APP.PY: comparison_results seem okay. Generating insights and narrative.")
-                    
-                    # Optional debugging of comparison structure - can be disabled to reduce log volume
-                    enable_structure_debug = True  # Set to False to disable detailed structure logging
-                    if enable_structure_debug:
-                        logger.info(f"APP.PY: Calling debug_comparison_structure with st.session_state.comparison_results. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
-                        debug_comparison_structure(st.session_state.comparison_results)
-                    
-                    insights = generate_insights_with_gpt(st.session_state.comparison_results)
-                    # Create a properly structured insights dictionary that matches UI expectations
-                    structured_insights = {
-                        "summary": insights.get("summary", "No summary available"),
-                        "performance": insights.get("performance", []),
-                        "recommendations": insights.get("recommendations", [])
-                    }
-
-                    # Store performance insights as a single global list instead of duplicating across comparison types
-                    # if "performance" in insights and insights["performance"]:
-                    #     structured_insights["performance"] = insights["performance"]
-                    # This part is now handled by the direct assignment with .get above
-
-                    # Add recommendations to the structured insights
-                    # if "recommendations" in insights and insights["recommendations"]:
-                    #     structured_insights["recommendations"] = insights["recommendations"]
-                    # This part is also handled by the direct assignment with .get above
-
-                    # Store the properly structured insights in session state
-                    st.session_state.insights = structured_insights
-                    logger.info(f"Structured insights keys: {list(structured_insights.keys())}")
-                    
-                    # narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
-                    # # Log the raw narrative content and type BEFORE assigning to session state
-                    # logger.info(f"APP.PY: 'narrative' var from create_narrative. Type: {type(narrative)}. Content snippet: {(str(narrative)[:200] + '...') if narrative else 'None'}")
-                    # st.session_state.generated_narrative = narrative
-                    # logger.info("APP.PY: Narrative generated and assigned to st.session_state.generated_narrative.")
-                    try:
-                        narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
-                        if narrative and isinstance(narrative, str):
-                            st.session_state.generated_narrative = narrative
-                            logger.info(f"Narrative generated successfully: {len(narrative)} characters")
-                        else:
-                            logger.warning(f"create_narrative returned invalid data: {type(narrative)}")
-                            st.session_state.generated_narrative = "Unable to generate narrative due to data issues."
-                    except Exception as e:
-                        logger.error(f"Error generating narrative: {e}")
-                        st.session_state.generated_narrative = "An error occurred while generating the narrative."
-                    
-                    st.session_state.processing_completed = True
-                    st.success("Documents processed successfully!")
-                else:
-                    error_msg = "Unknown processing error"
-                    if isinstance(st.session_state.comparison_results, dict) and st.session_state.comparison_results.get("error"):
-                        error_msg = st.session_state.comparison_results.get("error")
-                    elif not isinstance(st.session_state.comparison_results, dict) :
-                         error_msg = "Comparison results are not in the expected format."
-
-                    logger.error(f"APP.PY: Processing failed or comparison_results has an error or is not a dict. Results: {st.session_state.comparison_results}")
-                    st.error(f"Failed to process documents fully. Error: {error_msg}")
+                        # Optional debugging of comparison structure
+                        enable_structure_debug = True  # Set to False to disable detailed structure logging
+                        if enable_structure_debug:
+                            logger.info(f"APP.PY: Calling debug_comparison_structure with st.session_state.comparison_results. Keys: {list(st.session_state.comparison_results.keys())}")
+                            debug_comparison_structure(st.session_state.comparison_results)
+                        
+                        # Generate insights
+                        try:
+                            insights = generate_insights_with_gpt(st.session_state.comparison_results)
+                            # Create a properly structured insights dictionary
+                            structured_insights = {
+                                "summary": insights.get("summary", "No summary available"),
+                                "performance": insights.get("performance", []),
+                                "recommendations": insights.get("recommendations", [])
+                            }
+                            
+                            # Store the insights in session state
+                            st.session_state.insights = structured_insights
+                            logger.info(f"Structured insights keys: {list(structured_insights.keys())}")
+                        except Exception as e_insights:
+                            logger.error(f"Error generating insights: {e_insights}")
+                            st.session_state.insights = {
+                                "summary": "Error generating insights",
+                                "performance": [],
+                                "recommendations": []
+                            }
+                        
+                        # Generate narrative
+                        try:
+                            narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
+                            if narrative and isinstance(narrative, str):
+                                st.session_state.generated_narrative = narrative
+                                logger.info(f"Narrative generated successfully: {len(narrative)} characters")
+                            else:
+                                logger.warning(f"create_narrative returned invalid data: {type(narrative)}")
+                                st.session_state.generated_narrative = "Unable to generate narrative due to data issues."
+                        except Exception as e_narrative:
+                            logger.error(f"Error generating narrative: {e_narrative}")
+                            st.session_state.generated_narrative = "An error occurred while generating the narrative."
+                        
+                        # Mark processing as completed
+                        st.session_state.processing_completed = True
+                        show_processing_status("Documents processed successfully!", status_type="success")
+                    else:
+                        st.session_state.processing_completed = False
+                        show_processing_status(f"Error in data processing: {st.session_state.comparison_results.get('error')}", status_type="error")
+                except Exception as e_calc:
+                    logger.error(f"APP.PY: Error during calculate_noi_comparisons: {str(e_calc)}", exc_info=True)
+                    st.session_state.comparison_results = {"error": f"Calculation error: {str(e_calc)}"}
                     st.session_state.processing_completed = False
-                
-                logger.info(f"APP.PY: --- Document Processing END --- processing_completed: {st.session_state.processing_completed}")
-                st.rerun()
+                    show_processing_status(f"Calculation error: {str(e_calc)}", status_type="error")
+            elif isinstance(raw_consolidated_data, dict) and raw_consolidated_data.get('error'):
+                logger.error(f"APP.PY: Error reported by process_all_documents: {raw_consolidated_data.get('error')}")
+                st.session_state.comparison_results = raw_consolidated_data
+                st.session_state.processing_completed = False
+                show_processing_status(f"Error: {raw_consolidated_data.get('error')}", status_type="error")
+            else:
+                logger.warning(f"APP.PY: Condition to transform data NOT met or raw_consolidated_data is not as expected. raw_consolidated_data type: {type(raw_consolidated_data)}")
+                st.session_state.comparison_results = {"error": "No data from document processing or unexpected data structure."}
+                st.session_state.processing_completed = False
+                show_processing_status("Error: No data from document processing or unexpected data structure.", status_type="error")
+            
+            logger.info(f"APP.PY: --- Document Processing END --- processing_completed: {st.session_state.processing_completed}")
+            # Force rerun to refresh UI
+            st.experimental_rerun()
         except Exception as e:
-            logger.error(f"APP.PY: Unhandled error in process_clicked block: {str(e)}", exc_info=True)
-            st.error(f"An unexpected error occurred: {str(e)}")
+            # Main exception handler for the entire process_clicked block
+            logger.error(f"Error processing documents: {e}", exc_info=True)
+            show_processing_status(f"Error: {str(e)}", status_type="error")
             st.session_state.processing_completed = False
-            st.rerun() # Rerun to reflect the error state
 
     # Add this code in the main UI section after displaying all tabs
     # (after the st.tabs() section in the main function)
@@ -2394,37 +2738,42 @@ def main():
             with col1:
                 # PDF Export button
                 if st.button("Generate Complete PDF Report", key="global_pdf_export"):
-                    with st.spinner("Generating comprehensive PDF report..."):
-                        try:
-                            pdf_bytes = generate_comprehensive_pdf() # Call the function we just defined
+                    # Use our custom status indicator instead of spinner
+                    show_processing_status("Generating comprehensive PDF report...", is_running=True)
+                    try:
+                        pdf_bytes = generate_comprehensive_pdf() 
+                        
+                        if pdf_bytes:
+                            # Create a unique filename with timestamp
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
+                            pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
                             
-                            if pdf_bytes:
-                                # Create a unique filename with timestamp
-                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                                property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
-                                pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
-                                
-                                # Display download button
-                                st.download_button(
-                                    label="Download Complete PDF Report",
-                                    data=pdf_bytes,
-                                    file_name=pdf_filename,
-                                    mime="application/pdf",
-                                    key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
-                                )
-                                st.success("PDF report generated successfully!")
-                            else:
-                                st.error("Failed to generate PDF report. Please check the logs for details.")
-                        except Exception as e:
-                            logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
-                            st.error(f"Error generating PDF report: {str(e)}")
+                            # Display download button
+                            st.download_button(
+                                label="Download Complete PDF Report",
+                                data=pdf_bytes,
+                                file_name=pdf_filename,
+                                mime="application/pdf",
+                                key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
+                            )
+                            # Show success message
+                            show_processing_status("PDF report generated successfully!", status_type="success")
+                        else:
+                            # Show error message
+                            show_processing_status("Failed to generate PDF report. Please check the logs for details.", status_type="error")
+                    except Exception as e:
+                        logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
+                        # Show error message
+                        show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
             
             with col2:
                 # Excel Export button (if implemented)
                 if st.button("Export to Excel", key="global_excel_export"):
-                    with st.spinner("Generating Excel export..."):
-                        # Excel export logic here
-                        st.info("Excel export functionality coming soon!")
+                    # Use our custom status indicator
+                    show_processing_status("Generating Excel export...", is_running=True)
+                    # Excel export logic here
+                    show_processing_status("Excel export functionality coming soon!", status_type="info")
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
