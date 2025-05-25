@@ -2671,7 +2671,8 @@ def main():
         property_name = st.text_input(
             "Property Name (Optional)",
             value=st.session_state.property_name,
-            help="Enter the name of the property being analyzed"
+            help="Enter the name of the property being analyzed",
+            key="sidebar_property_name_input"
         )
         
         if property_name != st.session_state.property_name:
@@ -2682,7 +2683,8 @@ def main():
             "Process Documents", 
             type="primary",
             use_container_width=True,
-            help="Process the uploaded documents to generate NOI analysis"
+            help="Process the uploaded documents to generate NOI analysis",
+            key="sidebar_process_button"
         )
         
         # Options
@@ -2692,7 +2694,8 @@ def main():
         show_zero_values = st.checkbox(
             "Show Zero Values", 
             value=st.session_state.show_zero_values,
-            help="Show metrics with zero values in the comparison tables"
+            help="Show metrics with zero values in the comparison tables",
+            key="sidebar_show_zero_values_check"
         )
         
         if show_zero_values != st.session_state.show_zero_values:
@@ -2710,7 +2713,8 @@ def main():
             "Select context for NOI Coach",
             options=list(view_options.keys()),
             format_func=lambda x: view_options[x],
-            index=list(view_options.keys()).index(st.session_state.current_comparison_view)
+            index=list(view_options.keys()).index(st.session_state.current_comparison_view),
+            key="sidebar_noi_coach_context_select"
         )
         
         if selected_view != st.session_state.current_comparison_view:
@@ -2797,7 +2801,8 @@ def main():
             property_name = st.text_input(
                 "Property Name (Optional)",
                 value=st.session_state.property_name,
-                help="Enter the name of the property being analyzed"
+                help="Enter the name of the property being analyzed",
+                key="main_property_name_input"
             )
             
             if property_name != st.session_state.property_name:
@@ -2837,7 +2842,8 @@ def main():
                 "Process Documents", 
                 type="primary",
                 use_container_width=True,
-                help="Process the uploaded documents to generate NOI analysis"
+                help="Process the uploaded documents to generate NOI analysis",
+                key="main_process_button"
             )
         
         with col2:
