@@ -2639,7 +2639,7 @@ def main():
         current_month_file = st.file_uploader(
             "Current Month Actuals (Required)", 
             type=["xlsx", "xls", "csv", "pdf"],
-            key="current_month_upload_main",
+            key="sidebar_current_month_upload",
             help="Upload your current month's financial data"
         )
         
@@ -2647,7 +2647,7 @@ def main():
         prior_month_file = st.file_uploader(
             "Prior Month Actuals", 
             type=["xlsx", "xls", "csv", "pdf"],
-            key="prior_month_upload_main",
+            key="sidebar_prior_month_upload",
             help="Upload your prior month's financial data for month-over-month comparison"
         )
         
@@ -2655,7 +2655,7 @@ def main():
         budget_file = st.file_uploader(
             "Current Month Budget", 
             type=["xlsx", "xls", "csv", "pdf"],
-            key="budget_upload_main",
+            key="sidebar_budget_upload",
             help="Upload your budget data for budget vs actuals comparison"
         )
         
@@ -2663,7 +2663,7 @@ def main():
         prior_year_file = st.file_uploader(
             "Prior Year Same Month", 
             type=["xlsx", "xls", "csv", "pdf"],
-            key="prior_year_upload_main",
+            key="sidebar_prior_year_upload",
             help="Upload the same month from prior year for year-over-year comparison"
         )
         
@@ -2745,7 +2745,7 @@ def main():
             current_month_file = st.file_uploader(
                 "", 
                 type=["xlsx", "xls", "csv", "pdf"],
-                key="current_month_upload_main",
+                key="main_current_month_upload",
                 help="Upload your current month's financial data"
             )
             st.markdown('</div>', unsafe_allow_html=True)
@@ -2758,7 +2758,7 @@ def main():
             prior_month_file = st.file_uploader(
                 "", 
                 type=["xlsx", "xls", "csv", "pdf"],
-                key="prior_month_upload_main",
+                key="main_prior_month_upload",
                 help="Upload your prior month's financial data for month-over-month comparison"
             )
             st.markdown('</div>', unsafe_allow_html=True)
@@ -2771,7 +2771,7 @@ def main():
             budget_file = st.file_uploader(
                 "", 
                 type=["xlsx", "xls", "csv", "pdf"],
-                key="budget_upload_main",
+                key="main_budget_upload",
                 help="Upload your budget data for budget vs actuals comparison"
             )
             st.markdown('</div>', unsafe_allow_html=True)
@@ -2784,7 +2784,7 @@ def main():
             prior_year_file = st.file_uploader(
                 "", 
                 type=["xlsx", "xls", "csv", "pdf"],
-                key="prior_year_upload_main",
+                key="main_prior_year_upload",
                 help="Upload the same month from prior year for year-over-year comparison"
             )
             st.markdown('</div>', unsafe_allow_html=True)
