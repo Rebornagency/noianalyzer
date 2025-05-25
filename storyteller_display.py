@@ -106,7 +106,7 @@ def display_narrative_in_tabs():
         """, unsafe_allow_html=True)
         
         # Add edit button
-        if st.button("Edit Narrative", key="edit_narrative_btn"):
+        if st.button("Edit Narrative", key="edit_narrative_in_tabs"):
             st.session_state.show_narrative_editor = True
         
         # Show editor if requested
