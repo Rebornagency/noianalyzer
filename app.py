@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 import tempfile
 import jinja2
+import streamlit.components.v1 as components
 
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
@@ -1438,15 +1439,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     """
                     
                     # Display the custom HTML table
-                    st.markdown(html_table, unsafe_allow_html=True)
+                    components.html(html_table, height=250, scrolling=True)
                     
                     # Create columns for charts with enhanced styling
                     col1, col2 = st.columns(2)
                     
                     with col1:
                         # Wrap the chart in a container with our custom styling
-                        st.markdown('<div class="opex-chart-container">', unsafe_allow_html=True)
-                        st.markdown('<div class="opex-chart-title">Current Operating Expenses Breakdown</div>', unsafe_allow_html=True)
+                        chart_container_html = '<div class="opex-chart-container"><div class="opex-chart-title">Current Operating Expenses Breakdown</div></div>'
+                        components.html(chart_container_html, height=50)
                         
                         # Filter out zero values for the pie chart
                         pie_data = opex_df[opex_df["Current"] > 0]
@@ -1489,8 +1490,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     
                     with col2:
                         # Wrap the chart in a container with our custom styling
-                        st.markdown('<div class="opex-chart-container">', unsafe_allow_html=True)
-                        st.markdown(f'<div class="opex-chart-title">OpEx Components: Current vs {name_suffix}</div>', unsafe_allow_html=True)
+                        chart_container_html = f'<div class="opex-chart-container"><div class="opex-chart-title">OpEx Components: Current vs {name_suffix}</div></div>'
+                        components.html(chart_container_html, height=50)
                         
                         # Create a horizontal bar chart for comparison
                         if not opex_df.empty:
@@ -2379,7 +2380,8 @@ def display_unified_insights(insights_data):
             </div>
             """
             
-            st.markdown(summary_html, unsafe_allow_html=True)
+            # Use components.html instead of st.markdown for more reliable HTML rendering
+            components.html(summary_html, height=200, scrolling=True)
         else:
             st.info("No executive summary is available.")
 
@@ -2416,8 +2418,8 @@ def display_unified_insights(insights_data):
             </div>
             """
             
-            # Pass the concatenated HTML string to st.markdown
-            st.markdown(insights_html, unsafe_allow_html=True)
+            # Use components.html instead of st.markdown for more reliable HTML rendering
+            components.html(insights_html, height=300, scrolling=True)
         else:
             st.info("No performance insights are available.")
 
@@ -2454,8 +2456,8 @@ def display_unified_insights(insights_data):
             </div>
             """
             
-            # Pass the concatenated HTML string to st.markdown
-            st.markdown(recommendations_html, unsafe_allow_html=True)
+            # Use components.html instead of st.markdown for more reliable HTML rendering
+            components.html(recommendations_html, height=300, scrolling=True)
         else:
             st.info("No recommendations are available.")
 
@@ -2864,7 +2866,7 @@ def main():
             """, unsafe_allow_html=True)
             
             # Enhanced Features section
-            st.markdown("""
+            features_html = """
             <div class="features-card">
                 <h3 class="features-header">Features</h3>
                 
@@ -2900,7 +2902,9 @@ def main():
                     </div>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """
+            # Use components.html to properly render HTML
+            components.html(features_html, height=400)
     else:
         # Show results after processing
         # Modern styled title
