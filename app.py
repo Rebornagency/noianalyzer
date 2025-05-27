@@ -2872,6 +2872,22 @@ def main():
                 <div class="feature-description">AI-generated analysis of key metrics and trends</div>
             </div>
         </div>
+        
+        <div class="feature-item">
+            <div class="feature-number">3</div>
+            <div class="feature-content">
+                <div class="feature-title">NOI Coach</div>
+                <div class="feature-description">Ask questions about your financial data and get AI-powered insights</div>
+            </div>
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-number">4</div>
+            <div class="feature-content">
+                <div class="feature-title">Export Options</div>
+                <div class="feature-description">Save results as PDF or Excel for sharing and reporting</div>
+            </div>
+        </div>
     </div>
 </div>
 """
