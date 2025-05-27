@@ -3282,6 +3282,149 @@ def main():
                 show_processing_status("Excel export functionality coming soon!", status_type="info")
             st.markdown('</div>', unsafe_allow_html=True)
 
+# --- Add new display functions here ---
+
+def display_features_section():
+    """Display the features section using native Streamlit components instead of HTML"""
+    st.markdown("## Features", unsafe_allow_html=True)
+    
+    # Feature 1
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown(
+                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
+                justify-content: center; font-weight: bold; font-size: 20px;">1</div>""", 
+                unsafe_allow_html=True
+            )
+        with col2:
+            st.markdown("### Comparative Analysis")
+            st.markdown("Compare current performance against budget, prior month, and prior year")
+    
+    st.markdown("---")
+    
+    # Feature 2
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown(
+                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
+                justify-content: center; font-weight: bold; font-size: 20px;">2</div>""", 
+                unsafe_allow_html=True
+            )
+        with col2:
+            st.markdown("### Financial Insights")
+            st.markdown("AI-generated analysis of key metrics and trends")
+    
+    st.markdown("---")
+    
+    # Feature 3
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown(
+                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
+                justify-content: center; font-weight: bold; font-size: 20px;">3</div>""", 
+                unsafe_allow_html=True
+            )
+        with col2:
+            st.markdown("### NOI Coach")
+            st.markdown("Ask questions about your financial data and get AI-powered insights")
+    
+    st.markdown("---")
+    
+    # Feature 4
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown(
+                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
+                justify-content: center; font-weight: bold; font-size: 20px;">4</div>""", 
+                unsafe_allow_html=True
+            )
+        with col2:
+            st.markdown("### Export Options")
+            st.markdown("Save results as PDF or Excel for sharing and reporting")
+
+def display_features_section_with_components():
+    """Display the features section using streamlit.components.v1.html"""
+    st.markdown("## Features", unsafe_allow_html=True)
+    
+    features_html = """
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Feature 1 -->
+        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
+                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
+                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">1</div>
+            <div>
+                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
+                    Comparative Analysis
+                </div>
+                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
+                    Compare current performance against budget, prior month, and prior year
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature 2 -->
+        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
+                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
+                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">2</div>
+            <div>
+                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
+                    Financial Insights
+                </div>
+                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
+                    AI-generated analysis of key metrics and trends
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature 3 -->
+        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
+                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
+                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">3</div>
+            <div>
+                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
+                    NOI Coach
+                </div>
+                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
+                    Ask questions about your financial data and get AI-powered insights
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature 4 -->
+        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
+                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
+                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
+                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">4</div>
+            <div>
+                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
+                    Export Options
+                </div>
+                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
+                    Save results as PDF or Excel for sharing and reporting
+                </div>
+            </div>
+        </div>
+    </div>
+    """
+    
+    # Use components.v1.html to render raw HTML
+    components.html(features_html, height=600, scrolling=False)
+
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
     main()
