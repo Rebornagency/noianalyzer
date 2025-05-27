@@ -2389,145 +2389,66 @@ def display_noi_coach():
 
 def display_unified_insights(insights_data):
     """
-    Display unified insights in the Streamlit UI with enhanced styling.
-    This function displays the insights data in a modern, visually appealing format.
+    Display unified insights including summary, performance insights, and recommendations.
     
     Args:
-        insights_data: Dictionary containing insights data
+        insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
     """
     logger.info("Displaying unified insights")
     
-    # Validate insights data
-    if not insights_data:
-        logger.warning("No insights data provided to display_unified_insights")
-        st.info("No insights data available. Please process documents to generate insights.")
+    if not insights_data or not isinstance(insights_data, dict):
+        st.warning("No insights data available to display.")
         return
     
-    # Log insights structure for debugging
-    try:
-        logger.info(f"Insights data keys: {list(insights_data.keys())}")
-    except Exception as e:
-        logger.error(f"Error logging insights data keys: {e}")
+    logger.info(f"Insights data keys: {list(insights_data.keys())}")
     
-    # Ensure insights data has the expected structure
-    if not isinstance(insights_data, dict):
-        logger.error(f"Insights data is not a dictionary: {type(insights_data)}")
-        st.error("Insights data is in an unexpected format. Please try processing documents again.")
-        return
+    # Display Executive Summary
+    if 'summary' in insights_data:
+        st.markdown('<h2 class="results-section-header">Executive Summary</h2>', unsafe_allow_html=True)
+        
+        summary_html = '<div class="results-card">'
+        summary_text = insights_data['summary']
+        
+        # Remove redundant "Executive Summary:" prefix if it exists
+        if summary_text.startswith("Executive Summary:"):
+            summary_text = summary_text[len("Executive Summary:"):].strip()
+            
+        summary_html += f'<div class="results-text">{summary_text}</div>'
+        summary_html += '</div>'
+        
+        st.markdown(summary_html, unsafe_allow_html=True)
     
-    # Get property name for title (or fallback to "this property")
-    property_name = st.session_state.property_name if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "this property"
+    # Display Key Performance Insights
+    if 'performance' in insights_data and insights_data['performance']:
+        st.markdown('<h2 class="results-section-header">Key Performance Insights</h2>', unsafe_allow_html=True)
+        
+        insights_html = '<div class="results-card"><ul class="results-bullet-list">'
+        for insight in insights_data['performance']:
+            insights_html += f"""
+            <li class="results-bullet-item">
+                <div class="results-bullet-marker">•</div>
+                <div class="results-bullet-text">{insight}</div>
+            </li>
+            """
+        insights_html += '</ul></div>'
+        
+        st.markdown(insights_html, unsafe_allow_html=True)
     
-    # Create a container with a distinctive background
-    with st.container():
-        # Display the executive summary
-        st.markdown("""
-            <div class="results-section-header">Executive Summary</div>
-        """, unsafe_allow_html=True)
+    # Display Recommendations
+    if 'recommendations' in insights_data and insights_data['recommendations']:
+        st.markdown('<h2 class="results-section-header">Recommendations</h2>', unsafe_allow_html=True)
         
-        if "summary" in insights_data and insights_data["summary"]:
-            # Clean up the summary text
-            summary_text = insights_data["summary"]
-            
-            # Remove redundant "Executive Summary:" prefix if present
-            if summary_text.startswith("Executive Summary:"):
-                summary_text = summary_text[len("Executive Summary:"):].strip()
-            elif summary_text.startswith("**Executive Summary:**"):
-                summary_text = summary_text[len("**Executive Summary:**"):].strip()
-            
-            # Remove any markdown formatting
-            summary_text = summary_text.replace("**", "")
-            
-            # Add the number prefix for the executive summary
-            summary_html = f"""
-            <div class="results-card">
-                <div class="results-text"><span class="results-summary-number">1.</span>{summary_text}</div>
-            </div>
+        recommendations_html = '<div class="results-card"><ul class="results-bullet-list">'
+        for recommendation in insights_data['recommendations']:
+            recommendations_html += f"""
+            <li class="results-bullet-item">
+                <div class="results-bullet-marker">•</div>
+                <div class="results-bullet-text">{recommendation}</div>
+            </li>
             """
-            
-            # Use components.html instead of st.markdown for more reliable HTML rendering
-            components.html(summary_html, height=200, scrolling=True)
-        else:
-            st.info("No executive summary is available.")
-
-        # Display performance insights
-        st.markdown("""
-            <div class="results-section-header">Key Performance Insights</div>
-        """, unsafe_allow_html=True)
+        recommendations_html += '</ul></div>'
         
-        if "performance" in insights_data and insights_data["performance"]:
-            # Ensure performance is a list before iterating
-            performance_list = insights_data["performance"]
-            if not isinstance(performance_list, list):
-                performance_list = [str(performance_list)] # Convert to list if not already
-            
-            # Format the bullet points
-            bullet_points_html = ""
-            for point in performance_list:
-                # Clean up any markdown formatting
-                clean_point = point.replace("**", "")
-                
-                bullet_points_html += f"""
-                <li class="results-bullet-item">
-                    <div class="results-bullet-marker">•</div>
-                    <div class="results-bullet-text">{clean_point}</div>
-                </li>
-                """
-            
-            # Create the insights card with properly concatenated HTML
-            insights_html = f"""
-            <div class="results-card">
-                <ul class="results-bullet-list">
-                    {bullet_points_html}
-                </ul>
-            </div>
-            """
-            
-            # Use components.html instead of st.markdown for more reliable HTML rendering
-            components.html(insights_html, height=300, scrolling=True)
-        else:
-            st.info("No performance insights are available.")
-
-        # Display recommendations
-        st.markdown("""
-            <div class="results-section-header">Recommendations</div>
-        """, unsafe_allow_html=True)
-        
-        if "recommendations" in insights_data and insights_data["recommendations"]:
-            # Ensure recommendations is a list before iterating
-            recommendations_list = insights_data["recommendations"]
-            if not isinstance(recommendations_list, list):
-                recommendations_list = [str(recommendations_list)] # Convert to list if not already
-            
-            # Format the bullet points
-            bullet_points_html = ""
-            for rec in recommendations_list:
-                # Clean up any markdown formatting
-                clean_rec = rec.replace("**", "")
-                
-                bullet_points_html += f"""
-                <li class="results-bullet-item">
-                    <div class="results-bullet-marker">•</div>
-                    <div class="results-bullet-text">{clean_rec}</div>
-                </li>
-                """
-            
-            # Create the recommendations card with properly concatenated HTML
-            recommendations_html = f"""
-            <div class="results-card">
-                <ul class="results-bullet-list">
-                    {bullet_points_html}
-                </ul>
-            </div>
-            """
-            
-            # Use components.html instead of st.markdown for more reliable HTML rendering
-            components.html(recommendations_html, height=300, scrolling=True)
-        else:
-            st.info("No recommendations are available.")
-
-        # Add a note about AI generation with more subtle styling
-        st.caption("These insights were generated by AI based on the financial data provided.")
+        st.markdown(recommendations_html, unsafe_allow_html=True)
 
 # Define the generate_comprehensive_pdf function before it's called in main()
 def generate_comprehensive_pdf():
@@ -2931,10 +2852,10 @@ def main():
             """, unsafe_allow_html=True)
             
             # Enhanced Features section
+            st.markdown("<h2 class='section-header'>Features</h2>", unsafe_allow_html=True)
+
             features_html = """
             <div class="card-container">
-                <h3 class="section-header">Features</h3>
-                
                 <div class="feature-list">
                     <div class="feature-item">
                         <div class="feature-number">1</div>
@@ -2970,8 +2891,7 @@ def main():
                 </div>
             </div>
             """
-            # Use components.html to properly render HTML
-            components.html(features_html, height=400)
+            st.markdown(features_html, unsafe_allow_html=True)
     else:
         # Show results after processing
         # Modern styled title
