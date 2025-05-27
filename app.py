@@ -197,6 +197,71 @@ def inject_custom_css():
     }
     /* END NEW STYLES */
 
+    /* Feature list styling */
+    .feature-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: flex-start;
+        background-color: rgba(22, 27, 34, 0.8);
+        border: 1px solid rgba(56, 68, 77, 0.5);
+        border-radius: 8px;
+        padding: 1.25rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .feature-number {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #79b8f3;
+        font-size: 1.25rem;
+        font-weight: 600;
+        border-radius: 50%;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .feature-content {
+        flex: 1;
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #e6edf3;
+        margin-bottom: 0.5rem;
+    }
+
+    .feature-description {
+        font-size: 1rem;
+        color: #d1d5db;
+        line-height: 1.5;
+    }
+
+    /* Section header styling */
+    .section-header {
+        font-size: 1.8rem;
+        font-weight: 500;
+        color: #79b8f3;
+        margin-top: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
     /* Styling for Streamlit Expander Headers (e.g., Full Financial Narrative) */
     .streamlit-expanderHeader { /* General expander header style */
         background-color: rgba(30, 41, 59, 0.7) !important; /* From load_css fallback, good to have consistently */
@@ -2867,38 +2932,40 @@ def main():
             
             # Enhanced Features section
             features_html = """
-            <div class="features-card">
-                <h3 class="features-header">Features</h3>
+            <div class="card-container">
+                <h3 class="section-header">Features</h3>
                 
-                <div class="feature-item">
-                    <div class="feature-number">1</div>
-                    <div class="feature-content">
-                        <div class="feature-title">Comparative Analysis</div>
-                        <div class="feature-description">Compare current performance against budget, prior month, and prior year</div>
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-number">1</div>
+                        <div class="feature-content">
+                            <div class="feature-title">Comparative Analysis</div>
+                            <div class="feature-description">Compare current performance against budget, prior month, and prior year</div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="feature-item">
-                    <div class="feature-number">2</div>
-                    <div class="feature-content">
-                        <div class="feature-title">Financial Insights</div>
-                        <div class="feature-description">AI-generated analysis of key metrics and trends</div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-number">2</div>
+                        <div class="feature-content">
+                            <div class="feature-title">Financial Insights</div>
+                            <div class="feature-description">AI-generated analysis of key metrics and trends</div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="feature-item">
-                    <div class="feature-number">3</div>
-                    <div class="feature-content">
-                        <div class="feature-title">NOI Coach</div>
-                        <div class="feature-description">Ask questions about your financial data and get AI-powered insights</div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-number">3</div>
+                        <div class="feature-content">
+                            <div class="feature-title">NOI Coach</div>
+                            <div class="feature-description">Ask questions about your financial data and get AI-powered insights</div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="feature-item">
-                    <div class="feature-number">4</div>
-                    <div class="feature-content">
-                        <div class="feature-title">Export Options</div>
-                        <div class="feature-description">Save results as PDF or Excel for sharing and reporting</div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-number">4</div>
+                        <div class="feature-content">
+                            <div class="feature-title">Export Options</div>
+                            <div class="feature-description">Save results as PDF or Excel for sharing and reporting</div>
+                        </div>
                     </div>
                 </div>
             </div>
