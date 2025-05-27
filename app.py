@@ -2855,42 +2855,26 @@ def main():
             st.markdown("<h2 class='section-header'>Features</h2>", unsafe_allow_html=True)
 
             features_html = """
-            <div class="card-container">
-                <div class="feature-list">
-                    <div class="feature-item">
-                        <div class="feature-number">1</div>
-                        <div class="feature-content">
-                            <div class="feature-title">Comparative Analysis</div>
-                            <div class="feature-description">Compare current performance against budget, prior month, and prior year</div>
-                        </div>
-                    </div>
-                    
-                    <div class="feature-item">
-                        <div class="feature-number">2</div>
-                        <div class="feature-content">
-                            <div class="feature-title">Financial Insights</div>
-                            <div class="feature-description">AI-generated analysis of key metrics and trends</div>
-                        </div>
-                    </div>
-                    
-                    <div class="feature-item">
-                        <div class="feature-number">3</div>
-                        <div class="feature-content">
-                            <div class="feature-title">NOI Coach</div>
-                            <div class="feature-description">Ask questions about your financial data and get AI-powered insights</div>
-                        </div>
-                    </div>
-                    
-                    <div class="feature-item">
-                        <div class="feature-number">4</div>
-                        <div class="feature-content">
-                            <div class="feature-title">Export Options</div>
-                            <div class="feature-description">Save results as PDF or Excel for sharing and reporting</div>
-                        </div>
-                    </div>
-                </div>
+<div class="card-container">
+    <div class="feature-list">
+        <div class="feature-item">
+            <div class="feature-number">1</div>
+            <div class="feature-content">
+                <div class="feature-title">Comparative Analysis</div>
+                <div class="feature-description">Compare current performance against budget, prior month, and prior year</div>
             </div>
-            """
+        </div>
+        
+        <div class="feature-item">
+            <div class="feature-number">2</div>
+            <div class="feature-content">
+                <div class="feature-title">Financial Insights</div>
+                <div class="feature-description">AI-generated analysis of key metrics and trends</div>
+            </div>
+        </div>
+    </div>
+</div>
+"""
             st.markdown(features_html, unsafe_allow_html=True)
     else:
         # Show results after processing
