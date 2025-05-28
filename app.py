@@ -115,9 +115,9 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
     with st.expander("Document Metadata", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
-            st.text_input("Document Type", value=doc_data.get("document_type", ""), disabled=True)
+            st.text_input("Document Type", value=doc_data.get("document_type", ""), disabled=True, key=f"doc_type_display_{doc_type}")
         with col2:
-            st.text_input("Document Date", value=doc_data.get("document_date", ""), disabled=True)
+            st.text_input("Document Date", value=doc_data.get("document_date", ""), disabled=True, key=f"doc_date_display_{doc_type}")
     
     # Auto-calculation option
     auto_calculate = st.checkbox("Auto-calculate dependent values", value=True, key=f"auto_calc_{doc_type}")
