@@ -5,6 +5,7 @@ import plotly.express as px
 import logging
 import os
 import json
+import copy
 from typing import Dict, Any, List, Optional, Tuple
 import base64
 from datetime import datetime
@@ -36,6 +37,323 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger('noi_analyzer')
+
+def validate_financial_data(data: Dict[str, Any]) -> Tuple[bool, str]:
+    """
+    Validate financial data for consistency.
+    
+    Args:
+        data: Dictionary containing financial data
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    # Check if EGI = GPR - Vacancy Loss + Other Income
+    expected_egi = data.get("gpr", 0) - data.get("vacancy_loss", 0) + data.get("other_income", 0)
+    actual_egi = data.get("egi", 0)
+    
+    # Allow for small floating point differences
+    if abs(expected_egi - actual_egi) > 1.0:
+        return False, f"EGI inconsistency: Expected {expected_egi:.2f}, got {actual_egi:.2f}"
+    
+    # Check if NOI = EGI - OpEx
+    expected_noi = data.get("egi", 0) - data.get("opex", 0)
+    actual_noi = data.get("noi", 0)
+    
+    # Allow for small floating point differences
+    if abs(expected_noi - actual_noi) > 1.0:
+        return False, f"NOI inconsistency: Expected {expected_noi:.2f}, got {actual_noi:.2f}"
+    
+    # Check if OpEx components sum up to total OpEx
+    opex_components = [
+        "repairs_maintenance", "utilities", "property_management", 
+        "taxes", "insurance", "administrative", 
+        "payroll", "marketing", "other_expenses"
+    ]
+    
+    opex_sum = sum(data.get(component, 0) for component in opex_components)
+    total_opex = data.get("opex", 0)
+    
+    # Allow for small floating point differences
+    if abs(opex_sum - total_opex) > 1.0:
+        return False, f"OpEx inconsistency: Components sum to {opex_sum:.2f}, but total is {total_opex:.2f}"
+    
+    # Check if Other Income components sum up to total Other Income
+    income_components = [
+        "parking", "laundry", "late_fees", "pet_fees", 
+        "application_fees", "storage_fees", "amenity_fees", 
+        "utility_reimbursements", "cleaning_fees", 
+        "cancellation_fees", "miscellaneous"
+    ]
+    
+    income_sum = sum(data.get(component, 0) for component in income_components)
+    total_income = data.get("other_income", 0)
+    
+    # Allow for small floating point differences
+    if abs(income_sum - total_income) > 1.0:
+        return False, f"Other Income inconsistency: Components sum to {income_sum:.2f}, but total is {total_income:.2f}"
+    
+    # All checks passed
+    return True, ""
+
+def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Display and allow editing of data for a specific document type.
+    
+    Args:
+        doc_type: Document type (current_month, prior_month, budget, prior_year)
+        doc_data: Dictionary containing document data
+        
+    Returns:
+        Dictionary containing the edited document data
+    """
+    # Create a deep copy to avoid modifying the original
+    edited_doc_data = copy.deepcopy(doc_data)
+    
+    # Display document metadata
+    st.markdown("### Document Information")
+    with st.expander("Document Metadata", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.text_input("Document Type", value=doc_data.get("document_type", ""), disabled=True)
+        with col2:
+            st.text_input("Document Date", value=doc_data.get("document_date", ""), disabled=True)
+    
+    # Auto-calculation option
+    auto_calculate = st.checkbox("Auto-calculate dependent values", value=True, key=f"auto_calc_{doc_type}")
+    
+    # Display main financial metrics
+    st.markdown("### Key Financial Metrics")
+    
+    # Create a form for the main metrics
+    with st.form(key=f"main_metrics_form_{doc_type}"):
+        # GPR
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Gross Potential Rent (GPR)**")
+        with col2:
+            gpr = st.number_input(
+                "GPR Value",
+                value=float(doc_data.get("gpr", 0.0)),
+                format="%.2f",
+                step=100.0,
+                key=f"gpr_{doc_type}"
+            )
+            edited_doc_data["gpr"] = gpr
+        
+        # Vacancy Loss
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Vacancy Loss**")
+        with col2:
+            vacancy_loss = st.number_input(
+                "Vacancy Loss Value",
+                value=float(doc_data.get("vacancy_loss", 0.0)),
+                format="%.2f",
+                step=100.0,
+                key=f"vacancy_loss_{doc_type}"
+            )
+            edited_doc_data["vacancy_loss"] = vacancy_loss
+        
+        # Other Income
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Other Income**")
+        with col2:
+            other_income = st.number_input(
+                "Other Income Value",
+                value=float(doc_data.get("other_income", 0.0)),
+                format="%.2f",
+                step=100.0,
+                key=f"other_income_{doc_type}"
+            )
+            edited_doc_data["other_income"] = other_income
+        
+        # EGI
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Effective Gross Income (EGI)**")
+        with col2:
+            if auto_calculate:
+                calculated_egi = edited_doc_data["gpr"] - edited_doc_data["vacancy_loss"] + edited_doc_data["other_income"]
+                edited_doc_data["egi"] = calculated_egi
+                st.number_input(
+                    "EGI Value (Auto-calculated)",
+                    value=float(calculated_egi),
+                    format="%.2f",
+                    step=100.0,
+                    key=f"egi_{doc_type}",
+                    disabled=True
+                )
+            else:
+                egi = st.number_input(
+                    "EGI Value",
+                    value=float(doc_data.get("egi", 0.0)),
+                    format="%.2f",
+                    step=100.0,
+                    key=f"egi_{doc_type}"
+                )
+                edited_doc_data["egi"] = egi
+        
+        # OpEx
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Operating Expenses (OpEx)**")
+        with col2:
+            opex = st.number_input(
+                "OpEx Value",
+                value=float(doc_data.get("opex", 0.0)),
+                format="%.2f",
+                step=100.0,
+                key=f"opex_{doc_type}"
+            )
+            edited_doc_data["opex"] = opex
+        
+        # NOI
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Net Operating Income (NOI)**")
+        with col2:
+            if auto_calculate:
+                calculated_noi = edited_doc_data["egi"] - edited_doc_data["opex"]
+                edited_doc_data["noi"] = calculated_noi
+                st.number_input(
+                    "NOI Value (Auto-calculated)",
+                    value=float(calculated_noi),
+                    format="%.2f",
+                    step=100.0,
+                    key=f"noi_{doc_type}",
+                    disabled=True
+                )
+            else:
+                noi = st.number_input(
+                    "NOI Value",
+                    value=float(doc_data.get("noi", 0.0)),
+                    format="%.2f",
+                    step=100.0,
+                    key=f"noi_{doc_type}"
+                )
+                edited_doc_data["noi"] = noi
+        
+        # Submit button for the form
+        st.form_submit_button("Update Main Metrics")
+    
+    # Display Operating Expenses breakdown
+    st.markdown("### Operating Expenses Breakdown")
+    
+    # Create a form for OpEx breakdown
+    with st.form(key=f"opex_form_{doc_type}"):
+        opex_components = [
+            ("repairs_maintenance", "Repairs & Maintenance"),
+            ("utilities", "Utilities"),
+            ("property_management", "Property Management"),
+            ("taxes", "Property Taxes"),
+            ("insurance", "Insurance"),
+            ("administrative", "Administrative"),
+            ("payroll", "Payroll"),
+            ("marketing", "Marketing"),
+            ("other_expenses", "Other Expenses")
+        ]
+        
+        # Create two columns for better layout
+        col1, col2 = st.columns(2)
+        
+        # Distribute OpEx components between columns
+        for i, (key, label) in enumerate(opex_components):
+            with col1 if i % 2 == 0 else col2:
+                value = st.number_input(
+                    label,
+                    value=float(doc_data.get(key, 0.0)),
+                    format="%.2f",
+                    step=100.0,
+                    key=f"{key}_{doc_type}"
+                )
+                edited_doc_data[key] = value
+        
+        # Submit button for the form
+        st.form_submit_button("Update OpEx Breakdown")
+    
+    # Display Other Income breakdown
+    st.markdown("### Other Income Breakdown")
+    
+    # Create a form for Other Income breakdown
+    with st.form(key=f"other_income_form_{doc_type}"):
+        income_components = [
+            ("parking", "Parking"),
+            ("laundry", "Laundry"),
+            ("late_fees", "Late Fees"),
+            ("pet_fees", "Pet Fees"),
+            ("application_fees", "Application Fees"),
+            ("storage_fees", "Storage Fees"),
+            ("amenity_fees", "Amenity Fees"),
+            ("utility_reimbursements", "Utility Reimbursements"),
+            ("cleaning_fees", "Cleaning Fees"),
+            ("cancellation_fees", "Cancellation Fees"),
+            ("miscellaneous", "Miscellaneous")
+        ]
+        
+        # Create two columns for better layout
+        col1, col2 = st.columns(2)
+        
+        # Distribute income components between columns
+        for i, (key, label) in enumerate(income_components):
+            with col1 if i % 2 == 0 else col2:
+                value = st.number_input(
+                    label,
+                    value=float(doc_data.get(key, 0.0)),
+                    format="%.2f",
+                    step=100.0,
+                    key=f"{key}_{doc_type}"
+                )
+                edited_doc_data[key] = value
+        
+        # Submit button for the form
+        st.form_submit_button("Update Other Income Breakdown")
+    
+    # Validate data and show warnings if needed
+    is_valid, error_message = validate_financial_data(edited_doc_data)
+    if not is_valid:
+        st.warning(f"Data inconsistency detected: {error_message}")
+        st.info("You can still proceed, but consider fixing the inconsistency for more accurate analysis.")
+    
+    # Return the edited document data
+    return edited_doc_data
+
+def display_data_template(consolidated_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Display extracted financial data in an editable template format.
+    
+    Args:
+        consolidated_data: Dictionary containing extracted financial data
+        
+    Returns:
+        Dictionary containing the verified/edited financial data
+    """
+    st.markdown("## Data Extraction Template")
+    st.markdown("Review and edit the extracted financial data below. Make any necessary corrections before proceeding with analysis.")
+    
+    # Create a deep copy of the data to avoid modifying the original
+    edited_data = copy.deepcopy(consolidated_data)
+    
+    # Create tabs for each document type
+    doc_tabs = st.tabs(["Current Month", "Prior Month", "Budget", "Prior Year"])
+    
+    # Process each document type
+    for i, doc_type in enumerate(["current_month", "prior_month", "budget", "prior_year"]):
+        with doc_tabs[i]:
+            if doc_type in consolidated_data:
+                edited_data[doc_type] = display_document_data(doc_type, consolidated_data[doc_type])
+            else:
+                st.info(f"No {doc_type.replace('_', ' ')} data available.")
+    
+    # Add confirmation button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("Confirm Data and Proceed with Analysis", type="primary", use_container_width=True):
+            return edited_data
+    
+    # Return None if not confirmed
+    return None
 
 # Helper function to inject custom CSS
 def inject_custom_css():
@@ -2610,6 +2928,24 @@ def main():
             st.session_state.show_zero_values = show_zero_values
             st.rerun()
         
+        # Data Template Reset Button
+        if st.session_state.get('consolidated_data') and isinstance(st.session_state.consolidated_data, dict) and not st.session_state.consolidated_data.get('error'):
+            # Show this button if there's valid data, regardless of whether processing_completed is True yet,
+            # as the user might want to re-check data even before first full analysis, or after an error post-template.
+            if st.session_state.get('template_viewed', False) or st.session_state.get('processing_completed', False):
+                 st.sidebar.markdown("<hr class='sidebar-divider'>", unsafe_allow_html=True) # Visually separate
+                 st.sidebar.markdown('<div class="sidebar-subsection-header">Data Review</div>', unsafe_allow_html=True)
+                 if st.sidebar.button("View/Edit Extracted Data", key="view_edit_data_button_sidebar", use_container_width=True):
+                    st.session_state.template_viewed = False
+                    # Reset states that depend on the data having been finalized to allow re-processing
+                    st.session_state.processing_completed = False 
+                    if 'comparison_results' in st.session_state: del st.session_state.comparison_results
+                    if 'insights' in st.session_state: del st.session_state.insights
+                    if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
+                    if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
+                    logger.info("User clicked 'View/Edit Extracted Data'. Resetting template_viewed and dependent states.")
+                    st.experimental_rerun()
+
         # NOI Coach context selection
         st.markdown('<div class="sidebar-subsection-header">NOI Coach Context</div>', unsafe_allow_html=True)
         view_options = {
@@ -2967,96 +3303,82 @@ def main():
                 except Exception as e_log_snippet:
                     logger.error(f"APP.PY: Error logging raw_consolidated_data snippet: {e_log_snippet}")
 
-            # Process the data if it's valid
-            if raw_consolidated_data and isinstance(raw_consolidated_data, dict) and not raw_consolidated_data.get('error'):
-                logger.info("APP.PY: Condition to transform data met. Calling calculate_noi_comparisons.")
-                try:
-                    transformed_data = calculate_noi_comparisons(raw_consolidated_data)
-                    logger.info(f"APP.PY: calculate_noi_comparisons returned. Transformed_data type: {type(transformed_data)}. Keys: {list(transformed_data.keys()) if isinstance(transformed_data, dict) else 'Not a dict'}")
-                    
-                    # Log the month_vs_prior data if available
-                    if isinstance(transformed_data, dict) and "month_vs_prior" in transformed_data:
-                        mvp_data = transformed_data["month_vs_prior"]
-                        logger.info(f"APP.PY: transformed_data['month_vs_prior'] type: {type(mvp_data)}. Keys: {list(mvp_data.keys()) if isinstance(mvp_data, dict) else 'Not a dict'}")
-                        if isinstance(mvp_data, dict):
-                            try:
-                                logger.info(f"APP.PY: Snippet of transformed_data['month_vs_prior']: {summarize_data_for_log(mvp_data)}")
-                                logger.debug(f"APP.PY: Full transformed_data['month_vs_prior']: {json.dumps(mvp_data, default=str, indent=2)}")
-                            except Exception as e_log_snippet_mvp:
-                                logger.error(f"APP.PY: Error logging transformed_data['month_vs_prior'] snippet: {e_log_snippet_mvp}")
-                    else:
-                        logger.warning("APP.PY: 'month_vs_prior' key missing in transformed_data or transformed_data is not a dict.")
+            # Store raw consolidated data in session state
+            st.session_state.consolidated_data = raw_consolidated_data
+            
+            # Check if we have valid data to display in the template
+            if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data: # Added check for non-empty dict
+                show_processing_status("Documents processed. Please review the extracted data.", status_type="info")
 
-                    # Save the transformed data to session state
-                    st.session_state.comparison_results = transformed_data
-                    logger.info(f"APP.PY: st.session_state.comparison_results assigned. Type: {type(st.session_state.comparison_results)}. Keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
+                if 'template_viewed' not in st.session_state:
+                    st.session_state.template_viewed = False
+                
+                if not st.session_state.template_viewed:
+                    verified_data = display_data_template(raw_consolidated_data)
                     
-                    # Generate insights and narrative only if comparison results are valid
-                    if not st.session_state.comparison_results.get("error"):
-                        logger.info("APP.PY: comparison_results seem okay. Generating insights and narrative.")
-                        show_processing_status("Generating insights and narrative...", is_running=True)
+                    if verified_data is not None:
+                        st.session_state.consolidated_data = verified_data
+                        st.session_state.template_viewed = True
+                        # Analysis will be triggered in the next block if template_viewed is True
+                        logger.info("Data confirmed by user. Proceeding to analysis preparation.")
+                        st.experimental_rerun() # Rerun to proceed to analysis part
+                    else:
+                        logger.info("User has not confirmed data yet. Waiting for confirmation.")
+                        return # Stop further execution until data is confirmed
+                
+                # This block will run if template_viewed is True (either just confirmed or previously confirmed)
+                if st.session_state.template_viewed:
+                    show_processing_status("Processing verified data...", is_running=True)
+                    logger.info("Proceeding with analysis using verified/previously verified data.")
+                    
+                    try:
+                        # Perform financial analysis with verified data
+                        consolidated_data_for_analysis = format_for_noi_comparison(st.session_state.consolidated_data)
+                        st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
                         
-                        # Optional debugging of comparison structure
-                        enable_structure_debug = True  # Set to False to disable detailed structure logging
-                        if enable_structure_debug:
-                            logger.info(f"APP.PY: Calling debug_comparison_structure with st.session_state.comparison_results. Keys: {list(st.session_state.comparison_results.keys())}")
-                            debug_comparison_structure(st.session_state.comparison_results)
-                        
-                        # Generate insights
-                        try:
-                            insights = generate_insights_with_gpt(st.session_state.comparison_results)
-                            # Create a properly structured insights dictionary
-                            structured_insights = {
-                                "summary": insights.get("summary", "No summary available"),
+                        if not st.session_state.comparison_results.get("error"):
+                            insights = generate_insights_with_gpt(st.session_state.comparison_results, get_openai_api_key())
+                            st.session_state.insights = {
+                                "summary": insights.get("summary", "No summary available."),
                                 "performance": insights.get("performance", []),
                                 "recommendations": insights.get("recommendations", [])
                             }
+                            narrative = create_narrative(st.session_state.comparison_results, st.session_state.insights, st.session_state.property_name)
+                            st.session_state.generated_narrative = narrative
+                            st.session_state.edited_narrative = narrative # Initialize edited with generated
+
+                            st.session_state.processing_completed = True
+                            show_processing_status("Analysis complete!", status_type="success")
+                            logger.info("Financial analysis, insights, and narrative generated successfully.")
+                        else:
+                            error_msg = st.session_state.comparison_results.get("error", "Unknown error during analysis.")
+                            logger.error(f"Error during financial analysis: {error_msg}")
+                            st.error(f"An error occurred during analysis: {error_msg}")
+                            st.session_state.processing_completed = False
                             
-                            # Store the insights in session state
-                            st.session_state.insights = structured_insights
-                            logger.info(f"Structured insights keys: {list(structured_insights.keys())}")
-                        except Exception as e_insights:
-                            logger.error(f"Error generating insights: {e_insights}")
-                            st.session_state.insights = {
-                                "summary": "Error generating insights",
-                                "performance": [],
-                                "recommendations": []
-                            }
-                        
-                        # Generate narrative
-                        try:
-                            narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
-                            if narrative and isinstance(narrative, str):
-                                st.session_state.generated_narrative = narrative
-                                logger.info(f"Narrative generated successfully: {len(narrative)} characters")
-                            else:
-                                logger.warning(f"create_narrative returned invalid data: {type(narrative)}")
-                                st.session_state.generated_narrative = "Unable to generate narrative due to data issues."
-                        except Exception as e_narrative:
-                            logger.error(f"Error generating narrative: {e_narrative}")
-                            st.session_state.generated_narrative = "An error occurred while generating the narrative."
-                        
-                        # Mark processing as completed
-                        st.session_state.processing_completed = True
-                        show_processing_status("Documents processed successfully!", status_type="success")
-                    else:
+                    except Exception as e_analysis:
+                        logger.error(f"Exception during financial analysis: {str(e_analysis)}", exc_info=True)
+                        st.error(f"An unexpected error occurred during analysis: {str(e_analysis)}")
                         st.session_state.processing_completed = False
-                        show_processing_status(f"Error in data processing: {st.session_state.comparison_results.get('error')}", status_type="error")
-                except Exception as e_calc:
-                    logger.error(f"APP.PY: Error during calculate_noi_comparisons: {str(e_calc)}", exc_info=True)
-                    st.session_state.comparison_results = {"error": f"Calculation error: {str(e_calc)}"}
-                    st.session_state.processing_completed = False
-                    show_processing_status(f"Calculation error: {str(e_calc)}", status_type="error")
-            elif isinstance(raw_consolidated_data, dict) and raw_consolidated_data.get('error'):
-                logger.error(f"APP.PY: Error reported by process_all_documents: {raw_consolidated_data.get('error')}")
-                st.session_state.comparison_results = raw_consolidated_data
+                    
+                    st.experimental_rerun() # Rerun to display results or updated status
+
+            elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
+                error_message = raw_consolidated_data["error"]
+                logger.error(f"Error during document processing: {error_message}")
+                st.error(f"An error occurred during document processing: {error_message}")
+                st.session_state.error_message = error_message
                 st.session_state.processing_completed = False
-                show_processing_status(f"Error: {raw_consolidated_data.get('error')}", status_type="error")
-            else:
-                logger.warning(f"APP.PY: Condition to transform data NOT met or raw_consolidated_data is not as expected. raw_consolidated_data type: {type(raw_consolidated_data)}")
-                st.session_state.comparison_results = {"error": "No data from document processing or unexpected data structure."}
+            elif not raw_consolidated_data : # Handles empty dict or None
+                logger.warning("No data was extracted from the documents or data is empty.")
+                st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
+                st.session_state.error_message = "No data extracted or data is empty."
                 st.session_state.processing_completed = False
-                show_processing_status("Error: No data from document processing or unexpected data structure.", status_type="error")
+            else: # Catch any other unexpected raw_consolidated_data states
+                logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
+                st.error("An unknown error occurred or the data structure is invalid after processing.")
+                st.session_state.error_message = "Unknown processing error."
+                st.session_state.processing_completed = False
             
             logger.info(f"APP.PY: --- Document Processing END --- processing_completed: {st.session_state.processing_completed}")
             # Force rerun to refresh UI
@@ -3163,8 +3485,6 @@ def main():
                 # Excel export logic here
                 show_processing_status("Excel export functionality coming soon!", status_type="info")
             st.markdown('</div>', unsafe_allow_html=True)
-
-# --- Add new display functions here ---
 
 def display_features_section():
     """Display the features section using pure Streamlit components without HTML"""
