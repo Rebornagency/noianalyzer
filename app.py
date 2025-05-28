@@ -2944,7 +2944,7 @@ def main():
                     if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
                     if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
                     logger.info("User clicked 'View/Edit Extracted Data'. Resetting template_viewed and dependent states.")
-                    st.experimental_rerun()
+                    st.rerun()
 
         # NOI Coach context selection
         st.markdown('<div class="sidebar-subsection-header">NOI Coach Context</div>', unsafe_allow_html=True)
@@ -3321,7 +3321,7 @@ def main():
                         st.session_state.template_viewed = True
                         # Analysis will be triggered in the next block if template_viewed is True
                         logger.info("Data confirmed by user. Proceeding to analysis preparation.")
-                        st.experimental_rerun() # Rerun to proceed to analysis part
+                        st.rerun() # Rerun to proceed to analysis part
                     else:
                         logger.info("User has not confirmed data yet. Waiting for confirmation.")
                         return # Stop further execution until data is confirmed
@@ -3361,7 +3361,7 @@ def main():
                         st.error(f"An unexpected error occurred during analysis: {str(e_analysis)}")
                         st.session_state.processing_completed = False
                     
-                    st.experimental_rerun() # Rerun to display results or updated status
+                    st.rerun() # Rerun to display results or updated status
 
             elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
                 error_message = raw_consolidated_data["error"]
@@ -3382,7 +3382,7 @@ def main():
             
             logger.info(f"APP.PY: --- Document Processing END --- processing_completed: {st.session_state.processing_completed}")
             # Force rerun to refresh UI
-            st.experimental_rerun()
+            st.rerun()
         except Exception as e:
             # Main exception handler for the entire process_clicked block
             logger.error(f"Error processing documents: {e}", exc_info=True)
