@@ -2966,14 +2966,45 @@ def main():
             st.success(f"NOI Coach context set to {view_options[selected_view]}")
     
     # Main content area
-    if not st.session_state.processing_completed:
-        # Show welcome content when no data has been processed
+    
+    # Consolidate the 'Process Documents' button clicks
+    # The 'process_clicked' variable from the sidebar will be used.
+    # If the main area button is also used, it will also set 'process_clicked'.
+    # We need to ensure that if the main button is clicked, its state is OR-ed
+    # with the sidebar button's state.
+    # However, Streamlit's button state is only True for the run where it's clicked.
+    # We need a more persistent way to know if processing should start.
+
+    # New session state variable to track if a processing action has been initiated
+    if 'user_initiated_processing' not in st.session_state:
+        st.session_state.user_initiated_processing = False
+
+    # Sidebar 'Process Documents' button
+    # (This 'process_clicked' is already defined in the sidebar section)
+    if process_clicked: # This is the sidebar button
+        st.session_state.user_initiated_processing = True
+        # Reset relevant states for a fresh processing cycle
+        st.session_state.template_viewed = False
+        st.session_state.processing_completed = False
+        if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+        if 'comparison_results' in st.session_state: del st.session_state.comparison_results
+        if 'insights' in st.session_state: del st.session_state.insights
+        if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
+        if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
+        logger.info("Sidebar 'Process Documents' clicked. Initiating processing cycle.")
+        # Don't rerun here, let the main logic flow handle it.
+
+    # Display initial UI or results based on processing_completed
+    if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
+        # Show welcome content when no data has been processed and template is not active
         # Modern title with accent color
-        st.markdown("""
+        st.markdown(
+        '''
         <h1 class="noi-title">
             <span class="noi-title-accent">NOI</span> Analyzer
         </h1>
-        """, unsafe_allow_html=True)
+        '''
+        , unsafe_allow_html=True)
         
         # Two-column layout for better space utilization
         col1, col2 = st.columns([1, 1.2])
@@ -2985,56 +3016,59 @@ def main():
             # Create modern file upload cards
             st.markdown('<div class="upload-container">', unsafe_allow_html=True)
             
-            # Current Month Actuals (Required)
-            st.markdown("""
+            # Current Month Actuals (Required) - File uploader already in sidebar
+            # We re-declare them here for the main page layout if needed, but ensure keys are different if used
+            # For now, assuming sidebar uploaders are primary, this section is more for visual structure
+            st.markdown(
+            '''
             <div class="upload-card">
                 <div class="upload-card-header">Current Month Actuals <span class="required-badge">Required</span></div>
-            """, unsafe_allow_html=True)
-            current_month_file = st.file_uploader(
-                "", 
-                type=["xlsx", "xls", "csv", "pdf"],
-                key="main_current_month_upload",
-                help="Upload your current month's financial data"
-            )
+            '''
+            , unsafe_allow_html=True)
+            # The actual file uploader instance 'current_month_file' is from the sidebar
+            if st.session_state.current_month_actuals:
+                show_file_info(st.session_state.current_month_actuals.name, uploaded=True)
+            else:
+                st.info("Upload via sidebar.")
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Prior Month Actuals
-            st.markdown("""
+            st.markdown(
+            '''
             <div class="upload-card">
                 <div class="upload-card-header">Prior Month Actuals</div>
-            """, unsafe_allow_html=True)
-            prior_month_file = st.file_uploader(
-                "", 
-                type=["xlsx", "xls", "csv", "pdf"],
-                key="main_prior_month_upload",
-                help="Upload your prior month's financial data for month-over-month comparison"
-            )
+            '''
+            , unsafe_allow_html=True)
+            if st.session_state.prior_month_actuals:
+                show_file_info(st.session_state.prior_month_actuals.name, uploaded=True)
+            else:
+                st.info("Upload via sidebar.")
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Current Month Budget
-            st.markdown("""
+            st.markdown(
+            '''
             <div class="upload-card">
                 <div class="upload-card-header">Current Month Budget</div>
-            """, unsafe_allow_html=True)
-            budget_file = st.file_uploader(
-                "", 
-                type=["xlsx", "xls", "csv", "pdf"],
-                key="main_budget_upload",
-                help="Upload your budget data for budget vs actuals comparison"
-            )
+            '''
+            , unsafe_allow_html=True)
+            if st.session_state.current_month_budget:
+                show_file_info(st.session_state.current_month_budget.name, uploaded=True)
+            else:
+                st.info("Upload via sidebar.")
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Prior Year Same Month
-            st.markdown("""
+            st.markdown(
+            '''
             <div class="upload-card">
                 <div class="upload-card-header">Prior Year Same Month</div>
-            """, unsafe_allow_html=True)
-            prior_year_file = st.file_uploader(
-                "", 
-                type=["xlsx", "xls", "csv", "pdf"],
-                key="main_prior_year_upload",
-                help="Upload the same month from prior year for year-over-year comparison"
-            )
+            '''
+            , unsafe_allow_html=True)
+            if st.session_state.prior_year_actuals:
+                show_file_info(st.session_state.prior_year_actuals.name, uploaded=True)
+            else:
+                st.info("Upload via sidebar.")
             st.markdown('</div>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
@@ -3042,20 +3076,19 @@ def main():
             # Property name input with modern styling
             st.markdown('<div class="upload-card">', unsafe_allow_html=True)
             st.markdown('<div class="upload-card-header">Property Information</div>', unsafe_allow_html=True)
-            property_name = st.text_input(
-                "Property Name (Optional)",
+            # Property name is managed by the sidebar input
+            st.text_input(
+                "Property Name (Edit in Sidebar)",
                 value=st.session_state.property_name,
-                help="Enter the name of the property being analyzed",
-                key="main_property_name_input"
+                disabled=True, # Display only, edit in sidebar
+                key="main_property_name_display"
             )
-            
-            if property_name != st.session_state.property_name:
-                st.session_state.property_name = property_name
-                
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Modern process button
-            st.markdown("""
+            # Main page 'Process Documents' button
+            # This button's click also sets user_initiated_processing to True
+            st.markdown(
+            '''
             <style>
             /* Override button styling for process button */
             .stButton > button[kind="primary"] {
@@ -3079,39 +3112,189 @@ def main():
                 transform: translateY(-2px) !important;
             }
             </style>
-            """, unsafe_allow_html=True)
+            '''
+            , unsafe_allow_html=True)
             
-            # Process button
-            process_clicked = st.button(
+            if st.button(
                 "Process Documents", 
                 type="primary",
                 use_container_width=True,
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
-            )
-        
+            ):
+                st.session_state.user_initiated_processing = True
+                # Reset states for a fresh processing cycle
+                st.session_state.template_viewed = False
+                st.session_state.processing_completed = False
+                if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                if 'comparison_results' in st.session_state: del st.session_state.comparison_results
+                if 'insights' in st.session_state: del st.session_state.insights
+                if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
+                if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
+                logger.info("Main page 'Process Documents' clicked. Initiating processing cycle.")
+                st.rerun() # Rerun to start the processing logic below
+
         with col2:
             # Enhanced Instructions section
-            st.markdown("""
+            st.markdown(
+            '''
             <div class="info-card">
                 <h3 class="info-card-header">Instructions:</h3>
                 <ol class="info-list">
-                    <li>Upload your financial documents using the file uploaders</li>
+                    <li>Upload your financial documents using the file uploaders in the sidebar</li>
                     <li>At minimum, upload a <span class="highlight">Current Month Actuals</span> file</li>
                     <li>For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)</li>
-                    <li>Click "<span class="highlight">Process Documents</span>" to analyze the data</li>
-                    <li>View the results in the analysis tabs</li>
+                    <li>Click "<span class="highlight">Process Documents</span>" (here or in sidebar) to analyze the data</li>
+                    <li>Review and edit extracted data in the template that appears</li>
+                    <li>Confirm data to view the analysis results</li>
                     <li>Export your results as PDF or Excel using the export options</li>
                 </ol>
                 <p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>
             </div>
-            """, unsafe_allow_html=True)
+            '''
+            , unsafe_allow_html=True)
             
             # Enhanced Features section
             st.markdown("<h2 class='section-header'>Features</h2>", unsafe_allow_html=True)
             display_features_section_no_html() # Call the new function
-    else:
-        # Show results after processing
+    
+    # --- Stage 1: Document Extraction (if user initiated processing and no data yet) ---
+    if st.session_state.user_initiated_processing and 'consolidated_data' not in st.session_state:
+        try:
+            show_processing_status("Processing documents. This may take a minute...", is_running=True)
+            logger.info("APP.PY: --- User Initiated Document Processing START ---")
+
+            # Ensure current_month_file is from session state, as button click clears local vars
+            if not st.session_state.current_month_actuals:
+                show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
+                st.session_state.user_initiated_processing = False # Reset flag as processing cannot continue
+                st.rerun() # Rerun to show the error and stop
+                return # Explicitly return
+
+            # Pass file objects from session state to process_all_documents
+            # process_all_documents internally uses st.session_state to get file objects
+            raw_consolidated_data = process_all_documents()
+            logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
+
+            if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
+                st.session_state.consolidated_data = raw_consolidated_data
+                st.session_state.template_viewed = False # Ensure template is shown
+                logger.info("Document extraction successful. Data stored. Proceeding to template display.")
+            elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
+                error_message = raw_consolidated_data["error"]
+                logger.error(f"Error during document processing: {error_message}")
+                st.error(f"An error occurred during document processing: {error_message}")
+                st.session_state.user_initiated_processing = False # Reset flag
+            elif not raw_consolidated_data:
+                logger.warning("No data was extracted from the documents or data is empty.")
+                st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
+                st.session_state.user_initiated_processing = False # Reset flag
+            else:
+                logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
+                st.error("An unknown error occurred or the data structure is invalid after processing.")
+                st.session_state.user_initiated_processing = False # Reset flag
+            
+            st.rerun() # Rerun to move to template display or show error
+
+        except Exception as e_extract:
+            logger.error(f"Exception during document extraction stage: {str(e_extract)}", exc_info=True)
+            st.error(f"An unexpected error occurred during document extraction: {str(e_extract)}")
+            st.session_state.user_initiated_processing = False # Reset flag
+            st.rerun()
+        return # Stop further execution in this run, let rerun handle next step
+
+    # --- Stage 2: Data Template Display and Confirmation ---
+    # This block executes if consolidated_data exists but template hasn't been viewed/confirmed
+    if 'consolidated_data' in st.session_state and \
+       st.session_state.consolidated_data and \
+       not st.session_state.get('template_viewed', False) and \
+       not st.session_state.get('processing_completed', False): # Ensure analysis hasn't already run
+        
+        logger.info("Displaying data template for user review.")
+        show_processing_status("Documents processed. Please review the extracted data.", status_type="info")
+        
+        # Ensure consolidated_data is not an error message from a previous step
+        if isinstance(st.session_state.consolidated_data, dict) and "error" not in st.session_state.consolidated_data:
+            verified_data = display_data_template(st.session_state.consolidated_data)
+            
+            if verified_data is not None:
+                st.session_state.consolidated_data = verified_data # Update with (potentially) edited data
+                st.session_state.template_viewed = True
+                st.session_state.user_initiated_processing = False # Reset, as next step is auto analysis
+                logger.info("Data confirmed by user via template. Proceeding to analysis preparation.")
+                st.rerun() # Rerun to trigger analysis stage
+            else:
+                # Template is displayed, waiting for user confirmation. Nothing else to do in this run.
+                logger.info("Data template is active. Waiting for user confirmation.")
+        else:
+            # If consolidated_data holds an error or is invalid, don't show template.
+            # This case should ideally be caught earlier.
+            logger.error("Attempted to display template with invalid consolidated_data.")
+            st.error("Cannot display data template due to an issue with extracted data. Please try processing again.")
+            # Clear problematic data and reset flags
+            if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+            st.session_state.user_initiated_processing = False
+            st.session_state.template_viewed = False
+            st.rerun()
+        return # Stop further execution in this run
+
+    # --- Stage 3: Financial Analysis (if data confirmed and not yet processed) ---
+    if st.session_state.get('template_viewed', False) and \
+       not st.session_state.get('processing_completed', False) and \
+       'consolidated_data' in st.session_state and \
+       st.session_state.consolidated_data:
+
+        logger.info("APP.PY: --- Financial Analysis START ---")
+        show_processing_status("Processing verified data for analysis...", is_running=True)
+        try:
+            # Ensure consolidated_data is valid before analysis
+            if not isinstance(st.session_state.consolidated_data, dict) or "error" in st.session_state.consolidated_data:
+                logger.error("Analysis cannot proceed: consolidated_data is invalid or contains an error.")
+                st.error("Analysis cannot proceed due to an issue with the prepared data. Please re-process documents.")
+                # Reset states to allow user to restart
+                st.session_state.processing_completed = False
+                st.session_state.template_viewed = False
+                st.session_state.user_initiated_processing = False
+                if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                st.rerun()
+                return
+
+            consolidated_data_for_analysis = format_for_noi_comparison(st.session_state.consolidated_data)
+            st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
+            
+            if st.session_state.comparison_results and not st.session_state.comparison_results.get("error"):
+                insights = generate_insights_with_gpt(st.session_state.comparison_results, get_openai_api_key())
+                st.session_state.insights = {
+                    "summary": insights.get("summary", "No summary available."),
+                    "performance": insights.get("performance", []),
+                    "recommendations": insights.get("recommendations", [])
+                }
+                narrative = create_narrative(st.session_state.comparison_results, st.session_state.insights, st.session_state.property_name)
+                st.session_state.generated_narrative = narrative
+                st.session_state.edited_narrative = narrative # Initialize edited with generated
+
+                st.session_state.processing_completed = True
+                st.session_state.user_initiated_processing = False # Processing is done
+                show_processing_status("Analysis complete!", status_type="success")
+                logger.info("Financial analysis, insights, and narrative generated successfully.")
+            else:
+                error_msg = st.session_state.comparison_results.get("error", "Unknown error during analysis.") if st.session_state.comparison_results else "Comparison results are empty."
+                logger.error(f"Error during financial analysis: {error_msg}")
+                st.error(f"An error occurred during analysis: {error_msg}")
+                st.session_state.processing_completed = False # Ensure it's marked as not completed
+                # Don't delete consolidated_data here, user might want to re-run analysis if it was a transient issue
+            
+            st.rerun() # Rerun to display results or updated status
+        except Exception as e_analysis:
+            logger.error(f"Exception during financial analysis stage: {str(e_analysis)}", exc_info=True)
+            st.error(f"An unexpected error occurred during analysis: {str(e_analysis)}")
+            st.session_state.processing_completed = False
+            st.rerun()
+        return # Stop further execution
+
+    # --- Stage 4: Display Results or Welcome Page ---
+    if st.session_state.get('processing_completed', False):
+        # Show results after processing is fully completed
         # Modern styled title
         st.markdown(f"""
         <h1 class="noi-title">
