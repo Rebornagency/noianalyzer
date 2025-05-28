@@ -2862,36 +2862,44 @@ def main():
         st.markdown('<div class="sidebar-section-header">Upload Documents</div>', unsafe_allow_html=True)
         
         # Upload current month actuals
-        current_month_file = st.file_uploader(
+        current_month_file_sb = st.file_uploader(
             "Current Month Actuals (Required)", 
             type=["xlsx", "xls", "csv", "pdf"],
             key="sidebar_current_month_upload",
             help="Upload your current month's financial data"
         )
+        if current_month_file_sb is not None:
+            st.session_state.current_month_actuals = current_month_file_sb
         
         # Upload prior month actuals
-        prior_month_file = st.file_uploader(
+        prior_month_file_sb = st.file_uploader(
             "Prior Month Actuals", 
             type=["xlsx", "xls", "csv", "pdf"],
             key="sidebar_prior_month_upload",
             help="Upload your prior month's financial data for month-over-month comparison"
         )
+        if prior_month_file_sb is not None:
+            st.session_state.prior_month_actuals = prior_month_file_sb
         
         # Upload budget
-        budget_file = st.file_uploader(
+        budget_file_sb = st.file_uploader(
             "Current Month Budget", 
             type=["xlsx", "xls", "csv", "pdf"],
             key="sidebar_budget_upload",
             help="Upload your budget data for budget vs actuals comparison"
         )
+        if budget_file_sb is not None:
+            st.session_state.current_month_budget = budget_file_sb
         
         # Upload prior year actuals
-        prior_year_file = st.file_uploader(
+        prior_year_file_sb = st.file_uploader(
             "Prior Year Same Month", 
             type=["xlsx", "xls", "csv", "pdf"],
             key="sidebar_prior_year_upload",
             help="Upload the same month from prior year for year-over-year comparison"
         )
+        if prior_year_file_sb is not None:
+            st.session_state.prior_year_actuals = prior_year_file_sb
         
         # Property name input
         property_name = st.text_input(
@@ -3016,20 +3024,28 @@ def main():
             # Create modern file upload cards
             st.markdown('<div class="upload-container">', unsafe_allow_html=True)
             
-            # Current Month Actuals (Required) - File uploader already in sidebar
-            # We re-declare them here for the main page layout if needed, but ensure keys are different if used
-            # For now, assuming sidebar uploaders are primary, this section is more for visual structure
+            # Current Month Actuals (Required)
             st.markdown(
             '''
             <div class="upload-card">
                 <div class="upload-card-header">Current Month Actuals <span class="required-badge">Required</span></div>
             '''
             , unsafe_allow_html=True)
-            # The actual file uploader instance 'current_month_file' is from the sidebar
-            if st.session_state.current_month_actuals:
-                show_file_info(st.session_state.current_month_actuals.name, uploaded=True)
-            else:
-                st.info("Upload via sidebar.")
+            current_month_file_main = st.file_uploader(
+                "Upload Current Month Actuals ",  # Added space for unique label component
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="main_current_month_upload_functional", # Unique key
+                label_visibility="collapsed",
+                help="Upload your current month's financial data here or in the sidebar"
+            )
+            if current_month_file_main is not None:
+                st.session_state.current_month_actuals = current_month_file_main
+            # Display file info regardless of where it was uploaded
+            if st.session_state.get('current_month_actuals'):
+                 show_file_info(st.session_state.current_month_actuals.name, 
+                                file_size=f"{st.session_state.current_month_actuals.size / 1024:.1f}KB" if st.session_state.current_month_actuals.size else None,
+                                file_type=st.session_state.current_month_actuals.type,
+                                uploaded=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Prior Month Actuals
@@ -3039,10 +3055,20 @@ def main():
                 <div class="upload-card-header">Prior Month Actuals</div>
             '''
             , unsafe_allow_html=True)
-            if st.session_state.prior_month_actuals:
-                show_file_info(st.session_state.prior_month_actuals.name, uploaded=True)
-            else:
-                st.info("Upload via sidebar.")
+            prior_month_file_main = st.file_uploader(
+                "Upload Prior Month Actuals ", 
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="main_prior_month_upload_functional", 
+                label_visibility="collapsed",
+                help="Upload your prior month's financial data here or in the sidebar"
+            )
+            if prior_month_file_main is not None:
+                st.session_state.prior_month_actuals = prior_month_file_main
+            if st.session_state.get('prior_month_actuals'):
+                show_file_info(st.session_state.prior_month_actuals.name,
+                               file_size=f"{st.session_state.prior_month_actuals.size / 1024:.1f}KB" if st.session_state.prior_month_actuals.size else None,
+                               file_type=st.session_state.prior_month_actuals.type,
+                               uploaded=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Current Month Budget
@@ -3052,10 +3078,20 @@ def main():
                 <div class="upload-card-header">Current Month Budget</div>
             '''
             , unsafe_allow_html=True)
-            if st.session_state.current_month_budget:
-                show_file_info(st.session_state.current_month_budget.name, uploaded=True)
-            else:
-                st.info("Upload via sidebar.")
+            budget_file_main = st.file_uploader(
+                "Upload Current Month Budget ", 
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="main_budget_upload_functional", 
+                label_visibility="collapsed",
+                help="Upload your budget data here or in the sidebar"
+            )
+            if budget_file_main is not None:
+                st.session_state.current_month_budget = budget_file_main
+            if st.session_state.get('current_month_budget'):
+                show_file_info(st.session_state.current_month_budget.name,
+                               file_size=f"{st.session_state.current_month_budget.size / 1024:.1f}KB" if st.session_state.current_month_budget.size else None,
+                               file_type=st.session_state.current_month_budget.type,
+                               uploaded=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Prior Year Same Month
@@ -3065,10 +3101,20 @@ def main():
                 <div class="upload-card-header">Prior Year Same Month</div>
             '''
             , unsafe_allow_html=True)
-            if st.session_state.prior_year_actuals:
-                show_file_info(st.session_state.prior_year_actuals.name, uploaded=True)
-            else:
-                st.info("Upload via sidebar.")
+            prior_year_file_main = st.file_uploader(
+                "Upload Prior Year Same Month ", 
+                type=["xlsx", "xls", "csv", "pdf"],
+                key="main_prior_year_upload_functional",
+                label_visibility="collapsed",
+                help="Upload the same month from prior year here or in the sidebar"
+            )
+            if prior_year_file_main is not None:
+                st.session_state.prior_year_actuals = prior_year_file_main
+            if st.session_state.get('prior_year_actuals'):
+                show_file_info(st.session_state.prior_year_actuals.name,
+                               file_size=f"{st.session_state.prior_year_actuals.size / 1024:.1f}KB" if st.session_state.prior_year_actuals.size else None,
+                               file_type=st.session_state.prior_year_actuals.type,
+                               uploaded=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
@@ -3464,15 +3510,15 @@ def main():
             show_processing_status("Processing documents. This may take a minute...", is_running=True)
             
             logger.info("APP.PY: --- Document Processing START ---")
-            if not current_month_file:
+            if not current_month_file_sb:
                 show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
                 st.session_state.processing_completed = False # Ensure it's false if we exit early
                 return
                 
-            st.session_state.current_month_actuals = current_month_file
-            st.session_state.prior_month_actuals = prior_month_file
-            st.session_state.current_month_budget = budget_file
-            st.session_state.prior_year_actuals = prior_year_file
+            st.session_state.current_month_actuals = current_month_file_sb
+            st.session_state.prior_month_actuals = prior_month_file_sb
+            st.session_state.current_month_budget = budget_file_sb
+            st.session_state.prior_year_actuals = prior_year_file_sb
 
             # Process the documents
             raw_consolidated_data = process_all_documents()
