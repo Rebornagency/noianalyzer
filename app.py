@@ -2317,138 +2317,52 @@ def ask_noi_coach(question: str, comparison_results: Dict[str, Any], context: st
 
 # Function to display NOI Coach interface
 def display_noi_coach():
-    """
-    Display the NOI Coach interface for asking questions about the financial data.
-    This provides an AI-powered assistant to help users understand their NOI analysis.
-    """
-    st.markdown('<h2 class="section-header">NOI Coach</h2>', unsafe_allow_html=True)
-    
-    # Directly display instructions without expander
-    st.markdown("""
-    Ask questions about your NOI data and get AI-powered insights. Examples:
-    - What factors are driving the change in NOI?
-    - How does my vacancy loss compare to industry standards?
-    - What actions could improve my NOI?
-    """)
-    
-    # Input for user questions
-    user_question = st.text_input(
-        "Your question:",
-        key="noi_coach_question",
-        help="Ask a question about your financial data"
-    )
-    
-    # Get currently selected comparison context
-    context = st.session_state.current_comparison_view
-    
-    # Submit button
-    if st.button("Get Answer", key="noi_coach_submit"):
-        if user_question:
-            with st.spinner("Analyzing your data and generating insights..."):
-                try:
-                    # Use the ask_noi_coach function to get AI-powered insights
-                    answer = ask_noi_coach(
-                        user_question, 
-                        st.session_state.comparison_results,
-                        context
-                    )
-                    
-                    # Add the Q&A to the history
-                    if "noi_coach_history" not in st.session_state:
-                        st.session_state.noi_coach_history = []
-                    
-                    st.session_state.noi_coach_history.append({
-                        "question": user_question,
-                        "answer": answer,
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    })
-                    
-                    # Display the answer
-                    st.markdown("### Answer")
-                    st.markdown(answer)
-                except Exception as e:
-                    logger.error(f"Error in NOI Coach: {str(e)}")
-                    st.error(f"Error generating insights: {str(e)}")
-        else:
-            st.warning("Please enter a question to get insights.")
-    
-    # Show history of questions and answers
-    if "noi_coach_history" in st.session_state and st.session_state.noi_coach_history:
-        st.markdown("### Previous Questions")
-        
-        for i, qa in enumerate(reversed(st.session_state.noi_coach_history)):
-            # Only show the 5 most recent Q&As
-            if i >= 5:
-                break
-            
-            with st.container():
-                st.markdown(f"**Q: {qa['question']}**")
-                st.markdown(f"A: {qa['answer']}")
-                st.markdown(f"<small>Asked on {qa['timestamp']}</small>", unsafe_allow_html=True)
-                st.markdown("---")
+    """Display the NOI Coach interface with chat input and response area."""
+    st.markdown("<h2 class='reborn-section-title'>NOI Coach</h2>", unsafe_allow_html=True)
 
-def display_unified_insights(insights_data):
+def display_unified_insights_no_html(insights_data):
     """
-    Display unified insights including summary, performance insights, and recommendations.
+    Display unified insights using pure Streamlit components without HTML.
     
     Args:
         insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
     """
-    logger.info("Displaying unified insights")
-    
     if not insights_data or not isinstance(insights_data, dict):
         st.warning("No insights data available to display.")
         return
     
-    logger.info(f"Insights data keys: {list(insights_data.keys())}")
-    
     # Display Executive Summary
     if 'summary' in insights_data:
-        st.markdown('<h2 class="results-section-header">Executive Summary</h2>', unsafe_allow_html=True)
+        st.markdown("## Executive Summary")
         
-        summary_html = '<div class="results-card">'
         summary_text = insights_data['summary']
-        
         # Remove redundant "Executive Summary:" prefix if it exists
         if summary_text.startswith("Executive Summary:"):
             summary_text = summary_text[len("Executive Summary:"):].strip()
             
-        summary_html += f'<div class="results-text">{summary_text}</div>'
-        summary_html += '</div>'
-        
-        st.markdown(summary_html, unsafe_allow_html=True)
+        st.markdown(summary_text)
     
     # Display Key Performance Insights
     if 'performance' in insights_data and insights_data['performance']:
-        st.markdown('<h2 class="results-section-header">Key Performance Insights</h2>', unsafe_allow_html=True)
+        st.markdown("## Key Performance Insights")
         
-        insights_html = '<div class="results-card"><ul class="results-bullet-list">'
         for insight in insights_data['performance']:
-            insights_html += f"""
-            <li class="results-bullet-item">
-                <div class="results-bullet-marker">•</div>
-                <div class="results-bullet-text">{insight}</div>
-            </li>
-            """
-        insights_html += '</ul></div>'
-        
-        st.markdown(insights_html, unsafe_allow_html=True)
+            col1, col2 = st.columns([1, 20])
+            with col1:
+                st.markdown("•")
+            with col2:
+                st.markdown(insight)
     
     # Display Recommendations
     if 'recommendations' in insights_data and insights_data['recommendations']:
-        st.markdown('<h2 class="results-section-header">Recommendations</h2>', unsafe_allow_html=True)
+        st.markdown("## Recommendations")
         
-        recommendations_html = '<div class="results-card"><ul class="results-bullet-list">'
         for recommendation in insights_data['recommendations']:
-            recommendations_html += f"""
-            <li class="results-bullet-item">
-                <div class="results-bullet-marker">•</div>
-                <div class="results-bullet-text">{recommendation}</div>
-            </li>
-            """
-        recommendations_html += '</ul></div>'
-        
-        st.markdown(recommendations_html, unsafe_allow_html=True)
+            col1, col2 = st.columns([1, 20])
+            with col1:
+                st.markdown("•")
+            with col2:
+                st.markdown(recommendation)
 
 # Define the generate_comprehensive_pdf function before it's called in main()
 def generate_comprehensive_pdf():
@@ -2853,45 +2767,7 @@ def main():
             
             # Enhanced Features section
             st.markdown("<h2 class='section-header'>Features</h2>", unsafe_allow_html=True)
-
-            features_html = """
-<div class="card-container">
-    <div class="feature-list">
-        <div class="feature-item">
-            <div class="feature-number">1</div>
-            <div class="feature-content">
-                <div class="feature-title">Comparative Analysis</div>
-                <div class="feature-description">Compare current performance against budget, prior month, and prior year</div>
-            </div>
-        </div>
-        
-        <div class="feature-item">
-            <div class="feature-number">2</div>
-            <div class="feature-content">
-                <div class="feature-title">Financial Insights</div>
-                <div class="feature-description">AI-generated analysis of key metrics and trends</div>
-            </div>
-        </div>
-        
-        <div class="feature-item">
-            <div class="feature-number">3</div>
-            <div class="feature-content">
-                <div class="feature-title">NOI Coach</div>
-                <div class="feature-description">Ask questions about your financial data and get AI-powered insights</div>
-            </div>
-        </div>
-        
-        <div class="feature-item">
-            <div class="feature-number">4</div>
-            <div class="feature-content">
-                <div class="feature-title">Export Options</div>
-                <div class="feature-description">Save results as PDF or Excel for sharing and reporting</div>
-            </div>
-        </div>
-    </div>
-</div>
-"""
-            st.markdown(features_html, unsafe_allow_html=True)
+            display_features_section_no_html() # Call the new function
     else:
         # Show results after processing
         # Modern styled title
@@ -3044,7 +2920,7 @@ def main():
             # Display the consolidated insights (summary, performance, recommendations)
             if "insights" in st.session_state and st.session_state.insights:
                 try:
-                    display_unified_insights(st.session_state.insights)
+                    display_unified_insights_no_html(st.session_state.insights)
                 except Exception as e:
                     logger.error(f"Error displaying insights: {e}")
                     st.error("An error occurred while displaying insights. Please try processing documents again.")
@@ -3285,145 +3161,166 @@ def main():
 # --- Add new display functions here ---
 
 def display_features_section():
-    """Display the features section using native Streamlit components instead of HTML"""
-    st.markdown("## Features", unsafe_allow_html=True)
+    """Display the features section using pure Streamlit components without HTML"""
+    st.markdown("## Features")
     
-    # Feature 1
+    # Feature 1: Comparative Analysis
     with st.container():
         col1, col2 = st.columns([1, 20])
         with col1:
-            st.markdown(
-                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
-                justify-content: center; font-weight: bold; font-size: 20px;">1</div>""", 
-                unsafe_allow_html=True
-            )
+            st.markdown("**1**")
         with col2:
             st.markdown("### Comparative Analysis")
             st.markdown("Compare current performance against budget, prior month, and prior year")
     
     st.markdown("---")
     
-    # Feature 2
+    # Feature 2: Financial Insights
     with st.container():
         col1, col2 = st.columns([1, 20])
         with col1:
-            st.markdown(
-                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
-                justify-content: center; font-weight: bold; font-size: 20px;">2</div>""", 
-                unsafe_allow_html=True
-            )
+            st.markdown("**2**")
         with col2:
             st.markdown("### Financial Insights")
             st.markdown("AI-generated analysis of key metrics and trends")
     
     st.markdown("---")
     
-    # Feature 3
+    # Feature 3: NOI Coach
     with st.container():
         col1, col2 = st.columns([1, 20])
         with col1:
-            st.markdown(
-                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
-                justify-content: center; font-weight: bold; font-size: 20px;">3</div>""", 
-                unsafe_allow_html=True
-            )
+            st.markdown("**3**")
         with col2:
             st.markdown("### NOI Coach")
             st.markdown("Ask questions about your financial data and get AI-powered insights")
     
     st.markdown("---")
     
-    # Feature 4
+    # Feature 4: Export Options
     with st.container():
         col1, col2 = st.columns([1, 20])
         with col1:
-            st.markdown(
-                """<div style="background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
-                justify-content: center; font-weight: bold; font-size: 20px;">4</div>""", 
-                unsafe_allow_html=True
-            )
+            st.markdown("**4**")
         with col2:
             st.markdown("### Export Options")
             st.markdown("Save results as PDF or Excel for sharing and reporting")
 
-def display_features_section_with_components():
-    """Display the features section using streamlit.components.v1.html"""
-    st.markdown("## Features", unsafe_allow_html=True)
+def display_features_section_enhanced():
+    """Display the features section using pure Streamlit components with enhanced styling"""
+    st.markdown("## Features")
     
-    features_html = """
-    <div style="display: flex; flex-direction: column; gap: 20px;">
-        <!-- Feature 1 -->
-        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
-                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
-            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
-                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">1</div>
-            <div>
-                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
-                    Comparative Analysis
-                </div>
-                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
-                    Compare current performance against budget, prior month, and prior year
-                </div>
-            </div>
-        </div>
-        
-        <!-- Feature 2 -->
-        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
-                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
-            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
-                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">2</div>
-            <div>
-                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
-                    Financial Insights
-                </div>
-                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
-                    AI-generated analysis of key metrics and trends
-                </div>
-            </div>
-        </div>
-        
-        <!-- Feature 3 -->
-        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
-                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
-            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
-                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">3</div>
-            <div>
-                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
-                    NOI Coach
-                </div>
-                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
-                    Ask questions about your financial data and get AI-powered insights
-                </div>
-            </div>
-        </div>
-        
-        <!-- Feature 4 -->
-        <div style="display: flex; align-items: flex-start; background-color: rgba(22, 27, 34, 0.8); 
-                    border: 1px solid rgba(56, 68, 77, 0.5); border-radius: 8px; padding: 20px;">
-            <div style="display: flex; justify-content: center; align-items: center; width: 40px; 
-                        height: 40px; background-color: rgba(59, 130, 246, 0.2); color: #79b8f3; 
-                        font-size: 20px; font-weight: bold; border-radius: 50%; margin-right: 16px;">4</div>
-            <div>
-                <div style="font-size: 20px; font-weight: bold; color: #e6edf3; margin-bottom: 8px;">
-                    Export Options
-                </div>
-                <div style="font-size: 16px; color: #d1d5db; line-height: 1.5;">
-                    Save results as PDF or Excel for sharing and reporting
-                </div>
-            </div>
-        </div>
-    </div>
-    """
+    # Custom CSS for the number circles - minimal and safe
+    st.markdown("""
+    <style>
+    .number-circle {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #79b8f3;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 20px;
+        margin: 10px auto;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
-    # Use components.v1.html to render raw HTML
-    components.html(features_html, height=600, scrolling=False)
+    # Feature 1: Comparative Analysis
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">1</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### Comparative Analysis")
+            st.markdown("Compare current performance against budget, prior month, and prior year")
+    
+    st.markdown("---")
+    
+    # Feature 2: Financial Insights
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">2</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### Financial Insights")
+            st.markdown("AI-generated analysis of key metrics and trends")
+    
+    st.markdown("---")
+    
+    # Feature 3: NOI Coach
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">3</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### NOI Coach")
+            st.markdown("Ask questions about your financial data and get AI-powered insights")
+    
+    st.markdown("---")
+    
+    # Feature 4: Export Options
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">4</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### Export Options")
+            st.markdown("Save results as PDF or Excel for sharing and reporting")
+
+def display_features_section_no_html():
+    """Display the features section using pure Streamlit components with NO HTML at all"""
+    st.markdown("## Features")
+    
+    # Feature 1: Comparative Analysis
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            # Use emoji or text for the number
+            st.markdown("🔵")
+            st.markdown("1")
+        with col2:
+            st.markdown("### Comparative Analysis")
+            st.markdown("Compare current performance against budget, prior month, and prior year")
+    
+    st.markdown("---")
+    
+    # Feature 2: Financial Insights
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("🔵")
+            st.markdown("2")
+        with col2:
+            st.markdown("### Financial Insights")
+            st.markdown("AI-generated analysis of key metrics and trends")
+    
+    st.markdown("---")
+    
+    # Feature 3: NOI Coach
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("🔵")
+            st.markdown("3")
+        with col2:
+            st.markdown("### NOI Coach")
+            st.markdown("Ask questions about your financial data and get AI-powered insights")
+    
+    st.markdown("---")
+    
+    # Feature 4: Export Options
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("🔵")
+            st.markdown("4")
+        with col2:
+            st.markdown("### Export Options")
+            st.markdown("Save results as PDF or Excel for sharing and reporting")
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
