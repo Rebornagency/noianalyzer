@@ -2098,6 +2098,12 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # The recommendations and narrative sections (if they were part of the old structure here) are also covered 
             # by display_unified_insights or by the main Financial Narrative tab.
 
+            # Display OpEx breakdown if available
+            if 'opex_components' in tab_data and tab_data['opex_components']:
+                display_opex_breakdown(tab_data['opex_components'], name_suffix)
+            else:
+                logger.info(f"No OpEx components found for {name_suffix} comparison")
+
         except Exception as e:
             logger.error(f"Error displaying comparison tab {name_suffix}: {str(e)}", exc_info=True)
         
@@ -3321,6 +3327,138 @@ def display_features_section_no_html():
         with col2:
             st.markdown("### Export Options")
             st.markdown("Save results as PDF or Excel for sharing and reporting")
+
+def display_unified_insights(insights_data):
+    """
+    Display unified insights using native Streamlit components.
+    
+    Args:
+        insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
+    """
+    logger.info("Displaying unified insights")
+    
+    if not insights_data or not isinstance(insights_data, dict):
+        st.warning("No insights data available to display.")
+        return
+    
+    logger.info(f"Insights data keys: {list(insights_data.keys())}")
+    
+    # Display Executive Summary
+    if 'summary' in insights_data:
+        st.markdown("## Executive Summary")
+        
+        summary_text = insights_data['summary']
+        # Remove redundant "Executive Summary:" prefix if it exists
+        if summary_text.startswith("Executive Summary:"):
+            summary_text = summary_text[len("Executive Summary:")          :].strip()
+            
+        with st.container():
+            st.markdown(f"{summary_text}")
+    
+    # Display Key Performance Insights
+    if 'performance' in insights_data and insights_data['performance']:
+        st.markdown("## Key Performance Insights")
+        
+        for insight in insights_data['performance']:
+            with st.container():
+                col1, col2 = st.columns([1, 20])
+                with col1:
+                    st.markdown("•")
+                with col2:
+                    st.markdown(insight)
+    
+    # Display Recommendations
+    if 'recommendations' in insights_data and insights_data['recommendations']:
+        st.markdown("## Recommendations")
+        
+        for recommendation in insights_data['recommendations']:
+            with st.container():
+                col1, col2 = st.columns([1, 20])
+                with col1:
+                    st.markdown("•")
+                with col2:
+                    st.markdown(recommendation)
+
+def display_opex_breakdown(opex_components, comparison_type):
+    """
+    Display Operating Expenses breakdown using native Streamlit components.
+    
+    Args:
+        opex_components: Dictionary of OpEx components
+        comparison_type: Type of comparison (budget, prior_month, prior_year)
+    """
+    if not opex_components or not isinstance(opex_components, dict) or len(opex_components) == 0:
+        st.info("No detailed Operating Expenses breakdown available.")
+        return
+    
+    st.markdown("### Operating Expenses Breakdown")
+    
+    # Create a container for the OpEx breakdown
+    with st.container():
+        # Header row
+        col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+        with col1:
+            st.markdown("**Expense Category**")
+        with col2:
+            st.markdown("**Current**")
+        with col3:
+            st.markdown(f"**{comparison_type.title()}**")
+        with col4:
+            st.markdown("**Variance**")
+        
+        # Add a separator
+        st.markdown("---")
+        
+        # Display each OpEx component
+        for category, values in opex_components.items():
+            col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+            
+            # Format the category name for display
+            display_name = category.replace('_', ' ').title()
+            
+            # Get values with defaults
+            current_value = values.get('current', 0)
+            compare_value = values.get('compare', 0)
+            variance = current_value - compare_value
+            
+            # Display the row
+            with col1:
+                st.markdown(f"**{display_name}**")
+            with col2:
+                st.markdown(f"${current_value:,.2f}")
+            with col3:
+                st.markdown(f"${compare_value:,.2f}")
+            with col4:
+                # Color-code the variance
+                color = "#22C55E" if variance < 0 else "#EF4444"  # Green if expense decreased, red if increased
+                st.markdown(f"<span style='color:{color}'>${variance:,.2f}</span>", unsafe_allow_html=True)
+            
+            # Add a light separator between rows
+            st.markdown("<hr style='margin: 5px 0; opacity: 0.2;'>", unsafe_allow_html=True)
+
+def display_card_container(title, content):
+    """
+    Display content in a consistently styled card container.
+    
+    Args:
+        title: Card title
+        content: Function to render card content
+    """
+    st.markdown(f"### {title}")
+    
+    with st.container():
+        # Create a visual container with styling
+        st.markdown("""        <div style="background-color: rgba(22, 27, 34, 0.8); 
+                    border: 1px solid rgba(56, 68, 77, 0.5); 
+                    border-radius: 8px; 
+                    padding: 16px; 
+                    margin-bottom: 20px;">
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # This is a trick - we're creating an empty styled container above,
+        # then putting the actual content below it in a Streamlit container
+        content()
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
