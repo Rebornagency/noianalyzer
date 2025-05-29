@@ -3122,13 +3122,19 @@ def main():
             # Property name input with modern styling
             st.markdown('<div class="upload-card">', unsafe_allow_html=True)
             st.markdown('<div class="upload-card-header">Property Information</div>', unsafe_allow_html=True)
-            # Property name is managed by the sidebar input
-            st.text_input(
-                "Property Name (Edit in Sidebar)",
+            # Property name input that updates session state
+            main_page_property_name_input = st.text_input(
+                "Property Name", # Clearer label
                 value=st.session_state.property_name,
-                disabled=True, # Display only, edit in sidebar
-                key="main_property_name_display"
+                help="Enter the name of the property being analyzed. Updates sidebar as well.",
+                key="main_property_name_input" # Unique key for this input field
             )
+            if main_page_property_name_input != st.session_state.property_name:
+                st.session_state.property_name = main_page_property_name_input
+                # No st.rerun() here is generally fine as other components 
+                # should read the updated st.session_state.property_name in the next interaction.
+                # If immediate update of a disabled field elsewhere is needed, a rerun might be considered.
+            
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Main page 'Process Documents' button
