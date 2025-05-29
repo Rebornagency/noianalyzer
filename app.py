@@ -3305,7 +3305,31 @@ def main():
                 st.rerun()
                 return
 
+            # Validate consolidated data structure before processing
+            if not st.session_state.consolidated_data or not isinstance(st.session_state.consolidated_data, dict):
+                logger.error("consolidated_data is missing or invalid")
+                st.error("Error: Invalid data structure. Please try processing the documents again.")
+                return
+            
+            # Format data for NOI comparison and validate the result
             consolidated_data_for_analysis = format_for_noi_comparison(st.session_state.consolidated_data)
+            
+            # Validate that format_for_noi_comparison returned valid data
+            if not consolidated_data_for_analysis or not isinstance(consolidated_data_for_analysis, dict):
+                logger.error("format_for_noi_comparison returned invalid data structure")
+                st.error("Error: Failed to format financial data for analysis. Please check your documents and try again.")
+                return
+            
+            # Check that we have at least some valid financial data
+            required_keys = ['current_month', 'prior_month', 'budget', 'prior_year']
+            available_keys = [key for key in required_keys if key in consolidated_data_for_analysis and consolidated_data_for_analysis[key]]
+            logger.info(f"Available data types for analysis: {available_keys}")
+            
+            if not available_keys:
+                logger.error("No valid financial data found after formatting")
+                st.error("Error: No valid financial data found. Please ensure your documents contain the required financial information.")
+                return
+            
             st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
             
             if st.session_state.comparison_results and not st.session_state.comparison_results.get("error"):
@@ -3315,7 +3339,7 @@ def main():
                     "performance": insights.get("performance", []),
                     "recommendations": insights.get("recommendations", [])
                 }
-                narrative = create_narrative(st.session_state.comparison_results, st.session_state.insights, st.session_state.property_name)
+                narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
                 st.session_state.generated_narrative = narrative
                 st.session_state.edited_narrative = narrative # Initialize edited with generated
 
@@ -3561,8 +3585,37 @@ def main():
                     logger.info("Proceeding with analysis using verified/previously verified data.")
                     
                     try:
+                        # Validate consolidated data before processing
+                        if not st.session_state.consolidated_data or not isinstance(st.session_state.consolidated_data, dict):
+                            logger.error("consolidated_data is missing or invalid for verified data processing")
+                            st.error("Error: Invalid data structure. Please try processing the documents again.")
+                            st.session_state.processing_completed = False
+                            st.rerun()
+                            return
+                        
                         # Perform financial analysis with verified data
                         consolidated_data_for_analysis = format_for_noi_comparison(st.session_state.consolidated_data)
+                        
+                        # Validate that format_for_noi_comparison returned valid data
+                        if not consolidated_data_for_analysis or not isinstance(consolidated_data_for_analysis, dict):
+                            logger.error("format_for_noi_comparison returned invalid data structure for verified data")
+                            st.error("Error: Failed to format financial data for analysis. Please check your documents and try again.")
+                            st.session_state.processing_completed = False
+                            st.rerun()
+                            return
+                        
+                        # Check that we have at least some valid financial data
+                        required_keys = ['current_month', 'prior_month', 'budget', 'prior_year']
+                        available_keys = [key for key in required_keys if key in consolidated_data_for_analysis and consolidated_data_for_analysis[key]]
+                        logger.info(f"Available data types for verified analysis: {available_keys}")
+                        
+                        if not available_keys:
+                            logger.error("No valid financial data found after formatting for verified data")
+                            st.error("Error: No valid financial data found. Please ensure your documents contain the required financial information.")
+                            st.session_state.processing_completed = False
+                            st.rerun()
+                            return
+                        
                         st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
                         
                         if not st.session_state.comparison_results.get("error"):
@@ -3572,7 +3625,7 @@ def main():
                                 "performance": insights.get("performance", []),
                                 "recommendations": insights.get("recommendations", [])
                             }
-                            narrative = create_narrative(st.session_state.comparison_results, st.session_state.insights, st.session_state.property_name)
+                            narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
                             st.session_state.generated_narrative = narrative
                             st.session_state.edited_narrative = narrative # Initialize edited with generated
 
