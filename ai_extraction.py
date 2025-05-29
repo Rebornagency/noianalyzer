@@ -7,19 +7,23 @@ import time
 from typing import Dict, Any, List, Optional, BinaryIO, Union
 import streamlit as st
 from config import get_extraction_api_url, get_api_key
+from constants import ERROR_MESSAGES, DEFAULT_API_CONFIG
+from utils.error_handler import setup_logger, handle_errors, graceful_degradation, APIError
+from utils.common import safe_float, safe_string, create_fallback_financial_data
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# Setup logger
+logger = setup_logger(__name__)
+
+@graceful_degradation(
+    fallback_value={"error": "Data extraction service temporarily unavailable. Please try manual entry or check back later."},
+    operation_name="document data extraction"
 )
-logger = logging.getLogger('ai_extraction')
-
+@handle_errors(default_return={"error": "Failed to extract data from document"})
 def extract_noi_data(file: Any, document_type_hint: Optional[str] = None, 
                     api_url: Optional[str] = None, api_key: Optional[str] = None,
-                    max_retries: int = 3, retry_delay: int = 5) -> Dict[str, Any]:
+                    max_retries: int = None, retry_delay: int = 5) -> Dict[str, Any]:
     """
-    Extract NOI data from a document using the extraction API.
+    Extract NOI data from a document using the extraction API with enhanced error handling.
     
     Args:
         file: Document file to process
@@ -30,36 +34,67 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
         retry_delay: Delay in seconds between retry attempts
         
     Returns:
-        Dictionary containing extracted financial data
+        Dictionary containing extracted financial data or fallback structure
     """
-    logger.info(f"Extracting data from document: {getattr(file, 'name', 'unknown')}")
-    logger.info(f"Document type hint: {document_type_hint}")
+    # Use default configuration if not provided
+    if max_retries is None:
+        max_retries = DEFAULT_API_CONFIG["MAX_RETRIES"]
+    
+    file_name = getattr(file, 'name', 'unknown')
+    logger.info(
+        f"Starting data extraction",
+        extra={
+            "file_name": file_name,
+            "document_type_hint": document_type_hint,
+            "max_retries": max_retries
+        }
+    )
     
     # Get API URL and API key from config if not provided
     if api_url is None:
         api_url = get_extraction_api_url()
         # Ensure the URL ends with /extract
-        if api_url.endswith('/'):
+        if api_url and api_url.endswith('/'):
             api_url = f"{api_url}extract"
-        else:
+        elif api_url:
             api_url = f"{api_url}/extract"
     
     if api_key is None:
         api_key = get_api_key()
     
-    logger.info(f"Using extraction API URL: {api_url}")
-    
-    # Check if we have valid API credentials
+    # Validate API configuration
     if not api_url:
         logger.error("Extraction API URL not configured")
-        return {"error": "Extraction API URL not configured"}
+        raise APIError(ERROR_MESSAGES["API_CONFIGURATION_MISSING"])
     
     if not api_key:
         logger.error("Extraction API key not configured")
-        return {"error": "Extraction API key not configured"}
+        raise APIError(ERROR_MESSAGES["API_KEY_MISSING"])
     
-    # Prepare files for API request
-    files = {"file": (file.name, file.getvalue(), file.type)}
+    logger.info(
+        f"API configuration validated",
+        extra={
+            "api_url": api_url,
+            "api_key_length": len(api_key)
+        }
+    )
+    
+    # Prepare files for API request with validation
+    try:
+        file_content = file.getvalue()
+        file_type = getattr(file, 'type', 'application/octet-stream')
+        files = {"file": (file_name, file_content, file_type)}
+        
+        logger.info(
+            f"File prepared for upload",
+            extra={
+                "file_size": len(file_content),
+                "file_type": file_type
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error preparing file for upload: {str(e)}")
+        raise APIError(f"Failed to prepare file for upload: {str(e)}")
     
     # Prepare headers with API key
     headers = {"x-api-key": api_key, "Accept": "application/json"}
@@ -67,110 +102,255 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
     # Prepare data with document type hint if provided
     data = {}
     if document_type_hint:
-        data["document_type"] = document_type_hint
+        data["document_type"] = safe_string(document_type_hint)
     
-    # Log request details for debugging (without sensitive info)
-    logger.info(f"Sending POST to {api_url} with headers: {list(headers.keys())}, data_payload: {list(data.keys()) if data else 'None'}")
-    
-    # Retry logic
+    # Retry logic with enhanced error handling
+    last_error = None
     for attempt in range(max_retries):
         try:
-            # Make API request
+            attempt_start_time = time.time()
+            
             if attempt > 0:
-                logger.info(f"Retry attempt {attempt+1}/{max_retries} for extraction API request")
+                logger.info(
+                    f"Retry attempt {attempt+1}/{max_retries}",
+                    extra={
+                        "file_name": file_name,
+                        "previous_error": str(last_error) if last_error else None
+                    }
+                )
             
             # Create spinner in UI for better user feedback
-            if hasattr(st, 'spinner'):
-                spinner_message = f"Extracting data from {getattr(file, 'name', 'document')} (attempt {attempt+1}/{max_retries})..."
-                with st.spinner(spinner_message):
-                    response = requests.post(api_url, files=files, data=data, headers=headers, timeout=60)
-            else:
-                response = requests.post(api_url, files=files, data=data, headers=headers, timeout=60)
+            spinner_message = f"Extracting data from {file_name} (attempt {attempt+1}/{max_retries})..."
             
-            # Check response status
+            if hasattr(st, 'spinner'):
+                with st.spinner(spinner_message):
+                    response = requests.post(
+                        api_url, 
+                        files=files, 
+                        data=data, 
+                        headers=headers, 
+                        timeout=DEFAULT_API_CONFIG["TIMEOUT"]
+                    )
+            else:
+                response = requests.post(
+                    api_url, 
+                    files=files, 
+                    data=data, 
+                    headers=headers, 
+                    timeout=DEFAULT_API_CONFIG["TIMEOUT"]
+                )
+            
+            attempt_time = time.time() - attempt_start_time
+            logger.info(
+                f"API request completed",
+                extra={
+                    "status_code": response.status_code,
+                    "response_time": f"{attempt_time:.3f}s",
+                    "attempt": attempt + 1
+                }
+            )
+            
+            # Handle successful response
             if response.status_code == 200:
-                logger.info(f"Successfully extracted detailed data from {getattr(file, 'name', 'unknown')}")
-                
                 try:
                     result = response.json()
-                    # Log successful response fields for debugging
-                    logger.info(f"Response keys: {list(result.keys())}")
-                    return result
-                except json.JSONDecodeError:
-                    logger.error(f"API returned non-JSON response: {response.text[:200]}...")
-                    return {"error": "API returned invalid JSON response"}
+                    
+                    # Validate and enrich the response
+                    validated_result = validate_and_enrich_extraction_result(result, file_name, document_type_hint)
+                    
+                    logger.info(
+                        f"Data extraction successful",
+                        extra={
+                            "file_name": file_name,
+                            "response_keys": list(validated_result.keys()),
+                            "total_time": f"{time.time() - (attempt_start_time - (attempt * retry_delay)):.3f}s"
+                        }
+                    )
+                    
+                    return validated_result
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"API returned invalid JSON: {str(e)}")
+                    last_error = APIError("API returned invalid JSON response")
+                    
+                    # Don't retry JSON decode errors
+                    if attempt == max_retries - 1:
+                        # Return fallback data for invalid JSON
+                        return create_fallback_extraction_result(file_name, document_type_hint, "Invalid API response format")
                     
             elif response.status_code == 502:
                 # Bad Gateway - temporary server issue, definitely retry
-                logger.warning(f"Extraction API server error (502): {response.text[:200]}...")
-                
-                if attempt < max_retries - 1:
-                    logger.info(f"Waiting {retry_delay} seconds before retry...")
-                    time.sleep(retry_delay)
-                    # Double the retry delay for each subsequent attempt (exponential backoff)
-                    retry_delay *= 2
-                    continue
-                else:
-                    logger.error(f"API error ({getattr(file, 'name', 'unknown')}): 502 - Server temporarily unavailable")
-                    return {
-                        "error": "Extraction API server is temporarily unavailable (502 Bad Gateway). Please try again later.",
-                        "details": "The server might be under high load or experiencing maintenance. This is usually a temporary issue."
+                error_msg = f"Server temporarily unavailable (502)"
+                logger.warning(
+                    error_msg,
+                    extra={
+                        "file_name": file_name,
+                        "response_text": response.text[:200]
                     }
-            
+                )
+                last_error = APIError(error_msg)
+                
             elif response.status_code >= 500:
                 # Server error, might be temporary
-                logger.error(f"API error ({getattr(file, 'name', 'unknown')}): {response.status_code} - {response.text}")
-                
-                if attempt < max_retries - 1:
-                    logger.info(f"Waiting {retry_delay} seconds before retry...")
-                    time.sleep(retry_delay)
-                    # Double the retry delay for each subsequent attempt
-                    retry_delay *= 2
-                    continue
-                else:
-                    return {
-                        "error": f"Extraction API server error (status {response.status_code})",
-                        "details": response.text
+                error_msg = f"Server error (status {response.status_code})"
+                logger.error(
+                    error_msg,
+                    extra={
+                        "file_name": file_name,
+                        "status_code": response.status_code,
+                        "response_text": response.text[:200]
                     }
+                )
+                last_error = APIError(error_msg)
+                
             else:
                 # Client error or other error, don't retry
-                logger.error(f"API error ({getattr(file, 'name', 'unknown')}): {response.status_code} - {response.text}")
-                return {
-                    "error": f"Extraction API request failed (status {response.status_code})",
-                    "details": response.text
-                }
+                error_msg = f"API request failed (status {response.status_code})"
+                logger.error(
+                    error_msg,
+                    extra={
+                        "file_name": file_name,
+                        "status_code": response.status_code,
+                        "response_text": response.text[:200]
+                    }
+                )
+                
+                # Return fallback for client errors
+                return create_fallback_extraction_result(file_name, document_type_hint, error_msg)
                 
         except requests.exceptions.Timeout:
-            logger.warning(f"Request timed out on attempt {attempt+1}")
-            if attempt < max_retries - 1:
-                logger.info(f"Waiting {retry_delay} seconds before retry...")
-                time.sleep(retry_delay)
-                # Double the retry delay for each subsequent attempt
-                retry_delay *= 2
-                continue
-            else:
-                logger.error(f"All {max_retries} extraction API requests timed out")
-                return {"error": "Extraction API request timed out after multiple attempts"}
-                
+            error_msg = f"Request timed out (attempt {attempt+1})"
+            logger.warning(error_msg, extra={"file_name": file_name})
+            last_error = APIError("Request timeout")
+            
         except requests.exceptions.ConnectionError:
-            logger.warning(f"Connection error on attempt {attempt+1}")
-            if attempt < max_retries - 1:
-                logger.info(f"Waiting {retry_delay} seconds before retry...")
-                time.sleep(retry_delay)
-                # Double the retry delay for each subsequent attempt
-                retry_delay *= 2
-                continue
-            else:
-                logger.error(f"All {max_retries} extraction API requests failed with connection errors")
-                return {"error": "Could not connect to extraction API after multiple attempts"}
-                
+            error_msg = f"Connection error (attempt {attempt+1})"
+            logger.warning(error_msg, extra={"file_name": file_name})
+            last_error = APIError("Connection error")
+            
         except Exception as e:
-            logger.error(f"Unexpected error during extraction: {str(e)}")
-            return {"error": f"Unexpected error during extraction: {str(e)}"}
+            error_msg = f"Unexpected error during extraction: {str(e)}"
+            logger.error(error_msg, exc_info=True, extra={"file_name": file_name})
+            last_error = APIError(error_msg)
+        
+        # Wait before retry (except on last attempt)
+        if attempt < max_retries - 1:
+            logger.info(f"Waiting {retry_delay} seconds before retry...")
+            time.sleep(retry_delay)
+            # Exponential backoff
+            retry_delay = min(retry_delay * 2, 60)  # Cap at 60 seconds
     
-    # This should never be reached due to the returns in the loop,
-    # but adding as a fallback
-    return {"error": "Extraction failed after multiple attempts"}
+    # All retries exhausted - return fallback
+    logger.error(
+        f"Data extraction failed after {max_retries} attempts",
+        extra={
+            "file_name": file_name,
+            "last_error": str(last_error) if last_error else "Unknown error"
+        }
+    )
+    
+    return create_fallback_extraction_result(file_name, document_type_hint, f"Service unavailable after {max_retries} attempts")
+
+
+def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str, document_type: Optional[str]) -> Dict[str, Any]:
+    """
+    Validate and enrich extraction results with fallback values for missing data.
+    
+    Args:
+        result: Raw extraction result from API
+        file_name: Name of the processed file
+        document_type: Type of document processed
+        
+    Returns:
+        Validated and enriched extraction result
+    """
+    logger.info(f"Validating extraction result for {file_name}")
+    
+    # Ensure required fields exist with safe defaults
+    enriched_result = {
+        "file_name": safe_string(file_name),
+        "document_type": safe_string(document_type) or determine_document_type(file_name, result),
+        "extraction_timestamp": time.time(),
+        "extraction_method": "api",
+        **result  # Include all original data
+    }
+    
+    # Validate financial fields and provide safe defaults
+    financial_fields = [
+        "gpr", "vacancy_loss", "other_income", "egi", "opex", "noi",
+        "property_taxes", "insurance", "repairs_maintenance", "utilities"
+    ]
+    
+    missing_fields = []
+    for field in financial_fields:
+        if field not in enriched_result or enriched_result[field] is None:
+            enriched_result[field] = 0.0
+            missing_fields.append(field)
+        else:
+            # Ensure numeric fields are properly converted
+            enriched_result[field] = safe_float(enriched_result[field])
+    
+    if missing_fields:
+        logger.warning(
+            f"Missing financial fields filled with defaults",
+            extra={
+                "file_name": file_name,
+                "missing_fields": missing_fields
+            }
+        )
+    
+    # Validate financial calculations
+    try:
+        calculated_egi = enriched_result["gpr"] - enriched_result["vacancy_loss"] + enriched_result["other_income"]
+        if abs(calculated_egi - enriched_result["egi"]) > 1.0:
+            logger.warning(f"EGI calculation mismatch detected, using calculated value")
+            enriched_result["egi"] = calculated_egi
+            
+        calculated_noi = enriched_result["egi"] - enriched_result["opex"]
+        if abs(calculated_noi - enriched_result["noi"]) > 1.0:
+            logger.warning(f"NOI calculation mismatch detected, using calculated value")
+            enriched_result["noi"] = calculated_noi
+            
+    except Exception as e:
+        logger.warning(f"Error validating financial calculations: {str(e)}")
+    
+    return enriched_result
+
+
+def create_fallback_extraction_result(file_name: str, document_type: Optional[str], error_reason: str) -> Dict[str, Any]:
+    """
+    Create a fallback extraction result when API extraction fails.
+    
+    Args:
+        file_name: Name of the file that failed to process
+        document_type: Type of document
+        error_reason: Reason for the fallback
+        
+    Returns:
+        Fallback extraction result with empty financial data
+    """
+    logger.info(
+        f"Creating fallback extraction result",
+        extra={
+            "file_name": file_name,
+            "document_type": document_type,
+            "error_reason": error_reason
+        }
+    )
+    
+    fallback_result = create_fallback_financial_data()
+    fallback_result.update({
+        "file_name": safe_string(file_name),
+        "document_type": safe_string(document_type) or determine_document_type(file_name, {}),
+        "extraction_timestamp": time.time(),
+        "extraction_method": "fallback",
+        "extraction_status": "failed",
+        "fallback_reason": safe_string(error_reason),
+        "requires_manual_entry": True,
+        "user_message": f"Automatic extraction failed for {file_name}. Please enter data manually or try uploading again."
+    })
+    
+    return fallback_result
 
 # Define determine_document_type locally to avoid circular imports
 def determine_document_type(filename: str, result: Dict[str, Any]) -> str:

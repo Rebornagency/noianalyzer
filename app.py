@@ -25,7 +25,6 @@ from financial_storyteller import create_narrative
 from storyteller_display import display_financial_narrative, display_narrative_in_tabs
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
 from insights_display import display_insights
-from reborn_logo import get_reborn_logo_base64
 
 # Configure logging
 logging.basicConfig(
@@ -1167,159 +1166,6 @@ def show_file_info(file_name, file_size=None, file_type=None, uploaded=False):
     # Display the file info
     st.markdown(file_info_html, unsafe_allow_html=True)
 
-# Load custom CSS function (defined here before it's used)
-def load_css():
-    """Load and apply custom CSS styling"""
-    try:
-        css_path = os.path.join(os.path.dirname(__file__), "static/css/reborn_theme.css")
-        if os.path.exists(css_path):
-            with open(css_path) as f:
-                css_content = f.read()
-                
-                # Add CSS to reduce top padding
-                css_content += """
-                /* Reduce top padding */
-                .block-container {
-                    padding-top: 1rem !important;
-                }
-                
-                /* Ensure no extra padding in main content area */
-                .main .block-container {
-                    padding-top: 0.5rem !important;
-                    margin-top: 0 !important;
-                }
-                """
-                
-                st.markdown(f'<style>{css_content}</style>', unsafe_allow_html=True)
-                logger.info(f"Successfully loaded CSS from {css_path} with additional padding reduction")
-        else:
-            logger.warning(f"CSS file not found at path: {css_path}")
-            # Apply fallback comprehensive styling
-            st.markdown("""
-            <style>
-            /* Global theming */
-            .stApp {
-                background-color: #0A0F1E;
-                color: #F0F0F0;
-            }
-            
-            /* Reduce top padding */
-            .block-container {
-                padding-top: 1rem !important;
-            }
-            
-            /* Ensure no extra padding in main content area */
-            .main .block-container {
-                padding-top: 0.5rem !important;
-                margin-top: 0 !important;
-            }
-            
-            /* Headers */
-            h1, h2, h3, h4, h5 {
-                color: #4DB6AC !important;
-                font-family: 'Inter', sans-serif;
-            }
-            
-            /* Section headers */
-            .section-header {
-                color: #4DB6AC; 
-                font-size: 1.5rem; 
-                margin-top: 2rem;
-                font-weight: 600;
-            }
-            
-            /* Metric cards */
-            .metric-card {
-                background-color: #1E293B; 
-                border-radius: 10px; 
-                padding: 15px; 
-                margin: 10px 0;
-                border: 1px solid rgba(255,255,255,0.1);
-            }
-            .metric-title {
-                color: #94A3B8; 
-                font-size: 0.9rem;
-            }
-            .metric-value {
-                color: white; 
-                font-size: 1.5rem; 
-                font-weight: bold;
-            }
-            
-            /* Color indicators */
-            .positive-change {color: #22C55E !important;}
-            .negative-change {color: #EF4444 !important;}
-            
-            /* Expanders */
-            .streamlit-expanderHeader {
-                background-color: rgba(30, 41, 59, 0.7);
-                border-radius: 5px;
-                color: #F0F0F0;
-                font-weight: 500;
-            }
-            
-            /* Insights */
-            .insights-summary {
-                background-color: rgba(30, 41, 59, 0.7);
-                padding: 15px;
-                border-radius: 8px;
-                border-left: 4px solid #4DB6AC;
-                margin-bottom: 10px;
-            }
-            
-            /* Button styling */
-            .stButton>button {
-                background-color: #4DB6AC;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 10px 24px;
-                font-weight: 500;
-            }
-            .stButton>button:hover {
-                background-color: #3B9E94;
-            }
-            
-            /* Tables */
-            .dataframe {
-                font-family: 'Inter', sans-serif;
-            }
-            .dataframe th {
-                background-color: #1E293B;
-            }
-            .dataframe td {
-                background-color: rgba(30, 41, 59, 0.5);
-            }
-            
-            /* Ensure text contrast */
-            p, span, div, li {
-                color: #F0F0F0;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-    except Exception as e:
-        logger.error(f"Error loading CSS: {str(e)}")
-        # Apply minimal fallback styling
-        st.markdown("""
-        <style>
-        /* Reduce top padding */
-        .block-container {
-            padding-top: 1rem !important;
-        }
-        
-        /* Ensure no extra padding in main content area */
-        .main .block-container {
-            padding-top: 0.5rem !important;
-            margin-top: 0 !important;
-        }
-        
-        h1, h2, h3, h4, h5 {color: #4DB6AC !important;}
-        .section-header {color: #4DB6AC; font-size: 1.5rem; margin-top: 2rem;}
-        .positive-change {color: #22C55E !important;}
-        .negative-change {color: #EF4444 !important;}
-        </style>
-        """, unsafe_allow_html=True)
-
 # Debug helper function to diagnose comparison structure issues
 def debug_comparison_structure(comparison_results: Dict[str, Any]) -> None:
     """
@@ -1411,7 +1257,7 @@ st.set_page_config(
 )
 
 # Call load_css to apply custom styles
-load_css()
+inject_custom_css()
 
 # Initialize session state variables
 if 'current_month_actuals' not in st.session_state:
@@ -2799,7 +2645,7 @@ def main():
     inject_custom_css()
     
     # Load custom CSS
-    load_css()
+    inject_custom_css()
     
     # Display logo at the very top of the app
     display_logo()
@@ -3317,13 +3163,15 @@ def main():
                 st.error("Error: Invalid data structure. Please try processing the documents again.")
                 return
             
-            # Format data for NOI comparison and validate the result
-            consolidated_data_for_analysis = format_for_noi_comparison(st.session_state.consolidated_data)
+            # The data in st.session_state.consolidated_data is already formatted 
+            # by process_single_document_core (via process_all_documents).
+            # It's ready for calculate_noi_comparisons.
+            consolidated_data_for_analysis = st.session_state.consolidated_data
             
-            # Validate that format_for_noi_comparison returned valid data
+            # Validate that consolidated_data_for_analysis (which is st.session_state.consolidated_data) is valid
             if not consolidated_data_for_analysis or not isinstance(consolidated_data_for_analysis, dict):
-                logger.error("format_for_noi_comparison returned invalid data structure")
-                st.error("Error: Failed to format financial data for analysis. Please check your documents and try again.")
+                logger.error("Formatted data for analysis is invalid or not a dict (expected from session state)")
+                st.error("Error: Failed to prepare financial data for analysis. Please check your documents and try again.")
                 return
             
             # Check that we have at least some valid financial data
@@ -3332,8 +3180,13 @@ def main():
             logger.info(f"Available data types for analysis: {available_keys}")
             
             if not available_keys:
-                logger.error("No valid financial data found after formatting")
-                st.error("Error: No valid financial data found. Please ensure your documents contain the required financial information.")
+                # If 'current_month_actuals' (or similar raw key) exists and is non-empty, it implies a formatting or key mapping issue.
+                # However, process_all_documents should already map to 'current_month', etc.
+                # This check primarily ensures that at least one period has data.
+                raw_current_key_exists = any(k in consolidated_data_for_analysis for k in ['current_month_actuals', 'current_month']) # Example check
+                if raw_current_key_exists and consolidated_data_for_analysis.get(list(consolidated_data_for_analysis.keys())[0]): # if first key has data
+                     logger.warning("Data seems to exist in consolidated_data_for_analysis but not with standard keys or is empty.")
+                st.error("Error: No valid financial data found for key periods (current_month, prior_month, etc.). Please ensure your documents contain the required financial information.")
                 return
             
             st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
@@ -3600,11 +3453,12 @@ def main():
                             return
                         
                         # Perform financial analysis with verified data
-                        consolidated_data_for_analysis = format_for_noi_comparison(st.session_state.consolidated_data)
+                        # The data in st.session_state.consolidated_data is already formatted.
+                        consolidated_data_for_analysis = st.session_state.consolidated_data
                         
-                        # Validate that format_for_noi_comparison returned valid data
+                        # Validate that consolidated_data_for_analysis is valid
                         if not consolidated_data_for_analysis or not isinstance(consolidated_data_for_analysis, dict):
-                            logger.error("format_for_noi_comparison returned invalid data structure for verified data")
+                            logger.error("Formatted data for analysis is invalid or not a dict (expected from session state)")
                             st.error("Error: Failed to format financial data for analysis. Please check your documents and try again.")
                             st.session_state.processing_completed = False
                             st.rerun()

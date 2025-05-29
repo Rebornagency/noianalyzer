@@ -10,6 +10,10 @@ from insights_display import display_insights
 from ai_extraction import extract_noi_data
 from utils.helpers import format_for_noi_comparison
 
+# Import the new core processing function
+from utils.processing_helpers import process_single_document_core
+from utils.error_handler import setup_logger # For logger setup
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -53,205 +57,145 @@ def collect_all_files() -> Dict[str, Any]:
 
 def process_all_documents() -> Dict[str, Any]:
     """
-    Process all uploaded documents and return consolidated data ready for NOI calculation
+    Process all uploaded documents using the core processing function 
+    and return consolidated data ready for NOI calculation.
+    This function will also update st.session_state.consolidated_data and st.session_state.raw_data.
     
     Returns:
-        Dictionary containing financial data for each document type
+        Dictionary containing formatted financial data for each document type, 
+        or an error dictionary if critical errors occur (e.g., no current month data).
     """
-    logger.info("Processing all documents")
+    logger.info("Starting process_all_documents")
     
-    # Collect all files from session state
-    files = collect_all_files()
+    files_to_process = collect_all_files()
     
-    # Return empty data if no files
-    if not files:
-        logger.warning("No files to process")
+    if not files_to_process or 'current_month_actuals' not in files_to_process:
+        logger.warning("No files to process or current_month_actuals is missing.")
+        st.session_state.consolidated_data = {}
+        st.session_state.raw_data = {}
         return {
-            'error': "No files to process. Please upload at least the Current Month Actuals file."
+            'error': "No files to process or Current Month Actuals is missing. Please upload files and try again.",
+            'details': "Current Month Actuals is mandatory."
         }
     
-    # Extract data from each document
-    results = {}
-    has_error = False
-    error_message = ""
-    
-    for doc_type, file in files.items():
-        if file is not None:
-            logger.info(f"Processing {doc_type}: {file.name}")
-            
-            # Process document and get extraction result
-            extraction_result = extract_noi_data(file, doc_type)
-            
-            # Check for extraction errors
-            if 'error' in extraction_result:
-                logger.error(f"Error extracting data from {doc_type}: {extraction_result['error']}")
-                has_error = True
-                error_message = extraction_result['error']
-                if 'details' in extraction_result:
-                    error_message += f" Details: {extraction_result['details']}"
-                continue
-            
-            # Log the raw extraction result for debugging
-            logger.info(f"Raw extraction result structure for {doc_type}: {list(extraction_result.keys())}")
-            try:
-                # Attempt to log a serializable snippet of the extraction_result
-                loggable_extraction_result = {k: (type(v).__name__ if not isinstance(v, (str, int, float, bool, list, dict)) else v) for k, v in extraction_result.items()}
-                logger.info(f"Raw extraction result snippet for {doc_type}: {json.dumps(loggable_extraction_result, default=str, indent=2)}")
-            except Exception as e:
-                logger.error(f"Error logging raw extraction result snippet for {doc_type}: {e}")
-            
-            # Handle nested structures in the extraction result
-            if 'financials' in extraction_result:
-                financials = extraction_result['financials']
-                logger.info(f"Found 'financials' key in extraction result, keys: {list(financials.keys())}")
-                
-                # Log detailed structure of operating_expenses for debugging
-                if 'operating_expenses' in financials and isinstance(financials['operating_expenses'], dict):
-                    opex = financials['operating_expenses']
-                    logger.info(f"operating_expenses is a dictionary with keys: {list(opex.keys())}")
-                    if 'total_operating_expenses' in opex:
-                        logger.info(f"Found total_operating_expenses: {opex['total_operating_expenses']}")
-                
-                # Log detailed structure of other_income for debugging
-                if 'other_income' in financials and isinstance(financials['other_income'], dict):
-                    other_income = financials['other_income']
-                    logger.info(f"other_income is a dictionary with keys: {list(other_income.keys())}")
-                    if 'total' in other_income:
-                        logger.info(f"Found other_income.total: {other_income['total']}")
-            
-            # Format data for NOI calculation using our enhanced formatter
-            formatted_data = format_for_noi_comparison(extraction_result)
-            logger.info(f"Formatted data keys for {doc_type}: {list(formatted_data.keys())}")
-            try:
-                logger.info(f"Full formatted_data for {doc_type}: {json.dumps(formatted_data, default=str, indent=2)}")
-            except Exception as e:
-                logger.error(f"Error logging full formatted_data for {doc_type}: {e}")
-            
-            # Add to results
-            if doc_type == "current_month_actuals":
-                results["current_month"] = formatted_data
-            elif doc_type == "prior_month_actuals":
-                results["prior_month"] = formatted_data
-            elif doc_type == "current_month_budget":
-                results["budget"] = formatted_data
-            elif doc_type == "prior_year_actuals":
-                results["prior_year"] = formatted_data
-    
-    # Check if we have the minimum required data
-    if "current_month" not in results:
-        logger.error("Current month data is required but missing or failed to process")
-        return {
-            'error': "Current month data is required but missing or failed to process",
-            'details': error_message if has_error else "Please upload Current Month Actuals file and try again."
-        }
-    
-    # Check if we have any errors but still have current month data
-    if has_error:
-        logger.warning("Some documents had extraction errors, but proceeding with available data")
-        # We can still continue with partial data if at least current_month is available
-    
-    # Log structure of consolidated data
-    logger.info(f"Consolidated data structure (top-level keys): {list(results.keys())}")
-    for key, data_item in results.items():
-        if key == 'error':
-            logger.info(f"Consolidated data contains error: {data_item}")
-            continue
-        if isinstance(data_item, dict):
-            logger.info(f"Consolidated data for '{key}' (keys): {list(data_item.keys())}")
-            try:
-                logger.info(f"Consolidated data for '{key}' (full): {json.dumps(data_item, default=str, indent=2)}")
-            except Exception as e:
-                logger.error(f"Error logging full consolidated data for {key}: {e}")
-        else:
-            logger.info(f"Consolidated data for '{key}' is not a dict: {type(data_item)}")
-    
-    # Check that current_month has the expected data
-    if "current_month" in results:
-        current_month = results["current_month"]
-        logger.info(f"current_month data keys: {list(current_month.keys())}")
-        logger.info(f"Key metrics: gpr={current_month.get('gpr')}, opex={current_month.get('opex')}, noi={current_month.get('noi')}")
-    
-    # Check other data elements if present
-    for key in ["prior_month", "budget", "prior_year"]:
-        if key in results:
-            data = results[key]
-            logger.info(f"{key} data keys: {list(data.keys())}")
-            logger.info(f"Key metrics: gpr={data.get('gpr')}, opex={data.get('opex')}, noi={data.get('noi')}")
-    
-    # Verify data structure before returning
-    for key in ["current_month", "prior_month", "budget", "prior_year"]:
-        if key in results:
-            # Ensure each entry has the required keys
-            required_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
-            missing_keys = [req_key for req_key in required_keys if req_key not in results[key]]
-            
-            if missing_keys:
-                logger.warning(f"Data for {key} is missing required keys: {missing_keys}")
-                # Fill in missing keys with default values to prevent downstream errors
-                for missing_key in missing_keys:
-                    results[key][missing_key] = 0.0
-                    logger.info(f"Added default value 0.0 for missing key {missing_key} in {key}")
-            
-            # Verify gpr_current is numeric
-            for field in required_keys:
-                if not isinstance(results[key].get(field), (int, float)):
-                    try:
-                        results[key][field] = float(results[key].get(field, 0))
-                        logger.info(f"Converted {field} to float in {key}")
-                    except (ValueError, TypeError):
-                        logger.warning(f"Could not convert {field} to float in {key}, using default value 0.0")
-                        results[key][field] = 0.0
-    
-    # All checks passed
-    logger.info("Finished processing all documents, returning consolidated data")
-    return results
+    processed_data_for_consolidation = {}
+    raw_extraction_results = {}
+    overall_has_error = False
+    first_error_message = ""
+    first_error_details = ""
 
-def validate_formatted_data(data: Dict[str, Any], doc_type: str) -> Dict[str, Any]:
+    # Standard internal keys for consolidated_data
+    doc_type_mapping = {
+        "current_month_actuals": "current_month",
+        "prior_month_actuals": "prior_month",
+        "current_month_budget": "budget",
+        "prior_year_actuals": "prior_year"
+    }
+
+    for doc_key, uploaded_file in files_to_process.items():
+        if uploaded_file:
+            logger.info(f"Processing document for key: {doc_key} - File: {getattr(uploaded_file, 'name', 'UnknownFile')}")
+            # Call the core processing function
+            core_result = process_single_document_core(uploaded_file, doc_key)
+            internal_doc_type = doc_type_mapping.get(doc_key)
+
+            if not internal_doc_type:
+                logger.error(f"Unknown document key '{doc_key}' encountered. Skipping file {getattr(uploaded_file, 'name', 'UnknownFile')}")
+                if not overall_has_error:
+                    overall_has_error = True
+                    first_error_message = f"Internal configuration error: Unknown document key '{doc_key}'"
+                continue
+
+            if 'error' in core_result:
+                logger.error(f"Error processing {doc_key} ({getattr(uploaded_file, 'name', 'UnknownFile')}): {core_result['error']}")
+                # Store a placeholder or error info in raw_data for this doc_type
+                raw_extraction_results[internal_doc_type] = core_result 
+                if not overall_has_error: # Capture first error for overall status
+                    overall_has_error = True
+                    first_error_message = core_result['error']
+                    first_error_details = core_result.get('details', '')
+                # Don't add to formatted data if core processing failed
+            else:
+                # Successfully processed
+                processed_data_for_consolidation[internal_doc_type] = core_result.get("formatted_data")
+                raw_extraction_results[internal_doc_type] = core_result.get("raw_extraction_result")
+                logger.info(f"Successfully processed and formatted data for {internal_doc_type} from {doc_key}")
+    
+    # Update session state
+    st.session_state.consolidated_data = processed_data_for_consolidation
+    st.session_state.raw_data = raw_extraction_results
+    logger.info(f"Updated st.session_state.consolidated_data with keys: {list(st.session_state.consolidated_data.keys())}")
+    logger.info(f"Updated st.session_state.raw_data with keys: {list(st.session_state.raw_data.keys())}")
+
+    # Check if we have the minimum required data (current_month)
+    if "current_month" not in processed_data_for_consolidation or not processed_data_for_consolidation["current_month"]:
+        logger.error("Critical error: Current month data is missing or failed to process after attempting all files.")
+        final_error_message = first_error_message if overall_has_error else "Current month data is required but missing or failed to process."
+        final_error_details = first_error_details if overall_has_error else "Please upload Current Month Actuals file and try again."
+        return {
+            'error': final_error_message,
+            'details': final_error_details
+        }
+    
+    if overall_has_error:
+        logger.warning(f"process_all_documents completed with some errors. First error: {first_error_message}")
+        # Return the consolidated data but also indicate partial success / errors
+        # The main app can then decide how to message this to the user
+        return {
+            "warning": "Some documents could not be processed.",
+            "details": first_error_message, # Provide the first error encountered as a sample
+            "consolidated_output": processed_data_for_consolidation # Return data processed so far
+        }
+    
+    logger.info("Successfully processed all documents. Consolidated data is ready.")
+    return processed_data_for_consolidation # This is the dict like {"current_month": data, ...}
+
+def validate_formatted_data(data: Dict[str, Any], doc_type_label: str) -> Dict[str, Any]:
     """
-    Validate formatted data to ensure it contains all required fields.
+    Validate formatted data to ensure it contains all required fields and basic consistency.
     
     Args:
-        data: Formatted data to validate
-        doc_type: Type of document (current_month, prior_month, budget, prior_year)
+        data: Formatted data dictionary for a single document type.
+        doc_type_label: Label for logging/error messages (e.g., "Current Month").
         
     Returns:
-        Dictionary with validation result
+        Dictionary with validation status: {"valid": bool, "message": str, "warnings": List[str]}
     """
-    # Define required fields for each document type
-    required_fields = ["gpr", "egi", "opex", "noi"]
+    if not isinstance(data, dict):
+        return {"valid": False, "message": f"Invalid data format for {doc_type_label}: Expected dict, got {type(data).__name__}", "warnings": []}
+
+    required_fields = ["gpr", "egi", "opex", "noi"] # Core fields for any financial report
+    warnings = [] 
     
-    # Check for missing required fields
-    missing_fields = [field for field in required_fields if field not in data or data[field] == 0]
-    
-    # Check for data consistency
-    consistency_issues = []
-    
-    # Check if EGI is consistent with its components
-    if "gpr" in data and "vacancy_loss" in data and "other_income" in data and "egi" in data:
-        expected_egi = data["gpr"] - data["vacancy_loss"] + data["other_income"]
-        if abs(data["egi"] - expected_egi) > 0.01:  # Allow small rounding differences
-            consistency_issues.append(f"EGI ({data['egi']}) doesn't match calculated value ({expected_egi})")
-    
-    # Check if NOI is consistent with EGI and OpEx
-    if "egi" in data and "opex" in data and "noi" in data:
-        expected_noi = data["egi"] - data["opex"]
-        if abs(data["noi"] - expected_noi) > 0.01:  # Allow small rounding differences
-            consistency_issues.append(f"NOI ({data['noi']}) doesn't match calculated value ({expected_noi})")
-    
-    # Prepare validation result
-    if not missing_fields and not consistency_issues:
-        return {
-            "valid": True,
-            "message": f"All required fields present and consistent"
-        }
+    # Check for missing required fields (basic check, format_for_noi_comparison should ensure these with defaults)
+    missing_fields = [field for field in required_fields if field not in data or data[field] is None] # Check for None too
+    if missing_fields:
+        warnings.append(f"Missing or null core financial fields in {doc_type_label}: {', '.join(missing_fields)}. Defaults may have been used.")
+
+    # Basic consistency checks (can be expanded)
+    # EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
+    # NOI = EGI - OpEx
+    # These are illustrative; format_for_noi_comparison should ideally calculate/verify these.
+    # If format_for_noi_comparison guarantees these, these checks here are redundant or become deeper validation.
+
+    gpr = data.get("gpr", 0.0)
+    vacancy_loss = data.get("vacancy_loss", 0.0)
+    concessions = data.get("concessions", 0.0)
+    bad_debt = data.get("bad_debt", 0.0)
+    other_income_total = data.get("other_income", 0.0)
+    egi_reported = data.get("egi", 0.0)
+    opex_total = data.get("opex", 0.0)
+    noi_reported = data.get("noi", 0.0)
+
+    calculated_egi = gpr - vacancy_loss - concessions - bad_debt + other_income_total
+    if abs(egi_reported - calculated_egi) > 0.01: # Tolerance for float comparisons
+        warnings.append(f"EGI inconsistency in {doc_type_label}: Reported EGI {egi_reported:.2f} vs Calculated EGI {calculated_egi:.2f}.")
+
+    calculated_noi = egi_reported - opex_total # Use reported EGI for NOI calc to avoid cascading EGI error here
+    if abs(noi_reported - calculated_noi) > 0.01:
+        warnings.append(f"NOI inconsistency in {doc_type_label}: Reported NOI {noi_reported:.2f} vs Calculated NOI {calculated_noi:.2f} (from reported EGI)." )
+
+    if not warnings and not missing_fields: # If no missing fields found earlier and no new warnings
+        return {"valid": True, "message": f"Data for {doc_type_label} appears valid and consistent.", "warnings": []}
     else:
-        message_parts = []
-        if missing_fields:
-            message_parts.append(f"Missing fields: {', '.join(missing_fields)}")
-        if consistency_issues:
-            message_parts.append(f"Consistency issues: {'; '.join(consistency_issues)}")
-        
-        return {
-            "valid": False,
-            "message": ". ".join(message_parts)
-        }
+        return {"valid": False, "message": f"Validation issues found for {doc_type_label}.", "warnings": warnings}
