@@ -21,14 +21,23 @@ from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
 from ai_extraction import extract_noi_data
 from ai_insights_gpt import generate_insights_with_gpt
+
+# Try to import specific functions that might be missing in minimal setups
 try:
-    from ai_insights_gpt import generate_noi_coach_response
+    from financial_storyteller import create_narrative
+    from storyteller_display import display_financial_narrative, display_narrative_in_tabs
 except ImportError:
-    generate_noi_coach_response = None
-from financial_storyteller import create_narrative
-from storyteller_display import display_financial_narrative, display_narrative_in_tabs
+    # Create dummy functions if not available
+    def create_narrative(*args, **kwargs):
+        return "Narrative generation not available - module not found."
+    def display_financial_narrative(*args, **kwargs):
+        pass
+    def display_narrative_in_tabs(*args, **kwargs):
+        pass
+
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
 from insights_display import display_insights
+from reborn_logo import get_reborn_logo_base64
 
 # Configure logging
 logging.basicConfig(
