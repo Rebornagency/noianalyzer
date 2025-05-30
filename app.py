@@ -21,6 +21,10 @@ from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
 from ai_extraction import extract_noi_data
 from ai_insights_gpt import generate_insights_with_gpt
+try:
+    from ai_insights_gpt import generate_noi_coach_response
+except ImportError:
+    generate_noi_coach_response = None
 from financial_storyteller import create_narrative
 from storyteller_display import display_financial_narrative, display_narrative_in_tabs
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
@@ -36,6 +40,12 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger('noi_analyzer')
+
+def safe_text(value):
+    """Convert any value to a safe string, avoiding 'undefined' text."""
+    if value is None or value == "undefined" or value == "null" or str(value).lower() == "nan":
+        return ""
+    return str(value)
 
 def validate_financial_data(data: Dict[str, Any]) -> Tuple[bool, str]:
     """
@@ -796,6 +806,92 @@ def inject_custom_css():
         background-color: #1E40AF !important;
         color: white !important;
     }
+    
+    /* OpEx Table Styling */
+    .opex-table-container {
+        margin: 1rem 0 !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        background-color: rgba(22, 27, 34, 0.8) !important;
+        border: 1px solid rgba(56, 68, 77, 0.5) !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .opex-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        color: #e6edf3 !important;
+        background-color: transparent !important;
+    }
+    
+    .opex-table th, .opex-table td {
+        padding: 0.75rem 1rem !important;
+        text-align: left !important;
+        border-bottom: 1px solid rgba(56, 68, 77, 0.3) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        color: #e6edf3 !important;
+    }
+    
+    .opex-table th {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        font-weight: 600 !important;
+        color: #79b8f3 !important;
+        font-size: 0.95rem !important;
+    }
+    
+    .opex-table tr:hover {
+        background-color: rgba(30, 41, 59, 0.4) !important;
+    }
+    
+    .opex-table tr:last-child td {
+        border-bottom: none !important;
+    }
+    
+    .opex-category-cell {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+    
+    .opex-category-indicator {
+        width: 12px !important;
+        height: 12px !important;
+        border-radius: 50% !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .opex-positive-value {
+        color: #22c55e !important; /* Green for favorable changes */
+        font-weight: 500 !important;
+    }
+    
+    .opex-negative-value {
+        color: #ef4444 !important; /* Red for unfavorable changes */
+        font-weight: 500 !important;
+    }
+    
+    .opex-neutral-value {
+        color: #e6edf3 !important; /* Default text color */
+    }
+    
+    .opex-chart-container {
+        margin: 1rem 0 !important;
+        background-color: rgba(22, 27, 34, 0.8) !important;
+        border-radius: 8px !important;
+        padding: 1rem !important;
+        border: 1px solid rgba(56, 68, 77, 0.5) !important;
+    }
+    
+    .opex-chart-title {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        color: #79b8f3 !important;
+        margin-bottom: 1rem !important;
+        text-align: center !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -1310,6 +1406,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         name_suffix: Display name for the prior period (e.g., 'Prior Month', 'Budget', 'Prior Year')
     """
     logger.info(f"--- display_comparison_tab START for {name_suffix} ---")
+    
+    # Ensure all text values are strings and safely handled
+    name_suffix = safe_text(name_suffix) or "Prior Period"
+    prior_key_suffix = safe_text(prior_key_suffix) or "prior"
+    
     try:
         logger.info(f"display_comparison_tab for {name_suffix}: Received tab_data (keys): {list(tab_data.keys())}")
         # Move full JSON dumps to DEBUG level
@@ -1617,7 +1718,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                 <tr>
                                     <th>Expense Category</th>
                                     <th>Current</th>
-                                    <th>""" + name_suffix + """</th>
+                                    <th>""" + safe_text(name_suffix) + """</th>
                                     <th>Change ($)</th>
                                     <th>Change (%)</th>
                                 </tr>
@@ -1640,9 +1741,13 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         except (ValueError, TypeError):
                             value_class = "opex-neutral-value"        # Default to neutral if error
                         
-                        # Get category color
-                        color = row["Color"]
-                        category = row["Expense Category"]
+                        # Get category color and ensure safe text
+                        color = safe_text(row["Color"]) or "#a9a9a9"
+                        category = safe_text(row["Expense Category"])
+                        current_val = safe_text(row["Current"])
+                        prior_val = safe_text(row[name_suffix])
+                        change_dollar = safe_text(row["Change ($)"])
+                        change_percent = safe_text(row["Change (%)"])
                         
                         # Add the row with color indicator
                         html_table += f"""
@@ -1653,10 +1758,10 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                     {category}
                                 </div>
                             </td>
-                            <td class="opex-neutral-value">{row["Current"]}</td>
-                            <td class="opex-neutral-value">{row[name_suffix]}</td>
-                            <td class="{value_class}">{row["Change ($)"]}</td>
-                            <td class="{value_class}">{row["Change (%)"]}</td>
+                            <td class="opex-neutral-value">{current_val}</td>
+                            <td class="opex-neutral-value">{prior_val}</td>
+                            <td class="{value_class}">{change_dollar}</td>
+                            <td class="{value_class}">{change_percent}</td>
                         </tr>
                         """
                     
@@ -1667,8 +1772,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     </div>
                     """
                     
-                    # Display the custom HTML table
-                    components.html(html_table, height=250, scrolling=True)
+                    # Display the custom HTML table using st.markdown instead of components.html
+                    st.markdown(html_table, unsafe_allow_html=True)
                     
                     # Create columns for charts with enhanced styling
                     col1, col2 = st.columns(2)
@@ -2122,20 +2227,24 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 current_noi = df.loc[df['Metric'] == 'NOI', 'Current'].values[0]
                 prior_noi = df.loc[df['Metric'] == 'NOI', name_suffix].values[0]
                 
-                # Calculate the difference and percentage change
-                noi_diff = current_noi - prior_noi
-                noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 else 0
+                # Calculate the difference and percentage change with safe handling
+                noi_diff = current_noi - prior_noi if current_noi is not None and prior_noi is not None else 0
+                noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 and prior_noi is not None else 0
+                
+                # Ensure safe text for annotation
+                noi_diff_safe = safe_text(noi_diff) or "0"
+                noi_pct_safe = safe_text(f"{noi_pct:.1f}") or "0.0"
                 
                 # Create annotation text based on whether NOI increased or decreased
                 # For NOI, an increase is positive (green), decrease is negative (red)
                 if noi_diff > 0:
-                    annotation_text = f"NOI increased by<br>${noi_diff:,.0f}<br>({noi_pct:.1f}%)"
+                    annotation_text = safe_text(f"NOI increased by<br>${noi_diff:,.0f}<br>({noi_pct:.1f}%)")
                     arrow_color = "#00bfa5"  # Teal green for positive
                 elif noi_diff < 0:
-                    annotation_text = f"NOI decreased by<br>${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)"
+                    annotation_text = safe_text(f"NOI decreased by<br>${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)")
                     arrow_color = "#f44336"  # Red for negative
                 else:
-                    annotation_text = "NOI unchanged"
+                    annotation_text = safe_text("NOI unchanged")
                     arrow_color = "#78909c"  # Gray for neutral
                     
                 # Add annotation for NOI with improved styling
@@ -2489,6 +2598,136 @@ def ask_noi_coach(question: str, comparison_results: Dict[str, Any], context: st
 def display_noi_coach():
     """Display the NOI Coach interface with chat input and response area."""
     st.markdown("<h2 class='reborn-section-title'>NOI Coach</h2>", unsafe_allow_html=True)
+    
+    # Initialize session state for chat history if not exists
+    if 'noi_coach_history' not in st.session_state:
+        st.session_state.noi_coach_history = []
+    
+    # Add CSS for chat interface
+    st.markdown("""
+    <style>
+        /* Chat message styling */
+        .chat-message {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0.5rem;
+            max-width: 80%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .user-message {
+            background-color: #1e88e5;
+            color: white;
+            margin-left: auto;
+            margin-right: 0;
+        }
+        
+        .assistant-message {
+            background-color: rgba(22, 27, 34, 0.8);
+            color: #e6edf3;
+            margin-right: auto;
+            margin-left: 0;
+            border: 1px solid rgba(56, 68, 77, 0.5);
+        }
+        
+        .chat-message-content {
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+        
+        .chat-input-label {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #e6edf3;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Display chat history
+    for message in st.session_state.noi_coach_history:
+        role = message["role"]
+        content = safe_text(message["content"])
+        
+        if role == "user":
+            st.markdown(f"""
+                <div class="chat-message user-message">
+                    <div class="chat-message-content">{content}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div class="chat-message assistant-message">
+                    <div class="chat-message-content">{content}</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
+    # Chat input
+    with st.form(key="noi_coach_form", clear_on_submit=True):
+        st.markdown("<div class='chat-input-label'>Ask a question about your financial data:</div>", unsafe_allow_html=True)
+        user_question = st.text_input("", placeholder="e.g., What's driving the change in NOI?", label_visibility="collapsed")
+        
+        col1, col2 = st.columns([4, 1])
+        with col2:
+            submit_button = st.form_submit_button("Ask NOI Coach")
+    
+    # Process the question when submitted
+    if submit_button and user_question:
+        # Log the question
+        logger.info(f"NOI Coach question received: {user_question}")
+        
+        # Add user message to history
+        st.session_state.noi_coach_history.append({
+            "role": "user",
+            "content": user_question
+        })
+        
+        # Check if we have financial data to analyze
+        if 'comparison_results' not in st.session_state or not st.session_state.comparison_results:
+            response = "Please process financial documents first so I can analyze your data."
+        else:
+            try:
+                # Check if we have ai_insights_gpt module for NOI Coach functionality
+                if generate_noi_coach_response is not None:
+                    # Get the current context selection from session state
+                    current_view = getattr(st.session_state, 'current_comparison_view', 'budget')
+                    response = generate_noi_coach_response(user_question, st.session_state.comparison_results, current_view)
+                else:
+                    # Fallback response if ai_insights_gpt is not available
+                    logger.warning("ai_insights_gpt module not available for NOI Coach")
+                    comparison_data = st.session_state.comparison_results
+                    current_data = comparison_data.get('current', {})
+                    
+                    # Generate a basic response based on available data
+                    if 'noi' in current_data:
+                        current_noi = current_data.get('noi', 0)
+                        response = f"Based on your financial data, your current NOI is ${current_noi:,.2f}. "
+                        
+                        # Add context based on comparison data
+                        if 'budget' in comparison_data:
+                            budget_noi = comparison_data['budget'].get('noi', 0)
+                            noi_diff = current_noi - budget_noi
+                            if noi_diff > 0:
+                                response += f"This is ${noi_diff:,.2f} above your budget target. "
+                            elif noi_diff < 0:
+                                response += f"This is ${abs(noi_diff):,.2f} below your budget target. "
+                        
+                        response += "For more detailed analysis, please ensure all financial documents are properly processed."
+                    else:
+                        response = "I can see your financial data, but I need more information to provide a detailed analysis. Please ensure all documents are properly processed."
+                
+            except Exception as e:
+                logger.error(f"Error generating NOI Coach response: {str(e)}")
+                response = "I'm sorry, I encountered an error while analyzing your data. Please try again later."
+        
+        # Add assistant response to history
+        st.session_state.noi_coach_history.append({
+            "role": "assistant",
+            "content": response
+        })
+        
+        # Rerun to display the updated chat
+        st.rerun()
 
 def display_unified_insights_no_html(insights_data):
     """
