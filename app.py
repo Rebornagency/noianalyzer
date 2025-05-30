@@ -1394,6 +1394,9 @@ if 'generated_narrative' not in st.session_state:
     st.session_state.generated_narrative = None
 if 'show_narrative_editor' not in st.session_state:
     st.session_state.show_narrative_editor = False
+# Theme selection
+if 'theme' not in st.session_state:
+    st.session_state.theme = "dark"  # Default to dark theme
 
 # Display comparison tab
 def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name_suffix: str):
@@ -2886,6 +2889,37 @@ def main():
     # Load custom CSS
     inject_custom_css()
     
+    # JavaScript function for theme toggling
+    st.markdown("""
+    <script>
+    function toggleTheme() {
+        const root = document.documentElement;
+        const currentTheme = root.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', newTheme);
+        
+        // Store theme preference in localStorage
+        localStorage.setItem('preferred-theme', newTheme);
+    }
+
+    function initTheme() {
+        const root = document.documentElement;
+        const savedTheme = localStorage.getItem('preferred-theme') || 'dark';
+        root.setAttribute('data-theme', savedTheme);
+    }
+
+    // Initialize theme on page load
+    document.addEventListener('DOMContentLoaded', initTheme);
+    
+    // Also initialize if DOM is already ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTheme);
+    } else {
+        initTheme();
+    }
+    </script>
+    """, unsafe_allow_html=True)
+    
     # Display logo at the very top of the app
     display_logo()
     
@@ -3021,6 +3055,27 @@ def main():
             st.session_state.show_zero_values = show_zero_values
             st.rerun()
         
+        # Theme toggle
+        current_theme = st.session_state.theme
+        theme_button_text = "☀️ Light Mode" if current_theme == "dark" else "🌙 Dark Mode"
+        
+        # Create theme toggle button
+        if st.button(theme_button_text, key="theme_toggle", use_container_width=True):
+            # Toggle theme in session state
+            new_theme = "light" if current_theme == "dark" else "dark"
+            st.session_state.theme = new_theme
+            
+            # Apply theme change via JavaScript
+            st.markdown(f"""
+            <script>
+            const root = document.documentElement;
+            root.setAttribute('data-theme', '{new_theme}');
+            localStorage.setItem('preferred-theme', '{new_theme}');
+            </script>
+            """, unsafe_allow_html=True)
+            
+            st.rerun()
+
         # Data Template Reset Button
         if st.session_state.get('consolidated_data') and isinstance(st.session_state.consolidated_data, dict) and not st.session_state.consolidated_data.get('error'):
             # Show this button if there's valid data, regardless of whether processing_completed is True yet,
