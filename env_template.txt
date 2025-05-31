@@ -1,0 +1,19 @@
+# NOI Analyzer Environment Variables Template
+# Copy these variables to your .env file and fill in your actual values
+
+# OpenAI API Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Sentry Error Tracking Configuration
+SENTRY_DSN=your_sentry_dsn_here
+SENTRY_ENVIRONMENT=development
+SENTRY_TRACES_SAMPLE_RATE=0.1
+
+# Optional: Set a custom release version
+# SENTRY_RELEASE=noi-analyzer@1.0.0
+
+# Example of what your .env file should look like:
+# OPENAI_API_KEY=sk-proj-abcd1234...
+# SENTRY_DSN=https://your-key@o123456.ingest.sentry.io/789012
+# SENTRY_ENVIRONMENT=production
+# SENTRY_TRACES_SAMPLE_RATE=0.01 

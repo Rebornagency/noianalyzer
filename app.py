@@ -16,6 +16,16 @@ import tempfile
 import jinja2
 import streamlit.components.v1 as components
 
+# Import and initialize Sentry for error tracking
+from sentry_config import (
+    init_sentry, set_user_context, add_breadcrumb, 
+    capture_exception_with_context, capture_message_with_context, 
+    monitor_performance
+)
+
+# Initialize Sentry as early as possible
+sentry_initialized = init_sentry()
+
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
@@ -49,6 +59,13 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger('noi_analyzer')
+
+# Log Sentry initialization status
+if sentry_initialized:
+    logger.info("Sentry error tracking initialized successfully")
+    add_breadcrumb("Application started", "app", "info")
+else:
+    logger.warning("Sentry error tracking not initialized - check SENTRY_DSN environment variable")
 
 def safe_text(value):
     """Convert any value to a safe string, avoiding 'undefined' text."""
@@ -2941,50 +2958,78 @@ def main():
     Main function for the NOI Analyzer Enhanced application.
     Sets up the UI and coordinates all functionality.
     """
-    # Inject custom CSS to ensure font consistency
-    inject_custom_css()
-    
-    # Load custom CSS
-    inject_custom_css()
-    
-    # JavaScript function for theme toggling
-    st.markdown("""
-    <script>
-    function toggleTheme() {
-        const root = document.documentElement;
-        const currentTheme = root.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        root.setAttribute('data-theme', newTheme);
+    try:
+        # Add Sentry breadcrumb for main function start
+        add_breadcrumb("Main function started", "app", "info")
         
-        // Store theme preference in localStorage
-        localStorage.setItem('preferred-theme', newTheme);
-    }
+        # Set user context for Sentry
+        session_id = st.session_state.get('session_id')
+        if not session_id:
+            import uuid
+            session_id = str(uuid.uuid4())
+            st.session_state['session_id'] = session_id
+        
+        property_name = st.session_state.get('property_name', 'Unknown Property')
+        set_user_context(
+            session_id=session_id,
+            property_name=property_name
+        )
+        
+        # Inject custom CSS to ensure font consistency
+        inject_custom_css()
+        
+        # Load custom CSS
+        inject_custom_css()
+        
+        # JavaScript function for theme toggling
+        st.markdown("""
+        <script>
+        function toggleTheme() {
+            const root = document.documentElement;
+            const currentTheme = root.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            root.setAttribute('data-theme', newTheme);
+            
+            // Store theme preference in localStorage
+            localStorage.setItem('preferred-theme', newTheme);
+        }
 
-    function initTheme() {
-        const root = document.documentElement;
-        const savedTheme = localStorage.getItem('preferred-theme') || 'dark';
-        root.setAttribute('data-theme', savedTheme);
-    }
+        function initTheme() {
+            const root = document.documentElement;
+            const savedTheme = localStorage.getItem('preferred-theme') || 'dark';
+            root.setAttribute('data-theme', savedTheme);
+        }
 
-    // Initialize theme on page load
-    document.addEventListener('DOMContentLoaded', initTheme);
-    
-    // Also initialize if DOM is already ready
-    if (document.readyState === 'loading') {
+        // Initialize theme on page load
         document.addEventListener('DOMContentLoaded', initTheme);
-    } else {
-        initTheme();
-    }
-    </script>
-    """, unsafe_allow_html=True)
-    
-    # Display logo at the very top of the app
-    display_logo()
-    
-    # Log session state at the beginning of a run for debugging narrative
-    logger.info(f"APP.PY (main start): st.session_state.generated_narrative is: {st.session_state.get('generated_narrative')}")
-    logger.info(f"APP.PY (main start): st.session_state.edited_narrative is: {st.session_state.get('edited_narrative')}")
-    
+        
+        // Also initialize if DOM is already ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTheme);
+        } else {
+            initTheme();
+        }
+        </script>
+        """, unsafe_allow_html=True)
+        
+        # Display logo at the very top of the app
+        display_logo()
+        
+        # Log session state at the beginning of a run for debugging narrative
+        logger.info(f"APP.PY (main start): st.session_state.generated_narrative is: {st.session_state.get('generated_narrative')}")
+        logger.info(f"APP.PY (main start): st.session_state.edited_narrative is: {st.session_state.get('edited_narrative')}")
+        
+    except Exception as e:
+        # Capture any errors in main function initialization
+        capture_exception_with_context(
+            e,
+            context={"function": "main", "stage": "initialization"},
+            tags={"severity": "high"}
+        )
+        logger.error(f"Error in main function initialization: {str(e)}", exc_info=True)
+        st.error("An error occurred during application initialization. Please refresh the page.")
+        return
+
     # Display initial UI or results based on processing_completed
     if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
         # Show welcome content when no data has been processed and template is not active
@@ -3200,6 +3245,20 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
+                # Add Sentry breadcrumb for button click
+                add_breadcrumb(
+                    "Process Documents button clicked", 
+                    "user_action", 
+                    "info",
+                    {
+                        "has_current_month": bool(st.session_state.get('current_month_actuals')),
+                        "has_prior_month": bool(st.session_state.get('prior_month_actuals')),
+                        "has_budget": bool(st.session_state.get('current_month_budget')),
+                        "has_prior_year": bool(st.session_state.get('prior_year_actuals')),
+                        "property_name": st.session_state.get('property_name', 'Unknown')
+                    }
+                )
+                
                 st.session_state.user_initiated_processing = True
                 # Reset states for a fresh processing cycle
                 st.session_state.template_viewed = False
@@ -3238,48 +3297,86 @@ def main():
     
     # --- Stage 1: Document Extraction (if user initiated processing and no data yet) ---
     if st.session_state.user_initiated_processing and 'consolidated_data' not in st.session_state:
-        try:
-            show_processing_status("Processing documents. This may take a minute...", is_running=True)
-            logger.info("APP.PY: --- User Initiated Document Processing START ---")
+        # Start performance monitoring for document processing
+        with monitor_performance("document_extraction"):
+            try:
+                add_breadcrumb("Starting document extraction", "processing", "info")
+                show_processing_status("Processing documents. This may take a minute...", is_running=True)
+                logger.info("APP.PY: --- User Initiated Document Processing START ---")
 
-            # Ensure current_month_file is from session state, as button click clears local vars
-            if not st.session_state.current_month_actuals:
-                show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
-                st.session_state.user_initiated_processing = False # Reset flag as processing cannot continue
-                st.rerun() # Rerun to show the error and stop
-                return # Explicitly return
+                # Ensure current_month_file is from session state, as button click clears local vars
+                if not st.session_state.current_month_actuals:
+                    add_breadcrumb("Document processing failed - no current month file", "processing", "error")
+                    show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
+                    st.session_state.user_initiated_processing = False # Reset flag as processing cannot continue
+                    st.rerun() # Rerun to show the error and stop
+                    return # Explicitly return
 
-            # Pass file objects from session state to process_all_documents
-            # process_all_documents internally uses st.session_state to get file objects
-            raw_consolidated_data = process_all_documents()
-            logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
+                # Pass file objects from session state to process_all_documents
+                # process_all_documents internally uses st.session_state to get file objects
+                raw_consolidated_data = process_all_documents()
+                logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
 
-            if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
-                st.session_state.consolidated_data = raw_consolidated_data
-                st.session_state.template_viewed = False # Ensure template is shown
-                logger.info("Document extraction successful. Data stored. Proceeding to template display.")
-            elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
-                error_message = raw_consolidated_data["error"]
-                logger.error(f"Error during document processing: {error_message}")
-                st.error(f"An error occurred during document processing: {error_message}")
+                if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
+                    st.session_state.consolidated_data = raw_consolidated_data
+                    st.session_state.template_viewed = False # Ensure template is shown
+                    add_breadcrumb("Document extraction successful", "processing", "info")
+                    logger.info("Document extraction successful. Data stored. Proceeding to template display.")
+                elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
+                    error_message = raw_consolidated_data["error"]
+                    add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
+                    capture_message_with_context(
+                        f"Document processing error: {error_message}",
+                        level="error",
+                        context={"raw_data": str(raw_consolidated_data)[:500]},
+                        tags={"stage": "document_extraction"}
+                    )
+                    logger.error(f"Error during document processing: {error_message}")
+                    st.error(f"An error occurred during document processing: {error_message}")
+                    st.session_state.user_initiated_processing = False # Reset flag
+                elif not raw_consolidated_data:
+                    add_breadcrumb("No data extracted from documents", "processing", "warning")
+                    capture_message_with_context(
+                        "No data was extracted from documents",
+                        level="warning",
+                        tags={"stage": "document_extraction"}
+                    )
+                    logger.warning("No data was extracted from the documents or data is empty.")
+                    st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
+                    st.session_state.user_initiated_processing = False # Reset flag
+                else:
+                    add_breadcrumb("Unknown document processing error", "processing", "error")
+                    capture_message_with_context(
+                        f"Unknown error during document processing. Data: {str(raw_consolidated_data)[:200]}",
+                        level="error",
+                        tags={"stage": "document_extraction"}
+                    )
+                    logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
+                    st.error("An unknown error occurred or the data structure is invalid after processing.")
+                    st.session_state.user_initiated_processing = False # Reset flag
+                
+                st.rerun() # Rerun to move to template display or show error
+
+            except Exception as e_extract:
+                add_breadcrumb("Exception during document extraction", "processing", "error", {"exception": str(e_extract)})
+                capture_exception_with_context(
+                    e_extract,
+                    context={
+                        "stage": "document_extraction",
+                        "has_files": {
+                            "current_month": bool(st.session_state.get('current_month_actuals')),
+                            "prior_month": bool(st.session_state.get('prior_month_actuals')),
+                            "budget": bool(st.session_state.get('current_month_budget')),
+                            "prior_year": bool(st.session_state.get('prior_year_actuals'))
+                        }
+                    },
+                    tags={"severity": "high", "stage": "document_extraction"}
+                )
+                logger.error(f"Exception during document extraction stage: {str(e_extract)}", exc_info=True)
+                st.error(f"An unexpected error occurred during document extraction: {str(e_extract)}")
                 st.session_state.user_initiated_processing = False # Reset flag
-            elif not raw_consolidated_data:
-                logger.warning("No data was extracted from the documents or data is empty.")
-                st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
-                st.session_state.user_initiated_processing = False # Reset flag
-            else:
-                logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
-                st.error("An unknown error occurred or the data structure is invalid after processing.")
-                st.session_state.user_initiated_processing = False # Reset flag
-            
-            st.rerun() # Rerun to move to template display or show error
-
-        except Exception as e_extract:
-            logger.error(f"Exception during document extraction stage: {str(e_extract)}", exc_info=True)
-            st.error(f"An unexpected error occurred during document extraction: {str(e_extract)}")
-            st.session_state.user_initiated_processing = False # Reset flag
-            st.rerun()
-        return # Stop further execution in this run, let rerun handle next step
+                st.rerun()
+            return # Stop further execution in this run, let rerun handle next step
 
     # --- Stage 2: Data Template Display and Confirmation ---
     # This block executes if consolidated_data exists but template hasn't been viewed/confirmed
