@@ -5,15 +5,36 @@ Handles error tracking, performance monitoring, and debugging
 
 import os
 import sentry_sdk
-from sentry_sdk.integrations.streamlit import StreamlitIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
-from sentry_sdk.integrations.pandas import PandasIntegration
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 from datetime import datetime
 import logging
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)
+
+# Try to import integrations, but make them optional
+try:
+    from sentry_sdk.integrations.streamlit import StreamlitIntegration
+    HAS_STREAMLIT_INTEGRATION = True
+except ImportError:
+    HAS_STREAMLIT_INTEGRATION = False
+
+try:
+    from sentry_sdk.integrations.logging import LoggingIntegration
+    HAS_LOGGING_INTEGRATION = True
+except ImportError:
+    HAS_LOGGING_INTEGRATION = False
+
+try:
+    from sentry_sdk.integrations.pandas import PandasIntegration
+    HAS_PANDAS_INTEGRATION = True
+except ImportError:
+    HAS_PANDAS_INTEGRATION = False
+
+try:
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    HAS_FASTAPI_INTEGRATION = True
+except ImportError:
+    HAS_FASTAPI_INTEGRATION = False
 
 def init_sentry():
     """
@@ -33,6 +54,27 @@ def init_sentry():
     release = os.getenv("SENTRY_RELEASE", f"noi-analyzer@{datetime.now().strftime('%Y.%m.%d')}")
     
     try:
+        # Build integrations list based on what's available
+        integrations = []
+        
+        if HAS_STREAMLIT_INTEGRATION:
+            integrations.append(StreamlitIntegration(auto_enabling=True))
+        
+        if HAS_LOGGING_INTEGRATION:
+            integrations.append(LoggingIntegration(
+                level=logging.INFO,
+                event_level=logging.ERROR,
+            ))
+        
+        if HAS_PANDAS_INTEGRATION:
+            integrations.append(PandasIntegration(auto_enabling=True))
+        
+        if HAS_FASTAPI_INTEGRATION:
+            integrations.append(FastApiIntegration(
+                auto_enabling=True,
+                transaction_style="endpoint",
+            ))
+        
         # Configure Sentry
         sentry_sdk.init(
             dsn=sentry_dsn,
@@ -41,27 +83,8 @@ def init_sentry():
             environment=environment,
             release=release,
             
-            # Integrations for better error tracking
-            integrations=[
-                StreamlitIntegration(
-                    # Capture form submissions and button clicks
-                    auto_enabling=True,
-                ),
-                LoggingIntegration(
-                    # Capture logging statements as breadcrumbs
-                    level=logging.INFO,
-                    event_level=logging.ERROR,
-                ),
-                PandasIntegration(
-                    # Track pandas dataframe operations
-                    auto_enabling=True,
-                ),
-                FastApiIntegration(
-                    # For any FastAPI endpoints in your app
-                    auto_enabling=True,
-                    transaction_style="endpoint",
-                ),
-            ],
+            # Integrations for better error tracking (only what's available)
+            integrations=integrations,
             
             # Performance monitoring
             traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),  # 10% of transactions
@@ -94,6 +117,7 @@ def init_sentry():
             scope.set_tag("python.version", os.sys.version.split()[0])
             
         logger.info(f"Sentry initialized successfully for environment: {environment}")
+        logger.info(f"Available integrations: {[type(i).__name__ for i in integrations]}")
         return True
         
     except Exception as e:
