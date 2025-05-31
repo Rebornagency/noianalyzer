@@ -901,6 +901,53 @@ def inject_custom_css():
         text-align: center !important;
     }
 
+    /* Options Container Styling */
+    .options-container {
+        background-color: var(--reborn-bg-secondary);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-left: 4px solid var(--reborn-accent-blue);
+    }
+
+    .options-header {
+        color: var(--reborn-text-primary);
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* NOI Coach Context Styling */
+    .noi-coach-context-container {
+        background-color: var(--reborn-bg-secondary);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--reborn-accent-teal);
+    }
+
+    .noi-coach-context-header {
+        color: var(--reborn-text-primary);
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+    }
+
+    .noi-coach-interface {
+        background-color: var(--reborn-bg-secondary);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .noi-coach-response {
+        background-color: var(--reborn-bg-tertiary);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        border-left: 4px solid var(--reborn-accent-blue);
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -1358,7 +1405,7 @@ st.set_page_config(
     page_title="NOI Analyzer Enhanced",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Call load_css to apply custom styles
@@ -1406,6 +1453,8 @@ if 'show_narrative_editor' not in st.session_state:
 # Theme selection
 if 'theme' not in st.session_state:
     st.session_state.theme = "dark"  # Default to dark theme
+if 'user_initiated_processing' not in st.session_state:
+    st.session_state.user_initiated_processing = False
 
 # Display comparison tab
 def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name_suffix: str):
@@ -2936,221 +2985,6 @@ def main():
     logger.info(f"APP.PY (main start): st.session_state.generated_narrative is: {st.session_state.get('generated_narrative')}")
     logger.info(f"APP.PY (main start): st.session_state.edited_narrative is: {st.session_state.get('edited_narrative')}")
     
-    # Sidebar configuration
-    with st.sidebar:
-        # Modern sidebar title
-        st.markdown("""
-        <div class="sidebar-title">
-            <span class="noi-title-accent">NOI</span> Analyzer
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Modern style overrides for sidebar
-        st.markdown("""
-        <style>
-        /* Sidebar styling */
-        [data-testid="stSidebar"] {
-            background-color: rgba(16, 23, 42, 0.8) !important;
-            border-right: 1px solid rgba(59, 130, 246, 0.1) !important;
-        }
-        
-        .sidebar-title {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 1.8rem !important;
-            font-weight: 600 !important;
-            color: #e6edf3 !important;
-            margin-bottom: 1.5rem !important;
-            padding-bottom: 0.5rem !important;
-            border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
-        }
-        
-        /* Sidebar headers */
-        .sidebar-section-header {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 1.2rem !important;
-            font-weight: 500 !important;
-            color: #64B5F6 !important;
-            margin-top: 1.5rem !important;
-            margin-bottom: 0.75rem !important;
-        }
-        
-        /* Sidebar subheaders */
-        .sidebar-subsection-header {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            font-size: 1rem !important;
-            font-weight: 500 !important;
-            color: #e6edf3 !important;
-            margin-top: 1rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # File uploaders for NOI data
-        st.markdown('<div class="sidebar-section-header">Upload Documents</div>', unsafe_allow_html=True)
-        
-        # Upload current month actuals
-        current_month_file_sb = st.file_uploader(
-            "Current Month Actuals (Required)", 
-            type=["xlsx", "xls", "csv", "pdf"],
-            key="sidebar_current_month_upload",
-            help="Upload your current month's financial data"
-        )
-        if current_month_file_sb is not None:
-            st.session_state.current_month_actuals = current_month_file_sb
-        
-        # Upload prior month actuals
-        prior_month_file_sb = st.file_uploader(
-            "Prior Month Actuals", 
-            type=["xlsx", "xls", "csv", "pdf"],
-            key="sidebar_prior_month_upload",
-            help="Upload your prior month's financial data for month-over-month comparison"
-        )
-        if prior_month_file_sb is not None:
-            st.session_state.prior_month_actuals = prior_month_file_sb
-        
-        # Upload budget
-        budget_file_sb = st.file_uploader(
-            "Current Month Budget", 
-            type=["xlsx", "xls", "csv", "pdf"],
-            key="sidebar_budget_upload",
-            help="Upload your budget data for budget vs actuals comparison"
-        )
-        if budget_file_sb is not None:
-            st.session_state.current_month_budget = budget_file_sb
-        
-        # Upload prior year actuals
-        prior_year_file_sb = st.file_uploader(
-            "Prior Year Same Month", 
-            type=["xlsx", "xls", "csv", "pdf"],
-            key="sidebar_prior_year_upload",
-            help="Upload the same month from prior year for year-over-year comparison"
-        )
-        if prior_year_file_sb is not None:
-            st.session_state.prior_year_actuals = prior_year_file_sb
-        
-        # Property name input
-        property_name = st.text_input(
-            "Property Name (Optional)",
-            value=st.session_state.property_name,
-            help="Enter the name of the property being analyzed",
-            key="sidebar_property_name_input"
-        )
-        
-        if property_name != st.session_state.property_name:
-            st.session_state.property_name = property_name
-        
-        # Process button
-        process_clicked = st.button(
-            "Process Documents", 
-            type="primary",
-            use_container_width=True,
-            help="Process the uploaded documents to generate NOI analysis",
-            key="sidebar_process_button"
-        )
-        
-        # Options
-        st.markdown('<div class="sidebar-section-header">Options</div>', unsafe_allow_html=True)
-        
-        # Show zero values toggle
-        show_zero_values = st.checkbox(
-            "Show Zero Values", 
-            value=st.session_state.show_zero_values,
-            help="Show metrics with zero values in the comparison tables",
-            key="sidebar_show_zero_values_check"
-        )
-        
-        if show_zero_values != st.session_state.show_zero_values:
-            st.session_state.show_zero_values = show_zero_values
-            st.rerun()
-        
-        # Theme toggle
-        current_theme = st.session_state.theme
-        theme_button_text = "☀️ Light Mode" if current_theme == "dark" else "🌙 Dark Mode"
-        
-        # Create theme toggle button
-        if st.button(theme_button_text, key="theme_toggle", use_container_width=True):
-            # Toggle theme in session state
-            new_theme = "light" if current_theme == "dark" else "dark"
-            st.session_state.theme = new_theme
-            
-            # Apply theme change via JavaScript
-            st.markdown(f"""
-            <script>
-            const root = document.documentElement;
-            root.setAttribute('data-theme', '{new_theme}');
-            localStorage.setItem('preferred-theme', '{new_theme}');
-            </script>
-            """, unsafe_allow_html=True)
-            
-            st.rerun()
-
-        # Data Template Reset Button
-        if st.session_state.get('consolidated_data') and isinstance(st.session_state.consolidated_data, dict) and not st.session_state.consolidated_data.get('error'):
-            # Show this button if there's valid data, regardless of whether processing_completed is True yet,
-            # as the user might want to re-check data even before first full analysis, or after an error post-template.
-            if st.session_state.get('template_viewed', False) or st.session_state.get('processing_completed', False):
-                 st.sidebar.markdown("<hr class='sidebar-divider'>", unsafe_allow_html=True) # Visually separate
-                 st.sidebar.markdown('<div class="sidebar-subsection-header">Data Review</div>', unsafe_allow_html=True)
-                 if st.sidebar.button("View/Edit Extracted Data", key="view_edit_data_button_sidebar", use_container_width=True):
-                    st.session_state.template_viewed = False
-                    # Reset states that depend on the data having been finalized to allow re-processing
-                    st.session_state.processing_completed = False 
-                    if 'comparison_results' in st.session_state: del st.session_state.comparison_results
-                    if 'insights' in st.session_state: del st.session_state.insights
-                    if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
-                    if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
-                    logger.info("User clicked 'View/Edit Extracted Data'. Resetting template_viewed and dependent states.")
-                    st.rerun()
-
-        # NOI Coach context selection
-        st.markdown('<div class="sidebar-subsection-header">NOI Coach Context</div>', unsafe_allow_html=True)
-        view_options = {
-            "budget": "Budget Comparison",
-            "prior_year": "Year-over-Year",
-            "prior_month": "Month-over-Month"
-        }
-        selected_view = st.selectbox(
-            "Select context for NOI Coach",
-            options=list(view_options.keys()),
-            format_func=lambda x: view_options[x],
-            index=list(view_options.keys()).index(st.session_state.current_comparison_view),
-            key="sidebar_noi_coach_context_select"
-        )
-        
-        if selected_view != st.session_state.current_comparison_view:
-            st.session_state.current_comparison_view = selected_view
-            st.success(f"NOI Coach context set to {view_options[selected_view]}")
-    
-    # Main content area
-    
-    # Consolidate the 'Process Documents' button clicks
-    # The 'process_clicked' variable from the sidebar will be used.
-    # If the main area button is also used, it will also set 'process_clicked'.
-    # We need to ensure that if the main button is clicked, its state is OR-ed
-    # with the sidebar button's state.
-    # However, Streamlit's button state is only True for the run where it's clicked.
-    # We need a more persistent way to know if processing should start.
-
-    # New session state variable to track if a processing action has been initiated
-    if 'user_initiated_processing' not in st.session_state:
-        st.session_state.user_initiated_processing = False
-
-    # Sidebar 'Process Documents' button
-    # (This 'process_clicked' is already defined in the sidebar section)
-    if process_clicked: # This is the sidebar button
-        st.session_state.user_initiated_processing = True
-        # Reset relevant states for a fresh processing cycle
-        st.session_state.template_viewed = False
-        st.session_state.processing_completed = False
-        if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
-        if 'comparison_results' in st.session_state: del st.session_state.comparison_results
-        if 'insights' in st.session_state: del st.session_state.insights
-        if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
-        if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
-        logger.info("Sidebar 'Process Documents' clicked. Initiating processing cycle.")
-        # Don't rerun here, let the main logic flow handle it.
-
     # Display initial UI or results based on processing_completed
     if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
         # Show welcome content when no data has been processed and template is not active
@@ -3284,6 +3118,49 @@ def main():
                 # should read the updated st.session_state.property_name in the next interaction.
                 # If immediate update of a disabled field elsewhere is needed, a rerun might be considered.
             
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Add options container after file uploaders
+            st.markdown('<div class="options-container">', unsafe_allow_html=True)
+            st.markdown('<h3 class="options-header">Display Options</h3>', unsafe_allow_html=True)
+
+            # Create a row for the options
+            options_col1, options_col2 = st.columns(2)
+
+            # Show Zero Values toggle in first column
+            with options_col1:
+                show_zero_values = st.checkbox(
+                    "Show Zero Values", 
+                    value=st.session_state.show_zero_values,
+                    help="Show metrics with zero values in the comparison tables"
+                )
+                
+                if show_zero_values != st.session_state.show_zero_values:
+                    st.session_state.show_zero_values = show_zero_values
+                    st.rerun()
+
+            # Theme toggle in second column
+            with options_col2:
+                current_theme = st.session_state.theme
+                theme_button_text = "☀️ Light Mode" if current_theme == "dark" else "🌙 Dark Mode"
+                
+                # Create theme toggle button
+                if st.button(theme_button_text, key="theme_toggle"):
+                    # Toggle theme in session state
+                    new_theme = "light" if current_theme == "dark" else "dark"
+                    st.session_state.theme = new_theme
+                    
+                    # Apply theme change via JavaScript
+                    st.markdown(f"""
+                    <script>
+                    const root = document.documentElement;
+                    root.setAttribute('data-theme', '{new_theme}');
+                    localStorage.setItem('preferred-theme', '{new_theme}');
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
+                    st.rerun()
+
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Main page 'Process Documents' button
