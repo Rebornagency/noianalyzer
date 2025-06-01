@@ -3245,6 +3245,12 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
+                # Debug: Check file state when button is clicked
+                logger.info(f"BUTTON CLICK DEBUG: current_month_actuals = {bool(st.session_state.get('current_month_actuals'))}")
+                logger.info(f"BUTTON CLICK DEBUG: prior_month_actuals = {bool(st.session_state.get('prior_month_actuals'))}")
+                logger.info(f"BUTTON CLICK DEBUG: current_month_budget = {bool(st.session_state.get('current_month_budget'))}")
+                logger.info(f"BUTTON CLICK DEBUG: prior_year_actuals = {bool(st.session_state.get('prior_year_actuals'))}")
+                
                 # Add Sentry breadcrumb for button click
                 add_breadcrumb(
                     "Process Documents button clicked", 
