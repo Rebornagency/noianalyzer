@@ -3307,7 +3307,7 @@ def main():
     logger.info(f"STAGE 1 DEBUG: consolidated_data in session_state = {'consolidated_data' in st.session_state}")
     logger.info(f"STAGE 1 DEBUG: consolidated_data value = {st.session_state.get('consolidated_data', 'NOT_SET')}")
     
-    if st.session_state.user_initiated_processing and 'consolidated_data' not in st.session_state:
+    if st.session_state.user_initiated_processing and ('consolidated_data' not in st.session_state or st.session_state.consolidated_data is None):
         # Start performance monitoring for document processing
         with monitor_performance("document_extraction"):
             try:
