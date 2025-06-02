@@ -45,6 +45,15 @@ except ImportError:
     def display_narrative_in_tabs(*args, **kwargs):
         pass
 
+# Try to import the NOI Coach module
+try:
+    from noi_coach import display_noi_coach as display_noi_coach_enhanced
+    NOI_COACH_AVAILABLE = True
+except ImportError:
+    NOI_COACH_AVAILABLE = False
+    def display_noi_coach_enhanced():
+        st.error("NOI Coach module not available. Please ensure noi_coach.py is in the project directory.")
+
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
 from insights_display import display_insights
 from reborn_logo import get_reborn_logo_base64
@@ -1902,7 +1911,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     
                     with col2:
                         # Wrap the chart in a container with our custom styling
-                        chart_container_html = f'<div class="opex-chart-container"><div class="opex-chart-title">OpEx Components: Current vs {name_suffix}</div></div>'
+                        chart_container_html = f'<div class="opex-chart-container"><div class="opex-chart-title">OpEx Components: Current vs {safe_text(name_suffix)}</div></div>'
                         components.html(chart_container_html, height=50)
                         
                         # Create a horizontal bar chart for comparison
@@ -2172,7 +2181,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         
                         # Update layout
                         comp_fig.update_layout(
-                            title=f"Top Other Income Components: Current vs {name_suffix}",
+                            title=f"Top Other Income Components: Current vs {safe_text(name_suffix)}",
                             barmode='group',
                             xaxis_title="Amount ($)",
                             xaxis=dict(tickprefix="$"),
@@ -2249,7 +2258,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             
             # Add chart container and title for modern styling
             st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown(f'<div class="chart-title">Current vs {name_suffix}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chart-title">Current vs {safe_text(name_suffix)}</div>', unsafe_allow_html=True)
 
             fig = go.Figure()
 
@@ -2319,7 +2328,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     annotation_text = safe_text(f"NOI increased by<br>${noi_diff:,.0f}<br>({noi_pct:.1f}%)")
                     arrow_color = "#00bfa5"  # Teal green for positive
                 elif noi_diff < 0:
-                    annotation_text = safe_text(f"NOI decreased by<br>${abs(noi_diff):,.0f}<br>({noi_pct:.1f}%)")
+                    annotation_text = safe_text(f"NOI decreased by<br>${abs(noi_diff):,.0f}<br>({abs(noi_pct):.1f}%)")
                     arrow_color = "#f44336"  # Red for negative
                 else:
                     annotation_text = safe_text("NOI unchanged")
@@ -3672,7 +3681,10 @@ def main():
 
         # Display NOI Coach section
         with tabs[4]: # NOI Coach tab
-            display_noi_coach()
+            if NOI_COACH_AVAILABLE:
+                display_noi_coach_enhanced()
+            else:
+                display_noi_coach()
     
     # Add this code in the main UI section after displaying all tabs
     # (after the st.tabs() section in the main function)
@@ -3984,62 +3996,144 @@ def display_unified_insights(insights_data):
                 with col2:
                     st.markdown(recommendation)
 
-def display_opex_breakdown(opex_components, comparison_type):
+def display_opex_breakdown(opex_data, comparison_type="prior month"):
     """
-    Display Operating Expenses breakdown using native Streamlit components.
+    Display operating expense breakdown with proper HTML rendering
     
     Args:
-        opex_components: Dictionary of OpEx components
-        comparison_type: Type of comparison (budget, prior_month, prior_year)
+        opex_data: Dictionary containing operating expense data
+        comparison_type: Type of comparison (prior month, budget, etc.)
     """
-    if not opex_components or not isinstance(opex_components, dict) or len(opex_components) == 0:
-        st.info("No detailed Operating Expenses breakdown available.")
-        return
+    # Create HTML for the operating expense breakdown table
+    html = """
+    <div class="opex-breakdown-container">
+        <table class="opex-breakdown-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Current</th>
+                    <th>Prior</th>
+                    <th>Change ($)</th>
+                    <th>Change (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+    """
     
-    st.markdown("### Operating Expenses Breakdown")
+    # Add rows for each expense category
+    for category, data in opex_data.items():
+        # Skip if data is missing
+        if not data or not isinstance(data, dict):
+            continue
+            
+        # Get values with defaults
+        current = data.get('current', 0)
+        prior = data.get('prior', 0)
+        change = current - prior
+        percent_change = (change / prior * 100) if prior != 0 else 0
+        
+        # Determine CSS class based on change direction
+        # For expenses, negative change (decrease) is positive
+        change_class = "opex-negative-value" if change < 0 else "opex-positive-value"
+        
+        # Format the category name for display
+        display_name = category.replace('_', ' ').title()
+        
+        # Format values for display
+        current_formatted = f"${current:,.2f}"
+        prior_formatted = f"${prior:,.2f}"
+        change_formatted = f"${abs(change):,.2f}"
+        percent_formatted = f"{abs(percent_change):.1f}%"
+        
+        # Get color for category indicator
+        color = "#4ecdc4"  # Default teal color
+        if category == "taxes":
+            color = "#4ecdc4"
+        elif category == "insurance":
+            color = "#1e88e5"
+        elif category == "repairs_maintenance":
+            color = "#8ed1fc"
+        
+        # Add row to HTML
+        html += f"""
+        <tr>
+            <td>
+                <div class="opex-category-cell">
+                    <span class="opex-category-indicator" style="background-color: {color};"></span>
+                    {display_name}
+                </div>
+            </td>
+            <td class="opex-neutral-value">{current_formatted}</td>
+            <td class="opex-neutral-value">{prior_formatted}</td>
+            <td class="{change_class}">{change_formatted}</td>
+            <td class="{change_class}">{percent_formatted}</td>
+        </tr>
+        """
     
-    # Create a container for the OpEx breakdown
-    with st.container():
-        # Header row
-        col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-        with col1:
-            st.markdown("**Expense Category**")
-        with col2:
-            st.markdown("**Current**")
-        with col3:
-            st.markdown(f"**{comparison_type.title()}**")
-        with col4:
-            st.markdown("**Variance**")
-        
-        # Add a separator
-        st.markdown("---")
-        
-        # Display each OpEx component
-        for category, values in opex_components.items():
-            col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-            
-            # Format the category name for display
-            display_name = category.replace('_', ' ').title()
-            
-            # Get values with defaults
-            current_value = values.get('current', 0)
-            compare_value = values.get('compare', 0)
-            variance = current_value - compare_value
-            
-            # Display the row
-            with col1:
-                st.markdown(f"**{display_name}**")
-            with col2:
-                st.markdown(f"${current_value:,.2f}")
-            with col3:
-                st.markdown(f"${compare_value:,.2f}")
-            with col4:
-                # Color-code the variance
-                color = "#22C55E" if variance < 0 else "#EF4444"  # Green if expense decreased, red if increased
-                st.markdown(f"<span style='color:{color}'>${variance:,.2f}</span>", unsafe_allow_html=True)
-            
-            # Add a light separator between rows
-            st.markdown("<hr style='margin: 5px 0; opacity: 0.2;'>", unsafe_allow_html=True)
+    # Close the table
+    html += """
+            </tbody>
+        </table>
+    </div>
+    
+    <style>
+    .opex-breakdown-container {
+        margin: 1rem 0;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .opex-breakdown-table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background-color: var(--background-secondary);
+    }
+    
+    .opex-breakdown-table th, 
+    .opex-breakdown-table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .opex-breakdown-table th {
+        background-color: rgba(30, 41, 59, 0.8);
+        color: #f0f0f0;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .opex-category-cell {
+        display: flex;
+        align-items: center;
+    }
+    
+    .opex-category-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        margin-right: 8px;
+    }
+    
+    .opex-neutral-value {
+        color: #f0f0f0;
+    }
+    
+    .opex-positive-value {
+        color: #ef4444;  /* Red for expense increases (bad) */
+    }
+    
+    .opex-negative-value {
+        color: #22c55e;  /* Green for expense decreases (good) */
+    }
+    </style>
+    """
+    
+    # Render the HTML
+    st.markdown(html, unsafe_allow_html=True)
 
 def display_card_container(title, content):
     """
