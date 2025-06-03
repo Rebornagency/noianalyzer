@@ -2820,23 +2820,21 @@ def display_unified_insights_no_html(insights_data):
     if 'performance' in insights_data and insights_data['performance']:
         st.markdown("## Key Performance Insights")
         
+        performance_markdown = ""
         for insight in insights_data['performance']:
-            col1, col2 = st.columns([1, 20])
-            with col1:
-                st.markdown("•")
-            with col2:
-                st.markdown(insight)
+            performance_markdown += f"- {insight}\n"
+        if performance_markdown:
+            st.markdown(performance_markdown)
     
     # Display Recommendations
     if 'recommendations' in insights_data and insights_data['recommendations']:
         st.markdown("## Recommendations")
         
+        recommendations_markdown = ""
         for recommendation in insights_data['recommendations']:
-            col1, col2 = st.columns([1, 20])
-            with col1:
-                st.markdown("•")
-            with col2:
-                st.markdown(recommendation)
+            recommendations_markdown += f"- {recommendation}\n"
+        if recommendations_markdown:
+            st.markdown(recommendations_markdown)
 
 # Define the generate_comprehensive_pdf function before it's called in main()
 def generate_comprehensive_pdf():
@@ -3955,25 +3953,21 @@ def display_unified_insights(insights_data):
     if 'performance' in insights_data and insights_data['performance']:
         st.markdown("## Key Performance Insights")
         
+        performance_markdown = ""
         for insight in insights_data['performance']:
-            with st.container():
-                col1, col2 = st.columns([1, 20])
-                with col1:
-                    st.markdown("•")
-                with col2:
-                    st.markdown(insight)
+            performance_markdown += f"- {insight}\n"
+        if performance_markdown:
+            st.markdown(performance_markdown)
     
     # Display Recommendations
     if 'recommendations' in insights_data and insights_data['recommendations']:
         st.markdown("## Recommendations")
         
+        recommendations_markdown = ""
         for recommendation in insights_data['recommendations']:
-            with st.container():
-                col1, col2 = st.columns([1, 20])
-                with col1:
-                    st.markdown("•")
-                with col2:
-                    st.markdown(recommendation)
+            recommendations_markdown += f"- {recommendation}\n"
+        if recommendations_markdown:
+            st.markdown(recommendations_markdown)
 
 def display_opex_breakdown(opex_data, comparison_type="prior month"):
     """
