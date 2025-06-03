@@ -2705,12 +2705,13 @@ def display_noi_coach():
     """Display the NOI Coach interface with chat input and response area."""
     st.markdown("<h2 class='reborn-section-title'>NOI Coach</h2>", unsafe_allow_html=True)
     
-    # Initialize session state for chat history if not exists
     if 'noi_coach_history' not in st.session_state:
         st.session_state.noi_coach_history = []
-    
-    # Add CSS for chat interface
-    st.markdown("""
+    if 'noi_coach_selected_context' not in st.session_state:
+        st.session_state.noi_coach_selected_context = "budget" # Default context
+
+    # CSS for chat (can be kept or removed if global styles cover it)
+    st.markdown(""" 
     <style>
         /* Chat message styling */
         .chat-message {
@@ -2720,14 +2721,12 @@ def display_noi_coach():
             max-width: 80%;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        
         .user-message {
             background-color: #1e88e5;
             color: white;
             margin-left: auto;
             margin-right: 0;
         }
-        
         .assistant-message {
             background-color: rgba(22, 27, 34, 0.8);
             color: #e6edf3;
@@ -2735,104 +2734,64 @@ def display_noi_coach():
             margin-left: 0;
             border: 1px solid rgba(56, 68, 77, 0.5);
         }
-        
-        .chat-message-content {
-            word-wrap: break-word;
-            line-height: 1.5;
-        }
-        
-        .chat-input-label {
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #e6edf3;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-    
+        .chat-message-content { word-wrap: break-word; line-height: 1.5; }
+        .chat-input-label { margin-bottom: 0.5rem; font-weight: 500; color: #e6edf3; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    </style>""", unsafe_allow_html=True)
+
+    # Context selector
+    st.markdown("### Select Comparison Context")
+    contexts = {
+        "prior_month": "Prior Month",
+        "budget": "Budget",
+        "prior_year": "Prior Year"
+    }
+    selected_context_key = st.radio(
+        "Analyze against:",
+        options=list(contexts.keys()),
+        format_func=lambda k: contexts[k],
+        index=list(contexts.keys()).index(st.session_state.noi_coach_selected_context),
+        horizontal=True,
+        key="noi_coach_context_radio"
+    )
+    if selected_context_key != st.session_state.noi_coach_selected_context:
+        st.session_state.noi_coach_selected_context = selected_context_key
+        # st.rerun() # Optional: rerun if changing context should clear chat or update something immediately
+
     # Display chat history
     for message in st.session_state.noi_coach_history:
         role = message["role"]
         content = safe_text(message["content"])
-        
         if role == "user":
-            st.markdown(f"""
-                <div class="chat-message user-message">
-                    <div class="chat-message-content">{content}</div>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class="chat-message user-message"><div class="chat-message-content">{content}</div></div>""", unsafe_allow_html=True)
         else:
-            st.markdown(f"""
-                <div class="chat-message assistant-message">
-                    <div class="chat-message-content">{content}</div>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class="chat-message assistant-message"><div class="chat-message-content">{content}</div></div>""", unsafe_allow_html=True)
     
-    # Chat input
-    with st.form(key="noi_coach_form", clear_on_submit=True):
+    with st.form(key="noi_coach_form_app", clear_on_submit=True):
         st.markdown("<div class='chat-input-label'>Ask a question about your financial data:</div>", unsafe_allow_html=True)
         user_question = st.text_input("", placeholder="e.g., What's driving the change in NOI?", label_visibility="collapsed")
-        
-        col1, col2 = st.columns([4, 1])
+        col1, col2 = st.columns([4,1])
         with col2:
             submit_button = st.form_submit_button("Ask NOI Coach")
     
-    # Process the question when submitted
     if submit_button and user_question:
-        # Log the question
-        logger.info(f"NOI Coach question received: {user_question}")
+        logger.info(f"NOI Coach (app.py) question: {user_question} with context: {st.session_state.noi_coach_selected_context}")
+        st.session_state.noi_coach_history.append({"role": "user", "content": user_question})
         
-        # Add user message to history
-        st.session_state.noi_coach_history.append({
-            "role": "user",
-            "content": user_question
-        })
-        
-        # Check if we have financial data to analyze
         if 'comparison_results' not in st.session_state or not st.session_state.comparison_results:
             response = "Please process financial documents first so I can analyze your data."
         else:
             try:
-                # Check if we have ai_insights_gpt module for NOI Coach functionality
-                if generate_noi_coach_response is not None:
-                    # Get the current context selection from session state
-                    current_view = getattr(st.session_state, 'current_comparison_view', 'budget')
-                    response = generate_noi_coach_response(user_question, st.session_state.comparison_results, current_view)
-                else:
-                    # Fallback response if ai_insights_gpt is not available
-                    logger.warning("ai_insights_gpt module not available for NOI Coach")
-                    comparison_data = st.session_state.comparison_results
-                    current_data = comparison_data.get('current', {})
-                    
-                    # Generate a basic response based on available data
-                    if 'noi' in current_data:
-                        current_noi = current_data.get('noi', 0)
-                        response = f"Based on your financial data, your current NOI is ${current_noi:,.2f}. "
-                        
-                        # Add context based on comparison data
-                        if 'budget' in comparison_data:
-                            budget_noi = comparison_data['budget'].get('noi', 0)
-                            noi_diff = current_noi - budget_noi
-                            if noi_diff > 0:
-                                response += f"This is ${noi_diff:,.2f} above your budget target. "
-                            elif noi_diff < 0:
-                                response += f"This is ${abs(noi_diff):,.2f} below your budget target. "
-                        
-                        response += "For more detailed analysis, please ensure all financial documents are properly processed."
-                    else:
-                        response = "I can see your financial data, but I need more information to provide a detailed analysis. Please ensure all documents are properly processed."
-                
+                # Call the ask_noi_coach function from app.py
+                response = ask_noi_coach(
+                    user_question,
+                    st.session_state.comparison_results,
+                    st.session_state.noi_coach_selected_context
+                )
             except Exception as e:
-                logger.error(f"Error generating NOI Coach response: {str(e)}")
-                response = "I'm sorry, I encountered an error while analyzing your data. Please try again later."
+                logger.error(f"Error generating NOI Coach response in app.py: {str(e)}", exc_info=True)
+                response = f"I'm sorry, I encountered an error: {str(e)}"
         
-        # Add assistant response to history
-        st.session_state.noi_coach_history.append({
-            "role": "assistant",
-            "content": response
-        })
-        
-        # Rerun to display the updated chat
+        st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
         st.rerun()
 
 def display_unified_insights_no_html(insights_data):
@@ -3700,10 +3659,11 @@ def main():
 
         # Display NOI Coach section
         with tabs[4]: # NOI Coach tab
-            if NOI_COACH_AVAILABLE:
-                display_noi_coach_enhanced()
-            else:
-                display_noi_coach()
+            # if NOI_COACH_AVAILABLE:
+            #     display_noi_coach_enhanced()
+            # else:
+            #     display_noi_coach()
+            display_noi_coach() # Directly call the app.py internal version
     
     # Add this code in the main UI section after displaying all tabs
     # (after the st.tabs() section in the main function)
