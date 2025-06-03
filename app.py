@@ -15,6 +15,7 @@ from weasyprint import HTML
 import tempfile
 import jinja2
 import streamlit.components.v1 as components
+import math
 
 # Import and initialize Sentry for error tracking
 from sentry_config import (
@@ -78,7 +79,7 @@ else:
 
 def safe_text(value):
     """Convert any value to a safe string, avoiding 'undefined' text."""
-    if value is None or value == "undefined" or value == "null" or str(value).lower() == "nan":
+    if value is None or value == "undefined" or value == "null" or str(value).lower() == "nan" or (isinstance(value, float) and math.isnan(value)):
         return ""
     return str(value)
 
@@ -1593,10 +1594,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     df_data = []
     for key, name in zip(data_keys, metrics):
         # Handle both formats for current, prior, and change values
-        current_val = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
-        prior_val = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
-        change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
-        percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+        current_val_raw = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
+        prior_val_raw = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
+        change_val_raw = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
+        percent_change_raw = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+
+        current_val = float(current_val_raw) if pd.notna(current_val_raw) else 0.0
+        prior_val = float(prior_val_raw) if pd.notna(prior_val_raw) else 0.0
+        change_val = float(change_val_raw) if pd.notna(change_val_raw) else 0.0
+        percent_change = float(percent_change_raw) if pd.notna(percent_change_raw) else 0.0
         
         # Debug logging for data extraction
         logger.debug(f"Metric: {name}, Current: {current_val}, Prior: {prior_val}, Change: {change_val}, %Change: {percent_change}")
@@ -1766,10 +1772,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 
                 for key, name in zip(opex_components, opex_metrics):
                     # Handle both formats for current, prior, and change values
-                    current_val = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
-                    prior_val = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
-                    change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
-                    percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+                    current_val_raw = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
+                    prior_val_raw = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
+                    change_val_raw = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
+                    percent_change_raw = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+
+                    current_val = float(current_val_raw) if pd.notna(current_val_raw) else 0.0
+                    prior_val = float(prior_val_raw) if pd.notna(prior_val_raw) else 0.0
+                    change_val = float(change_val_raw) if pd.notna(change_val_raw) else 0.0
+                    percent_change = float(percent_change_raw) if pd.notna(percent_change_raw) else 0.0
                     
                     # Skip zero values if show_zero_values is False
                     if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
@@ -2017,10 +2028,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 
                 for key, name in zip(other_income_components, income_metrics):
                     # Handle both formats for current, prior, and change values
-                    current_val = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
-                    prior_val = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
-                    change_val = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
-                    percent_change = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+                    current_val_raw = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
+                    prior_val_raw = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
+                    change_val_raw = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
+                    percent_change_raw = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+
+                    current_val = float(current_val_raw) if pd.notna(current_val_raw) else 0.0
+                    prior_val = float(prior_val_raw) if pd.notna(prior_val_raw) else 0.0
+                    change_val = float(change_val_raw) if pd.notna(change_val_raw) else 0.0
+                    percent_change = float(percent_change_raw) if pd.notna(percent_change_raw) else 0.0
                     
                     # Skip zero values if show_zero_values is False
                     if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
@@ -2311,12 +2327,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
             # Identify peak NOI for annotation
             if 'NOI' in df['Metric'].values:
-                current_noi = df.loc[df['Metric'] == 'NOI', 'Current'].values[0]
-                prior_noi = df.loc[df['Metric'] == 'NOI', name_suffix].values[0]
+                current_noi_val = df.loc[df['Metric'] == 'NOI', 'Current'].values[0]
+                prior_noi_val = df.loc[df['Metric'] == 'NOI', name_suffix].values[0]
+
+                current_noi = float(current_noi_val) if pd.notna(current_noi_val) else 0.0
+                prior_noi = float(prior_noi_val) if pd.notna(prior_noi_val) else 0.0
                 
                 # Calculate the difference and percentage change with safe handling
-                noi_diff = current_noi - prior_noi if current_noi is not None and prior_noi is not None else 0
-                noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 and prior_noi is not None else 0
+                noi_diff = current_noi - prior_noi
+                noi_pct = (noi_diff / prior_noi * 100) if prior_noi != 0 else 0
                 
                 # Ensure safe text for annotation
                 noi_diff_safe = safe_text(noi_diff) or "0"
@@ -2459,10 +2478,10 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # by display_unified_insights or by the main Financial Narrative tab.
 
             # Display OpEx breakdown if available
-            if 'opex_components' in tab_data and tab_data['opex_components']:
-                display_opex_breakdown(tab_data['opex_components'], name_suffix)
-            else:
-                logger.info(f"No OpEx components found for {name_suffix} comparison")
+            # if 'opex_components' in tab_data and tab_data['opex_components']:
+            #     display_opex_breakdown(tab_data['opex_components'], name_suffix)
+            # else:
+            #     logger.info(f"No OpEx components found for {name_suffix} comparison")
 
         except Exception as e:
             logger.error(f"Error displaying comparison tab {name_suffix}: {str(e)}", exc_info=True)

@@ -84,6 +84,7 @@ def generate_response(prompt: str, context: str) -> str:
 
 def display_noi_coach():
     """Display the NOI Coach interface"""
+    st.success("Enhanced NOI Coach Loaded!") # Temporary message for testing
     st.markdown("## NOI Coach")
     
     # Initialize chat history if needed
