@@ -1879,7 +1879,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     with col1:
                         # Wrap the chart in a container with our custom styling
                         chart_container_html = '<div class="opex-chart-container"><div class="opex-chart-title">Current Operating Expenses Breakdown</div></div>'
-                        components.html(chart_container_html, height=50)
+                        st.markdown(chart_container_html, unsafe_allow_html=True)
                         
                         # Filter out zero values for the pie chart
                         pie_data = opex_df[opex_df["Current"] > 0]
@@ -1923,7 +1923,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     with col2:
                         # Wrap the chart in a container with our custom styling
                         chart_container_html = f'<div class="opex-chart-container"><div class="opex-chart-title">OpEx Components: Current vs {safe_text(name_suffix)}</div></div>'
-                        components.html(chart_container_html, height=50)
+                        st.markdown(chart_container_html, unsafe_allow_html=True)
                         
                         # Create a horizontal bar chart for comparison
                         if not opex_df.empty:
