@@ -2274,7 +2274,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             
             # Add chart container and title for modern styling
             st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown(f'<div class="chart-title">Current vs {safe_text(name_suffix)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="chart-title">Current vs {name_suffix}</div>', unsafe_allow_html=True)
 
             fig = go.Figure()
 
