@@ -125,37 +125,68 @@ def save_testing_config():
         "mock_scenario": st.session_state.get("mock_scenario", "Standard Performance")
     }
     
-    from pathlib import Path
-    config_dir = Path("./config")
-    config_dir.mkdir(exist_ok=True)
-    
     try:
-        with open(config_dir / "testing_config.json", "w") as f:
+        from pathlib import Path
+        config_dir = Path("./config")
+        
+        # Try to create directory, but handle permission errors gracefully
+        try:
+            config_dir.mkdir(exist_ok=True)
+        except (PermissionError, OSError) as e:
+            logger.warning(f"Cannot create config directory (insufficient permissions): {str(e)}")
+            # Try using session state as fallback instead of file persistence
+            st.session_state._testing_config_cache = config
+            logger.info("Testing configuration cached in session state as fallback")
+            return
+        
+        # Try to save to file
+        config_file = config_dir / "testing_config.json"
+        with open(config_file, "w") as f:
             json.dump(config, f)
-        logger.info("Testing configuration saved")
+        logger.info("Testing configuration saved to file")
+        
     except Exception as e:
-        logger.error(f"Error saving testing configuration: {str(e)}")
+        logger.warning(f"Error saving testing configuration to file: {str(e)}")
+        # Use session state as fallback
+        try:
+            st.session_state._testing_config_cache = config
+            logger.info("Testing configuration cached in session state as fallback")
+        except Exception as fallback_error:
+            logger.error(f"Failed to save testing configuration even to session state: {str(fallback_error)}")
 
 def load_testing_config():
-    """Load testing mode configuration from file"""
-    from pathlib import Path
-    config_file = Path("./config/testing_config.json")
-    
-    if not config_file.exists():
-        return
-    
+    """Load testing mode configuration from file or session state fallback"""
     try:
-        with open(config_file, "r") as f:
-            config = json.load(f)
+        from pathlib import Path
+        config_file = Path("./config/testing_config.json")
         
-        # Update session state with loaded config
-        st.session_state.testing_mode = config.get("testing_mode", DEFAULT_TESTING_MODE)
-        st.session_state.mock_property_name = config.get("mock_property_name", "Test Property")
-        st.session_state.mock_scenario = config.get("mock_scenario", "Standard Performance")
+        # Try to load from file first
+        if config_file.exists():
+            try:
+                with open(config_file, "r") as f:
+                    config = json.load(f)
+                logger.info("Testing configuration loaded from file")
+            except Exception as e:
+                logger.warning(f"Error reading testing configuration file: {str(e)}")
+                config = None
+        else:
+            config = None
         
-        logger.info("Testing configuration loaded")
+        # If file loading failed, try session state fallback
+        if config is None and hasattr(st.session_state, '_testing_config_cache'):
+            config = st.session_state._testing_config_cache
+            logger.info("Testing configuration loaded from session state fallback")
+        
+        # Apply configuration if available
+        if config:
+            st.session_state.testing_mode = config.get("testing_mode", DEFAULT_TESTING_MODE)
+            st.session_state.mock_property_name = config.get("mock_property_name", "Test Property")
+            st.session_state.mock_scenario = config.get("mock_scenario", "Standard Performance")
+            logger.info("Testing configuration applied successfully")
+        
     except Exception as e:
-        logger.error(f"Error loading testing configuration: {str(e)}")
+        logger.warning(f"Error loading testing configuration: {str(e)}")
+        # Continue with default values - not a critical error
 
 def display_testing_mode_indicator():
     """Display a visual indicator when testing mode is enabled"""
