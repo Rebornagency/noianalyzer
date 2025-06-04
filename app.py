@@ -55,9 +55,40 @@ except ImportError:
     def display_noi_coach_enhanced():
         st.error("NOI Coach module not available. Please ensure noi_coach.py is in the project directory.")
 
+# Import mock data generators for testing mode
+try:
+    from mock_data import (
+        generate_mock_consolidated_data,
+        generate_mock_insights,
+        generate_mock_narrative
+    )
+    MOCK_DATA_AVAILABLE = True
+except ImportError:
+    MOCK_DATA_AVAILABLE = False
+    def generate_mock_consolidated_data(*args, **kwargs):
+        return {"error": "Mock data module not available"}
+    def generate_mock_insights(*args, **kwargs):
+        return {"summary": "Mock insights not available", "performance": [], "recommendations": []}
+    def generate_mock_narrative(*args, **kwargs):
+        return "Mock narrative not available"
+
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
 from insights_display import display_insights
 from reborn_logo import get_reborn_logo_base64
+
+# Constants for testing mode
+TESTING_MODE_ENV_VAR = "NOI_ANALYZER_TESTING_MODE"
+DEFAULT_TESTING_MODE = os.getenv(TESTING_MODE_ENV_VAR, "false").lower() == "true"
+
+# Helper function to check if testing mode is active
+def is_testing_mode_active() -> bool:
+    """
+    Determine if testing mode is currently active.
+    
+    Returns:
+        bool: True if testing mode is active, False otherwise
+    """
+    return st.session_state.get("testing_mode", DEFAULT_TESTING_MODE)
 
 # Configure logging
 logging.basicConfig(
@@ -82,6 +113,188 @@ def safe_text(value):
     if value is None or value == "undefined" or value == "null" or str(value).lower() == "nan" or (isinstance(value, float) and math.isnan(value)):
         return ""
     return str(value)
+
+def save_testing_config():
+    """Save testing mode configuration to a file"""
+    if not is_testing_mode_active():
+        return
+    
+    config = {
+        "testing_mode": st.session_state.get("testing_mode", False),
+        "mock_property_name": st.session_state.get("mock_property_name", "Test Property"),
+        "mock_scenario": st.session_state.get("mock_scenario", "Standard Performance")
+    }
+    
+    from pathlib import Path
+    config_dir = Path("./config")
+    config_dir.mkdir(exist_ok=True)
+    
+    try:
+        with open(config_dir / "testing_config.json", "w") as f:
+            json.dump(config, f)
+        logger.info("Testing configuration saved")
+    except Exception as e:
+        logger.error(f"Error saving testing configuration: {str(e)}")
+
+def load_testing_config():
+    """Load testing mode configuration from file"""
+    from pathlib import Path
+    config_file = Path("./config/testing_config.json")
+    
+    if not config_file.exists():
+        return
+    
+    try:
+        with open(config_file, "r") as f:
+            config = json.load(f)
+        
+        # Update session state with loaded config
+        st.session_state.testing_mode = config.get("testing_mode", DEFAULT_TESTING_MODE)
+        st.session_state.mock_property_name = config.get("mock_property_name", "Test Property")
+        st.session_state.mock_scenario = config.get("mock_scenario", "Standard Performance")
+        
+        logger.info("Testing configuration loaded")
+    except Exception as e:
+        logger.error(f"Error loading testing configuration: {str(e)}")
+
+def display_testing_mode_indicator():
+    """Display a visual indicator when testing mode is enabled"""
+    if is_testing_mode_active():
+        scenario = st.session_state.get("mock_scenario", "Standard Performance")
+        
+        # Color coding based on scenario
+        if scenario == "High Growth":
+            color = "#22C55E"  # Green
+            emoji = "📈"
+        elif scenario == "Declining Performance":
+            color = "#EF4444"  # Red
+            emoji = "📉"
+        elif scenario == "Budget Variance":
+            color = "#F59E0B"  # Amber
+            emoji = "⚖️"
+        else:  # Standard Performance
+            color = "#3B82F6"  # Blue
+            emoji = "📊"
+        
+        # Convert hex to RGB for alpha transparency
+        hex_color = color.lstrip('#')
+        rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        
+        st.markdown(
+            f"""
+            <div style="
+                background-color: rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, 0.1);
+                border-left: 4px solid {color};
+                padding: 0.75rem 1rem;
+                margin-bottom: 1rem;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+            ">
+                <span style="
+                    font-size: 1.2rem;
+                    margin-right: 0.75rem;
+                ">{emoji}</span>
+                <div>
+                    <span style="
+                        color: {color};
+                        font-weight: 600;
+                        display: block;
+                        margin-bottom: 0.25rem;
+                    ">Testing Mode Active</span>
+                    <span style="
+                        color: #E0E0E0;
+                        font-size: 0.9rem;
+                    ">Scenario: {scenario}</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+def process_documents_testing_mode():
+    """Process documents in testing mode using mock data"""
+    logger.info("Testing mode enabled, using mock data")
+    
+    # Get property name and scenario from session state
+    property_name = st.session_state.get("mock_property_name", "Test Property")
+    scenario = st.session_state.get("mock_scenario", "Standard Performance")
+    
+    # Log the testing configuration
+    logger.info(f"Generating mock data for property: {property_name}, scenario: {scenario}")
+    
+    try:
+        # Generate mock consolidated data with the selected scenario
+        mock_data = generate_mock_consolidated_data(property_name, scenario)
+        
+        # Store in session state - this mimics what happens after real document processing
+        st.session_state.consolidated_data = mock_data
+        st.session_state.template_viewed = True  # Skip template verification step
+        st.session_state.processing_completed = True
+        
+        # Calculate comparisons using the mock data - this uses the real calculation logic
+        st.session_state.comparison_results = calculate_noi_comparisons(mock_data)
+        
+        # Generate mock insights - this replaces the API call to OpenAI
+        st.session_state.insights = generate_mock_insights(scenario)
+        
+        # Generate mock narrative - this replaces the API call for narrative generation
+        mock_narrative = generate_mock_narrative(scenario)
+        st.session_state.generated_narrative = mock_narrative
+        st.session_state.edited_narrative = mock_narrative  # Initialize edited to same as generated
+        
+        logger.info(f"Mock data processing completed for scenario: {scenario}")
+        return True
+    except Exception as e:
+        logger.error(f"Error generating mock data: {str(e)}", exc_info=True)
+        st.error("An error occurred while generating mock data. Please check the logs.")
+        return False
+
+def run_testing_mode_diagnostics():
+    """Run diagnostics on testing mode functionality"""
+    if not is_testing_mode_active():
+        return
+    
+    # Only run diagnostics when explicitly triggered
+    if not st.session_state.get("run_diagnostics", False):
+        return
+    
+    logger.info("Running testing mode diagnostics")
+    
+    # Check if mock data was generated correctly
+    if "consolidated_data" not in st.session_state:
+        logger.error("Diagnostics: consolidated_data not found in session state")
+        st.sidebar.error("Diagnostics: Mock data generation failed")
+    else:
+        logger.info("Diagnostics: consolidated_data present in session state")
+        st.sidebar.success("Diagnostics: Mock data generated successfully")
+    
+    # Check if comparisons were calculated
+    if "comparison_results" not in st.session_state:
+        logger.error("Diagnostics: comparison_results not found in session state")
+        st.sidebar.error("Diagnostics: Comparison calculation failed")
+    else:
+        logger.info("Diagnostics: comparison_results present in session state")
+        st.sidebar.success("Diagnostics: Comparisons calculated successfully")
+    
+    # Check if insights were generated
+    if "insights" not in st.session_state:
+        logger.error("Diagnostics: insights not found in session state")
+        st.sidebar.error("Diagnostics: Mock insights generation failed")
+    else:
+        logger.info("Diagnostics: insights present in session state")
+        st.sidebar.success("Diagnostics: Mock insights generated successfully")
+    
+    # Check if narrative was generated
+    if "generated_narrative" not in st.session_state:
+        logger.error("Diagnostics: generated_narrative not found in session state")
+        st.sidebar.error("Diagnostics: Mock narrative generation failed")
+    else:
+        logger.info("Diagnostics: generated_narrative present in session state")
+        st.sidebar.success("Diagnostics: Mock narrative generated successfully")
+    
+    # Reset diagnostic flag
+    st.session_state.run_diagnostics = False
 
 def validate_financial_data(data: Dict[str, Any]) -> Tuple[bool, str]:
     """
@@ -1483,6 +1696,16 @@ if 'theme' not in st.session_state:
 if 'user_initiated_processing' not in st.session_state:
     st.session_state.user_initiated_processing = False
 
+# Testing mode initialization
+if 'testing_mode' not in st.session_state:
+    st.session_state.testing_mode = DEFAULT_TESTING_MODE
+if 'mock_property_name' not in st.session_state:
+    st.session_state.mock_property_name = "Test Property"
+if 'mock_scenario' not in st.session_state:
+    st.session_state.mock_scenario = "Standard Performance"
+if 'testing_config_loaded' not in st.session_state:
+    st.session_state.testing_config_loaded = False
+
 def highlight_changes(val):
     if isinstance(val, str) and val.startswith('-'):
         return 'color: red'
@@ -2769,6 +2992,97 @@ def main():
         st.error("An error occurred during application initialization. Please refresh the page.")
         return
 
+    # Load testing configuration at startup
+    if not st.session_state.get('testing_config_loaded', False):
+        load_testing_config()
+        st.session_state.testing_config_loaded = True
+
+    # Display testing mode indicator if active
+    if is_testing_mode_active():
+        display_testing_mode_indicator()
+
+    # === TESTING MODE SIDEBAR CONTROLS ===
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🧪 Testing Mode")
+    
+    # Testing mode toggle
+    testing_mode = st.sidebar.checkbox(
+        "Enable Testing Mode",
+        value=st.session_state.get("testing_mode", DEFAULT_TESTING_MODE),
+        help="Use mock data instead of uploading documents for testing interface"
+    )
+    
+    if testing_mode != st.session_state.get("testing_mode", DEFAULT_TESTING_MODE):
+        st.session_state.testing_mode = testing_mode
+        save_testing_config()
+        st.rerun()
+    
+    if is_testing_mode_active():
+        st.sidebar.markdown("#### Testing Configuration")
+        
+        # Property name input
+        mock_property_name = st.sidebar.text_input(
+            "Property Name",
+            value=st.session_state.get("mock_property_name", "Test Property"),
+            help="Name for the mock property"
+        )
+        
+        if mock_property_name != st.session_state.get("mock_property_name", "Test Property"):
+            st.session_state.mock_property_name = mock_property_name
+            save_testing_config()
+        
+        # Scenario selector
+        scenarios = [
+            "Standard Performance",
+            "High Growth", 
+            "Declining Performance",
+            "Budget Variance"
+        ]
+        
+        current_scenario = st.session_state.get("mock_scenario", "Standard Performance")
+        mock_scenario = st.sidebar.selectbox(
+            "Testing Scenario",
+            scenarios,
+            index=scenarios.index(current_scenario),
+            help="Select financial performance scenario for testing"
+        )
+        
+        if mock_scenario != current_scenario:
+            st.session_state.mock_scenario = mock_scenario
+            save_testing_config()
+            # Clear any existing data when scenario changes
+            for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
+        
+        # Scenario descriptions
+        scenario_descriptions = {
+            "Standard Performance": "Steady performance with modest growth",
+            "High Growth": "Strong revenue growth and improved NOI",
+            "Declining Performance": "Revenue decline and cost pressures", 
+            "Budget Variance": "Significant variance from budgeted amounts"
+        }
+        
+        st.sidebar.info(f"**{mock_scenario}:** {scenario_descriptions[mock_scenario]}")
+        
+        # Testing diagnostics
+        if st.sidebar.button("Run Testing Diagnostics", help="Test mock data generation"):
+            run_testing_mode_diagnostics()
+        
+        # Clear testing data button
+        if st.sidebar.button("Clear Testing Data", help="Reset all testing data"):
+            for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.session_state.processing_completed = False
+            st.session_state.template_viewed = False
+            st.session_state.user_initiated_processing = False
+            st.sidebar.success("Testing data cleared")
+            st.rerun()
+    
+    st.sidebar.markdown("---")
+
     # Display initial UI or results based on processing_completed
     if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
         # Show welcome content when no data has been processed and template is not active
@@ -2984,26 +3298,6 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
-                # Debug: Check file state when button is clicked
-                logger.info(f"BUTTON CLICK DEBUG: current_month_actuals = {bool(st.session_state.get('current_month_actuals'))}")
-                logger.info(f"BUTTON CLICK DEBUG: prior_month_actuals = {bool(st.session_state.get('prior_month_actuals'))}")
-                logger.info(f"BUTTON CLICK DEBUG: current_month_budget = {bool(st.session_state.get('current_month_budget'))}")
-                logger.info(f"BUTTON CLICK DEBUG: prior_year_actuals = {bool(st.session_state.get('prior_year_actuals'))}")
-                
-                # Add Sentry breadcrumb for button click
-                add_breadcrumb(
-                    "Process Documents button clicked", 
-                    "user_action", 
-                    "info",
-                    {
-                        "has_current_month": bool(st.session_state.get('current_month_actuals')),
-                        "has_prior_month": bool(st.session_state.get('prior_month_actuals')),
-                        "has_budget": bool(st.session_state.get('current_month_budget')),
-                        "has_prior_year": bool(st.session_state.get('prior_year_actuals')),
-                        "property_name": st.session_state.get('property_name', 'Unknown')
-                    }
-                )
-                
                 st.session_state.user_initiated_processing = True
                 # Reset states for a fresh processing cycle
                 st.session_state.template_viewed = False
@@ -3013,7 +3307,36 @@ def main():
                 if 'insights' in st.session_state: del st.session_state.insights
                 if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
                 if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
-                logger.info("Main page 'Process Documents' clicked. Initiating processing cycle.")
+                
+                if is_testing_mode_active():
+                    logger.info("Main page 'Process Documents' clicked in TESTING MODE.")
+                    add_breadcrumb("Process Documents button clicked (Testing Mode)", "user_action", "info",
+                                   {"property_name": st.session_state.mock_property_name,
+                                    "scenario": st.session_state.mock_scenario})
+                    # Call the existing testing mode processing function
+                    # This function should handle setting processing_completed = True
+                    process_documents_testing_mode() 
+                    save_testing_config() # Save current testing config
+                else:
+                    logger.info("Main page 'Process Documents' clicked. Initiating processing cycle.")
+                    # Debug: Check file state when button is clicked
+                    logger.info(f"BUTTON CLICK DEBUG: current_month_actuals = {bool(st.session_state.get('current_month_actuals'))}")
+                    logger.info(f"BUTTON CLICK DEBUG: prior_month_actuals = {bool(st.session_state.get('prior_month_actuals'))}")
+                    logger.info(f"BUTTON CLICK DEBUG: current_month_budget = {bool(st.session_state.get('current_month_budget'))}")
+                    logger.info(f"BUTTON CLICK DEBUG: prior_year_actuals = {bool(st.session_state.get('prior_year_actuals'))}")
+                    
+                    add_breadcrumb(
+                        "Process Documents button clicked (Production Mode)", 
+                        "user_action", 
+                        "info",
+                        {
+                            "has_current_month": bool(st.session_state.get('current_month_actuals')),
+                            "has_prior_month": bool(st.session_state.get('prior_month_actuals')),
+                            "has_budget": bool(st.session_state.get('current_month_budget')),
+                            "has_prior_year": bool(st.session_state.get('prior_year_actuals')),
+                            "property_name": st.session_state.get('property_name', 'Unknown')
+                        }
+                    )
                 st.rerun() # Rerun to start the processing logic below
 
         with col2:
@@ -3047,86 +3370,98 @@ def main():
     logger.info(f"STAGE 1 DEBUG: consolidated_data value = {st.session_state.get('consolidated_data', 'NOT_SET')}")
     
     if st.session_state.user_initiated_processing and ('consolidated_data' not in st.session_state or st.session_state.consolidated_data is None):
-        # Start performance monitoring for document processing
-        with monitor_performance("document_extraction"):
-            try:
-                add_breadcrumb("Starting document extraction", "processing", "info")
-                show_processing_status("Processing documents. This may take a minute...", is_running=True)
-                logger.info("APP.PY: --- User Initiated Document Processing START ---")
+        # If in testing mode, the data should have been populated by process_documents_testing_mode already
+        # and processing_completed might be true.
+        # The original processing logic should only run if not in testing mode or if testing mode failed to set data.
+        if is_testing_mode_active() and st.session_state.get('processing_completed', False):
+            logger.info("STAGE 1: Testing mode active and processing completed. Skipping normal document extraction.")
+            # Data should be populated by process_documents_testing_mode, so we might not need to do anything here.
+            # However, the flow expects consolidated_data to be present.
+            # We need to ensure the rest of the app flow works after mock data is loaded.
+            # The main thing is that the `else` block below (actual document processing) is skipped.
+            pass # Explicitly do nothing here, as data is handled by testing mode.
+        
+        elif not is_testing_mode_active() or not st.session_state.get('processing_completed', False):
+            # Start performance monitoring for document processing
+            with monitor_performance("document_extraction"):
+                try:
+                    add_breadcrumb("Starting document extraction", "processing", "info")
+                    show_processing_status("Processing documents. This may take a minute...", is_running=True)
+                    logger.info("APP.PY: --- User Initiated Document Processing START ---")
 
-                # Ensure current_month_file is from session state, as button click clears local vars
-                if not st.session_state.current_month_actuals:
-                    add_breadcrumb("Document processing failed - no current month file", "processing", "error")
-                    show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
-                    st.session_state.user_initiated_processing = False # Reset flag as processing cannot continue
-                    st.rerun() # Rerun to show the error and stop
-                    return # Explicitly return
+                    # Ensure current_month_file is from session state, as button click clears local vars
+                    if not st.session_state.current_month_actuals:
+                        add_breadcrumb("Document processing failed - no current month file", "processing", "error")
+                        show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
+                        st.session_state.user_initiated_processing = False # Reset flag as processing cannot continue
+                        st.rerun() # Rerun to show the error and stop
+                        return # Explicitly return
 
-                # Pass file objects from session state to process_all_documents
-                # process_all_documents internally uses st.session_state to get file objects
-                raw_consolidated_data = process_all_documents()
-                logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
+                    # Pass file objects from session state to process_all_documents
+                    # process_all_documents internally uses st.session_state to get file objects
+                    raw_consolidated_data = process_all_documents()
+                    logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
 
-                if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
-                    st.session_state.consolidated_data = raw_consolidated_data
-                    st.session_state.template_viewed = False # Ensure template is shown
-                    add_breadcrumb("Document extraction successful", "processing", "info")
-                    logger.info("Document extraction successful. Data stored. Proceeding to template display.")
-                elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
-                    error_message = raw_consolidated_data["error"]
-                    add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
-                    capture_message_with_context(
-                        f"Document processing error: {error_message}",
-                        level="error",
-                        context={"raw_data": str(raw_consolidated_data)[:500]},
-                        tags={"stage": "document_extraction"}
+                    if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
+                        st.session_state.consolidated_data = raw_consolidated_data
+                        st.session_state.template_viewed = False # Ensure template is shown
+                        add_breadcrumb("Document extraction successful", "processing", "info")
+                        logger.info("Document extraction successful. Data stored. Proceeding to template display.")
+                    elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
+                        error_message = raw_consolidated_data["error"]
+                        add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
+                        capture_message_with_context(
+                            f"Document processing error: {error_message}",
+                            level="error",
+                            context={"raw_data": str(raw_consolidated_data)[:500]},
+                            tags={"stage": "document_extraction"}
+                        )
+                        logger.error(f"Error during document processing: {error_message}")
+                        st.error(f"An error occurred during document processing: {error_message}")
+                        st.session_state.user_initiated_processing = False # Reset flag
+                    elif not raw_consolidated_data:
+                        add_breadcrumb("No data extracted from documents", "processing", "warning")
+                        capture_message_with_context(
+                            "No data was extracted from documents",
+                            level="warning",
+                            tags={"stage": "document_extraction"}
+                        )
+                        logger.warning("No data was extracted from the documents or data is empty.")
+                        st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
+                        st.session_state.user_initiated_processing = False # Reset flag
+                    else:
+                        add_breadcrumb("Unknown document processing error", "processing", "error")
+                        capture_message_with_context(
+                            f"Unknown error during document processing. Data: {str(raw_consolidated_data)[:200]}",
+                            level="error",
+                            tags={"stage": "document_extraction"}
+                        )
+                        logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
+                        st.error("An unknown error occurred or the data structure is invalid after processing.")
+                        st.session_state.user_initiated_processing = False # Reset flag
+                    
+                    st.rerun() # Rerun to move to template display or show error
+
+                except Exception as e_extract:
+                    add_breadcrumb("Exception during document extraction", "processing", "error", {"exception": str(e_extract)})
+                    capture_exception_with_context(
+                        e_extract,
+                        context={
+                            "stage": "document_extraction",
+                            "has_files": {
+                                "current_month": bool(st.session_state.get('current_month_actuals')),
+                                "prior_month": bool(st.session_state.get('prior_month_actuals')),
+                                "budget": bool(st.session_state.get('current_month_budget')),
+                                "prior_year": bool(st.session_state.get('prior_year_actuals'))
+                            }
+                        },
+                        tags={"severity": "high", "stage": "document_extraction"}
                     )
-                    logger.error(f"Error during document processing: {error_message}")
-                    st.error(f"An error occurred during document processing: {error_message}")
+                    logger.error(f"Exception during document extraction stage: {str(e_extract)}", exc_info=True)
+                    st.error(f"An unexpected error occurred during document extraction: {str(e_extract)}")
                     st.session_state.user_initiated_processing = False # Reset flag
-                elif not raw_consolidated_data:
-                    add_breadcrumb("No data extracted from documents", "processing", "warning")
-                    capture_message_with_context(
-                        "No data was extracted from documents",
-                        level="warning",
-                        tags={"stage": "document_extraction"}
-                    )
-                    logger.warning("No data was extracted from the documents or data is empty.")
-                    st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
-                    st.session_state.user_initiated_processing = False # Reset flag
-                else:
-                    add_breadcrumb("Unknown document processing error", "processing", "error")
-                    capture_message_with_context(
-                        f"Unknown error during document processing. Data: {str(raw_consolidated_data)[:200]}",
-                        level="error",
-                        tags={"stage": "document_extraction"}
-                    )
-                    logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
-                    st.error("An unknown error occurred or the data structure is invalid after processing.")
-                    st.session_state.user_initiated_processing = False # Reset flag
-                
-                st.rerun() # Rerun to move to template display or show error
-
-            except Exception as e_extract:
-                add_breadcrumb("Exception during document extraction", "processing", "error", {"exception": str(e_extract)})
-                capture_exception_with_context(
-                    e_extract,
-                    context={
-                        "stage": "document_extraction",
-                        "has_files": {
-                            "current_month": bool(st.session_state.get('current_month_actuals')),
-                            "prior_month": bool(st.session_state.get('prior_month_actuals')),
-                            "budget": bool(st.session_state.get('current_month_budget')),
-                            "prior_year": bool(st.session_state.get('prior_year_actuals'))
-                        }
-                    },
-                    tags={"severity": "high", "stage": "document_extraction"}
-                )
-                logger.error(f"Exception during document extraction stage: {str(e_extract)}", exc_info=True)
-                st.error(f"An unexpected error occurred during document extraction: {str(e_extract)}")
-                st.session_state.user_initiated_processing = False # Reset flag
-                st.rerun()
-            return # Stop further execution in this run, let rerun handle next step
+                    st.rerun()
+                return # Stop further execution in this run, let rerun handle next step
 
     # --- Stage 2: Data Template Display and Confirmation ---
     # This block executes if consolidated_data exists but template hasn't been viewed/confirmed
