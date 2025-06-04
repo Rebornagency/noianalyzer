@@ -266,6 +266,9 @@ def process_documents_testing_mode():
         # Calculate comparisons using the mock data - this uses the real calculation logic
         st.session_state.comparison_results = calculate_noi_comparisons(mock_data)
         
+        # Debug the generated data
+        debug_testing_mode_data()
+        
         # Generate mock insights - this replaces the API call to OpenAI
         st.session_state.insights = generate_mock_insights(scenario)
         
@@ -326,6 +329,58 @@ def run_testing_mode_diagnostics():
     
     # Reset diagnostic flag
     st.session_state.run_diagnostics = False
+
+def debug_testing_mode_data():
+    """Debug function to inspect testing mode data structure"""
+    if not is_testing_mode_active():
+        return
+    
+    logger.info("=== TESTING MODE DATA DEBUG ===")
+    
+    # Debug consolidated_data
+    if "consolidated_data" in st.session_state:
+        consolidated_data = st.session_state.consolidated_data
+        logger.info(f"Consolidated data keys: {list(consolidated_data.keys())}")
+        
+        for key, data in consolidated_data.items():
+            if isinstance(data, dict) and key in ["current_month", "prior_month", "budget", "prior_year"]:
+                logger.info(f"{key} data sample: gpr={data.get('gpr')}, noi={data.get('noi')}, egi={data.get('egi')}")
+            elif key == "property_name":
+                logger.info(f"Property name: {data}")
+    else:
+        logger.error("No consolidated_data found in session state")
+    
+    # Debug comparison_results
+    if "comparison_results" in st.session_state:
+        comparison_results = st.session_state.comparison_results
+        logger.info(f"Comparison results keys: {list(comparison_results.keys())}")
+        
+        # Check each comparison section
+        for section in ["month_vs_prior", "actual_vs_budget", "year_vs_year"]:
+            if section in comparison_results:
+                section_data = comparison_results[section]
+                logger.info(f"{section} has {len(section_data)} fields")
+                # Log a few sample fields
+                sample_keys = [k for k in section_data.keys() if 'gpr' in k or 'noi' in k][:5]
+                for key in sample_keys:
+                    logger.info(f"  {key}: {section_data.get(key)}")
+            else:
+                logger.error(f"Missing {section} in comparison_results")
+        
+        # Check raw data sections
+        for section in ["current", "prior", "budget", "prior_year"]:
+            if section in comparison_results:
+                section_data = comparison_results[section]
+                if isinstance(section_data, dict):
+                    logger.info(f"{section} raw data: gpr={section_data.get('gpr')}, noi={section_data.get('noi')}")
+                else:
+                    logger.error(f"{section} is not a dict: {type(section_data)}")
+            else:
+                logger.warning(f"Missing {section} raw data in comparison_results")
+    else:
+        logger.error("No comparison_results found in session state")
+    
+    logger.info("=== END TESTING MODE DATA DEBUG ===")
 
 def validate_financial_data(data: Dict[str, Any]) -> Tuple[bool, str]:
     """
@@ -3704,14 +3759,20 @@ def main():
         with tabs[0]:
             st.header("Current Month vs. Prior Month")
             # Ensure 'month_vs_prior' data exists and is not empty
-            month_vs_prior_data = comparison_data_for_tabs.get('month_vs_prior', {})
-            if month_vs_prior_data:
-                logger.info(f"APP.PY: Preparing to display Prior Month tab with data: {list(month_vs_prior_data.keys())}")
+            month_vs_prior_calculations = comparison_data_for_tabs.get('month_vs_prior', {})
+            if month_vs_prior_calculations:
+                logger.info(f"APP.PY: Preparing to display Prior Month tab with data: {list(month_vs_prior_calculations.keys())}")
                 try:
                     # Move full JSON dumps to DEBUG level
-                    logger.debug(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_data, default=str, indent=2)}")
+                    logger.debug(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_calculations, default=str, indent=2)}")
                 except Exception as e_log_json:
                     logger.error(f"APP.PY: Error logging JSON for Prior Month tab data: {e_log_json}")
+                
+                # Combine comparison calculations with raw data that display_comparison_tab expects
+                month_vs_prior_data = month_vs_prior_calculations.copy()
+                month_vs_prior_data["current"] = comparison_data_for_tabs.get("current", {})
+                month_vs_prior_data["prior"] = comparison_data_for_tabs.get("prior", {})
+                
                 display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
             else:
                 st.warning("Not enough data for Prior Month comparison.")
@@ -3729,14 +3790,20 @@ def main():
         with tabs[1]:
             st.header("Actual vs. Budget")
             # Ensure 'actual_vs_budget' data exists and is not empty
-            actual_vs_budget_data = comparison_data_for_tabs.get('actual_vs_budget', {})
-            if actual_vs_budget_data:
-                logger.info(f"APP.PY: Preparing to display Budget tab with data: {list(actual_vs_budget_data.keys())}")
+            actual_vs_budget_calculations = comparison_data_for_tabs.get('actual_vs_budget', {})
+            if actual_vs_budget_calculations:
+                logger.info(f"APP.PY: Preparing to display Budget tab with data: {list(actual_vs_budget_calculations.keys())}")
                 try:
                     # Move full JSON dumps to DEBUG level
-                    logger.debug(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_data, default=str, indent=2)}")
+                    logger.debug(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_calculations, default=str, indent=2)}")
                 except Exception as e_log_json:
                     logger.error(f"APP.PY: Error logging JSON for Budget tab data: {e_log_json}")
+                
+                # Combine comparison calculations with raw data that display_comparison_tab expects
+                actual_vs_budget_data = actual_vs_budget_calculations.copy()
+                actual_vs_budget_data["current"] = comparison_data_for_tabs.get("current", {})
+                actual_vs_budget_data["budget"] = comparison_data_for_tabs.get("budget", {})
+                
                 display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
             else:
                 st.warning("Not enough data for Budget comparison.")
@@ -3745,14 +3812,20 @@ def main():
         with tabs[2]:
             st.header("Current Year vs. Prior Year")
             # Ensure 'year_vs_year' data exists and is not empty
-            year_vs_year_data = comparison_data_for_tabs.get('year_vs_year', {})
-            if year_vs_year_data:
-                logger.info(f"APP.PY: Preparing to display Prior Year tab with data: {list(year_vs_year_data.keys())}")
+            year_vs_year_calculations = comparison_data_for_tabs.get('year_vs_year', {})
+            if year_vs_year_calculations:
+                logger.info(f"APP.PY: Preparing to display Prior Year tab with data: {list(year_vs_year_calculations.keys())}")
                 try:
                     # Move full JSON dumps to DEBUG level
-                    logger.debug(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_data, default=str, indent=2)}")
+                    logger.debug(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_calculations, default=str, indent=2)}")
                 except Exception as e_log_json:
                     logger.error(f"APP.PY: Error logging JSON for Prior Year tab data: {e_log_json}")
+                
+                # Combine comparison calculations with raw data that display_comparison_tab expects
+                year_vs_year_data = year_vs_year_calculations.copy()
+                year_vs_year_data["current"] = comparison_data_for_tabs.get("current", {})
+                year_vs_year_data["prior_year"] = comparison_data_for_tabs.get("prior_year", {})
+                
                 display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
             else:
                 st.warning("Not enough data for Prior Year comparison.")
