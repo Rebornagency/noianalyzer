@@ -1483,307 +1483,127 @@ if 'theme' not in st.session_state:
 if 'user_initiated_processing' not in st.session_state:
     st.session_state.user_initiated_processing = False
 
+def highlight_changes(val):
+    if isinstance(val, str) and val.startswith('-'):
+        return 'color: red'
+    # Check for positive changes, ensuring we don't misinterpret currency symbols or other characters as positive.
+    # A common convention for positive financial changes is an explicit '+' sign or simply no sign for positive numbers.
+    # Given the example df, 'Change ($)' and 'Change (%)' can be positive without a '+'.
+    # We will assume that if it doesn't start with '-', and it's a change column, it's positive if not zero.
+    # However, the original prompt suggests looking for a '+' prefix. Let's stick to that for green.
+    # If no explicit '+', we won't color it green, but it won't be red either.
+    elif isinstance(val, str) and val.startswith('+'): # Explicitly look for '+' for green
+        return 'color: green'
+    # Fallback for values that are not explicitly positive (green) or negative (red)
+    return ''
+
 # Display comparison tab
 def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name_suffix: str):
     """
-    Display a comparison tab with KPI cards and detailed metrics.
-    
+    Display a comparison tab with financial data, charts, and insights.
+
     Args:
-        tab_data: Comparison data for the tab
-        prior_key_suffix: Suffix for prior period keys (e.g., 'prior', 'budget', 'prior_year')
-        name_suffix: Display name for the prior period (e.g., 'Prior Month', 'Budget', 'Prior Year')
+        tab_data: Dictionary containing data for this specific comparison tab.
+        prior_key_suffix: Suffix used for prior period keys (e.g., 'prior_month', 'budget').
+        name_suffix: Name for the prior period (e.g., 'Prior Month', 'Budget').
     """
-    logger.info(f"--- display_comparison_tab START for {name_suffix} ---")
-    
-    # Ensure all text values are strings and safely handled
-    name_suffix = safe_text(name_suffix) or "Prior Period"
-    prior_key_suffix = safe_text(prior_key_suffix) or "prior"
-    
+    # Ensure name_suffix is safe to use in titles
+    name_suffix = safe_text(name_suffix) or "Prior Period" # Ensure fallback
+    prior_key_suffix = safe_text(prior_key_suffix) or "prior" # Ensure fallback for key suffix as well
+
     try:
-        logger.info(f"display_comparison_tab for {name_suffix}: Received tab_data (keys): {list(tab_data.keys())}")
-        # Move full JSON dumps to DEBUG level
-        logger.debug(f"display_comparison_tab for {name_suffix}: Full tab_data: {json.dumps(tab_data, default=str, indent=2)}")
-    except Exception as e:
-        logger.error(f"Error logging incoming tab_data in display_comparison_tab for {name_suffix}: {e}")
+        logger.info(f"Displaying comparison tab: {name_suffix}")
+        add_breadcrumb(f"Displaying comparison tab: {name_suffix}", "ui.display", "info")
 
-    # Check if we're receiving raw data instead of properly transformed data
-    if any(key in ['current_month', 'prior_month', 'budget', 'prior_year'] for key in tab_data.keys()):
-        logger.error(f"Raw data format detected in display_comparison_tab for {name_suffix}. Keys: {list(tab_data.keys())}")
-        st.error(f"Internal error: Data format mismatch for {name_suffix} comparison. Please reload the application.")
-        return
-    
-    # Check for basic metrics that should be in any properly transformed data
-    expected_current_keys = [key for key in tab_data.keys() if key.endswith('_current')]
-    if not expected_current_keys:
-        logger.error(f"No '_current' keys found in tab_data for {name_suffix}. Keys: {list(tab_data.keys())}")
-        st.error(f"No data available for {name_suffix} comparison.")
-        return
-    
-    # Extract current values from the tab_data
-    current_values = {}
-    for key in tab_data.keys():
-        if key.endswith('_current'):
-            base_metric = key.replace('_current', '')
-            current_values[base_metric] = tab_data[key]
-    logger.info(f"display_comparison_tab for {name_suffix}: Extracted current_values (keys): {list(current_values.keys())}")
-    try:
-        # Move full JSON dumps to DEBUG level
-        logger.debug(f"display_comparison_tab for {name_suffix}: Full current_values: {json.dumps(current_values, default=str, indent=2)}")
-    except Exception as e:
-        logger.error(f"Error logging full current_values for {name_suffix}: {e}")
-    
-    # Extract prior values from the tab_data
-    prior_values = {}
-    for key in tab_data.keys():
-        if key.endswith(f'_{prior_key_suffix}'):
-            base_metric = key.replace(f'_{prior_key_suffix}', '')
-            prior_values[base_metric] = tab_data[key]
-        elif key.endswith('_compare'):  # Alternative format
-            base_metric = key.replace('_compare', '')
-            prior_values[base_metric] = tab_data[key]
-    logger.info(f"display_comparison_tab for {name_suffix}: Extracted prior_values (keys): {list(prior_values.keys())}")
-    try:
-        # Move full JSON dumps to DEBUG level
-        logger.debug(f"display_comparison_tab for {name_suffix}: Full prior_values: {json.dumps(prior_values, default=str, indent=2)}")
-    except Exception as e:
-        logger.error(f"Error logging full prior_values for {name_suffix}: {e}")
-    
-    # Log the extracted values for key metrics
-    logger.info(f"Current NOI: {current_values.get('noi')}, Prior NOI: {prior_values.get('noi')}")
-    
-    # Create columns for KPI cards
-    col1, col2, col3 = st.columns(3)
-    
-    # Display KPI cards using Streamlit's metric component instead of custom HTML
-    with col1:
-        # Current value
-        current_noi = current_values.get("noi", 0.0)
-        st.metric(label="Current", value=f"${current_noi:,.0f}")
-        
-    with col2:
-        # Prior period value
-        prior_noi = prior_values.get("noi", 0.0)
-        st.metric(label=f"{name_suffix}", value=f"${prior_noi:,.0f}")
-        
-    with col3:
-        # Change - get directly from tab_data or calculate
-        change_val = tab_data.get("noi_change", tab_data.get("noi_variance", current_noi - prior_noi))
-        percent_change = tab_data.get("noi_percent_change", tab_data.get("noi_percent_variance", 
-                                      (change_val / prior_noi * 100) if prior_noi != 0 else 0))
-        
-        # Format the percentage value with sign
-        percent_display = f"{percent_change:.1f}%"
-        if percent_change > 0:
-            percent_display = f"+{percent_display}"
-        
-        # NOI is a positive business impact when it increases (green for increase, red for decrease)
-        st.metric(
-            label="Change",
-            value=percent_display,
-            delta=f"${change_val:,.0f}",
-            delta_color="normal" if change_val >= 0 else "inverse"
-        )
-
-    # Log additional information before creating DataFrame
-    logger.info(f"Creating DataFrame for {name_suffix} comparison")
-    
-    # Create DataFrame for data
-    metrics = ["GPR", "Vacancy Loss", "Other Income", "EGI", "Total OpEx", "NOI"]
-    data_keys = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
-
-    df_data = []
-    for key, name in zip(data_keys, metrics):
-        # Handle both formats for current, prior, and change values
-        current_val_raw = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
-        prior_val_raw = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
-        change_val_raw = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
-        percent_change_raw = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
-
-        current_val = float(current_val_raw) if pd.notna(current_val_raw) else 0.0
-        prior_val = float(prior_val_raw) if pd.notna(prior_val_raw) else 0.0
-        change_val = float(change_val_raw) if pd.notna(change_val_raw) else 0.0
-        percent_change = float(percent_change_raw) if pd.notna(percent_change_raw) else 0.0
-        
-        # Debug logging for data extraction
-        logger.debug(f"Metric: {name}, Current: {current_val}, Prior: {prior_val}, Change: {change_val}, %Change: {percent_change}")
-        
-        # Skip zero values if show_zero_values is False
-        if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
-            continue
-            
-        df_row = {
-            "Metric": name,
-            "Current": current_val,
-            name_suffix: prior_val,
-            "Change ($)": change_val,
-            "Change (%)": percent_change,
-            # Add business impact direction for proper color coding
-            "Direction": "inverse" if name in ["Vacancy Loss", "Total OpEx"] else "normal"
-        }
-        df_data.append(df_row)
-        logger.debug(f"display_comparison_tab for {name_suffix}: Appended to df_data: {json.dumps(df_row, default=str)}")
-
-    # Create DataFrame for display
-    if not df_data:
-        logger.warning(f"No data available for {name_suffix} display")
-        st.info("No data available for display. Try enabling 'Show Zero Values' in the sidebar.")
-        return
-        
-    logger.info(f"Created df_data with {len(df_data)} rows for {name_suffix} comparison")
-    
-    try:
-        # Create the DataFrame
-        df = pd.DataFrame(df_data)
-        logger.info(f"Created DataFrame with columns: {list(df.columns)}")
-        
-        # Check if the DataFrame has the expected columns
-        required_columns = ["Metric", "Current", name_suffix, "Change ($)", "Change (%)"]
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        
-        if missing_columns:
-            logger.error(f"DataFrame is missing columns: {missing_columns}")
-            st.error(f"Error: DataFrame is missing required columns: {', '.join(missing_columns)}")
-            # Display the raw DataFrame as a fallback
-            st.dataframe(df, use_container_width=True)
+        # Ensure tab_data is not None and is a dictionary
+        if tab_data is None or not isinstance(tab_data, dict):
+            st.error(f"No data available to display for {name_suffix} comparison.")
+            logger.warning(f"tab_data is None or not a dict for {name_suffix}")
             return
 
-        # Format DataFrame for display
-        df_display = df.copy()
-        df_display["Current"] = df_display["Current"].apply(lambda x: f"${x:,.2f}")
-        df_display[name_suffix] = df_display[name_suffix].apply(lambda x: f"${x:,.2f}")
-        df_display["Change ($)"] = df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
-        df_display["Change (%)"] = df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
+        # Extract current and prior values safely
+        current_values = tab_data.get("current", {})
+        prior_values = tab_data.get(prior_key_suffix, {}) # e.g., tab_data.get('prior_month', {})
+
+        if not current_values and not prior_values:
+            st.info(f"No financial data found for current or {name_suffix} periods.")
+            return
+            
+        # Main metrics table
+        main_metrics_data = []
+        metrics_order = [
+            ("gpr", "Gross Potential Rent"), ("vacancy_loss", "Vacancy Loss"), 
+            ("other_income", "Other Income"), ("egi", "Effective Gross Income"),
+            ("opex", "Total Operating Expenses"), ("noi", "Net Operating Income")
+        ]
+
+        for key, name in metrics_order:
+            current_val = current_values.get(key, 0.0)
+            prior_val = prior_values.get(key, 0.0)
+            
+            # Use .get for change and percent_change with a default of 0.0
+            change_val = tab_data.get(f"{key}_change", 0.0) 
+            percent_change_val = tab_data.get(f"{key}_percent_change", 0.0)
+
+            main_metrics_data.append({
+                "Metric": name,
+                "Current": f"${current_val:,.2f}",
+                name_suffix: f"${prior_val:,.2f}",
+                "Change ($)": f"${change_val:,.2f}",
+                "Change (%)": f"{percent_change_val:.1f}%"
+            })
         
-        # Remove the Direction column from display
-        display_columns = ["Metric", "Current", name_suffix, "Change ($)", "Change (%)"]
-        df_styled = df_display[display_columns]
+        main_metrics_df = pd.DataFrame(main_metrics_data)
         
-        # Apply conditional formatting based on business impact
-        def style_df(row):
-            styles = [''] * len(row)
+        # Apply styling for changes
+        styled_df = main_metrics_df.style.applymap(
+            highlight_changes, 
+            subset=['Change ($)', 'Change (%)']
+        )
             
-            # Get indices of the columns to style
-            pct_change_idx = list(row.index).index("Change (%)")
-            dollar_change_idx = list(row.index).index("Change ($)")
-            metric_idx = list(row.index).index("Metric")
-            
-            metric = row["Metric"]
-            
-            try:
-                change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
-                change_pct = float(change_pct_str)
-                
-                # Determine color and impact label based on metric type and change direction
-                if metric in ["Vacancy Loss", "Total OpEx"]:
-                    # For these metrics (expenses/losses), a decrease (negative change) is FAVORABLE
-                    if change_pct < 0:
-                        color = "color: green"  # Negative change is favorable for expenses
-                        impact = "Favorable"
-                    elif change_pct > 0:
-                        color = "color: red"    # Positive change is unfavorable for expenses
-                        impact = "Unfavorable"
-                    else:
-                        color = ""              # No change, neutral impact
-                        impact = "Neutral"
-                else:
-                    # For income metrics (NOI, GPR), an increase (positive change) is FAVORABLE
-                    if change_pct > 0:
-                        color = "color: green"  # Positive change is favorable for income
-                        impact = "Favorable"
-                    elif change_pct < 0:
-                        color = "color: red"    # Negative change is unfavorable for income
-                        impact = "Unfavorable"
-                    else:
-                        color = ""              # No change, neutral impact
-                        impact = "Neutral"
-                
-                # Apply to both dollar and percentage columns
-                styles[pct_change_idx] = color
-                styles[dollar_change_idx] = color
-                
-                # Store the impact label if we want to add an Impact column
-                row["Impact"] = impact
-                
-            except (ValueError, TypeError):
-                # If there's an error parsing the percentage, don't apply styling
-                pass
-            
-            return styles
-        
-        # Apply styling and display
-        styled_df = df_styled.style.apply(style_df, axis=1)
-        
-        # Add Impact column if desired
-        if "add_impact_column" not in st.session_state:
-            st.session_state.add_impact_column = False
-            
-        impact_toggle = st.checkbox("Show Impact Column", value=st.session_state.add_impact_column, key=f"impact_toggle_{name_suffix}")
-        if impact_toggle != st.session_state.add_impact_column:
-            st.session_state.add_impact_column = impact_toggle
-            st.rerun()
-            
-        if st.session_state.add_impact_column:
-            # Add Impact column
-            impacts = []
-            for _, row in df.iterrows():
-                metric = row["Metric"]
-                change_pct = row["Change (%)"]
-                
-                # Determine impact based on metric and change
-                if metric in ["Vacancy Loss", "Total OpEx"]:
-                    # For expenses, decrease is favorable
-                    impact = "Favorable" if change_pct < 0 else ("Unfavorable" if change_pct > 0 else "Neutral")
-                else:
-                    # For income, increase is favorable
-                    impact = "Favorable" if change_pct > 0 else ("Unfavorable" if change_pct < 0 else "Neutral")
-                    
-                impacts.append(impact)
-                
-            df_styled["Impact"] = impacts
-            styled_df = df_styled.style.apply(style_df, axis=1)
-            
-        st.dataframe(styled_df, use_container_width=True)
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
         # Add OpEx Breakdown expander section
         with st.expander("Operating Expense Breakdown"):
-            # Check if we have OpEx component data
-            opex_components = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
-            
-            # Check if any opex components exist in the data
-            if any(component in current_values for component in opex_components):
-                # Apply modern container styling
-                st.markdown('<div class="opex-container">', unsafe_allow_html=True)
+            opex_components_keys = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
+            opex_metrics_names = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
+
+            # Check if any opex components exist in the data (either in current_values or prior_values)
+            if any(component in current_values for component in opex_components_keys) or \
+               any(f"{component}_{prior_key_suffix}" in tab_data for component in opex_components_keys) or \
+               any(component in prior_values for component in opex_components_keys): # Added check for prior_values directly
                 
-                # Modern header styling
-                st.markdown('<div class="opex-header">Operating Expense Breakdown</div>', unsafe_allow_html=True)
-                
-                # Create DataFrame for OpEx components
                 opex_df_data = []
-                opex_metrics = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
-                
-                # Define color map for categories (will be used for both table indicators and charts)
                 category_colors = {
-                    "Property Taxes": "#4ecdc4",
-                    "Insurance": "#1e88e5",
-                    "Repairs & Maintenance": "#8ed1fc",
-                    "Utilities": "#ff6b6b",
+                    "Property Taxes": "#4ecdc4", "Insurance": "#1e88e5",
+                    "Repairs & Maintenance": "#8ed1fc", "Utilities": "#ff6b6b",
                     "Management Fees": "#ba68c8"
                 }
                 
-                for key, name in zip(opex_components, opex_metrics):
-                    # Handle both formats for current, prior, and change values
+                for key, name in zip(opex_components_keys, opex_metrics_names):
                     current_val_raw = current_values.get(key, tab_data.get(f"{key}_current", 0.0))
-                    prior_val_raw = prior_values.get(key, tab_data.get(f"{key}_{prior_key_suffix}", tab_data.get(f"{key}_compare", 0.0)))
-                    change_val_raw = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance", 0.0))
-                    percent_change_raw = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance", 0.0))
+                    # Ensure prior_val_raw fetches from all possible keys and defaults to 0.0
+                    prior_val_raw = prior_values.get(key, 
+                                       tab_data.get(f"{key}_{prior_key_suffix}", 
+                                       tab_data.get(f"{key}_compare", 0.0)))
 
                     current_val = float(current_val_raw) if pd.notna(current_val_raw) else 0.0
                     prior_val = float(prior_val_raw) if pd.notna(prior_val_raw) else 0.0
-                    change_val = float(change_val_raw) if pd.notna(change_val_raw) else 0.0
-                    percent_change = float(percent_change_raw) if pd.notna(percent_change_raw) else 0.0
+
+                    # Prefer pre-calculated change values if available and valid, otherwise calculate
+                    change_val_raw = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance"))
+                    if pd.notna(change_val_raw):
+                        change_val = float(change_val_raw)
+                    else:
+                        change_val = current_val - prior_val
+
+                    percent_change_raw = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance"))
+                    if pd.notna(percent_change_raw):
+                        percent_change = float(percent_change_raw)
+                    else:
+                        percent_change = (change_val / prior_val * 100) if prior_val != 0 else 0.0
                     
-                    # Skip zero values if show_zero_values is False
-                    if not st.session_state.show_zero_values and current_val == 0 and prior_val == 0:
+                    if not st.session_state.get("show_zero_values", True) and current_val == 0 and prior_val == 0:
                         continue
                         
                     opex_df_data.append({
@@ -1792,87 +1612,38 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         name_suffix: prior_val,
                         "Change ($)": change_val,
                         "Change (%)": percent_change,
-                        # Add color for the category
-                        "Color": category_colors.get(name, "#a9a9a9")  # Default gray if not in map
+                        "Color": category_colors.get(name, "#a9a9a9") 
                     })
                 
-                # Check if we have data to display after filtering
                 if opex_df_data:
                     opex_df = pd.DataFrame(opex_df_data)
                     
-                    # Format DataFrame for display
                     opex_df_display = opex_df.copy()
                     opex_df_display["Current"] = opex_df_display["Current"].apply(lambda x: f"${x:,.2f}")
                     opex_df_display[name_suffix] = opex_df_display[name_suffix].apply(lambda x: f"${x:,.2f}")
-                    opex_df_display["Change ($)"] = opex_df_display["Change ($)"].apply(lambda x: f"${x:,.2f}")
-                    opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(lambda x: f"{x:.1f}%")
+                    # Apply + sign for positive changes, - for negative, and no sign for zero.
+                    opex_df_display["Change ($)"] = opex_df_display["Change ($)"].apply(
+                        lambda x: f"+${x:,.2f}" if x > 0 else (f"-${abs(x):,.2f}" if x < 0 else f"${x:,.2f}")
+                    )
+                    opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(
+                        lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
+                    )
                     
-                    # Instead of using Streamlit's dataframe with styling,
-                    # we'll create a custom HTML table with our modern design
-                    html_table = """
-                    <div class="opex-table-container">
-                        <table class="opex-table">
-                            <thead>
-                                <tr>
-                                    <th>Expense Category</th>
-                                    <th>Current</th>
-                                    <th>""" + safe_text(name_suffix) + """</th>
-                                    <th>Change ($)</th>
-                                    <th>Change (%)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    """
+                    styled_opex_df = opex_df_display.style.applymap(
+                        highlight_changes, 
+                        subset=['Change ($)', 'Change (%)']
+                    )
                     
-                    # Add rows to the table
-                    for _, row in opex_df_display.iterrows():
-                        # Determine CSS class for values based on change direction
-                        try:
-                            change_pct_str = row["Change (%)"].strip('%') if isinstance(row["Change (%)"], str) else str(row["Change (%)"])
-                            change_pct = float(change_pct_str)
-                            if change_pct < 0:
-                                value_class = "opex-positive-value"  # Green for decrease in expenses (favorable)
-                            elif change_pct > 0:
-                                value_class = "opex-negative-value"   # Red for increase in expenses (unfavorable)
-                            else:
-                                value_class = "opex-neutral-value"    # Neutral if no change
-                        except (ValueError, TypeError):
-                            value_class = "opex-neutral-value"        # Default to neutral if error
-                        
-                        # Get category color and ensure safe text
-                        color = safe_text(row["Color"]) or "#a9a9a9"
-                        category = safe_text(row["Expense Category"])
-                        current_val = safe_text(row["Current"])
-                        prior_val = safe_text(row[name_suffix])
-                        change_dollar = safe_text(row["Change ($)"])
-                        change_percent = safe_text(row["Change (%)"])
-                        
-                        # Add the row with color indicator
-                        html_table += f"""
-                        <tr>
-                            <td>
-                                <div class="opex-category-cell">
-                                    <span class="opex-category-indicator" style="background-color: {color};"></span>
-                                    {category}
-                                </div>
-                            </td>
-                            <td class="opex-neutral-value">{current_val}</td>
-                            <td class="opex-neutral-value">{prior_val}</td>
-                            <td class="{value_class}">{change_dollar}</td>
-                            <td class="{value_class}">{change_percent}</td>
-                        </tr>
-                        """
-                    
-                    # Close the table
-                    html_table += """
-                            </tbody>
-                        </table>
-                    </div>
-                    """
-                    
-                    # Display the custom HTML table using st.markdown instead of components.html
-                    st.markdown(html_table, unsafe_allow_html=True)
-                    
+                    st.dataframe(styled_opex_df.format({
+                        "Current": "{:}",
+                        name_suffix: "{:}",
+                        "Change ($)": "{:}",
+                        "Change (%)": "{:}"
+                    }).hide(axis="index").set_table_styles([
+                        {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'left')]},
+                        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3'), ('text-align', 'left')]}
+                    ]), use_container_width=True)
+
                     # Create columns for charts with enhanced styling
                     col1, col2 = st.columns(2)
                     
@@ -1929,18 +1700,18 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         if not opex_df.empty:
                             # Prepare the data in a format suitable for the horizontal bar chart
                             bar_data = []
-                            for _, row in opex_df.iterrows():
+                            for _, row in opex_df.iterrows(): # Use the original opex_df with numerical data for charts
                                 bar_data.append({
                                     "Expense Category": row["Expense Category"],
-                                    "Amount": row["Current"],
+                                    "Amount": row["Current"], # Use numerical "Current"
                                     "Period": "Current",
                                     "Color": row["Color"]
                                 })
                                 bar_data.append({
                                     "Expense Category": row["Expense Category"],
-                                    "Amount": opex_df[opex_df["Expense Category"] == row["Expense Category"]][name_suffix].values[0],
+                                    "Amount": row[name_suffix], # Use numerical column for prior/budget
                                     "Period": name_suffix,
-                                    "Color": row["Color"]
+                                    "Color": row["Color"] # Can be used if you map colors per category
                                 })
                             
                             bar_df = pd.DataFrame(bar_data)
@@ -1954,53 +1725,35 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                 barmode="group",
                                 orientation="h",
                                 color_discrete_map={
-                                    "Current": "#1e88e5",
-                                    name_suffix: "#4ecdc4"
+                                    "Current": "#1e88e5", # Blue for Current
+                                    name_suffix: "#4ecdc4"  # Teal for Prior/Budget (can be dynamic based on name_suffix if needed)
                                 },
-                                labels={"Amount": "Amount ($)", "Expense Category": ""}
+                                labels={"Amount": "Amount ($)", "Expense Category": ""},
+                                height=len(opex_df["Expense Category"].unique()) * 60 + 100 # Dynamic height
                             )
                             
                             # Update layout for modern appearance
                             comp_fig.update_layout(
-                                template="plotly_dark",
-                                plot_bgcolor='rgba(13, 17, 23, 0)',
-                                paper_bgcolor='rgba(13, 17, 23, 0)',
-                                margin=dict(l=20, r=20, t=20, b=50),
-                                font=dict(
-                                    family="Inter, sans-serif",
-                                    size=14,
-                                    color="#e6edf3"
-                                ),
-                                xaxis=dict(
-                                    showgrid=True,
-                                    gridcolor='rgba(255, 255, 255, 0.1)',
-                                    tickprefix="$",
-                                    tickformat=',',
-                                    title=dict(text="Amount ($)", font=dict(size=14))
-                                ),
-                                yaxis=dict(
-                                    showgrid=False
-                                ),
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='#e6edf3', family="Inter"),
                                 legend=dict(
-                                    orientation="h",
-                                    yanchor="bottom",
-                                    y=-0.25,
-                                    xanchor="right",
-                                    x=1,
-                                    font=dict(size=12, color="#e6edf3")
-                                )
+                                    orientation="h", 
+                                    yanchor="bottom", y=1.02, 
+                                    xanchor="right", x=1,
+                                    bgcolor='rgba(30, 41, 59, 0.7)', 
+                                    bordercolor='rgba(56, 139, 253, 0.15)'
+                                ),
+                                xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
+                                yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
+                                margin=dict(t=0, b=20, l=0, r=0) # Adjust top margin for title
                             )
-                            
-                            st.plotly_chart(comp_fig, use_container_width=True, config={'displayModeBar': False})
-                        
-                        # Close the chart container
-                        st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    # Close the main container
-                    st.markdown('</div>', unsafe_allow_html=True)
+                            st.plotly_chart(comp_fig, use_container_width=True)
+                        else:
+                            st.info("No OpEx data to display in bar chart.")
                 else:
-                    # We have components but no data to display
-                    st.info("No operating expense details available for this period.")
+                    # We have components but no data to display after filtering
+                    st.info("No operating expense details available for this period based on current filters.")
             else:
                 # No operating expense components in the data
                 st.info("Operating expense breakdown is not available for this comparison.")
@@ -2274,7 +2027,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             
             # Add chart container and title for modern styling
             st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            st.markdown(f'<div class="chart-title">Current vs {name_suffix}</div>', unsafe_allow_html=True)
+            # Apply safe_text to name_suffix in the chart title
+            st.markdown(f'<div class="chart-title">Current vs {safe_text(name_suffix)}</div>', unsafe_allow_html=True)
 
             fig = go.Figure()
 
@@ -3971,142 +3725,77 @@ def display_unified_insights(insights_data):
 
 def display_opex_breakdown(opex_data, comparison_type="prior month"):
     """
-    Display operating expense breakdown with proper HTML rendering
+    Display operating expense breakdown using Streamlit DataFrame.
     
     Args:
-        opex_data: Dictionary containing operating expense data
-        comparison_type: Type of comparison (prior month, budget, etc.)
+        opex_data: Dictionary containing operating expense data. 
+                   Example: {"property_taxes": {"current": 100, "prior": 90}, ...}
+        comparison_type: Type of comparison (e.g., "Prior Month", "Budget")
     """
-    # Create HTML for the operating expense breakdown table
-    html = """
-    <div class="opex-breakdown-container">
-        <table class="opex-breakdown-table">
-            <thead>
-                <tr>
-                    <th>Category</th>
-                    <th>Current</th>
-                    <th>Prior</th>
-                    <th>Change ($)</th>
-                    <th>Change (%)</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
-    
-    # Add rows for each expense category
-    for category, data in opex_data.items():
-        # Skip if data is missing
-        if not data or not isinstance(data, dict):
+    if not opex_data or not isinstance(opex_data, dict):
+        st.info("No operating expense data provided for breakdown.")
+        return
+
+    opex_df_list = []
+    for category_key, data_values in opex_data.items():
+        if not data_values or not isinstance(data_values, dict):
+            logger.warning(f"Skipping invalid OpEx data for category: {category_key}")
             continue
             
-        # Get values with defaults
-        current = data.get('current', 0)
-        prior = data.get('prior', 0)
+        current = data_values.get('current', 0.0)
+        prior = data_values.get('prior', 0.0) # Assuming 'prior' as the comparison key
+        
         change = current - prior
-        percent_change = (change / prior * 100) if prior != 0 else 0
+        percent_change = (change / prior * 100) if prior != 0 else 0.0
         
-        # Determine CSS class based on change direction
-        # For expenses, negative change (decrease) is positive
-        change_class = "opex-negative-value" if change < 0 else "opex-positive-value"
+        display_name = category_key.replace('_', ' ').title()
         
-        # Format the category name for display
-        display_name = category.replace('_', ' ').title()
-        
-        # Format values for display
-        current_formatted = f"${current:,.2f}"
-        prior_formatted = f"${prior:,.2f}"
-        change_formatted = f"${abs(change):,.2f}"
-        percent_formatted = f"{abs(percent_change):.1f}%"
-        
-        # Get color for category indicator
-        color = "#4ecdc4"  # Default teal color
-        if category == "taxes":
-            color = "#4ecdc4"
-        elif category == "insurance":
-            color = "#1e88e5"
-        elif category == "repairs_maintenance":
-            color = "#8ed1fc"
-        
-        # Add row to HTML
-        html += f"""
-        <tr>
-            <td>
-                <div class="opex-category-cell">
-                    <span class="opex-category-indicator" style="background-color: {color};"></span>
-                    {display_name}
-                </div>
-            </td>
-            <td class="opex-neutral-value">{current_formatted}</td>
-            <td class="opex-neutral-value">{prior_formatted}</td>
-            <td class="{change_class}">{change_formatted}</td>
-            <td class="{change_class}">{percent_formatted}</td>
-        </tr>
-        """
-    
-    # Close the table
-    html += """
-            </tbody>
-        </table>
-    </div>
-    
-    <style>
-    .opex-breakdown-container {
-        margin: 1rem 0;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .opex-breakdown-table {
-        width: 100%;
-        border-collapse: collapse;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        background-color: var(--background-secondary);
-    }
-    
-    .opex-breakdown-table th, 
-    .opex-breakdown-table td {
-        padding: 0.75rem 1rem;
-        text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .opex-breakdown-table th {
-        background-color: rgba(30, 41, 59, 0.8);
-        color: #f0f0f0;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-    
-    .opex-category-cell {
-        display: flex;
-        align-items: center;
-    }
-    
-    .opex-category-indicator {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border-radius: 3px;
-        margin-right: 8px;
-    }
-    
-    .opex-neutral-value {
-        color: #f0f0f0;
-    }
-    
-    .opex-positive-value {
-        color: #ef4444;  /* Red for expense increases (bad) */
-    }
-    
-    .opex-negative-value {
-        color: #22c55e;  /* Green for expense decreases (good) */
-    }
-    </style>
-    """
-    
-    # Render the HTML
-    st.markdown(html, unsafe_allow_html=True)
+        opex_df_list.append({
+            "Expense Category": display_name,
+            "Current": current,
+            comparison_type: prior, # Use the dynamic comparison_type for the column name
+            "Change ($)": change,
+            "Change (%)": percent_change
+        })
+
+    if not opex_df_list:
+        st.info("No valid operating expense items to display.")
+        return
+
+    opex_df = pd.DataFrame(opex_df_list)
+
+    # Format for display
+    opex_df_display = opex_df.copy()
+    opex_df_display["Current"] = opex_df_display["Current"].apply(lambda x: f"${x:,.2f}")
+    opex_df_display[comparison_type] = opex_df_display[comparison_type].apply(lambda x: f"${x:,.2f}")
+    opex_df_display["Change ($)"] = opex_df_display["Change ($)"].apply(
+        lambda x: f"+${x:,.2f}" if x > 0 else (f"-${abs(x):,.2f}" if x < 0 else f"${x:,.2f}")
+    )
+    opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(
+        lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
+    )
+
+    styled_df = opex_df_display.style.applymap(
+        highlight_changes,
+        subset=['Change ($)', 'Change (%)']
+    )
+
+    st.markdown("#### Operating Expenses Breakdown")
+    st.dataframe(styled_df.format({
+        "Current": "{:}",
+        comparison_type: "{:}",
+        "Change ($)": "{:}",
+        "Change (%)": "{:}"
+    }).hide(axis="index").set_table_styles([
+        {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
+        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
+        {'selector': '.col_heading', 'props': [('text-align', 'left')]} # Ensures header text is left-aligned
+    ]), use_container_width=True)
+
+    # Remove the old HTML and style block as it's no longer used by this function.
+    # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
+    # were part of the old HTML rendering method. If they are not used elsewhere for st.markdown,
+    # they might eventually be cleaned up from the CSS file. For now, we only remove the Python string.
 
 def display_card_container(title, content):
     """
