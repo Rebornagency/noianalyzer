@@ -701,10 +701,10 @@ def display_data_template(consolidated_data: Dict[str, Any]) -> Dict[str, Any]:
 
 # Helper function to inject custom CSS
 def inject_custom_css():
-    """Inject custom CSS to ensure font consistency across the application"""
+    """Inject custom CSS to ensure font consistency and enhanced styling across the application"""
     st.markdown("""
     <style>
-    /* Force Inter font on all elements */
+    /* Existing font styles - keep these */
     body, .stApp, .stMarkdown, .stText, .stTextInput, .stTextArea, 
     .stSelectbox, .stMultiselect, .stDateInput, .stTimeInput, .stNumberInput,
     .stButton > button, .stDataFrame, .stTable, .stExpander, .stTabs {
@@ -859,6 +859,154 @@ def inject_custom_css():
     }
     /* END NEW STYLES */
 
+    /* Enhanced Upload Card Styling */
+    .upload-card {
+        background-color: rgba(17, 17, 34, 0.8);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 32px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .upload-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .upload-card-header h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #EAEAEA;
+        margin: 0;
+    }
+    
+    .required-badge {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #3B82F6;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-left: 8px;
+    }
+    
+    .upload-area {
+        background-color: rgba(13, 13, 13, 0.8);
+        border: 1px solid #222;
+        border-radius: 8px;
+        padding: 32px;
+        text-align: center;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+    
+    .upload-icon {
+        font-size: 32px;
+        color: #888;
+        margin-bottom: 8px;
+    }
+    
+    .upload-text {
+        color: #888;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .upload-subtext {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 16px;
+    }
+    
+    /* Enhanced Instructions Card */
+    .instructions-card {
+        background-color: rgba(17, 17, 34, 0.8);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 32px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .instructions-card h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #EAEAEA;
+        margin-bottom: 16px;
+    }
+    
+    .instructions-card ol {
+        padding-left: 24px;
+        margin-bottom: 0;
+    }
+    
+    .instructions-card li {
+        color: #EAEAEA;
+        font-size: 14px;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    
+    /* Property Name Input Styling */
+    .property-input-container {
+        background-color: rgba(17, 17, 34, 0.8);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 32px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .property-input-container label {
+        font-size: 16px;
+        font-weight: 500;
+        color: #EAEAEA;
+        margin-bottom: 8px;
+    }
+    
+    /* File info styling */
+    .file-info {
+        display: flex;
+        align-items: center;
+        background-color: rgba(30, 41, 59, 0.7);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 8px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .file-icon {
+        font-size: 24px;
+        margin-right: 12px;
+    }
+    
+    .file-details {
+        flex-grow: 1;
+    }
+    
+    .file-name {
+        color: #E0E0E0;
+        font-weight: 500;
+        font-size: 14px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 250px;
+    }
+    
+    .file-meta {
+        color: #94A3B8;
+        font-size: 12px;
+    }
+    
+    .file-status {
+        color: #22C55E;
+        font-size: 12px;
+        font-weight: 500;
+        background-color: rgba(30, 41, 59, 0.5);
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
     /* Feature list styling */
     .feature-list {
         display: flex;
@@ -869,37 +1017,39 @@ def inject_custom_css():
 
     .feature-item {
         display: flex;
-        align-items: flex-start;
-        background-color: rgba(22, 27, 34, 0.8);
-        border: 1px solid rgba(56, 68, 77, 0.5);
-        border-radius: 8px;
-        padding: 1.25rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .feature-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        margin-bottom: 24px;
     }
 
     .feature-number {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 2.5rem;
-        height: 2.5rem;
-        background-color: rgba(59, 130, 246, 0.2);
-        color: #79b8f3;
-        font-size: 1.25rem;
-        font-weight: 600;
+        background-color: rgba(34, 34, 51, 0.8);
+        color: #EAEAEA;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
-        margin-right: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        margin-right: 16px;
         flex-shrink: 0;
     }
 
     .feature-content {
         flex: 1;
+    }
+
+    .feature-content h4 {
+        font-size: 16px;
+        font-weight: 500;
+        color: #EAEAEA;
+        margin-top: 0;
+        margin-bottom: 4px;
+    }
+
+    .feature-content p {
+        font-size: 14px;
+        color: #888;
+        margin: 0;
     }
 
     .feature-title {
@@ -922,6 +1072,28 @@ def inject_custom_css():
         color: #79b8f3;
         margin-top: 2rem;
         margin-bottom: 1.5rem;
+    }
+
+    /* Enhanced Button Styling */
+    .primary-button {
+        background-color: #3B82F6 !important;
+        color: white !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        padding: 12px 24px !important;
+        border-radius: 8px !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+        margin-top: 16px !important;
+        margin-bottom: 24px !important;
+    }
+    
+    .primary-button:hover {
+        background-color: #2563EB !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        transform: translateY(-2px) !important;
     }
 
     /* Styling for Streamlit Expander Headers (e.g., Full Financial Narrative) */
@@ -3188,121 +3360,44 @@ def main():
             # Modern Upload Documents section
             st.markdown('<h2 class="section-header">Upload Documents</h2>', unsafe_allow_html=True)
             
-            # Create modern file upload cards
-            st.markdown('<div class="upload-container">', unsafe_allow_html=True)
-            
-            # Current Month Actuals (Required)
-            st.markdown(
-            '''
-            <div class="upload-card">
-                <div class="upload-card-header">Current Month Actuals <span class="required-badge">Required</span></div>
-            '''
-            , unsafe_allow_html=True)
-            current_month_file_main = st.file_uploader(
-                "Upload Current Month Actuals ",  # Added space for unique label component
-                type=["xlsx", "xls", "csv", "pdf"],
-                key="main_current_month_upload_functional", # Unique key
-                label_visibility="collapsed",
-                help="Upload your current month's financial data here or in the sidebar"
+            # Enhanced upload cards using component functions
+            current_month_file_main = upload_card(
+                title="Current Month Actuals",
+                required=True,
+                key="main_current_month_upload_functional",
+                help_text="Upload your current month's financial data here or in the sidebar"
             )
             if current_month_file_main is not None:
                 st.session_state.current_month_actuals = current_month_file_main
-            # Display file info regardless of where it was uploaded
-            if st.session_state.get('current_month_actuals'):
-                 show_file_info(st.session_state.current_month_actuals.name, 
-                                file_size=f"{st.session_state.current_month_actuals.size / 1024:.1f}KB" if st.session_state.current_month_actuals.size else None,
-                                file_type=st.session_state.current_month_actuals.type,
-                                uploaded=True)
-            st.markdown('</div>', unsafe_allow_html=True)
             
-            # Prior Month Actuals
-            st.markdown(
-            '''
-            <div class="upload-card">
-                <div class="upload-card-header">Prior Month Actuals</div>
-            '''
-            , unsafe_allow_html=True)
-            prior_month_file_main = st.file_uploader(
-                "Upload Prior Month Actuals ", 
-                type=["xlsx", "xls", "csv", "pdf"],
-                key="main_prior_month_upload_functional", 
-                label_visibility="collapsed",
-                help="Upload your prior month's financial data here or in the sidebar"
+            prior_month_file_main = upload_card(
+                title="Prior Month Actuals",
+                key="main_prior_month_upload_functional",
+                help_text="Upload your prior month's financial data here or in the sidebar"
             )
             if prior_month_file_main is not None:
                 st.session_state.prior_month_actuals = prior_month_file_main
-            if st.session_state.get('prior_month_actuals'):
-                show_file_info(st.session_state.prior_month_actuals.name,
-                               file_size=f"{st.session_state.prior_month_actuals.size / 1024:.1f}KB" if st.session_state.prior_month_actuals.size else None,
-                               file_type=st.session_state.prior_month_actuals.type,
-                               uploaded=True)
-            st.markdown('</div>', unsafe_allow_html=True)
             
-            # Current Month Budget
-            st.markdown(
-            '''
-            <div class="upload-card">
-                <div class="upload-card-header">Current Month Budget</div>
-            '''
-            , unsafe_allow_html=True)
-            budget_file_main = st.file_uploader(
-                "Upload Current Month Budget ", 
-                type=["xlsx", "xls", "csv", "pdf"],
-                key="main_budget_upload_functional", 
-                label_visibility="collapsed",
-                help="Upload your budget data here or in the sidebar"
+            budget_file_main = upload_card(
+                title="Current Month Budget",
+                key="main_budget_upload_functional",
+                help_text="Upload your budget data here or in the sidebar"
             )
             if budget_file_main is not None:
                 st.session_state.current_month_budget = budget_file_main
-            if st.session_state.get('current_month_budget'):
-                show_file_info(st.session_state.current_month_budget.name,
-                               file_size=f"{st.session_state.current_month_budget.size / 1024:.1f}KB" if st.session_state.current_month_budget.size else None,
-                               file_type=st.session_state.current_month_budget.type,
-                               uploaded=True)
-            st.markdown('</div>', unsafe_allow_html=True)
             
-            # Prior Year Same Month
-            st.markdown(
-            '''
-            <div class="upload-card">
-                <div class="upload-card-header">Prior Year Same Month</div>
-            '''
-            , unsafe_allow_html=True)
-            prior_year_file_main = st.file_uploader(
-                "Upload Prior Year Same Month ", 
-                type=["xlsx", "xls", "csv", "pdf"],
+            prior_year_file_main = upload_card(
+                title="Prior Year Same Month",
                 key="main_prior_year_upload_functional",
-                label_visibility="collapsed",
-                help="Upload the same month from prior year here or in the sidebar"
+                help_text="Upload the same month from prior year here or in the sidebar"
             )
             if prior_year_file_main is not None:
                 st.session_state.prior_year_actuals = prior_year_file_main
-            if st.session_state.get('prior_year_actuals'):
-                show_file_info(st.session_state.prior_year_actuals.name,
-                               file_size=f"{st.session_state.prior_year_actuals.size / 1024:.1f}KB" if st.session_state.prior_year_actuals.size else None,
-                               file_type=st.session_state.prior_year_actuals.type,
-                               uploaded=True)
-            st.markdown('</div>', unsafe_allow_html=True)
             
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Property name input with modern styling
-            st.markdown('<div class="upload-card">', unsafe_allow_html=True)
-            st.markdown('<div class="upload-card-header">Property Information</div>', unsafe_allow_html=True)
-            # Property name input that updates session state
-            main_page_property_name_input = st.text_input(
-                "Property Name", # Clearer label
-                value=st.session_state.property_name,
-                help="Enter the name of the property being analyzed. Updates sidebar as well.",
-                key="main_property_name_input" # Unique key for this input field
-            )
+            # Enhanced property input using component function
+            main_page_property_name_input = property_input(value=st.session_state.property_name)
             if main_page_property_name_input != st.session_state.property_name:
                 st.session_state.property_name = main_page_property_name_input
-                # No st.rerun() here is generally fine as other components 
-                # should read the updated st.session_state.property_name in the next interaction.
-                # If immediate update of a disabled field elsewhere is needed, a rerun might be considered.
-            
-            st.markdown('</div>', unsafe_allow_html=True)
             
             # Add options container after file uploaders
             st.markdown('<div class="options-container">', unsafe_allow_html=True)
@@ -3347,8 +3442,7 @@ def main():
 
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # Main page 'Process Documents' button
-            # This button's click also sets user_initiated_processing to True
+            # Enhanced Process Documents button
             st.markdown(
             '''
             <style>
@@ -3426,28 +3520,42 @@ def main():
                 st.rerun() # Rerun to start the processing logic below
 
         with col2:
-            # Enhanced Instructions section
-            st.markdown(
-            '''
-            <div class="info-card">
-                <h3 class="info-card-header">Instructions:</h3>
-                <ol class="info-list">
-                    <li>Upload your financial documents using the file uploaders in the sidebar</li>
-                    <li>At minimum, upload a <span class="highlight">Current Month Actuals</span> file</li>
-                    <li>For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)</li>
-                    <li>Click "<span class="highlight">Process Documents</span>" (here or in sidebar) to analyze the data</li>
-                    <li>Review and edit extracted data in the template that appears</li>
-                    <li>Confirm data to view the analysis results</li>
-                    <li>Export your results as PDF or Excel using the export options</li>
-                </ol>
-                <p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>
-            </div>
-            '''
-            , unsafe_allow_html=True)
+            # Enhanced Instructions section using component function
+            instructions_card([
+                'Upload your financial documents using the file uploaders',
+                'At minimum, upload a <span class="highlight">Current Month Actuals</span> file',
+                'For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)',
+                'Click "<span class="highlight">Process Documents</span>" to analyze the data',
+                'Review and edit extracted data in the template that appears',
+                'Confirm data to view the analysis results',
+                'Export your results as PDF or Excel using the export options'
+            ])
             
-            # Enhanced Features section
-            st.markdown("<h2 class='section-header'>Features</h2>", unsafe_allow_html=True)
-            display_features_section_no_html() # Call the new function
+            st.markdown('<p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>', unsafe_allow_html=True)
+            
+            # Enhanced Features section using component function
+            feature_list([
+                {
+                    'title': 'Automated Data Extraction',
+                    'description': 'Extract financial data from multiple file formats with AI-powered recognition'
+                },
+                {
+                    'title': 'Comparative Analysis',
+                    'description': 'Compare current performance against prior periods and budgets automatically'
+                },
+                {
+                    'title': 'NOI Coach Integration',
+                    'description': 'Get AI-powered insights and recommendations for your financial performance'
+                },
+                {
+                    'title': 'Professional Export',
+                    'description': 'Export comprehensive reports in PDF or Excel format for presentations'
+                },
+                {
+                    'title': 'Real-time Validation',
+                    'description': 'Review and edit extracted data before analysis with interactive templates'
+                }
+            ])
     
     # --- Stage 1: Document Extraction (if user initiated processing and no data yet) ---
     # Debug: Check the conditions
@@ -4259,6 +4367,151 @@ def display_card_container(title, content):
         # This is a trick - we're creating an empty styled container above,
         # then putting the actual content below it in a Streamlit container
         content()
+
+# Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display an enhanced upload card component.
+    
+    Args:
+        title: Title of the upload card
+        required: Whether this upload is required
+        key: Unique key for the file uploader
+        file_types: List of accepted file types
+        help_text: Help text for the uploader
+        
+    Returns:
+        The uploaded file object
+    """
+    if file_types is None:
+        file_types = ["xlsx", "xls", "csv", "pdf"]
+        
+    # Create the upload card container
+    st.markdown(f"""
+    <div class="upload-card">
+        <div class="upload-card-header">
+            <h3>{title}</h3>
+            {' <span class="required-badge">Required</span>' if required else ''}
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Add the file uploader
+    uploaded_file = st.file_uploader(
+        f"Upload {title}",
+        type=file_types,
+        key=key,
+        label_visibility="collapsed",
+        help=help_text or f"Upload your {title.lower()} file"
+    )
+    
+    # Display upload area styling
+    if not uploaded_file:
+        st.markdown("""
+        <div class="upload-area">
+            <div class="upload-icon">📤</div>
+            <div class="upload-text">Drag and drop file here</div>
+            <div class="upload-subtext">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Display file info
+        file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
+        file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
+        
+        st.markdown(f"""
+        <div class="file-info">
+            <div class="file-icon">📄</div>
+            <div class="file-details">
+                <div class="file-name">{uploaded_file.name}</div>
+                <div class="file-meta">{file_size} • {file_type}</div>
+            </div>
+            <div class="file-status">Uploaded</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    return uploaded_file
+
+def instructions_card(items):
+    """
+    Display an enhanced instructions card.
+    
+    Args:
+        items: List of instruction steps
+    """
+    st.markdown("""
+    <div class="instructions-card">
+        <h3>Instructions</h3>
+        <ol>
+    """, unsafe_allow_html=True)
+    
+    for item in items:
+        st.markdown(f"<li>{item}</li>", unsafe_allow_html=True)
+    
+    st.markdown("""
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+def feature_list(features):
+    """
+    Display an enhanced feature list.
+    
+    Args:
+        features: List of dictionaries with 'title' and 'description' keys
+    """
+    st.markdown("<h3>Features</h3>", unsafe_allow_html=True)
+    
+    for idx, feature in enumerate(features):
+        st.markdown(f"""
+        <div class="feature-item">
+            <div class="feature-number">{idx + 1}</div>
+            <div class="feature-content">
+                <h4>{feature['title']}</h4>
+                <p>{feature['description']}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+def property_input(value=""):
+    """
+    Display an enhanced property name input.
+    
+    Args:
+        value: Current property name value
+        
+    Returns:
+        The entered property name
+    """
+    st.markdown("""
+    <div class="property-input-container">
+        <div class="upload-card-header">
+            <h3>Property Information</h3>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    property_name = st.text_input(
+        "Property Name",
+        value=value,
+        help="Enter the name of the property being analyzed",
+        key="main_property_name_input"
+    )
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    return property_name
+
+# Helper function to summarize data structures for logging
+def summarize_data_for_log(data_dict, max_items=3):
+    """Summarize a data structure for more concise logging"""
+    if not isinstance(data_dict, dict):
+        return str(data_dict)
+    keys = list(data_dict.keys())
+    summary = {k: data_dict[k] for k in keys[:max_items]}
+    if len(keys) > max_items:
+        summary[f"...and {len(keys) - max_items} more keys"] = "..."
+    return summary
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
