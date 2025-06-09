@@ -1446,6 +1446,41 @@ def inject_custom_css():
         border-left: 4px solid var(--reborn-accent-blue);
     }
 
+    /* Enhanced Instructions List */
+    ol.instructions-list {
+        padding-left: 24px;
+        margin-bottom: 32px;
+    }
+
+    ol.instructions-list li {
+        color: #EAEAEA;
+        font-size: 14px;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    
+    /* Enhanced Process Documents button */
+    .stButton > button[kind="primary"] {
+        background-color: #1A1A1A !important; /* Dark gray/black */
+        color: white !important;
+        border: 1px solid #444 !important; /* Add a subtle border */
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.3s ease !important;
+        margin-top: 1rem !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background-color: #333333 !important; /* Lighter gray on hover */
+        border-color: #555 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        transform: translateY(-2px) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -3448,13 +3483,13 @@ def main():
             <style>
             /* Override button styling for process button */
             .stButton > button[kind="primary"] {
-                background-color: #3B82F6 !important;
+                background-color: #1A1A1A !important; /* Dark gray/black */
                 color: white !important;
+                border: 1px solid #444 !important; /* Add a subtle border */
                 font-size: 1.1rem !important;
                 font-weight: 500 !important;
                 padding: 0.75rem 1.5rem !important;
                 border-radius: 8px !important;
-                border: none !important;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
                 transition: all 0.3s ease !important;
                 margin-top: 1rem !important;
@@ -3463,7 +3498,8 @@ def main():
             }
             
             .stButton > button[kind="primary"]:hover {
-                background-color: #2563EB !important;
+                background-color: #333333 !important; /* Lighter gray on hover */
+                border-color: #555 !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
                 transform: translateY(-2px) !important;
             }
@@ -4429,7 +4465,7 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<span></span></div>", unsafe_allow_html=True)
     
     return uploaded_file
 
@@ -4441,9 +4477,8 @@ def instructions_card(items):
         items: List of instruction steps
     """
     st.markdown("""
-    <div class="instructions-card">
-        <h3>Instructions</h3>
-        <ol>
+    <h3>Instructions</h3>
+    <ol class="instructions-list">
     """, unsafe_allow_html=True)
     
     for item in items:
@@ -4451,7 +4486,6 @@ def instructions_card(items):
     
     st.markdown("""
         </ol>
-    </div>
     """, unsafe_allow_html=True)
 
 def feature_list(features):
@@ -4498,7 +4532,7 @@ def property_input(value=""):
         key="main_property_name_input"
     )
     
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<span></span></div>", unsafe_allow_html=True)
     
     return property_name
 
