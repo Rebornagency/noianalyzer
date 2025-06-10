@@ -2134,7 +2134,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 if opex_df_data:
                     opex_df = pd.DataFrame(opex_df_data)
                     
-                    opex_df_display = opex_df.copy()
+                    # Create display dataframe without the Color column
+                    opex_df_display = opex_df.drop(columns=['Color']).copy()
                     opex_df_display["Current"] = opex_df_display["Current"].apply(lambda x: f"${x:,.2f}")
                     opex_df_display[name_suffix] = opex_df_display[name_suffix].apply(lambda x: f"${x:,.2f}")
                     # Apply + sign for positive changes, - for negative, and no sign for zero.
