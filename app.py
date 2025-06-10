@@ -3482,8 +3482,8 @@ def main():
             st.markdown(
             '''
             <style>
-            /* Override button styling for process button */
-            .stButton > button[kind="primary"] {
+            /* Override button styling for process button with higher specificity */
+            .stApp .stButton > button[kind="primary"] {
                 background-color: #79b8f3 !important; /* Blue theme color */
                 color: white !important;
                 border: 1px solid #64B5F6 !important; /* Lighter blue border */
@@ -3498,7 +3498,7 @@ def main():
                 width: 100% !important;
             }
             
-            .stButton > button[kind="primary"]:hover {
+            .stApp .stButton > button[kind="primary"]:hover {
                 background-color: #3B82F6 !important; /* Darker blue on hover */
                 border-color: #2563EB !important;
                 box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
@@ -4447,7 +4447,7 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         """, unsafe_allow_html=True)
     
     # Close the upload card container
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)  # Close upload-card-header and upload-card
     
     return uploaded_file
 
@@ -4512,7 +4512,7 @@ def property_input(value=""):
         key="main_property_name_input"
     )
     
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div></div>", unsafe_allow_html=True)  # Close upload-card-header and property-input-container
     
     return property_name
 
