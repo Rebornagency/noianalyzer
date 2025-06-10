@@ -920,11 +920,11 @@ def inject_custom_css():
     
     /* Enhanced Instructions Card */
     .instructions-card {
-        background-color: rgba(17, 17, 34, 0.8);
-        border-radius: 8px;
-        padding: 24px;
+        background-color: transparent !important;
+        border-radius: 0;
+        padding: 0;
         margin-bottom: 32px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        box-shadow: none !important;
     }
     
     .instructions-card h3 {
@@ -1461,14 +1461,14 @@ def inject_custom_css():
     
     /* Enhanced Process Documents button */
     .stButton > button[kind="primary"] {
-        background-color: #1A1A1A !important; /* Dark gray/black */
+        background-color: #79b8f3 !important; /* Blue theme color */
         color: white !important;
-        border: 1px solid #444 !important; /* Add a subtle border */
+        border: 1px solid #64B5F6 !important; /* Lighter blue border */
         font-size: 1.1rem !important;
         font-weight: 500 !important;
         padding: 0.75rem 1.5rem !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
         transition: all 0.3s ease !important;
         margin-top: 1rem !important;
         margin-bottom: 1.5rem !important;
@@ -1476,9 +1476,9 @@ def inject_custom_css():
     }
     
     .stButton > button[kind="primary"]:hover {
-        background-color: #333333 !important; /* Lighter gray on hover */
-        border-color: #555 !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        background-color: #3B82F6 !important; /* Darker blue on hover */
+        border-color: #2563EB !important;
+        box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
         transform: translateY(-2px) !important;
     }
     </style>
@@ -3483,14 +3483,14 @@ def main():
             <style>
             /* Override button styling for process button */
             .stButton > button[kind="primary"] {
-                background-color: #1A1A1A !important; /* Dark gray/black */
+                background-color: #79b8f3 !important; /* Blue theme color */
                 color: white !important;
-                border: 1px solid #444 !important; /* Add a subtle border */
+                border: 1px solid #64B5F6 !important; /* Lighter blue border */
                 font-size: 1.1rem !important;
                 font-weight: 500 !important;
                 padding: 0.75rem 1.5rem !important;
                 border-radius: 8px !important;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+                box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
                 transition: all 0.3s ease !important;
                 margin-top: 1rem !important;
                 margin-bottom: 1.5rem !important;
@@ -3498,9 +3498,9 @@ def main():
             }
             
             .stButton > button[kind="primary"]:hover {
-                background-color: #333333 !important; /* Lighter gray on hover */
-                border-color: #555 !important;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+                background-color: #3B82F6 !important; /* Darker blue on hover */
+                border-color: #2563EB !important;
+                box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
                 transform: translateY(-2px) !important;
             }
             </style>
@@ -3559,9 +3559,9 @@ def main():
             # Enhanced Instructions section using component function
             instructions_card([
                 'Upload your financial documents using the file uploaders',
-                'At minimum, upload a <span class="highlight">Current Month Actuals</span> file',
+                'At minimum, upload a <span style="color: #79b8f3; font-weight: 500;">Current Month Actuals</span> file',
                 'For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)',
-                'Click "<span class="highlight">Process Documents</span>" to analyze the data',
+                'Click "<span style="color: #79b8f3; font-weight: 500;">Process Documents</span>" to analyze the data',
                 'Review and edit extracted data in the template that appears',
                 'Confirm data to view the analysis results',
                 'Export your results as PDF or Excel using the export options'
@@ -4465,7 +4465,8 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("<span></span></div>", unsafe_allow_html=True)
+    # Close the upload card container
+    st.markdown("</div>", unsafe_allow_html=True)
     
     return uploaded_file
 
@@ -4476,16 +4477,14 @@ def instructions_card(items):
     Args:
         items: List of instruction steps
     """
-    st.markdown("""
-    <h3>Instructions</h3>
-    <ol class="instructions-list">
-    """, unsafe_allow_html=True)
-    
-    for item in items:
-        st.markdown(f"<li>{item}</li>", unsafe_allow_html=True)
-    
-    st.markdown("""
+    items_html = "".join([f"<li>{item}</li>" for item in items])
+    st.markdown(f"""
+    <div class="instructions-card">
+        <h3 class="feature-title">Instructions</h3>
+        <ol class="instructions-list">
+            {items_html}
         </ol>
+    </div>
     """, unsafe_allow_html=True)
 
 def feature_list(features):
@@ -4495,7 +4494,7 @@ def feature_list(features):
     Args:
         features: List of dictionaries with 'title' and 'description' keys
     """
-    st.markdown("<h3>Features</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 class=\"feature-title\">Features</h3>", unsafe_allow_html=True)
     
     for idx, feature in enumerate(features):
         st.markdown(f"""
@@ -4532,7 +4531,7 @@ def property_input(value=""):
         key="main_property_name_input"
     )
     
-    st.markdown("<span></span></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
     
     return property_name
 
