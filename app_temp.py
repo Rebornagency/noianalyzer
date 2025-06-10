@@ -4038,7 +4038,7 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            # PDF Export button
+            # PDF Export button with modern styling
             if st.button("Generate Complete PDF Report", key="global_pdf_export"):
                 # Use our custom status indicator instead of spinner
                 show_processing_status("Generating comprehensive PDF report...", is_running=True)
@@ -4067,15 +4067,15 @@ def main():
                 except Exception as e:
                     logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
                     # Show error message
-                    show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
+            st.markdown('</div>', unsafe_allow_html=True)
         
         with col2:
-            # Excel Export button
+            st.markdown('<div class="export-button">', unsafe_allow_html=True)
             if st.button("Export to Excel", key="global_excel_export"):
                 # Use our custom status indicator
                 show_processing_status("Generating Excel export...", is_running=True)
                 # Excel export logic here
-                show_processing_status("Excel export functionality coming soon!", status_type="info")
+            st.markdown('</div>', unsafe_allow_html=True)
 
 def display_features_section():
     """Display the features section using pure Streamlit components without HTML"""
