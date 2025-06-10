@@ -3499,9 +3499,9 @@ def main():
             }
             
             .stApp .stButton > button[kind="primary"]:hover {
-                background-color: #3B82F6 !important; /* Darker blue on hover */
+                background-color: #3B82F6 !important; /* Lighter blue on hover */
                 border-color: #2563EB !important;
-                box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.18) !important;
                 transform: translateY(-2px) !important;
             }
             </style>
