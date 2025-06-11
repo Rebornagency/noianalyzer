@@ -871,7 +871,7 @@ def inject_custom_css():
     .upload-card-header {
         display: flex;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 20px !important; /* Add more spacing between upload card header and content */
     }
     
     .upload-card-header h3 {
@@ -1481,6 +1481,42 @@ def inject_custom_css():
         box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
         transform: translateY(-2px) !important;
     }
+    
+    /* Additional selectors for Process Documents button with higher specificity */
+    div[data-testid="stButton"] > button[kind="primary"],
+    div[data-testid="stButton"] > button[data-testid="baseButton-primary"],
+    .stApp div[data-testid="stButton"] > button[kind="primary"],
+    .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {
+        background-color: #79b8f3 !important;
+        color: white !important;
+        border: 1px solid #64B5F6 !important;
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+        transition: all 0.3s ease !important;
+        margin-top: 1rem !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+
+    div[data-testid="stButton"] > button[kind="primary"]:hover,
+    div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover,
+    .stApp div[data-testid="stButton"] > button[kind="primary"]:hover,
+    .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover {
+        background-color: #3B82F6 !important;
+        border-color: #2563EB !important;
+        box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Target specific button by key if needed */
+    button[data-testid="baseButton-primary"][aria-label*="main_process_button"] {
+        background-color: #79b8f3 !important;
+        color: white !important;
+        border: 1px solid #64B5F6 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1602,46 +1638,82 @@ def display_logo():
     try:
         logo_base64 = get_reborn_logo_base64()
         
-        # Direct embedding of the logo with proper sizing, alignment, and no extra spacing
-        logo_html = f"""
-        <div style="
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            margin-bottom: 15px; 
-            margin-top: 0; 
-            padding: 5px 0;
-        ">
-            <img 
-                src="data:image/png;base64,{logo_base64}" 
-                width="180px" 
-                alt="Reborn Logo" 
-                style="
-                    object-fit: contain;
-                    filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
-                    -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
-                    max-width: 100%;
-                    background: transparent;
-                "
-            >
-        </div>
-        """
-        st.markdown(logo_html, unsafe_allow_html=True)
+        # Check if we got a valid base64 string
+        if not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100:
+            logger.warning(f"Invalid logo base64 string: {logo_base64[:20] if logo_base64 else 'None'}...")
+            # Fallback to text if logo is invalid
+            st.markdown("""
+            <h2 style='
+                text-align: center; 
+                color: #79b8f3; 
+                margin-top: 0; 
+                padding: 15px 0; 
+                font-size: 2rem;
+                font-weight: 600;
+                text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+            '>
+                NOI ANALYZER
+            </h2>
+            """, unsafe_allow_html=True)
+            return
+        
+        # Use Streamlit's native st.image for better compatibility
+        import base64
+        from io import BytesIO
+        
+        try:
+            # Decode the base64 string
+            image_bytes = base64.b64decode(logo_base64)
+            image_io = BytesIO(image_bytes)
+            
+            # Use columns to control the logo size and position
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.image(image_io, width=180)  # Adjust width as needed
+                
+        except Exception as e:
+            logger.error(f"Error displaying logo image: {str(e)}")
+            # Fallback to markdown with the base64 string directly
+            st.markdown(f"""
+            <div style="
+                display: flex; 
+                justify-content: center; 
+                align-items: center; 
+                margin-bottom: 15px; 
+                margin-top: 0; 
+                padding: 5px 0;
+            ">
+                <img 
+                    src="data:image/png;base64,{logo_base64}" 
+                    width="180px" 
+                    alt="Reborn Logo" 
+                    style="
+                        object-fit: contain;
+                        filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
+                        -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
+                        max-width: 100%;
+                        background: transparent;
+                    "
+                >
+            </div>
+            """, unsafe_allow_html=True)
+        
         logger.info("Successfully displayed logo")
+        
     except Exception as e:
         logger.error(f"Error displaying logo: {str(e)}")
-        # Fallback to text with better styling
+        # Ultimate fallback - just show the title
         st.markdown("""
         <h2 style='
             text-align: center; 
-            color: #4DB6AC; 
+            color: #79b8f3; 
             margin-top: 0; 
             padding: 15px 0; 
             font-size: 2rem;
             font-weight: 600;
             text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
         '>
-            REBORN NOI ANALYZER
+            NOI ANALYZER
         </h2>
         """, unsafe_allow_html=True)
 
@@ -4445,6 +4517,9 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             {' <span class="required-badge">Required</span>' if required else ''}
         </div>
         """, unsafe_allow_html=True)
+        
+        # ADD THIS: Empty space between title and uploader for better spacing
+        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
         
         # 2. Add the file uploader - not wrapped in HTML
         uploaded_file = st.file_uploader(
