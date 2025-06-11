@@ -4447,7 +4447,7 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         """, unsafe_allow_html=True)
     
     # Close the upload card container
-    st.markdown("</div></div>", unsafe_allow_html=True)  # Close upload-card-header and upload-card
+    st.markdown("</div>", unsafe_allow_html=True)  # Close upload-card only
     
     return uploaded_file
 
@@ -4512,7 +4512,7 @@ def property_input(value=""):
         key="main_property_name_input"
     )
     
-    st.markdown("</div></div>", unsafe_allow_html=True)  # Close upload-card-header and property-input-container
+    st.markdown("</div>", unsafe_allow_html=True)  # Close property-input-container only
     
     return property_name
 
