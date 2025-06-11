@@ -3482,8 +3482,40 @@ def main():
             st.markdown(
             '''
             <style>
-            /* Override button styling for process button with higher specificity */
-            .stApp .stButton > button[kind="primary"] {
+            /* CSS Reset for button styles */
+            .stApp .stButton > button {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                box-sizing: border-box;
+                cursor: pointer;
+            }
+            
+            /* Enhanced container styling for upload cards */
+            .stContainer {
+                background-color: rgba(22, 27, 34, 0.8);
+                border: 1px solid rgba(56, 68, 77, 0.5);
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 20px;
+            }
+            
+            .upload-card-header {
+                margin-bottom: 16px;
+            }
+            
+            .upload-card-header h3 {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: #e6edf3;
+                margin: 0;
+            }
+            
+            /* Enhanced Process Documents button - increased specificity */
+            .stApp .stButton > button[kind="primary"],
+            .stApp .stButton > button[data-testid="baseButton-primary"] {
                 background-color: #79b8f3 !important; /* Blue theme color */
                 color: white !important;
                 border: 1px solid #64B5F6 !important; /* Lighter blue border */
@@ -3498,10 +3530,11 @@ def main():
                 width: 100% !important;
             }
             
-            .stApp .stButton > button[kind="primary"]:hover {
-                background-color: #3B82F6 !important; /* Lighter blue on hover */
+            .stApp .stButton > button[kind="primary"]:hover,
+            .stApp .stButton > button[data-testid="baseButton-primary"]:hover {
+                background-color: #3B82F6 !important; /* Darker blue on hover */
                 border-color: #2563EB !important;
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.18) !important;
+                box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
                 transform: translateY(-2px) !important;
             }
             </style>
@@ -4388,7 +4421,7 @@ def display_card_container(title, content):
 # Enhanced UI Component Functions
 def upload_card(title, required=False, key=None, file_types=None, help_text=None):
     """
-    Display an enhanced upload card component.
+    Display an enhanced upload card component using Streamlit-native containers.
     
     Args:
         title: Title of the upload card
@@ -4402,52 +4435,50 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
     """
     if file_types is None:
         file_types = ["xlsx", "xls", "csv", "pdf"]
-        
-    # Create the upload card container
-    st.markdown(f"""
-    <div class="upload-card">
+    
+    # Use Streamlit container instead of HTML div
+    with st.container():
+        # 1. Header section - only use markdown for the header, not to wrap widgets
+        st.markdown(f"""
         <div class="upload-card-header">
             <h3>{title}</h3>
             {' <span class="required-badge">Required</span>' if required else ''}
         </div>
-    """, unsafe_allow_html=True)
-    
-    # Add the file uploader
-    uploaded_file = st.file_uploader(
-        f"Upload {title}",
-        type=file_types,
-        key=key,
-        label_visibility="collapsed",
-        help=help_text or f"Upload your {title.lower()} file"
-    )
-    
-    # Display upload area styling
-    if not uploaded_file:
-        st.markdown("""
-        <div class="upload-area">
-            <div class="upload-icon">📤</div>
-            <div class="upload-text">Drag and drop file here</div>
-            <div class="upload-subtext">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-        </div>
         """, unsafe_allow_html=True)
-    else:
-        # Display file info
-        file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
-        file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
         
-        st.markdown(f"""
-        <div class="file-info">
-            <div class="file-icon">📄</div>
-            <div class="file-details">
-                <div class="file-name">{uploaded_file.name}</div>
-                <div class="file-meta">{file_size} • {file_type}</div>
+        # 2. Add the file uploader - not wrapped in HTML
+        uploaded_file = st.file_uploader(
+            f"Upload {title}",
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            help=help_text or f"Upload your {title.lower()} file"
+        )
+        
+        # 3. Display upload area styling or file info
+        if not uploaded_file:
+            st.markdown("""
+            <div class="upload-area">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Drag and drop file here</div>
+                <div class="upload-subtext">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
             </div>
-            <div class="file-status">Uploaded</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Close the upload card container
-    st.markdown("</div>", unsafe_allow_html=True)  # Close upload-card only
+            """, unsafe_allow_html=True)
+        else:
+            # Display file info
+            file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
+            file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
+            
+            st.markdown(f"""
+            <div class="file-info">
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                    <div class="file-name">{uploaded_file.name}</div>
+                    <div class="file-meta">{file_size} • {file_type}</div>
+                </div>
+                <div class="file-status">Uploaded</div>
+            </div>
+            """, unsafe_allow_html=True)
     
     return uploaded_file
 
@@ -4490,7 +4521,7 @@ def feature_list(features):
 
 def property_input(value=""):
     """
-    Display an enhanced property name input.
+    Display an enhanced property name input using Streamlit-native containers.
     
     Args:
         value: Current property name value
@@ -4498,21 +4529,21 @@ def property_input(value=""):
     Returns:
         The entered property name
     """
-    st.markdown("""
-    <div class="property-input-container">
+    with st.container():
+        # Header only - don't try to wrap the input widget in HTML
+        st.markdown("""
         <div class="upload-card-header">
             <h3>Property Information</h3>
         </div>
-    """, unsafe_allow_html=True)
-    
-    property_name = st.text_input(
-        "Property Name",
-        value=value,
-        help="Enter the name of the property being analyzed",
-        key="main_property_name_input"
-    )
-    
-    st.markdown("</div>", unsafe_allow_html=True)  # Close property-input-container only
+        """, unsafe_allow_html=True)
+        
+        # Property name input - not wrapped in HTML
+        property_name = st.text_input(
+            "Property Name",
+            value=value,
+            help="Enter the name of the property being analyzed",
+            key="main_property_name_input"
+        )
     
     return property_name
 
