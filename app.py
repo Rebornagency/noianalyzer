@@ -871,6 +871,8 @@ def inject_custom_css():
     .upload-card-header {
         display: flex;
         align-items: center;
+        justify-content: center; /* Center align the title and badge */
+        margin-top: 2.5rem !important; /* Added to create space between upload cards */
         margin-bottom: 20px !important; /* Add more spacing between upload card header and content */
     }
     
