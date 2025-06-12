@@ -1636,71 +1636,234 @@ from reborn_logo import get_reborn_logo_base64
 
 # Logo display function - updated to use direct embedding with better error handling
 def display_logo():
-    """Display the Reborn logo in the Streamlit app"""
+    """Display the Reborn logo with theme toggle in header"""
     try:
         logo_base64 = get_reborn_logo_base64()
         
         # Check if we got a valid base64 string
         if not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100:
             logger.warning(f"Invalid logo base64 string: {logo_base64[:20] if logo_base64 else 'None'}...")
-            # Fallback to text if logo is invalid
-            st.markdown("""
-            <h2 style='
-                text-align: center; 
-                color: #79b8f3; 
-                margin-top: 0; 
-                padding: 15px 0; 
-                font-size: 2rem;
-                font-weight: 600;
-                text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-            '>
-                NOI ANALYZER
-            </h2>
-            """, unsafe_allow_html=True)
-            return
+            logo_fallback = True
+        else:
+            logo_fallback = False
         
-        # Use Streamlit's native st.image for better compatibility
-        import base64
-        from io import BytesIO
+        # Create header with logo on left and theme toggle on right
+        st.markdown("""
+        <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 20px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        ">
+            <div style="display: flex; align-items: center;">
+        """, unsafe_allow_html=True)
         
-        try:
-            # Decode the base64 string
-            image_bytes = base64.b64decode(logo_base64)
-            image_io = BytesIO(image_bytes)
-            
-            # Use columns to control the logo size and position
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.image(image_io, width=180)  # Adjust width as needed
+        # Logo section
+        if not logo_fallback:
+            try:
+                # Use Streamlit's native st.image for better compatibility
+                import base64
+                from io import BytesIO
                 
-        except Exception as e:
-            logger.error(f"Error displaying logo image: {str(e)}")
-            # Fallback to markdown with the base64 string directly
-            st.markdown(f"""
-            <div style="
-                display: flex; 
-                justify-content: center; 
-                align-items: center; 
-                margin-bottom: 15px; 
-                margin-top: 0; 
-                padding: 5px 0;
-            ">
-                <img 
-                    src="data:image/png;base64,{logo_base64}" 
-                    width="180px" 
-                    alt="Reborn Logo" 
-                    style="
-                        object-fit: contain;
-                        filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
-                        -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
-                        max-width: 100%;
-                        background: transparent;
-                    "
-                >
-            </div>
-            """, unsafe_allow_html=True)
+                # Decode the base64 string
+                image_bytes = base64.b64decode(logo_base64)
+                image_io = BytesIO(image_bytes)
+                
+                # Create a container for the logo
+                logo_col, toggle_col = st.columns([3, 1])
+                with logo_col:
+                    st.image(image_io, width=180)
+                    
+                with toggle_col:
+                    # Theme toggle switch
+                    current_theme = st.session_state.theme
+                    
+                    # Custom toggle switch HTML/CSS
+                    toggle_html = f"""
+                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px;">
+                        <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
+                            <style>
+                            .theme-toggle {{
+                                position: relative;
+                                width: 60px;
+                                height: 30px;
+                                background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
+                                border-radius: 15px;
+                                cursor: pointer;
+                                transition: background-color 0.3s ease;
+                                border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
+                            }}
+                            .theme-toggle::before {{
+                                content: "{'🌙' if current_theme == 'dark' else '☀️'}";
+                                position: absolute;
+                                top: 50%;
+                                left: {'32px' if current_theme == 'dark' else '6px'};
+                                transform: translateY(-50%);
+                                width: 22px;
+                                height: 22px;
+                                background-color: white;
+                                border-radius: 50%;
+                                transition: left 0.3s ease;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 12px;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                            }}
+                            .theme-toggle:hover {{
+                                background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
+                            }}
+                            </style>
+                            <div class="theme-toggle" id="theme-toggle"></div>
+                        </div>
+                    </div>
+                    """
+                    st.markdown(toggle_html, unsafe_allow_html=True)
+                    
+                    # Create theme toggle button (hidden, triggered by JavaScript)
+                    if st.button("", key="theme_toggle_hidden", help="Toggle light/dark mode"):
+                        # Toggle theme in session state
+                        new_theme = "light" if current_theme == "dark" else "dark"
+                        st.session_state.theme = new_theme
+                        
+                        # Apply theme change via JavaScript
+                        st.markdown(f"""
+                        <script>
+                        const root = document.documentElement;
+                        root.setAttribute('data-theme', '{new_theme}');
+                        localStorage.setItem('preferred-theme', '{new_theme}');
+                        </script>
+                        """, unsafe_allow_html=True)
+                        
+                        st.rerun()
+                
+                # Add JavaScript to make the toggle clickable
+                st.markdown("""
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const toggle = document.getElementById('theme-toggle');
+                    if (toggle) {
+                        toggle.addEventListener('click', function() {
+                            // Find the hidden Streamlit button and click it
+                            const hiddenButton = document.querySelector('[data-testid="baseButton-secondary"]');
+                            if (hiddenButton) {
+                                hiddenButton.click();
+                            }
+                        });
+                    }
+                });
+                </script>
+                """, unsafe_allow_html=True)
+                
+            except Exception as e:
+                logger.error(f"Error displaying logo image: {str(e)}")
+                # Fallback to markdown with the base64 string directly
+                st.markdown(f"""
+                <div style="
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    margin-bottom: 15px; 
+                    margin-top: 0; 
+                    padding: 5px 0;
+                ">
+                    <img 
+                        src="data:image/png;base64,{logo_base64}" 
+                        width="180px" 
+                        alt="Reborn Logo" 
+                        style="
+                            object-fit: contain;
+                            filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
+                            -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
+                            max-width: 100%;
+                            background: transparent;
+                        "
+                    >
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            # Fallback - just show the title with toggle
+            header_col1, header_col2 = st.columns([3, 1])
+            with header_col1:
+                st.markdown("""
+                <h2 style='
+                    color: #79b8f3; 
+                    margin-top: 0; 
+                    padding: 15px 0; 
+                    font-size: 2rem;
+                    font-weight: 600;
+                    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+                '>
+                    NOI ANALYZER
+                </h2>
+                """, unsafe_allow_html=True)
+            
+            with header_col2:
+                # Theme toggle switch
+                current_theme = st.session_state.theme
+                
+                # Custom toggle switch HTML/CSS
+                toggle_html = f"""
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px;">
+                    <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
+                        <style>
+                        .theme-toggle {{
+                            position: relative;
+                            width: 60px;
+                            height: 30px;
+                            background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
+                            border-radius: 15px;
+                            cursor: pointer;
+                            transition: background-color 0.3s ease;
+                            border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
+                        }}
+                        .theme-toggle::before {{
+                            content: "{'🌙' if current_theme == 'dark' else '☀️'}";
+                            position: absolute;
+                            top: 50%;
+                            left: {'32px' if current_theme == 'dark' else '6px'};
+                            transform: translateY(-50%);
+                            width: 22px;
+                            height: 22px;
+                            background-color: white;
+                            border-radius: 50%;
+                            transition: left 0.3s ease;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 12px;
+                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                        }}
+                        .theme-toggle:hover {{
+                            background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
+                        }}
+                        </style>
+                        <div class="theme-toggle" id="theme-toggle-fallback"></div>
+                    </div>
+                </div>
+                """
+                st.markdown(toggle_html, unsafe_allow_html=True)
+                
+                # Create theme toggle button (hidden, triggered by JavaScript)
+                if st.button("", key="theme_toggle_hidden_fallback", help="Toggle light/dark mode"):
+                    # Toggle theme in session state
+                    new_theme = "light" if current_theme == "dark" else "dark"
+                    st.session_state.theme = new_theme
+                    
+                    # Apply theme change via JavaScript
+                    st.markdown(f"""
+                    <script>
+                    const root = document.documentElement;
+                    root.setAttribute('data-theme', '{new_theme}');
+                    localStorage.setItem('preferred-theme', '{new_theme}');
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
+                    st.rerun()
         
-        logger.info("Successfully displayed logo")
+        logger.info("Successfully displayed logo with theme toggle")
         
     except Exception as e:
         logger.error(f"Error displaying logo: {str(e)}")
@@ -3516,39 +3679,16 @@ def main():
             # Create a row for the options
             options_col1, options_col2 = st.columns(2)
 
-            # Show Zero Values toggle in first column
-            with options_col1:
-                show_zero_values = st.checkbox(
-                    "Show Zero Values", 
-                    value=st.session_state.show_zero_values,
-                    help="Show metrics with zero values in the comparison tables"
-                )
-                
-                if show_zero_values != st.session_state.show_zero_values:
-                    st.session_state.show_zero_values = show_zero_values
-                    st.rerun()
-
-            # Theme toggle in second column
-            with options_col2:
-                current_theme = st.session_state.theme
-                theme_button_text = "☀️ Light Mode" if current_theme == "dark" else "🌙 Dark Mode"
-                
-                # Create theme toggle button
-                if st.button(theme_button_text, key="theme_toggle"):
-                    # Toggle theme in session state
-                    new_theme = "light" if current_theme == "dark" else "dark"
-                    st.session_state.theme = new_theme
-                    
-                    # Apply theme change via JavaScript
-                    st.markdown(f"""
-                    <script>
-                    const root = document.documentElement;
-                    root.setAttribute('data-theme', '{new_theme}');
-                    localStorage.setItem('preferred-theme', '{new_theme}');
-                    </script>
-                    """, unsafe_allow_html=True)
-                    
-                    st.rerun()
+            # Show Zero Values toggle (now full width since theme toggle moved to header)
+            show_zero_values = st.checkbox(
+                "Show Zero Values", 
+                value=st.session_state.show_zero_values,
+                help="Show metrics with zero values in the comparison tables"
+            )
+            
+            if show_zero_values != st.session_state.show_zero_values:
+                st.session_state.show_zero_values = show_zero_values
+                st.rerun()
 
             st.markdown('</div>', unsafe_allow_html=True)
             
