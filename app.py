@@ -1703,6 +1703,14 @@ def display_logo():
                             .theme-toggle:hover {{
                                 background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                             }}
+                            /* Hide the actual Streamlit button */
+                            button:has-text("Toggle Theme") {{
+                                display: none !important;
+                            }}
+                            /* More specific hiding for theme toggle buttons */
+                            .stButton button[title*="Toggle"] {{
+                                display: none !important;
+                            }}
                             </style>
                             <div class="theme-toggle" id="theme-toggle"></div>
                         </div>
@@ -1710,8 +1718,9 @@ def display_logo():
                     """
                     st.markdown(toggle_html, unsafe_allow_html=True)
                     
-                    # Create theme toggle button (hidden, triggered by JavaScript)
-                    if st.button("", key="theme_toggle_hidden", help="Toggle light/dark mode"):
+                    # Create theme toggle button (hidden via CSS, triggered by JavaScript)
+                    st.markdown('<div style="display: none;">', unsafe_allow_html=True)
+                    if st.button("Toggle Theme", key="theme_toggle_header", help="Toggle light/dark mode", type="secondary"):
                         # Toggle theme in session state
                         new_theme = "light" if current_theme == "dark" else "dark"
                         st.session_state.theme = new_theme
@@ -1726,24 +1735,28 @@ def display_logo():
                         """, unsafe_allow_html=True)
                         
                         st.rerun()
-                
-                # Add JavaScript to make the toggle clickable
-                st.markdown("""
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const toggle = document.getElementById('theme-toggle');
-                    if (toggle) {
-                        toggle.addEventListener('click', function() {
-                            // Find the hidden Streamlit button and click it
-                            const hiddenButton = document.querySelector('[data-testid="baseButton-secondary"]');
-                            if (hiddenButton) {
-                                hiddenButton.click();
-                            }
-                        });
-                    }
-                });
-                </script>
-                """, unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Add JavaScript to make the toggle clickable
+                    st.markdown("""
+                    <script>
+                    setTimeout(function() {
+                        const toggle = document.getElementById('theme-toggle');
+                        if (toggle) {
+                            toggle.addEventListener('click', function() {
+                                // Find the theme toggle button and click it
+                                const buttons = document.querySelectorAll('button');
+                                for (let button of buttons) {
+                                    if (button.textContent === 'Toggle Theme') {
+                                        button.click();
+                                        break;
+                                    }
+                                }
+                            });
+                        }
+                    }, 100);
+                    </script>
+                    """, unsafe_allow_html=True)
                 
             except Exception as e:
                 logger.error(f"Error displaying logo image: {str(e)}")
@@ -1805,6 +1818,14 @@ def display_logo():
                             .theme-toggle-fallback:hover {{
                                 background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                             }}
+                            /* Hide the actual Streamlit button */
+                            button:has-text("Toggle Theme") {{
+                                display: none !important;
+                            }}
+                            /* More specific hiding for theme toggle buttons */
+                            .stButton button[title*="Toggle"] {{
+                                display: none !important;
+                            }}
                             </style>
                             <div class="theme-toggle-fallback" id="theme-toggle-fallback"></div>
                         </div>
@@ -1812,10 +1833,39 @@ def display_logo():
                     """
                     st.markdown(toggle_html, unsafe_allow_html=True)
                     
-                    if st.button("", key="theme_toggle_hidden_fallback", help="Toggle light/dark mode"):
+                    st.markdown('<div style="display: none;">', unsafe_allow_html=True)
+                    if st.button("Toggle Theme", key="theme_toggle_header_fallback", help="Toggle light/dark mode", type="secondary"):
                         new_theme = "light" if current_theme == "dark" else "dark"
                         st.session_state.theme = new_theme
                         st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    if st.button("Toggle Theme", key="theme_toggle_header_fallback", help="Toggle light/dark mode", type="secondary"):
+                        new_theme = "light" if current_theme == "dark" else "dark"
+                        st.session_state.theme = new_theme
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Add JavaScript for fallback toggle
+                    st.markdown("""
+                    <script>
+                    setTimeout(function() {
+                        const toggle = document.getElementById('theme-toggle-fallback');
+                        if (toggle) {
+                            toggle.addEventListener('click', function() {
+                                const buttons = document.querySelectorAll('button');
+                                for (let button of buttons) {
+                                    if (button.textContent === 'Toggle Theme') {
+                                        button.click();
+                                        break;
+                                    }
+                                }
+                            });
+                        }
+                    }, 100);
+                    </script>
+                    """, unsafe_allow_html=True)
+                
         else:
             # Fallback - just show the title with toggle
             header_col1, header_col2 = st.columns([3, 1])
@@ -1871,6 +1921,14 @@ def display_logo():
                         .theme-toggle-title:hover {{
                             background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                         }}
+                        /* Hide the actual Streamlit button */
+                        button:has-text("Toggle Theme") {{
+                            display: none !important;
+                        }}
+                        /* More specific hiding for theme toggle buttons */
+                        .stButton button[title*="Toggle"] {{
+                            display: none !important;
+                        }}
                         </style>
                         <div class="theme-toggle-title" id="theme-toggle-title"></div>
                     </div>
@@ -1878,29 +1936,57 @@ def display_logo():
                 """
                 st.markdown(toggle_html, unsafe_allow_html=True)
                 
-                if st.button("", key="theme_toggle_hidden_title", help="Toggle light/dark mode"):
+                st.markdown('<div style="display: none;">', unsafe_allow_html=True)
+                if st.button("Toggle Theme", key="theme_toggle_header_title", help="Toggle light/dark mode", type="secondary"):
                     new_theme = "light" if current_theme == "dark" else "dark"
                     st.session_state.theme = new_theme
                     st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Add JavaScript for title toggle
+                st.markdown("""
+                <script>
+                setTimeout(function() {
+                    const toggle = document.getElementById('theme-toggle-title');
+                    if (toggle) {
+                        toggle.addEventListener('click', function() {
+                            const buttons = document.querySelectorAll('button');
+                            for (let button of buttons) {
+                                if (button.textContent === 'Toggle Theme') {
+                                    button.click();
+                                    break;
+                                }
+                            }
+                        });
+                    }
+                }, 100);
+                </script>
+                """, unsafe_allow_html=True)
         
         # Add some spacing after header
         st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         
-        logger.info("Successfully displayed logo with theme toggle")
+        # Initialize theme on page load
+        current_theme = st.session_state.get('theme', 'dark')
+        st.markdown(f"""
+        <script>
+        // Set initial theme
+        const root = document.documentElement;
+        root.setAttribute('data-theme', '{current_theme}');
+        
+        // Also check localStorage and sync
+        const savedTheme = localStorage.getItem('preferred-theme') || '{current_theme}';
+        if (savedTheme !== '{current_theme}') {{
+            root.setAttribute('data-theme', savedTheme);
+        }}
+        </script>
+        """, unsafe_allow_html=True)
         
     except Exception as e:
-        logger.error(f"Error displaying logo: {str(e)}")
-        # Ultimate fallback - just show the title
+        logger.error(f"Error in display_logo: {str(e)}")
+        # Ultimate fallback
         st.markdown("""
-        <h2 style='
-            text-align: center; 
-            color: #79b8f3; 
-            margin-top: 0; 
-            padding: 15px 0; 
-            font-size: 2rem;
-            font-weight: 600;
-            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-        '>
+        <h2 style='color: #79b8f3; margin-top: 0; padding: 15px 0;'>
             NOI ANALYZER
         </h2>
         """, unsafe_allow_html=True)
