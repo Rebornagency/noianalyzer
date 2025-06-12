@@ -1647,30 +1647,54 @@ def display_logo():
         else:
             logo_fallback = False
         
-        # Create header with logo on left and theme toggle on right
+        # Create header with logo, title, and theme toggle
         if not logo_fallback:
             try:
-                # Use Streamlit's native st.image for better compatibility
-                import base64
-                from io import BytesIO
-                
-                # Decode the base64 string
-                image_bytes = base64.b64decode(logo_base64)
-                image_io = BytesIO(image_bytes)
-                
-                # Create a container for the logo and theme toggle
-                header_col1, header_col2 = st.columns([3, 1])
+                # Create a clean header layout with logo, title, and toggle
+                header_col1, header_col2, header_col3 = st.columns([1, 4, 1])
                 
                 with header_col1:
-                    st.image(image_io, width=200)  # Adjust width as needed for your logo
-                    
+                    # Display logo with proper sizing and no background
+                    st.markdown(f"""
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
+                        <img 
+                            src="data:image/jpeg;base64,{logo_base64}" 
+                            width="60px" 
+                            height="60px"
+                            alt="Reborn Logo" 
+                            style="
+                                object-fit: contain;
+                                background: transparent;
+                                border: none;
+                                padding: 0;
+                                margin: 0;
+                            "
+                        >
+                    </div>
+                    """, unsafe_allow_html=True)
+                
                 with header_col2:
+                    # Display NOI ANALYZER title
+                    st.markdown("""
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
+                        <h1 style="
+                            margin: 0;
+                            padding: 0;
+                            font-size: 2.5rem;
+                            font-weight: bold;
+                            text-align: center;
+                            line-height: 1.2;
+                        ">NOI ANALYZER</h1>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                with header_col3:
                     # Theme toggle switch
                     current_theme = st.session_state.get('theme', 'dark')
                     
                     # Custom toggle switch HTML/CSS
                     toggle_html = f"""
-                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px;">
+                    <div style="display: flex; justify-content: center; align-items: center; padding: 10px 0;">
                         <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                             <style>
                             .theme-toggle {{
@@ -1707,7 +1731,6 @@ def display_logo():
                             button:has-text("Toggle Theme") {{
                                 display: none !important;
                             }}
-                            /* More specific hiding for theme toggle buttons */
                             .stButton button[title*="Toggle"] {{
                                 display: none !important;
                             }}
@@ -1760,32 +1783,48 @@ def display_logo():
                 
             except Exception as e:
                 logger.error(f"Error displaying logo image: {str(e)}")
-                # Fallback to markdown with the base64 string directly
-                header_col1, header_col2 = st.columns([3, 1])
+                # Fallback with title
+                header_col1, header_col2, header_col3 = st.columns([1, 4, 1])
+                
                 with header_col1:
                     st.markdown(f"""
-                    <div style="text-align: left; padding: 10px 0;">
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
                         <img 
                             src="data:image/jpeg;base64,{logo_base64}" 
-                            width="200px" 
+                            width="60px" 
+                            height="60px"
                             alt="Reborn Logo" 
                             style="
                                 object-fit: contain;
-                                filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
-                                -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
-                                max-width: 100%;
                                 background: transparent;
+                                border: none;
+                                padding: 0;
+                                margin: 0;
                             "
                         >
                     </div>
                     """, unsafe_allow_html=True)
                 
                 with header_col2:
+                    st.markdown("""
+                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
+                        <h1 style="
+                            margin: 0;
+                            padding: 0;
+                            font-size: 2.5rem;
+                            font-weight: bold;
+                            text-align: center;
+                            line-height: 1.2;
+                        ">NOI ANALYZER</h1>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with header_col3:
                     # Theme toggle switch for fallback
                     current_theme = st.session_state.get('theme', 'dark')
                     
                     toggle_html = f"""
-                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px;">
+                    <div style="display: flex; justify-content: center; align-items: center; padding: 10px 0;">
                         <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                             <style>
                             .theme-toggle-fallback {{
@@ -1818,14 +1857,6 @@ def display_logo():
                             .theme-toggle-fallback:hover {{
                                 background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                             }}
-                            /* Hide the actual Streamlit button */
-                            button:has-text("Toggle Theme") {{
-                                display: none !important;
-                            }}
-                            /* More specific hiding for theme toggle buttons */
-                            .stButton button[title*="Toggle"] {{
-                                display: none !important;
-                            }}
                             </style>
                             <div class="theme-toggle-fallback" id="theme-toggle-fallback"></div>
                         </div>
@@ -1840,13 +1871,6 @@ def display_logo():
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
                     
-                    if st.button("Toggle Theme", key="theme_toggle_header_fallback", help="Toggle light/dark mode", type="secondary"):
-                        new_theme = "light" if current_theme == "dark" else "dark"
-                        st.session_state.theme = new_theme
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    # Add JavaScript for fallback toggle
                     st.markdown("""
                     <script>
                     setTimeout(function() {
@@ -1865,22 +1889,22 @@ def display_logo():
                     }, 100);
                     </script>
                     """, unsafe_allow_html=True)
-                
         else:
-            # Fallback - just show the title with toggle
-            header_col1, header_col2 = st.columns([3, 1])
+            # Title fallback without logo
+            header_col1, header_col2 = st.columns([5, 1])
+            
             with header_col1:
                 st.markdown("""
-                <h2 style='
-                    color: #79b8f3; 
-                    margin-top: 0; 
-                    padding: 15px 0; 
-                    font-size: 2rem;
-                    font-weight: 600;
-                    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-                '>
-                    NOI ANALYZER
-                </h2>
+                <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
+                    <h1 style="
+                        margin: 0;
+                        padding: 0;
+                        font-size: 2.5rem;
+                        font-weight: bold;
+                        text-align: center;
+                        line-height: 1.2;
+                    ">NOI ANALYZER</h1>
+                </div>
                 """, unsafe_allow_html=True)
             
             with header_col2:
@@ -1888,7 +1912,7 @@ def display_logo():
                 current_theme = st.session_state.get('theme', 'dark')
                 
                 toggle_html = f"""
-                <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px;">
+                <div style="display: flex; justify-content: center; align-items: center; padding: 10px 0;">
                     <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                         <style>
                         .theme-toggle-title {{
@@ -1921,14 +1945,6 @@ def display_logo():
                         .theme-toggle-title:hover {{
                             background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                         }}
-                        /* Hide the actual Streamlit button */
-                        button:has-text("Toggle Theme") {{
-                            display: none !important;
-                        }}
-                        /* More specific hiding for theme toggle buttons */
-                        .stButton button[title*="Toggle"] {{
-                            display: none !important;
-                        }}
                         </style>
                         <div class="theme-toggle-title" id="theme-toggle-title"></div>
                     </div>
@@ -1937,13 +1953,12 @@ def display_logo():
                 st.markdown(toggle_html, unsafe_allow_html=True)
                 
                 st.markdown('<div style="display: none;">', unsafe_allow_html=True)
-                if st.button("Toggle Theme", key="theme_toggle_header_title", help="Toggle light/dark mode", type="secondary"):
+                if st.button("Toggle Theme", key="theme_toggle_title", help="Toggle light/dark mode", type="secondary"):
                     new_theme = "light" if current_theme == "dark" else "dark"
                     st.session_state.theme = new_theme
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Add JavaScript for title toggle
                 st.markdown("""
                 <script>
                 setTimeout(function() {
@@ -1963,32 +1978,19 @@ def display_logo():
                 </script>
                 """, unsafe_allow_html=True)
         
-        # Add some spacing after header
-        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
-        
-        # Initialize theme on page load
-        current_theme = st.session_state.get('theme', 'dark')
-        st.markdown(f"""
-        <script>
-        // Set initial theme
-        const root = document.documentElement;
-        root.setAttribute('data-theme', '{current_theme}');
-        
-        // Also check localStorage and sync
-        const savedTheme = localStorage.getItem('preferred-theme') || '{current_theme}';
-        if (savedTheme !== '{current_theme}') {{
-            root.setAttribute('data-theme', savedTheme);
-        }}
-        </script>
-        """, unsafe_allow_html=True)
-        
     except Exception as e:
         logger.error(f"Error in display_logo: {str(e)}")
-        # Ultimate fallback
+        # Final fallback - just show the title
         st.markdown("""
-        <h2 style='color: #79b8f3; margin-top: 0; padding: 15px 0;'>
-            NOI ANALYZER
-        </h2>
+        <div style="text-align: center; padding: 20px 0;">
+            <h1 style="
+                margin: 0;
+                padding: 0;
+                font-size: 2.5rem;
+                font-weight: bold;
+                line-height: 1.2;
+            ">NOI ANALYZER</h1>
+        </div>
         """, unsafe_allow_html=True)
 
 # New function for small logo display
