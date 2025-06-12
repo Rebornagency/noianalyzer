@@ -1648,19 +1648,6 @@ def display_logo():
             logo_fallback = False
         
         # Create header with logo on left and theme toggle on right
-        st.markdown("""
-        <div style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0 20px 0;
-            margin-bottom: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        ">
-            <div style="display: flex; align-items: center;">
-        """, unsafe_allow_html=True)
-        
-        # Logo section
         if not logo_fallback:
             try:
                 # Use Streamlit's native st.image for better compatibility
@@ -1671,18 +1658,19 @@ def display_logo():
                 image_bytes = base64.b64decode(logo_base64)
                 image_io = BytesIO(image_bytes)
                 
-                # Create a container for the logo
-                logo_col, toggle_col = st.columns([3, 1])
-                with logo_col:
-                    st.image(image_io, width=180)
+                # Create a container for the logo and theme toggle
+                header_col1, header_col2 = st.columns([3, 1])
+                
+                with header_col1:
+                    st.image(image_io, width=200)  # Adjust width as needed for your logo
                     
-                with toggle_col:
+                with header_col2:
                     # Theme toggle switch
-                    current_theme = st.session_state.theme
+                    current_theme = st.session_state.get('theme', 'dark')
                     
                     # Custom toggle switch HTML/CSS
                     toggle_html = f"""
-                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px;">
+                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px;">
                         <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                             <style>
                             .theme-toggle {{
@@ -1760,29 +1748,74 @@ def display_logo():
             except Exception as e:
                 logger.error(f"Error displaying logo image: {str(e)}")
                 # Fallback to markdown with the base64 string directly
-                st.markdown(f"""
-                <div style="
-                    display: flex; 
-                    justify-content: space-between; 
-                    align-items: center; 
-                    margin-bottom: 15px; 
-                    margin-top: 0; 
-                    padding: 5px 0;
-                ">
-                    <img 
-                        src="data:image/png;base64,{logo_base64}" 
-                        width="180px" 
-                        alt="Reborn Logo" 
-                        style="
-                            object-fit: contain;
-                            filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
-                            -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
-                            max-width: 100%;
-                            background: transparent;
-                        "
-                    >
-                </div>
-                """, unsafe_allow_html=True)
+                header_col1, header_col2 = st.columns([3, 1])
+                with header_col1:
+                    st.markdown(f"""
+                    <div style="text-align: left; padding: 10px 0;">
+                        <img 
+                            src="data:image/jpeg;base64,{logo_base64}" 
+                            width="200px" 
+                            alt="Reborn Logo" 
+                            style="
+                                object-fit: contain;
+                                filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25)); 
+                                -webkit-filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.25));
+                                max-width: 100%;
+                                background: transparent;
+                            "
+                        >
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with header_col2:
+                    # Theme toggle switch for fallback
+                    current_theme = st.session_state.get('theme', 'dark')
+                    
+                    toggle_html = f"""
+                    <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px;">
+                        <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
+                            <style>
+                            .theme-toggle-fallback {{
+                                position: relative;
+                                width: 60px;
+                                height: 30px;
+                                background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
+                                border-radius: 15px;
+                                cursor: pointer;
+                                transition: background-color 0.3s ease;
+                                border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
+                            }}
+                            .theme-toggle-fallback::before {{
+                                content: "{'🌙' if current_theme == 'dark' else '☀️'}";
+                                position: absolute;
+                                top: 50%;
+                                left: {'32px' if current_theme == 'dark' else '6px'};
+                                transform: translateY(-50%);
+                                width: 22px;
+                                height: 22px;
+                                background-color: white;
+                                border-radius: 50%;
+                                transition: left 0.3s ease;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 12px;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                            }}
+                            .theme-toggle-fallback:hover {{
+                                background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
+                            }}
+                            </style>
+                            <div class="theme-toggle-fallback" id="theme-toggle-fallback"></div>
+                        </div>
+                    </div>
+                    """
+                    st.markdown(toggle_html, unsafe_allow_html=True)
+                    
+                    if st.button("", key="theme_toggle_hidden_fallback", help="Toggle light/dark mode"):
+                        new_theme = "light" if current_theme == "dark" else "dark"
+                        st.session_state.theme = new_theme
+                        st.rerun()
         else:
             # Fallback - just show the title with toggle
             header_col1, header_col2 = st.columns([3, 1])
@@ -1801,15 +1834,14 @@ def display_logo():
                 """, unsafe_allow_html=True)
             
             with header_col2:
-                # Theme toggle switch
-                current_theme = st.session_state.theme
+                # Theme toggle switch for title fallback
+                current_theme = st.session_state.get('theme', 'dark')
                 
-                # Custom toggle switch HTML/CSS
                 toggle_html = f"""
-                <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 10px;">
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px;">
                     <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                         <style>
-                        .theme-toggle {{
+                        .theme-toggle-title {{
                             position: relative;
                             width: 60px;
                             height: 30px;
@@ -1819,7 +1851,7 @@ def display_logo():
                             transition: background-color 0.3s ease;
                             border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                         }}
-                        .theme-toggle::before {{
+                        .theme-toggle-title::before {{
                             content: "{'🌙' if current_theme == 'dark' else '☀️'}";
                             position: absolute;
                             top: 50%;
@@ -1836,32 +1868,23 @@ def display_logo():
                             font-size: 12px;
                             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
                         }}
-                        .theme-toggle:hover {{
+                        .theme-toggle-title:hover {{
                             background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                         }}
                         </style>
-                        <div class="theme-toggle" id="theme-toggle-fallback"></div>
+                        <div class="theme-toggle-title" id="theme-toggle-title"></div>
                     </div>
                 </div>
                 """
                 st.markdown(toggle_html, unsafe_allow_html=True)
                 
-                # Create theme toggle button (hidden, triggered by JavaScript)
-                if st.button("", key="theme_toggle_hidden_fallback", help="Toggle light/dark mode"):
-                    # Toggle theme in session state
+                if st.button("", key="theme_toggle_hidden_title", help="Toggle light/dark mode"):
                     new_theme = "light" if current_theme == "dark" else "dark"
                     st.session_state.theme = new_theme
-                    
-                    # Apply theme change via JavaScript
-                    st.markdown(f"""
-                    <script>
-                    const root = document.documentElement;
-                    root.setAttribute('data-theme', '{new_theme}');
-                    localStorage.setItem('preferred-theme', '{new_theme}');
-                    </script>
-                    """, unsafe_allow_html=True)
-                    
                     st.rerun()
+        
+        # Add some spacing after header
+        st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
         
         logger.info("Successfully displayed logo with theme toggle")
         
