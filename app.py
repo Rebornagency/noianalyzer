@@ -1636,7 +1636,7 @@ from reborn_logo import get_reborn_logo_base64
 
 # Logo display function - updated to use direct embedding with better error handling
 def display_logo():
-    """Display the Reborn logo with theme toggle in header"""
+    """Display the Reborn logo with company name and theme toggle in header"""
     try:
         logo_base64 = get_reborn_logo_base64()
         
@@ -1647,54 +1647,67 @@ def display_logo():
         else:
             logo_fallback = False
         
-        # Create header with logo, title, and theme toggle
+        # Create header layout matching the second image example
         if not logo_fallback:
             try:
-                # Create a clean header layout with logo, title, and toggle
-                header_col1, header_col2, header_col3 = st.columns([1, 4, 1])
+                # Create header with logo+text on left and toggle on right
+                header_col1, header_col2 = st.columns([5, 1])
                 
                 with header_col1:
-                    # Display logo with proper sizing and no background
-                    st.markdown(f"""
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
-                        <img 
-                            src="data:image/jpeg;base64,{logo_base64}" 
-                            width="60px" 
-                            height="60px"
-                            alt="Reborn Logo" 
-                            style="
-                                object-fit: contain;
-                                background: transparent;
-                                border: none;
-                                padding: 0;
-                                margin: 0;
-                            "
-                        >
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with header_col2:
-                    # Display NOI ANALYZER title
-                    st.markdown("""
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
-                        <h1 style="
-                            margin: 0;
-                            padding: 0;
-                            font-size: 2.5rem;
-                            font-weight: bold;
-                            text-align: center;
-                            line-height: 1.2;
-                        ">NOI ANALYZER</h1>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # Create logo and text layout
+                    logo_text_col1, logo_text_col2 = st.columns([1, 4])
                     
-                with header_col3:
+                    with logo_text_col1:
+                        # Display transparent logo
+                        st.markdown(f"""
+                        <div style="display: flex; align-items: center; justify-content: flex-start; padding: 10px 0;">
+                            <img 
+                                src="data:image/png;base64,{logo_base64}" 
+                                width="60px" 
+                                height="60px"
+                                alt="Reborn Logo" 
+                                style="
+                                    object-fit: contain;
+                                    background: none !important;
+                                    background-color: transparent !important;
+                                    border: none;
+                                    padding: 0;
+                                    margin: 0;
+                                "
+                            >
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    with logo_text_col2:
+                        # Display REBORN text and NOI Analyzer
+                        st.markdown("""
+                        <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0; margin-left: -20px;">
+                            <div style="
+                                font-size: 1.8rem;
+                                font-weight: bold;
+                                color: #ffffff;
+                                margin: 0;
+                                padding: 0;
+                                line-height: 1.1;
+                            ">REBORN</div>
+                            <div style="
+                                font-size: 1.2rem;
+                                font-weight: 400;
+                                color: #cccccc;
+                                margin: 2px 0 0 0;
+                                padding: 0;
+                                line-height: 1.1;
+                            ">NOI Analyzer</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                with header_col2:
                     # Theme toggle switch
                     current_theme = st.session_state.get('theme', 'dark')
                     
                     # Custom toggle switch HTML/CSS
                     toggle_html = f"""
-                    <div style="display: flex; justify-content: center; align-items: center; padding: 10px 0;">
+                    <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
                         <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                             <style>
                             .theme-toggle {{
@@ -1726,10 +1739,6 @@ def display_logo():
                             }}
                             .theme-toggle:hover {{
                                 background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            /* Hide the actual Streamlit button */
-                            button:has-text("Toggle Theme") {{
-                                display: none !important;
                             }}
                             .stButton button[title*="Toggle"] {{
                                 display: none !important;
@@ -1783,48 +1792,37 @@ def display_logo():
                 
             except Exception as e:
                 logger.error(f"Error displaying logo image: {str(e)}")
-                # Fallback with title
-                header_col1, header_col2, header_col3 = st.columns([1, 4, 1])
+                # Fallback with text only
+                header_col1, header_col2 = st.columns([5, 1])
                 
                 with header_col1:
-                    st.markdown(f"""
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
-                        <img 
-                            src="data:image/jpeg;base64,{logo_base64}" 
-                            width="60px" 
-                            height="60px"
-                            alt="Reborn Logo" 
-                            style="
-                                object-fit: contain;
-                                background: transparent;
-                                border: none;
-                                padding: 0;
-                                margin: 0;
-                            "
-                        >
+                    st.markdown("""
+                    <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0;">
+                        <div style="
+                            font-size: 1.8rem;
+                            font-weight: bold;
+                            color: #ffffff;
+                            margin: 0;
+                            padding: 0;
+                            line-height: 1.1;
+                        ">REBORN</div>
+                        <div style="
+                            font-size: 1.2rem;
+                            font-weight: 400;
+                            color: #cccccc;
+                            margin: 2px 0 0 0;
+                            padding: 0;
+                            line-height: 1.1;
+                        ">NOI Analyzer</div>
                     </div>
                     """, unsafe_allow_html=True)
                 
                 with header_col2:
-                    st.markdown("""
-                    <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
-                        <h1 style="
-                            margin: 0;
-                            padding: 0;
-                            font-size: 2.5rem;
-                            font-weight: bold;
-                            text-align: center;
-                            line-height: 1.2;
-                        ">NOI ANALYZER</h1>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with header_col3:
                     # Theme toggle switch for fallback
                     current_theme = st.session_state.get('theme', 'dark')
                     
                     toggle_html = f"""
-                    <div style="display: flex; justify-content: center; align-items: center; padding: 10px 0;">
+                    <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
                         <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                             <style>
                             .theme-toggle-fallback {{
@@ -1895,15 +1893,23 @@ def display_logo():
             
             with header_col1:
                 st.markdown("""
-                <div style="display: flex; align-items: center; justify-content: center; padding: 10px 0;">
-                    <h1 style="
+                <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0;">
+                    <div style="
+                        font-size: 1.8rem;
+                        font-weight: bold;
+                        color: #ffffff;
                         margin: 0;
                         padding: 0;
-                        font-size: 2.5rem;
-                        font-weight: bold;
-                        text-align: center;
-                        line-height: 1.2;
-                    ">NOI ANALYZER</h1>
+                        line-height: 1.1;
+                    ">REBORN</div>
+                    <div style="
+                        font-size: 1.2rem;
+                        font-weight: 400;
+                        color: #cccccc;
+                        margin: 2px 0 0 0;
+                        padding: 0;
+                        line-height: 1.1;
+                    ">NOI Analyzer</div>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -1912,7 +1918,7 @@ def display_logo():
                 current_theme = st.session_state.get('theme', 'dark')
                 
                 toggle_html = f"""
-                <div style="display: flex; justify-content: center; align-items: center; padding: 10px 0;">
+                <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
                     <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
                         <style>
                         .theme-toggle-title {{
@@ -1980,16 +1986,25 @@ def display_logo():
         
     except Exception as e:
         logger.error(f"Error in display_logo: {str(e)}")
-        # Final fallback - just show the title
+        # Final fallback - just show the company name and product
         st.markdown("""
-        <div style="text-align: center; padding: 20px 0;">
-            <h1 style="
+        <div style="display: flex; flex-direction: column; justify-content: center; padding: 20px 0;">
+            <div style="
+                font-size: 1.8rem;
+                font-weight: bold;
+                color: #ffffff;
                 margin: 0;
                 padding: 0;
-                font-size: 2.5rem;
-                font-weight: bold;
-                line-height: 1.2;
-            ">NOI ANALYZER</h1>
+                line-height: 1.1;
+            ">REBORN</div>
+            <div style="
+                font-size: 1.2rem;
+                font-weight: 400;
+                color: #cccccc;
+                margin: 2px 0 0 0;
+                padding: 0;
+                line-height: 1.1;
+            ">NOI Analyzer</div>
         </div>
         """, unsafe_allow_html=True)
 
