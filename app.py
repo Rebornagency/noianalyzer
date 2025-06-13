@@ -704,6 +704,48 @@ def inject_custom_css():
     """Inject custom CSS to ensure font consistency and enhanced styling across the application"""
     st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    /* Enhanced Header Styling */
+    .header-container {
+        padding: 1rem 0;
+        margin-bottom: 2rem;
+    }
+    
+    .logo-title-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .reborn-logo {
+        height: 60px;
+        margin-right: 1rem;
+    }
+    
+    .reborn-text {
+        font-family: 'Inter', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+        margin: 0;
+        letter-spacing: 0.05em;
+    }
+    
+    .app-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 2rem;
+        font-weight: 500;
+        color: white;
+        margin: 0;
+        padding-left: 0.2rem;
+    }
+    
+    /* Hide the default Streamlit header elements we're replacing */
+    #MainMenu, header {
+        visibility: hidden;
+    }
+    
     /* Existing font styles - keep these */
     body, .stApp, .stMarkdown, .stText, .stTextInput, .stTextArea, 
     .stSelectbox, .stMultiselect, .stDateInput, .stTimeInput, .stNumberInput,
@@ -902,622 +944,347 @@ def inject_custom_css():
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
     }
     
-    .upload-icon {
-        font-size: 32px;
-        color: #888;
-        margin-bottom: 8px;
-    }
-    
-    .upload-text {
-        color: #888;
+    .upload-area-content {
+        color: #B0B0B0;
         font-size: 14px;
-        margin-bottom: 4px;
-    }
-    
-    .upload-subtext {
-        color: #666;
-        font-size: 12px;
-        margin-bottom: 16px;
-    }
-    
-    /* Enhanced Instructions Card */
-    .instructions-card {
-        background-color: transparent !important;
-        border-radius: 0;
-        padding: 0;
-        margin-bottom: 32px;
-        box-shadow: none !important;
-    }
-    
-    .instructions-card h3 {
-        font-size: 20px;
-        font-weight: 600;
-        color: #EAEAEA;
-        margin-bottom: 16px;
-    }
-    
-    .instructions-card ol {
-        padding-left: 24px;
-        margin-bottom: 0;
-    }
-    
-    .instructions-card li {
-        color: #EAEAEA;
-        font-size: 14px;
-        margin-bottom: 12px;
         line-height: 1.5;
     }
     
-    /* Property Name Input Styling */
-    .property-input-container {
-        background-color: rgba(17, 17, 34, 0.8);
-        border-radius: 8px;
-        padding: 24px;
-        margin-bottom: 32px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    }
-    
-    .property-input-container label {
-        font-size: 16px;
-        font-weight: 500;
+    .upload-area-content strong {
         color: #EAEAEA;
-        margin-bottom: 8px;
-    }
-    
-    /* File info styling */
-    .file-info {
-        display: flex;
-        align-items: center;
-        background-color: rgba(30, 41, 59, 0.7);
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin: 8px 0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    .file-icon {
-        font-size: 24px;
-        margin-right: 12px;
-    }
-    
-    .file-details {
-        flex-grow: 1;
-    }
-    
-    .file-name {
-        color: #E0E0E0;
-        font-weight: 500;
-        font-size: 14px;
-        margin-bottom: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 250px;
-    }
-    
-    .file-meta {
-        color: #94A3B8;
-        font-size: 12px;
-    }
-    
-    .file-status {
-        color: #22C55E;
-        font-size: 12px;
-        font-weight: 500;
-        background-color: rgba(30, 41, 59, 0.5);
-        padding: 4px 8px;
-        border-radius: 4px;
-    }
-
-    /* Feature list styling */
-    .feature-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-        margin-bottom: 2rem;
-    }
-
-    .feature-item {
-        display: flex;
-        margin-bottom: 24px;
-    }
-
-    .feature-number {
-        background-color: rgba(34, 34, 51, 0.8);
-        color: #EAEAEA;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 500;
-        margin-right: 16px;
-        flex-shrink: 0;
-    }
-
-    .feature-content {
-        flex: 1;
-    }
-
-    .feature-content h4 {
-        font-size: 16px;
-        font-weight: 500;
-        color: #EAEAEA;
-        margin-top: 0;
-        margin-bottom: 4px;
-    }
-
-    .feature-content p {
-        font-size: 14px;
-        color: #888;
-        margin: 0;
-    }
-
-    .feature-title {
-        font-size: 1.25rem;
         font-weight: 600;
-        color: #e6edf3;
-        margin-bottom: 0.5rem;
     }
-
-    .feature-description {
-        font-size: 1rem;
-        color: #d1d5db;
-        line-height: 1.5;
-    }
-
-    /* Section header styling */
+    
+    /* Enhanced section header styling */
     .section-header {
-        font-size: 1.8rem;
-        font-weight: 500;
-        color: #79b8f3;
-        margin-top: 2rem;
-        margin-bottom: 1.5rem;
-    }
-
-    /* Enhanced Button Styling */
-    .primary-button {
-        background-color: #3B82F6 !important;
-        color: white !important;
-        font-size: 16px !important;
-        font-weight: 500 !important;
-        padding: 12px 24px !important;
-        border-radius: 8px !important;
-        border: none !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-        transition: all 0.3s ease !important;
-        width: 100% !important;
-        margin-top: 16px !important;
-        margin-bottom: 24px !important;
-    }
-    
-    .primary-button:hover {
-        background-color: #2563EB !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-        transform: translateY(-2px) !important;
-    }
-
-    /* Styling for Streamlit Expander Headers (e.g., Full Financial Narrative) */
-    .streamlit-expanderHeader { /* General expander header style */
-        background-color: rgba(30, 41, 59, 0.7) !important; /* From load_css fallback, good to have consistently */
-        border-radius: 8px !important;
-        margin-bottom: 0.5rem !important;
-        transition: background-color 0.3s ease !important;
-    }
-    
-    .streamlit-expanderHeader:hover {
-        background-color: rgba(30, 41, 59, 0.9) !important;
-    }
-
-    .streamlit-expanderHeader p { /* Specifically target the text within the expander header */
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-        font-size: 1.25rem !important; /* Larger than content text */
+        font-size: 1.75rem !important;
         font-weight: 600 !important;
-        color: #E0E0E0 !important; /* Light color for header text */
-    }
-    
-    /* Ensure header has no extra spacing */
-    .stApp header {
-        background-color: transparent !important;
-    }
-    
-    /* Remove default Streamlit margins */
-    .stApp > header {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-    
-    /* Ensure logo container has no extra spacing */
-    .stMarkdown:first-child {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-
-    /* Enhanced styling for narrative text */
-    .narrative-text {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        color: #E0E0E0 !important;
-        font-size: 1rem !important;
-        line-height: 1.6 !important;
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        padding: 1.25rem !important;
-        border-radius: 8px !important;
-        margin-bottom: 1.25rem !important;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    /* Force consistent styling for all elements within narrative text */
-    .narrative-text * {
-        color: #E0E0E0 !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        font-size: 1rem !important;
-    }
-    
-    /* Override any potential color styling in the narrative */
-    .narrative-text span, 
-    .narrative-text p, 
-    .narrative-text div,
-    .narrative-text b,
-    .narrative-text strong,
-    .narrative-text i,
-    .narrative-text em {
-        color: #E0E0E0 !important;
-    }
-    
-    /* Fix for currency values to ensure they're consistently formatted */
-    .narrative-text .currency,
-    .narrative-text .number {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        color: #E0E0E0 !important;
-    }
-    
-    /* Hide redundant expander title when not needed */
-    .financial-narrative + .streamlit-expanderHeader {
-        display: none !important;
-    }
-    
-    /* Styling for narrative container */
-    .narrative-container {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        color: #E0E0E0 !important;
-        font-size: 1rem !important;
-        line-height: 1.6 !important;
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        padding: 1.25rem !important;
-        border-radius: 8px !important;
-        margin-bottom: 1.25rem !important;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    /* Ensure consistent styling for all elements within the narrative */
-    .narrative-container p, 
-    .narrative-container span, 
-    .narrative-container div {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        color: #E0E0E0 !important;
-        font-size: 1rem !important;
-        line-height: 1.6 !important;
-        margin-bottom: 0.75rem !important;
-    }
-    
-    /* Ensure consistent styling for numbers and currency values */
-    .narrative-container .currency,
-    .narrative-container .number {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        color: #E0E0E0 !important;
-    }
-    
-    /* Enhanced button styling */
-    .stButton > button {
-        background-color: #1E40AF !important;
-        color: white !important;
+        color: #79b8f3 !important;
+        margin-bottom: 1.5rem !important;
+        padding: 0 !important;
+        background: none !important;
         border: none !important;
-        border-radius: 8px !important;
-        padding: 0.6rem 1.25rem !important;
-        font-weight: 500 !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        line-height: 1.3 !important;
     }
     
-    .stButton > button:hover {
-        background-color: #2563EB !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
-        transform: translateY(-1px) !important;
-    }
-    
-    .stButton > button:active {
-        transform: translateY(1px) !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    /* Card-style elements */
-    .card-container {
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        border-radius: 8px !important;
-        padding: 1.25rem !important;
-        margin-bottom: 1.25rem !important;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-        transition: transform 0.3s ease, box-shadow 0.3s ease !important;
-    }
-    
-    .card-container:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
-    }
-    
-    /* Info, warning, error messages styling */
-    .stInfo, .element-container .alert-info {
-        background-color: rgba(56, 189, 248, 0.1) !important;
-        border-left: 4px solid #38BDF8 !important;
-        color: #E0E0E0 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        margin: 1rem 0 !important;
-    }
-    
-    .stWarning, .element-container .alert-warning {
-        background-color: rgba(251, 191, 36, 0.1) !important;
-        border-left: 4px solid #FBBF24 !important;
-        color: #E0E0E0 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        margin: 1rem 0 !important;
-    }
-    
-    .stError, .element-container .alert-danger {
-        background-color: rgba(239, 68, 68, 0.1) !important;
-        border-left: 4px solid #EF4444 !important;
-        color: #E0E0E0 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        margin: 1rem 0 !important;
-    }
-    
-    .stSuccess, .element-container .alert-success {
-        background-color: rgba(34, 197, 94, 0.1) !important;
-        border-left: 4px solid #22C55E !important;
-        color: #E0E0E0 !important;
-        padding: 1rem !important;
-        border-radius: 8px !important;
-        margin: 1rem 0 !important;
-    }
-    
-    /* File uploader styling */
-    [data-testid="stFileUploader"] {
-        background-color: rgba(30, 41, 59, 0.6) !important;
-        border: 2px dashed rgba(148, 163, 184, 0.4) !important;
-        border-radius: 8px !important;
-        padding: 1rem !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    [data-testid="stFileUploader"]:hover {
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        border-color: rgba(148, 163, 184, 0.6) !important;
-    }
-    
-    /* Tabs styling */
-    .stTabs [data-baseweb="tab-list"] {
-        background-color: rgba(30, 41, 59, 0.6) !important;
-        border-radius: 8px !important;
-        padding: 0.25rem !important;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 6px !important;
-        margin: 0.25rem !important;
-        padding: 0.5rem 1rem !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background-color: #1E40AF !important;
-        color: white !important;
-    }
-    
-    /* OpEx Table Styling */
-    .opex-table-container {
-        margin: 1rem 0 !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        background-color: rgba(22, 27, 34, 0.8) !important;
-        border: 1px solid rgba(56, 68, 77, 0.5) !important;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    .opex-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-        color: #e6edf3 !important;
-        background-color: transparent !important;
-    }
-    
-    .opex-table th, .opex-table td {
-        padding: 0.75rem 1rem !important;
-        text-align: left !important;
-        border-bottom: 1px solid rgba(56, 68, 77, 0.3) !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-        color: #e6edf3 !important;
-    }
-    
-    .opex-table th {
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        font-weight: 600 !important;
-        color: #79b8f3 !important;
-        font-size: 0.95rem !important;
-    }
-    
-    .opex-table tr:hover {
-        background-color: rgba(30, 41, 59, 0.4) !important;
-    }
-    
-    .opex-table tr:last-child td {
-        border-bottom: none !important;
-    }
-    
-    .opex-category-cell {
-        display: flex !important;
-        align-items: center !important;
-        gap: 0.5rem !important;
-    }
-    
-    .opex-category-indicator {
-        width: 12px !important;
-        height: 12px !important;
-        border-radius: 50% !important;
-        flex-shrink: 0 !important;
-    }
-    
-    .opex-positive-value {
-        color: #22c55e !important; /* Green for favorable changes */
-        font-weight: 500 !important;
-    }
-    
-    .opex-negative-value {
-        color: #ef4444 !important; /* Red for unfavorable changes */
-        font-weight: 500 !important;
-    }
-    
-    .opex-neutral-value {
-        color: #e6edf3 !important; /* Default text color */
-    }
-    
-    .opex-chart-container {
-        margin: 1rem 0 !important;
-        background-color: rgba(22, 27, 34, 0.8) !important;
-        border-radius: 8px !important;
-        padding: 1rem !important;
-        border: 1px solid rgba(56, 68, 77, 0.5) !important;
-    }
-    
-    .opex-chart-title {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        color: #79b8f3 !important;
-        margin-bottom: 1rem !important;
+    /* Enhanced title styling */
+    .noi-title {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+        font-size: 2.5rem !important;
+        font-weight: 700 !important;
+        color: #ffffff !important;
+        margin-bottom: 2rem !important;
+        padding: 0 !important;
+        background: none !important;
+        border: none !important;
+        line-height: 1.2 !important;
         text-align: center !important;
     }
-
-    /* Options Container Styling */
-    .options-container {
-        background-color: var(--reborn-bg-secondary);
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 1rem 0;
-        border-left: 4px solid var(--reborn-accent-blue);
-    }
-
-    .options-header {
-        color: var(--reborn-text-primary);
-        font-size: 1.1rem;
-        margin-bottom: 0.75rem;
-        font-weight: 600;
-    }
-
-    /* NOI Coach Context Styling */
-    .noi-coach-context-container {
-        background-color: var(--reborn-bg-secondary);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-        border-left: 4px solid var(--reborn-accent-teal);
-    }
-
-    .noi-coach-context-header {
-        color: var(--reborn-text-primary);
-        font-size: 1.1rem;
-        margin-bottom: 0.75rem;
-        font-weight: 600;
-    }
-
-    .noi-coach-interface {
-        background-color: var(--reborn-bg-secondary);
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-top: 1rem;
-    }
-
-    .noi-coach-response {
-        background-color: var(--reborn-bg-tertiary);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
-        border-left: 4px solid var(--reborn-accent-blue);
-    }
-
-    /* Enhanced Instructions List */
-    ol.instructions-list {
-        padding-left: 24px;
-        margin-bottom: 32px;
-    }
-
-    ol.instructions-list li {
-        color: #EAEAEA;
-        font-size: 14px;
-        margin-bottom: 12px;
-        line-height: 1.5;
+    
+    .noi-title-accent {
+        color: #79b8f3 !important;
     }
     
-    /* Enhanced Process Documents button */
+    /* Reborn accent blue for the application */
+    :root {
+        --reborn-accent-blue: #79b8f3;
+    }
+    
+    /* Enhanced button styling for better visual hierarchy */
     .stButton > button[kind="primary"] {
-        background-color: #79b8f3 !important; /* Blue theme color */
+        background-color: var(--reborn-accent-blue) !important;
         color: white !important;
-        border: 1px solid #64B5F6 !important; /* Lighter blue border */
-        font-size: 1.1rem !important;
+        border: 1px solid var(--reborn-accent-blue) !important;
         font-weight: 500 !important;
         padding: 0.75rem 1.5rem !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
         transition: all 0.3s ease !important;
-        margin-top: 1rem !important;
-        margin-bottom: 1.5rem !important;
-        width: 100% !important;
     }
     
     .stButton > button[kind="primary"]:hover {
-        background-color: #3B82F6 !important; /* Darker blue on hover */
-        border-color: #2563EB !important;
-        box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
-        transform: translateY(-2px) !important;
+        background-color: #5a9fd4 !important;
+        border-color: #5a9fd4 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(121, 184, 243, 0.3) !important;
     }
     
-    /* Additional selectors for Process Documents button with higher specificity */
-    div[data-testid="stButton"] > button[kind="primary"],
-    div[data-testid="stButton"] > button[data-testid="baseButton-primary"],
-    .stApp div[data-testid="stButton"] > button[kind="primary"],
-    .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {
-        background-color: #79b8f3 !important;
-        color: white !important;
-        border: 1px solid #64B5F6 !important;
-        font-size: 1.1rem !important;
-        font-weight: 500 !important;
-        padding: 0.75rem 1.5rem !important;
+    /* Enhanced form elements */
+    .stTextInput input, .stTextArea textarea, .stSelectbox select {
+        background-color: rgba(17, 17, 34, 0.8) !important;
+        border: 1px solid #374151 !important;
+        border-radius: 6px !important;
+        color: #E5E7EB !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    
+    .stTextInput input:focus, .stTextArea textarea:focus, .stSelectbox select:focus {
+        border-color: var(--reborn-accent-blue) !important;
+        box-shadow: 0 0 0 2px rgba(121, 184, 243, 0.2) !important;
+    }
+    
+    /* Enhanced table styling */
+    .stDataFrame {
+        background-color: rgba(17, 17, 34, 0.8) !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
-        transition: all 0.3s ease !important;
-        margin-top: 1rem !important;
-        margin-bottom: 1.5rem !important;
+        overflow: hidden !important;
+        border: 1px solid #374151 !important;
+    }
+    
+    .stDataFrame table {
+        font-family: 'Inter', sans-serif !important;
+        color: #E5E7EB !important;
+    }
+    
+    .stDataFrame th {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        color: var(--reborn-accent-blue) !important;
+        font-weight: 600 !important;
+        padding: 12px !important;
+    }
+    
+    .stDataFrame td {
+        padding: 10px 12px !important;
+        border-bottom: 1px solid #374151 !important;
+    }
+    
+    /* Enhanced expander styling */
+    .stExpander {
+        background-color: rgba(17, 17, 34, 0.8) !important;
+        border: 1px solid #374151 !important;
+        border-radius: 8px !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .stExpander .streamlit-expanderHeader {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        color: var(--reborn-accent-blue) !important;
+        font-weight: 600 !important;
+        padding: 12px 16px !important;
+    }
+    
+    /* Enhanced tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px !important;
+        background-color: rgba(17, 17, 34, 0.8) !important;
+        padding: 8px !important;
+        border-radius: 8px !important;
+        border: 1px solid #374151 !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        background-color: transparent !important;
+        color: #9CA3AF !important;
+        font-weight: 500 !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        border: none !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: var(--reborn-accent-blue) !important;
+        color: white !important;
+    }
+    
+    /* Enhanced sidebar styling */
+    .stSidebar .stSelectbox, .stSidebar .stTextInput, .stSidebar .stTextArea {
+        background-color: rgba(17, 17, 34, 0.9) !important;
+    }
+    
+    .stSidebar .stButton > button {
+        background-color: rgba(17, 17, 34, 0.9) !important;
+        color: #E5E7EB !important;
+        border: 1px solid #374151 !important;
         width: 100% !important;
     }
-
-    div[data-testid="stButton"] > button[kind="primary"]:hover,
-    div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover,
-    .stApp div[data-testid="stButton"] > button[kind="primary"]:hover,
-    .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover {
-        background-color: #3B82F6 !important;
-        border-color: #2563EB !important;
-        box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
-        transform: translateY(-2px) !important;
+    
+    .stSidebar .stButton > button:hover {
+        background-color: rgba(30, 41, 59, 0.9) !important;
+        border-color: var(--reborn-accent-blue) !important;
     }
-
-    /* Target specific button by key if needed */
-    button[data-testid="baseButton-primary"][aria-label*="main_process_button"] {
-        background-color: #79b8f3 !important;
-        color: white !important;
-        border: 1px solid #64B5F6 !important;
+    
+    /* Options container styling */
+    .options-container {
+        background-color: rgba(17, 17, 34, 0.8);
+        border: 1px solid rgba(56, 68, 77, 0.5);
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .options-header {
+        font-family: 'Inter', sans-serif !important;
+        font-size: 1.25rem !important;
+        font-weight: 600 !important;
+        color: var(--reborn-accent-blue) !important;
+        margin-bottom: 16px !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+    }
+    
+    /* Checkbox styling */
+    .stCheckbox {
+        font-family: 'Inter', sans-serif !important;
+        color: #E5E7EB !important;
+    }
+    
+    .stCheckbox input[type="checkbox"] {
+        accent-color: var(--reborn-accent-blue) !important;
+    }
+    
+    /* Radio button styling */
+    .stRadio {
+        font-family: 'Inter', sans-serif !important;
+        color: #E5E7EB !important;
+    }
+    
+    .stRadio input[type="radio"] {
+        accent-color: var(--reborn-accent-blue) !important;
+    }
+    
+    /* Metric styling */
+    .stMetric {
+        background-color: rgba(17, 17, 34, 0.8) !important;
+        border: 1px solid #374151 !important;
+        border-radius: 8px !important;
+        padding: 16px !important;
+    }
+    
+    .stMetric [data-testid="metric-container"] {
+        background-color: transparent !important;
+    }
+    
+    .stMetric .metric-label {
+        color: #9CA3AF !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 500 !important;
+    }
+    
+    .stMetric .metric-value {
+        color: var(--reborn-accent-blue) !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Progress bar styling */
+    .stProgress > div > div {
+        background-color: var(--reborn-accent-blue) !important;
+    }
+    
+    /* Alert/info box styling */
+    .stAlert {
+        background-color: rgba(17, 17, 34, 0.9) !important;
+        border: 1px solid #374151 !important;
+        border-radius: 8px !important;
+        color: #E5E7EB !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    
+    /* Success alert */
+    .stAlert[data-baseweb="notification"] {
+        border-left: 4px solid var(--reborn-accent-blue) !important;
+    }
+    
+    /* File uploader styling */
+    .stFileUploader {
+        background-color: rgba(17, 17, 34, 0.8) !important;
+        border: 1px solid #374151 !important;
+        border-radius: 8px !important;
+        padding: 16px !important;
+    }
+    
+    .stFileUploader label {
+        color: #E5E7EB !important;
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 500 !important;
+    }
+    
+    .stFileUploader [data-testid="stFileUploaderDropzone"] {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border: 2px dashed #374151 !important;
+        border-radius: 6px !important;
+    }
+    
+    .stFileUploader [data-testid="stFileUploaderDropzone"]:hover {
+        border-color: var(--reborn-accent-blue) !important;
+        background-color: rgba(121, 184, 243, 0.1) !important;
+    }
+    
+    /* Spinner styling */
+    .stSpinner {
+        color: var(--reborn-accent-blue) !important;
+    }
+    
+    /* Code block styling */
+    .stCodeBlock {
+        background-color: rgba(17, 17, 34, 0.9) !important;
+        border: 1px solid #374151 !important;
+        border-radius: 8px !important;
+        color: #E5E7EB !important;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+    }
+    
+    /* Link styling */
+    a {
+        color: var(--reborn-accent-blue) !important;
+        text-decoration: none !important;
+    }
+    
+    a:hover {
+        color: #5a9fd4 !important;
+        text-decoration: underline !important;
+    }
+    
+    /* Responsive design adjustments */
+    @media (max-width: 768px) {
+        .header-container {
+            padding: 0.5rem 0;
+            margin-bottom: 1rem;
+        }
+        
+        .reborn-text {
+            font-size: 2rem;
+        }
+        
+        .app-title {
+            font-size: 1.5rem;
+        }
+        
+        .reborn-logo {
+            height: 45px;
+            margin-right: 0.75rem;
+        }
+        
+        .main .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        
+        .noi-title {
+            font-size: 2rem !important;
+        }
+        
+        .section-header {
+            font-size: 1.5rem !important;
+        }
+    }
+    
+    /* Ensure proper spacing for all content */
+    .main .block-container > div {
+        margin-bottom: 1rem;
+    }
+    
+    /* Fix any overflow issues */
+    .stApp {
+        overflow-x: hidden;
+    }
+    
+    /* Ensure consistent font loading */
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1636,378 +1403,56 @@ from reborn_logo import get_reborn_logo_base64
 
 # Logo display function - updated to use direct embedding with better error handling
 def display_logo():
-    """Display the Reborn logo with company name and theme toggle in header"""
+    """Display the Reborn logo and application title with enhanced styling."""
     try:
+        # Get the logo as base64
         logo_base64 = get_reborn_logo_base64()
         
         # Check if we got a valid base64 string
         if not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100:
-            logger.warning(f"Invalid logo base64 string: {logo_base64[:20] if logo_base64 else 'None'}...")
-            logo_fallback = True
-        else:
-            logo_fallback = False
-        
-        # Create header layout matching the second image example
-        if not logo_fallback:
-            try:
-                # Create header with logo+text on left and toggle on right
-                header_col1, header_col2 = st.columns([5, 1])
-                
-                with header_col1:
-                    # Create logo and text layout
-                    logo_text_col1, logo_text_col2 = st.columns([1, 4])
-                    
-                    with logo_text_col1:
-                        # Display transparent logo
-                        st.markdown(f"""
-                        <div style="display: flex; align-items: center; justify-content: flex-start; padding: 10px 0;">
-                            <img 
-                                src="data:image/png;base64,{logo_base64}" 
-                                width="60px" 
-                                height="60px"
-                                alt="Reborn Logo" 
-                                style="
-                                    object-fit: contain;
-                                    background: none !important;
-                                    background-color: transparent !important;
-                                    border: none;
-                                    padding: 0;
-                                    margin: 0;
-                                "
-                            >
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    with logo_text_col2:
-                        # Display REBORN text and NOI Analyzer
-                        st.markdown("""
-                        <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0; margin-left: -20px;">
-                            <div style="
-                                font-size: 1.8rem;
-                                font-weight: bold;
-                                color: #ffffff;
-                                margin: 0;
-                                padding: 0;
-                                line-height: 1.1;
-                            ">REBORN</div>
-                            <div style="
-                                font-size: 1.2rem;
-                                font-weight: 400;
-                                color: #cccccc;
-                                margin: 2px 0 0 0;
-                                padding: 0;
-                                line-height: 1.1;
-                            ">NOI Analyzer</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                with header_col2:
-                    # Theme toggle switch
-                    current_theme = st.session_state.get('theme', 'dark')
-                    
-                    # Custom toggle switch HTML/CSS
-                    toggle_html = f"""
-                    <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
-                        <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
-                            <style>
-                            .theme-toggle {{
-                                position: relative;
-                                width: 60px;
-                                height: 30px;
-                                background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
-                                border-radius: 15px;
-                                cursor: pointer;
-                                transition: background-color 0.3s ease;
-                                border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            .theme-toggle::before {{
-                                content: "{'🌙' if current_theme == 'dark' else '☀️'}";
-                                position: absolute;
-                                top: 50%;
-                                left: {'32px' if current_theme == 'dark' else '6px'};
-                                transform: translateY(-50%);
-                                width: 22px;
-                                height: 22px;
-                                background-color: white;
-                                border-radius: 50%;
-                                transition: left 0.3s ease;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 12px;
-                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                            }}
-                            .theme-toggle:hover {{
-                                background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            /* More robustly hide the Streamlit button */
-                            .stButton > button[title*="Toggle"] {{
-                                display: none;
-                            }}
-                            </style>
-                            <div class="theme-toggle" id="theme-toggle"></div>
-                        </div>
-                    </div>
-                    """
-                    st.markdown(toggle_html, unsafe_allow_html=True)
-                    
-                    # Create theme toggle button (hidden via CSS, triggered by JavaScript)
-                    if st.button("Toggle Theme", key="theme_toggle_header", help="Toggle light/dark mode", type="secondary"):
-                        # Toggle theme in session state
-                        new_theme = "light" if current_theme == "dark" else "dark"
-                        st.session_state.theme = new_theme
-                        
-                        # Apply theme change via JavaScript
-                        st.markdown(f"""
-                        <script>
-                        const root = document.documentElement;
-                        root.setAttribute('data-theme', '{new_theme}');
-                        localStorage.setItem('preferred-theme', '{new_theme}');
-                        </script>
-                        """, unsafe_allow_html=True)
-                        
-                        st.rerun()
-                    
-                    # Add JavaScript to make the toggle clickable
-                    st.markdown("""
-                    <script>
-                    // Use a more reliable way to wait for element readiness
-                    const checkExist = setInterval(function() {
-                       const toggle = document.getElementById('theme-toggle');
-                       if (toggle) {
-                          clearInterval(checkExist);
-                          toggle.addEventListener('click', function() {
-                              // Find the theme toggle button and click it
-                              const buttons = window.parent.document.querySelectorAll('button');
-                              for (let button of buttons) {
-                                  if (button.title && button.title.includes('Toggle light/dark mode')) {
-                                      button.click();
-                                      break;
-                                  }
-                              }
-                          });
-                       }
-                    }, 100);
-                    </script>
-                    """, unsafe_allow_html=True)
-                
-            except Exception as e:
-                logger.error(f"Error displaying logo image: {str(e)}")
-                # Fallback with text only
-                header_col1, header_col2 = st.columns([5, 1])
-                
-                with header_col1:
-                    st.markdown("""
-                    <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0;">
-                        <div style="
-                            font-size: 1.8rem;
-                            font-weight: bold;
-                            color: #ffffff;
-                            margin: 0;
-                            padding: 0;
-                            line-height: 1.1;
-                        ">REBORN</div>
-                        <div style="
-                            font-size: 1.2rem;
-                            font-weight: 400;
-                            color: #cccccc;
-                            margin: 2px 0 0 0;
-                            padding: 0;
-                            line-height: 1.1;
-                        ">NOI Analyzer</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with header_col2:
-                    # Theme toggle switch for fallback
-                    current_theme = st.session_state.get('theme', 'dark')
-                    
-                    toggle_html = f"""
-                    <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
-                        <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
-                            <style>
-                            .theme-toggle-fallback {{
-                                position: relative;
-                                width: 60px;
-                                height: 30px;
-                                background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
-                                border-radius: 15px;
-                                cursor: pointer;
-                                transition: background-color 0.3s ease;
-                                border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            .theme-toggle-fallback::before {{
-                                content: "{'🌙' if current_theme == 'dark' else '☀️'}";
-                                position: absolute;
-                                top: 50%;
-                                left: {'32px' if current_theme == 'dark' else '6px'};
-                                transform: translateY(-50%);
-                                width: 22px;
-                                height: 22px;
-                                background-color: white;
-                                border-radius: 50%;
-                                transition: left 0.3s ease;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 12px;
-                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                            }}
-                            .theme-toggle-fallback:hover {{
-                                background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            </style>
-                            <div class="theme-toggle-fallback" id="theme-toggle-fallback"></div>
-                        </div>
-                    </div>
-                    """
-                    st.markdown(toggle_html, unsafe_allow_html=True)
-                    
-                    st.markdown('<div style="display: none;">', unsafe_allow_html=True)
-                    if st.button("Toggle Theme", key="theme_toggle_header_fallback", help="Toggle light/dark mode", type="secondary"):
-                        new_theme = "light" if current_theme == "dark" else "dark"
-                        st.session_state.theme = new_theme
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    st.markdown("""
-                    <script>
-                    setTimeout(function() {
-                        const toggle = document.getElementById('theme-toggle-fallback');
-                        if (toggle) {
-                            toggle.addEventListener('click', function() {
-                                const buttons = document.querySelectorAll('button');
-                                for (let button of buttons) {
-                                    if (button.textContent === 'Toggle Theme') {
-                                        button.click();
-                                        break;
-                                    }
-                                }
-                            });
-                        }
-                    }, 100);
-                    </script>
-                    """, unsafe_allow_html=True)
-        else:
-            # Title fallback without logo
-            header_col1, header_col2 = st.columns([5, 1])
+            logger.warning(f"Invalid logo base64 string: {logo_base64[:20]}...")
+            # Fallback to text-only header
+            st.markdown("""
+            <div class="header-container">
+                <h1 class="reborn-text">REBORN</h1>
+                <h2 class="app-title">NOI Analyzer Enhanced</h2>
+            </div>
+            """, unsafe_allow_html=True)
+            return
             
-            with header_col1:
-                st.markdown("""
-                <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0;">
-                    <div style="
-                        font-size: 1.8rem;
-                        font-weight: bold;
-                        color: #ffffff;
-                        margin: 0;
-                        padding: 0;
-                        line-height: 1.1;
-                    ">REBORN</div>
-                    <div style="
-                        font-size: 1.2rem;
-                        font-weight: 400;
-                        color: #cccccc;
-                        margin: 2px 0 0 0;
-                        padding: 0;
-                        line-height: 1.1;
-                    ">NOI Analyzer</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with header_col2:
-                # Theme toggle switch for title fallback
-                current_theme = st.session_state.get('theme', 'dark')
-                
-                toggle_html = f"""
-                <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
-                    <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
-                        <style>
-                        .theme-toggle-title {{
-                            position: relative;
-                            width: 60px;
-                            height: 30px;
-                            background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
-                            border-radius: 15px;
-                            cursor: pointer;
-                            transition: background-color 0.3s ease;
-                            border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                        }}
-                        .theme-toggle-title::before {{
-                            content: "{'🌙' if current_theme == 'dark' else '☀️'}";
-                            position: absolute;
-                            top: 50%;
-                            left: {'32px' if current_theme == 'dark' else '6px'};
-                            transform: translateY(-50%);
-                            width: 22px;
-                            height: 22px;
-                            background-color: white;
-                            border-radius: 50%;
-                            transition: left 0.3s ease;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 12px;
-                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                        }}
-                        .theme-toggle-title:hover {{
-                            background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                        }}
-                        </style>
-                        <div class="theme-toggle-title" id="theme-toggle-title"></div>
-                    </div>
-                </div>
-                """
-                st.markdown(toggle_html, unsafe_allow_html=True)
-                
-                st.markdown('<div style="display: none;">', unsafe_allow_html=True)
-                if st.button("Toggle Theme", key="theme_toggle_title", help="Toggle light/dark mode", type="secondary"):
-                    new_theme = "light" if current_theme == "dark" else "dark"
-                    st.session_state.theme = new_theme
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                st.markdown("""
-                <script>
-                setTimeout(function() {
-                    const toggle = document.getElementById('theme-toggle-title');
-                    if (toggle) {
-                        toggle.addEventListener('click', function() {
-                            const buttons = document.querySelectorAll('button');
-                            for (let button of buttons) {
-                                if (button.textContent === 'Toggle Theme') {
-                                    button.click();
-                                    break;
-                                }
-                            }
-                        });
-                    }
-                }, 100);
-                </script>
-                """, unsafe_allow_html=True)
+        # Display the enhanced header with logo and text
+        import base64
+        from io import BytesIO
         
+        try:
+            # Decode the base64 string
+            image_bytes = base64.b64decode(logo_base64)
+            
+            # Create the enhanced header with logo and text
+            st.markdown("""
+            <div class="header-container">
+                <div class="logo-title-container">
+                    <img src="data:image/png;base64,{}" class="reborn-logo" alt="Reborn Logo">
+                    <h1 class="reborn-text">REBORN</h1>
+                </div>
+                <h2 class="app-title">NOI Analyzer Enhanced</h2>
+            </div>
+            """.format(logo_base64), unsafe_allow_html=True)
+                
+        except Exception as e:
+            logger.error(f"Error displaying logo image: {str(e)}")
+            # Fallback to text-only header
+            st.markdown("""
+            <div class="header-container">
+                <h1 class="reborn-text">REBORN</h1>
+                <h2 class="app-title">NOI Analyzer Enhanced</h2>
+            </div>
+            """, unsafe_allow_html=True)
+            
     except Exception as e:
         logger.error(f"Error in display_logo: {str(e)}")
-        # Final fallback - just show the company name and product
-        st.markdown("""
-        <div style="display: flex; flex-direction: column; justify-content: center; padding: 20px 0;">
-            <div style="
-                font-size: 1.8rem;
-                font-weight: bold;
-                color: #ffffff;
-                margin: 0;
-                padding: 0;
-                line-height: 1.1;
-            ">REBORN</div>
-            <div style="
-                font-size: 1.2rem;
-                font-weight: 400;
-                color: #cccccc;
-                margin: 2px 0 0 0;
-                padding: 0;
-                line-height: 1.1;
-            ">NOI Analyzer</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Ultimate fallback - just show the title
+        st.markdown("<h1>NOI Analyzer</h1>", unsafe_allow_html=True)
 
 # New function for small logo display
 def display_logo_small():
@@ -3744,14 +3189,6 @@ def main():
     # Display initial UI or results based on processing_completed
     if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
         # Show welcome content when no data has been processed and template is not active
-        # Modern title with accent color
-        st.markdown(
-        '''
-        <h1 class="noi-title">
-            <span class="noi-title-accent">NOI</span> Analyzer
-        </h1>
-        '''
-        , unsafe_allow_html=True)
         
         # Two-column layout for better space utilization
         col1, col2 = st.columns([1, 1.2])
