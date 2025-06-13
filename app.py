@@ -1740,8 +1740,9 @@ def display_logo():
                             .theme-toggle:hover {{
                                 background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
                             }}
-                            .stButton button[title*="Toggle"] {{
-                                display: none !important;
+                            /* More robustly hide the Streamlit button */
+                            .stButton > button[title*="Toggle"] {{
+                                display: none;
                             }}
                             </style>
                             <div class="theme-toggle" id="theme-toggle"></div>
@@ -1751,7 +1752,6 @@ def display_logo():
                     st.markdown(toggle_html, unsafe_allow_html=True)
                     
                     # Create theme toggle button (hidden via CSS, triggered by JavaScript)
-                    st.markdown('<div style="display: none;">', unsafe_allow_html=True)
                     if st.button("Toggle Theme", key="theme_toggle_header", help="Toggle light/dark mode", type="secondary"):
                         # Toggle theme in session state
                         new_theme = "light" if current_theme == "dark" else "dark"
@@ -1767,25 +1767,26 @@ def display_logo():
                         """, unsafe_allow_html=True)
                         
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     # Add JavaScript to make the toggle clickable
                     st.markdown("""
                     <script>
-                    setTimeout(function() {
-                        const toggle = document.getElementById('theme-toggle');
-                        if (toggle) {
-                            toggle.addEventListener('click', function() {
-                                // Find the theme toggle button and click it
-                                const buttons = document.querySelectorAll('button');
-                                for (let button of buttons) {
-                                    if (button.textContent === 'Toggle Theme') {
-                                        button.click();
-                                        break;
-                                    }
-                                }
-                            });
-                        }
+                    // Use a more reliable way to wait for element readiness
+                    const checkExist = setInterval(function() {
+                       const toggle = document.getElementById('theme-toggle');
+                       if (toggle) {
+                          clearInterval(checkExist);
+                          toggle.addEventListener('click', function() {
+                              // Find the theme toggle button and click it
+                              const buttons = window.parent.document.querySelectorAll('button');
+                              for (let button of buttons) {
+                                  if (button.title && button.title.includes('Toggle light/dark mode')) {
+                                      button.click();
+                                      break;
+                                  }
+                              }
+                          });
+                       }
                     }, 100);
                     </script>
                     """, unsafe_allow_html=True)
