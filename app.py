@@ -1636,378 +1636,83 @@ from reborn_logo import get_reborn_logo_base64
 
 # Logo display function - updated to use direct embedding with better error handling
 def display_logo():
-    """Display the Reborn logo with company name and theme toggle in header"""
+    """Display an enhanced header with the Reborn logo, company name, and application title."""
     try:
+        # Retrieve logo as base64
         logo_base64 = get_reborn_logo_base64()
-        
-        # Check if we got a valid base64 string
+
+        # Validate the base64 string – fallback to text-only header if invalid
         if not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100:
-            logger.warning(f"Invalid logo base64 string: {logo_base64[:20] if logo_base64 else 'None'}...")
-            logo_fallback = True
-        else:
-            logo_fallback = False
-        
-        # Create header layout matching the second image example
-        if not logo_fallback:
-            try:
-                # Create header with logo+text on left and toggle on right
-                header_col1, header_col2 = st.columns([5, 1])
-                
-                with header_col1:
-                    # Create logo and text layout
-                    logo_text_col1, logo_text_col2 = st.columns([1, 4])
-                    
-                    with logo_text_col1:
-                        # Display transparent logo
-                        st.markdown(f"""
-                        <div style="display: flex; align-items: center; justify-content: flex-start; padding: 10px 0;">
-                            <img 
-                                src="data:image/png;base64,{logo_base64}" 
-                                width="60px" 
-                                height="60px"
-                                alt="Reborn Logo" 
-                                style="
-                                    object-fit: contain;
-                                    background: none !important;
-                                    background-color: transparent !important;
-                                    border: none;
-                                    padding: 0;
-                                    margin: 0;
-                                "
-                            >
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    with logo_text_col2:
-                        # Display REBORN text and NOI Analyzer
-                        st.markdown("""
-                        <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0; margin-left: -20px;">
-                            <div style="
-                                font-size: 1.8rem;
-                                font-weight: bold;
-                                color: #ffffff;
-                                margin: 0;
-                                padding: 0;
-                                line-height: 1.1;
-                            ">REBORN</div>
-                            <div style="
-                                font-size: 1.2rem;
-                                font-weight: 400;
-                                color: #cccccc;
-                                margin: 2px 0 0 0;
-                                padding: 0;
-                                line-height: 1.1;
-                            ">NOI Analyzer</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                with header_col2:
-                    # Theme toggle switch
-                    current_theme = st.session_state.get('theme', 'dark')
-                    
-                    # Custom toggle switch HTML/CSS
-                    toggle_html = f"""
-                    <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
-                        <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
-                            <style>
-                            .theme-toggle {{
-                                position: relative;
-                                width: 60px;
-                                height: 30px;
-                                background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
-                                border-radius: 15px;
-                                cursor: pointer;
-                                transition: background-color 0.3s ease;
-                                border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            .theme-toggle::before {{
-                                content: "{'🌙' if current_theme == 'dark' else '☀️'}";
-                                position: absolute;
-                                top: 50%;
-                                left: {'32px' if current_theme == 'dark' else '6px'};
-                                transform: translateY(-50%);
-                                width: 22px;
-                                height: 22px;
-                                background-color: white;
-                                border-radius: 50%;
-                                transition: left 0.3s ease;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 12px;
-                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                            }}
-                            .theme-toggle:hover {{
-                                background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            /* More robustly hide the Streamlit button */
-                            .stButton > button[title*="Toggle"] {{
-                                display: none;
-                            }}
-                            </style>
-                            <div class="theme-toggle" id="theme-toggle"></div>
-                        </div>
-                    </div>
-                    """
-                    st.markdown(toggle_html, unsafe_allow_html=True)
-                    
-                    # Create theme toggle button (hidden via CSS, triggered by JavaScript)
-                    if st.button("Toggle Theme", key="theme_toggle_header", help="Toggle light/dark mode", type="secondary"):
-                        # Toggle theme in session state
-                        new_theme = "light" if current_theme == "dark" else "dark"
-                        st.session_state.theme = new_theme
-                        
-                        # Apply theme change via JavaScript
-                        st.markdown(f"""
-                        <script>
-                        const root = document.documentElement;
-                        root.setAttribute('data-theme', '{new_theme}');
-                        localStorage.setItem('preferred-theme', '{new_theme}');
-                        </script>
-                        """, unsafe_allow_html=True)
-                        
-                        st.rerun()
-                    
-                    # Add JavaScript to make the toggle clickable
-                    st.markdown("""
-                    <script>
-                    // Use a more reliable way to wait for element readiness
-                    const checkExist = setInterval(function() {
-                       const toggle = document.getElementById('theme-toggle');
-                       if (toggle) {
-                          clearInterval(checkExist);
-                          toggle.addEventListener('click', function() {
-                              // Find the theme toggle button and click it
-                              const buttons = window.parent.document.querySelectorAll('button');
-                              for (let button of buttons) {
-                                  if (button.title && button.title.includes('Toggle light/dark mode')) {
-                                      button.click();
-                                      break;
-                                  }
-                              }
-                          });
-                       }
-                    }, 100);
-                    </script>
-                    """, unsafe_allow_html=True)
-                
-            except Exception as e:
-                logger.error(f"Error displaying logo image: {str(e)}")
-                # Fallback with text only
-                header_col1, header_col2 = st.columns([5, 1])
-                
-                with header_col1:
-                    st.markdown("""
-                    <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0;">
-                        <div style="
-                            font-size: 1.8rem;
-                            font-weight: bold;
-                            color: #ffffff;
-                            margin: 0;
-                            padding: 0;
-                            line-height: 1.1;
-                        ">REBORN</div>
-                        <div style="
-                            font-size: 1.2rem;
-                            font-weight: 400;
-                            color: #cccccc;
-                            margin: 2px 0 0 0;
-                            padding: 0;
-                            line-height: 1.1;
-                        ">NOI Analyzer</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with header_col2:
-                    # Theme toggle switch for fallback
-                    current_theme = st.session_state.get('theme', 'dark')
-                    
-                    toggle_html = f"""
-                    <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
-                        <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
-                            <style>
-                            .theme-toggle-fallback {{
-                                position: relative;
-                                width: 60px;
-                                height: 30px;
-                                background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
-                                border-radius: 15px;
-                                cursor: pointer;
-                                transition: background-color 0.3s ease;
-                                border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            .theme-toggle-fallback::before {{
-                                content: "{'🌙' if current_theme == 'dark' else '☀️'}";
-                                position: absolute;
-                                top: 50%;
-                                left: {'32px' if current_theme == 'dark' else '6px'};
-                                transform: translateY(-50%);
-                                width: 22px;
-                                height: 22px;
-                                background-color: white;
-                                border-radius: 50%;
-                                transition: left 0.3s ease;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 12px;
-                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                            }}
-                            .theme-toggle-fallback:hover {{
-                                background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                            }}
-                            </style>
-                            <div class="theme-toggle-fallback" id="theme-toggle-fallback"></div>
-                        </div>
-                    </div>
-                    """
-                    st.markdown(toggle_html, unsafe_allow_html=True)
-                    
-                    st.markdown('<div style="display: none;">', unsafe_allow_html=True)
-                    if st.button("Toggle Theme", key="theme_toggle_header_fallback", help="Toggle light/dark mode", type="secondary"):
-                        new_theme = "light" if current_theme == "dark" else "dark"
-                        st.session_state.theme = new_theme
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    st.markdown("""
-                    <script>
-                    setTimeout(function() {
-                        const toggle = document.getElementById('theme-toggle-fallback');
-                        if (toggle) {
-                            toggle.addEventListener('click', function() {
-                                const buttons = document.querySelectorAll('button');
-                                for (let button of buttons) {
-                                    if (button.textContent === 'Toggle Theme') {
-                                        button.click();
-                                        break;
-                                    }
-                                }
-                            });
-                        }
-                    }, 100);
-                    </script>
-                    """, unsafe_allow_html=True)
-        else:
-            # Title fallback without logo
-            header_col1, header_col2 = st.columns([5, 1])
-            
-            with header_col1:
-                st.markdown("""
-                <div style="display: flex; flex-direction: column; justify-content: center; padding: 10px 0;">
-                    <div style="
-                        font-size: 1.8rem;
-                        font-weight: bold;
-                        color: #ffffff;
-                        margin: 0;
-                        padding: 0;
-                        line-height: 1.1;
-                    ">REBORN</div>
-                    <div style="
-                        font-size: 1.2rem;
-                        font-weight: 400;
-                        color: #cccccc;
-                        margin: 2px 0 0 0;
-                        padding: 0;
-                        line-height: 1.1;
-                    ">NOI Analyzer</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with header_col2:
-                # Theme toggle switch for title fallback
-                current_theme = st.session_state.get('theme', 'dark')
-                
-                toggle_html = f"""
-                <div style="display: flex; justify-content: flex-end; align-items: center; padding: 10px 0;">
-                    <div style="position: relative; display: inline-block; width: 60px; height: 30px;">
-                        <style>
-                        .theme-toggle-title {{
-                            position: relative;
-                            width: 60px;
-                            height: 30px;
-                            background-color: {'#374151' if current_theme == 'dark' else '#E5E7EB'};
-                            border-radius: 15px;
-                            cursor: pointer;
-                            transition: background-color 0.3s ease;
-                            border: 2px solid {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                        }}
-                        .theme-toggle-title::before {{
-                            content: "{'🌙' if current_theme == 'dark' else '☀️'}";
-                            position: absolute;
-                            top: 50%;
-                            left: {'32px' if current_theme == 'dark' else '6px'};
-                            transform: translateY(-50%);
-                            width: 22px;
-                            height: 22px;
-                            background-color: white;
-                            border-radius: 50%;
-                            transition: left 0.3s ease;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 12px;
-                            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                        }}
-                        .theme-toggle-title:hover {{
-                            background-color: {'#4B5563' if current_theme == 'dark' else '#D1D5DB'};
-                        }}
-                        </style>
-                        <div class="theme-toggle-title" id="theme-toggle-title"></div>
-                    </div>
-                </div>
+            st.markdown(
                 """
-                st.markdown(toggle_html, unsafe_allow_html=True)
-                
-                st.markdown('<div style="display: none;">', unsafe_allow_html=True)
-                if st.button("Toggle Theme", key="theme_toggle_title", help="Toggle light/dark mode", type="secondary"):
-                    new_theme = "light" if current_theme == "dark" else "dark"
-                    st.session_state.theme = new_theme
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                st.markdown("""
-                <script>
-                setTimeout(function() {
-                    const toggle = document.getElementById('theme-toggle-title');
-                    if (toggle) {
-                        toggle.addEventListener('click', function() {
-                            const buttons = document.querySelectorAll('button');
-                            for (let button of buttons) {
-                                if (button.textContent === 'Toggle Theme') {
-                                    button.click();
-                                    break;
-                                }
-                            }
-                        });
-                    }
-                }, 100);
-                </script>
-                """, unsafe_allow_html=True)
-        
+                <div class="header-container">
+                    <h1 class="reborn-text">REBORN</h1>
+                    <h2 class="app-title">NOI Analyzer Enhanced</h2>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            return
+
+        # Inject header-specific CSS only once per session
+        if "header_css_injected" not in st.session_state:
+            st.markdown(
+                """
+                <style>
+                /* Enhanced Header Styling */
+                .header-container {
+                    padding: 1rem 0;
+                    margin-bottom: 2rem;
+                }
+                .logo-title-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    margin-bottom: 0.25rem;
+                }
+                .reborn-logo {
+                    height: 60px;
+                }
+                .reborn-text {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 2.25rem;
+                    font-weight: 700;
+                    color: #ffffff;
+                    margin: 0;
+                    letter-spacing: 0.05em;
+                }
+                .app-title {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 1.75rem;
+                    font-weight: 500;
+                    color: #ffffff;
+                    margin: 0;
+                }
+                /* Hide default Streamlit header & menu */
+                #MainMenu, header { visibility: hidden; }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.session_state.header_css_injected = True
+
+        # Render the header with logo and titles
+        st.markdown(
+            f"""
+            <div class="header-container">
+                <div class="logo-title-container">
+                    <img src="data:image/png;base64,{logo_base64}" class="reborn-logo" alt="Reborn Logo" />
+                    <h1 class="reborn-text">REBORN</h1>
+                </div>
+                <h2 class="app-title">NOI Analyzer Enhanced</h2>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     except Exception as e:
-        logger.error(f"Error in display_logo: {str(e)}")
-        # Final fallback - just show the company name and product
-        st.markdown("""
-        <div style="display: flex; flex-direction: column; justify-content: center; padding: 20px 0;">
-            <div style="
-                font-size: 1.8rem;
-                font-weight: bold;
-                color: #ffffff;
-                margin: 0;
-                padding: 0;
-                line-height: 1.1;
-            ">REBORN</div>
-            <div style="
-                font-size: 1.2rem;
-                font-weight: 400;
-                color: #cccccc;
-                margin: 2px 0 0 0;
-                padding: 0;
-                line-height: 1.1;
-            ">NOI Analyzer</div>
-        </div>
-        """, unsafe_allow_html=True)
+        logger.error(f"Error in display_logo: {e}", exc_info=True)
+        st.markdown("<h1>NOI Analyzer Enhanced</h1>", unsafe_allow_html=True)
 
 # New function for small logo display
 def display_logo_small():
