@@ -1746,7 +1746,15 @@ def display_logo():
                 }
                 document.addEventListener('DOMContentLoaded', function () {
                     const tgt = document.getElementById('theme-toggle');
-                    if (tgt) { tgt.addEventListener('click', _toggleThemeReborn); }
+                    if (tgt) {
+                        tgt.addEventListener('click', function(){
+                            // Call the global toggleTheme() already injected by main()
+                            if (typeof toggleTheme === 'function') { toggleTheme(); }
+                            // Ensure Streamlit session_state updates via hidden button
+                            const hiddenBtn = document.querySelector("button[data-testid='baseButton-theme_toggle_hidden']");
+                            if (hiddenBtn) { hiddenBtn.click(); }
+                        });
+                    }
                 });
                 </script>
                 """,
