@@ -1651,15 +1651,15 @@ def display_logo():
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 0.5rem 0 1.25rem 0;
-                    margin-bottom: 0.5rem;
+                    padding: 0.25rem 0 0.75rem 0; /* tighter spacing */
+                    margin-bottom: 0.25rem;
                 }
                 .logo-title-container {
                     display: flex;
                     align-items: center;
                     gap: 0.75rem;
                 }
-                .reborn-logo { height: 54px; }
+                .reborn-logo { height: 64px; }
                 .reborn-text {
                     font-family: 'Inter', sans-serif;
                     font-size: 2.25rem;
@@ -1711,7 +1711,7 @@ def display_logo():
 
         # Build HTML (logo + text + toggle)
         left_part = (
-            f"<img src='data:image/png;base64,{logo_base64}' class='reborn-logo' alt='Reborn Logo'>" if not invalid_logo else ""
+            (f"<img src='data:image/png;base64,{logo_base64}' class='reborn-logo' alt='Reborn Logo'>" if not invalid_logo else "")
         ) + "<h1 class='reborn-text'>REBORN</h1>"
 
         st.markdown(
