@@ -1636,43 +1636,30 @@ from reborn_logo import get_reborn_logo_base64
 
 # Logo display function - updated to use direct embedding with better error handling
 def display_logo():
-    """Display an enhanced header with the Reborn logo, company name, and application title."""
+    """Display header with logo, company name, and a theme toggle."""
     try:
-        # Retrieve logo as base64
         logo_base64 = get_reborn_logo_base64()
+        # Fallback detection
+        invalid_logo = not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100
 
-        # Validate the base64 string – fallback to text-only header if invalid
-        if not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100:
-            st.markdown(
-                """
-                <div class="header-container">
-                    <h1 class="reborn-text">REBORN</h1>
-                    <h2 class="app-title">NOI Analyzer Enhanced</h2>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            return
-
-        # Inject header-specific CSS only once per session
+        # Inject CSS only once
         if "header_css_injected" not in st.session_state:
             st.markdown(
                 """
                 <style>
-                /* Enhanced Header Styling */
                 .header-container {
-                    padding: 1rem 0;
-                    margin-bottom: 2rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0.5rem 0 1.25rem 0;
+                    margin-bottom: 0.5rem;
                 }
                 .logo-title-container {
                     display: flex;
                     align-items: center;
                     gap: 0.75rem;
-                    margin-bottom: 0.25rem;
                 }
-                .reborn-logo {
-                    height: 60px;
-                }
+                .reborn-logo { height: 54px; }
                 .reborn-text {
                     font-family: 'Inter', sans-serif;
                     font-size: 2.25rem;
@@ -1681,14 +1668,33 @@ def display_logo():
                     margin: 0;
                     letter-spacing: 0.05em;
                 }
-                .app-title {
-                    font-family: 'Inter', sans-serif;
-                    font-size: 1.75rem;
-                    font-weight: 500;
-                    color: #ffffff;
-                    margin: 0;
+                /* Theme toggle pill */
+                .theme-toggle {
+                    position: relative;
+                    width: 56px;
+                    height: 28px;
+                    border-radius: 14px;
+                    background-color: var(--toggle-bg, #374151);
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
                 }
-                /* Hide default Streamlit header & menu */
+                .theme-toggle::before {
+                    content: var(--toggle-emoji, "🌙");
+                    position: absolute;
+                    top: 50%;
+                    left: var(--toggle-pos, 30px);
+                    transform: translateY(-50%);
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 50%;
+                    background: #fff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+                    transition: left 0.3s ease;
+                }
                 #MainMenu, header { visibility: hidden; }
                 </style>
                 """,
@@ -1696,23 +1702,76 @@ def display_logo():
             )
             st.session_state.header_css_injected = True
 
-        # Render the header with logo and titles
+        # Determine toggle styling variables based on current theme
+        current_theme = st.session_state.get("theme", "dark")
+        toggle_css_vars = (
+            "--toggle-bg: #374151; --toggle-pos: 30px; --toggle-emoji: '🌙'" if current_theme == "dark" else
+            "--toggle-bg: #E5E7EB; --toggle-pos: 4px; --toggle-emoji: '☀️'"
+        )
+
+        # Build HTML (logo + text + toggle)
+        left_part = (
+            f"<img src='data:image/png;base64,{logo_base64}' class='reborn-logo' alt='Reborn Logo'>" if not invalid_logo else ""
+        ) + "<h1 class='reborn-text'>REBORN</h1>"
+
         st.markdown(
             f"""
-            <div class="header-container">
-                <div class="logo-title-container">
-                    <img src="data:image/png;base64,{logo_base64}" class="reborn-logo" alt="Reborn Logo" />
-                    <h1 class="reborn-text">REBORN</h1>
-                </div>
-                <h2 class="app-title">NOI Analyzer Enhanced</h2>
+            <div class='header-container'>
+                <div class='logo-title-container'>{left_part}</div>
+                <div id='theme-toggle' class='theme-toggle' style='{toggle_css_vars}'></div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
+        # Inject JS once to wire the toggle
+        if "header_toggle_js" not in st.session_state:
+            st.markdown(
+                """
+                <script>
+                // Theme helper (matches one defined in main JS)
+                function _toggleThemeReborn() {
+                    const root = parent.document.documentElement;
+                    const current = root.getAttribute('data-theme') || 'dark';
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    root.setAttribute('data-theme', next);
+                    localStorage.setItem('preferred-theme', next);
+                    // update CSS variables for smoother UI feedback
+                    const toggle = document.getElementById('theme-toggle');
+                    if (toggle) {
+                        toggle.style.setProperty('--toggle-bg', next === 'dark' ? '#374151' : '#E5E7EB');
+                        toggle.style.setProperty('--toggle-pos', next === 'dark' ? '30px' : '4px');
+                        toggle.style.setProperty('--toggle-emoji', next === 'dark' ? '"🌙"' : '"☀️"');
+                    }
+                }
+                document.addEventListener('DOMContentLoaded', function () {
+                    const tgt = document.getElementById('theme-toggle');
+                    if (tgt) { tgt.addEventListener('click', _toggleThemeReborn); }
+                });
+                </script>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.session_state.header_toggle_js = True
+
+        # Update Streamlit session_state theme when rerunning (based on localStorage)
+        if st.session_state.get('theme_synced') is not True:
+            st.markdown(
+                """
+                <script>
+                const savedTheme = localStorage.getItem('preferred-theme') || 'dark';
+                if (window.parent) {
+                   window.parent.postMessage({ rebornThemeSync: savedTheme }, '*');
+                }
+                </script>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.session_state.theme_synced = True
+
     except Exception as e:
         logger.error(f"Error in display_logo: {e}", exc_info=True)
-        st.markdown("<h1>NOI Analyzer Enhanced</h1>", unsafe_allow_html=True)
+        st.markdown("<h1>REBORN</h1>", unsafe_allow_html=True)
 
 # New function for small logo display
 def display_logo_small():
