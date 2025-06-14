@@ -2207,6 +2207,45 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         
         main_metrics_df = pd.DataFrame(main_metrics_data)
         
+        # --- NEW: Build numeric DataFrame for charts and deeper analysis ---
+        chart_data = []
+        for key, name in metrics_order:
+            current_val_num = float(current_values.get(key, 0.0) or 0.0)
+            prior_val_num = float(prior_values.get(key, 0.0) or 0.0)
+
+            # Prefer pre-calculated numeric change if available; otherwise calculate
+            change_val_num = tab_data.get(f"{key}_change")
+            if change_val_num is None or pd.isna(change_val_num):
+                change_val_num = current_val_num - prior_val_num
+            change_val_num = float(change_val_num)
+
+            percent_change_num = tab_data.get(f"{key}_percent_change")
+            if percent_change_num is None or pd.isna(percent_change_num):
+                percent_change_num = (change_val_num / prior_val_num * 100) if prior_val_num else 0.0
+            percent_change_num = float(percent_change_num)
+
+            # Align metric naming with helper logic used later in the chart section
+            metric_name_chart = "Total OpEx" if name == "Total Operating Expenses" else name
+
+            # Determine business direction (favorable / unfavorable / neutral)
+            if metric_name_chart in ["Vacancy Loss", "Total OpEx"]:
+                direction = "Favorable" if change_val_num < 0 else ("Unfavorable" if change_val_num > 0 else "Neutral")
+            else:
+                direction = "Favorable" if change_val_num > 0 else ("Unfavorable" if change_val_num < 0 else "Neutral")
+
+            chart_data.append({
+                "Metric": metric_name_chart,
+                "Current": current_val_num,
+                name_suffix: prior_val_num,
+                "Change ($)": change_val_num,
+                "Change (%)": percent_change_num,
+                "Direction": direction
+            })
+
+        # This DataFrame is used later for visualisations
+        df = pd.DataFrame(chart_data)
+        # --- END NEW CODE ---
+
         # Apply styling for changes
         styled_df = main_metrics_df.style.applymap(
             highlight_changes, 
