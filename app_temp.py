@@ -2294,10 +2294,10 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                 font=dict(color='#e6edf3', family="Inter"),
                                 legend=dict(
                                     orientation="h", 
-                                    yanchor="bottom", y=1.02, 
-                                    xanchor="right", x=1,
-                                    bgcolor='rgba(30, 41, 59, 0.7)', 
-                                    bordercolor='rgba(56, 139, 253, 0.15)'
+                                    yanchor="bottom", 
+                                    y=-0.3,  # moved down to sit beneath axis title
+                                    xanchor="center", x=0.5,
+                                    font=dict(size=10, color="#F0F0F0")
                                 ),
                                 xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
                                 yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
@@ -2512,7 +2512,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             template="plotly_dark",
                             plot_bgcolor='rgba(30, 41, 59, 0.8)',
                             paper_bgcolor='rgba(16, 23, 42, 0)',
-                            margin=dict(l=20, r=20, t=60, b=80),
+                            margin=dict(l=20, r=20, t=60, b=100),
                             font=dict(
                                 family="Inter, sans-serif",
                                 size=12,
@@ -2522,9 +2522,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             legend=dict(
                                 orientation="h",
                                 yanchor="bottom",
-                                y=-0.2,
-                                xanchor="center",
-                                x=0.5,
+                                y=-0.3,  # moved down to sit beneath axis title
+                                xanchor="center", x=0.5,
                                 font=dict(size=10, color="#F0F0F0")
                             )
                         )
@@ -2580,10 +2579,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             logger.info(f"Creating charts for {name_suffix} comparison")
             # Create bar chart for visual comparison
             
-            # Add chart container and title for modern styling
-            st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-            # Apply safe_text to name_suffix in the chart title
-            st.markdown(f'<div class="chart-title">Current vs {safe_text(name_suffix)}</div>', unsafe_allow_html=True)
+            # Add chart container and title for modern styling (single HTML block to avoid stray text)
+            st.markdown(
+                f'<div class="chart-container"><div class="chart-title">Current vs {safe_text(name_suffix)}</div></div>',
+                unsafe_allow_html=True
+            )
 
             fig = go.Figure()
 
@@ -2758,9 +2758,6 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             
             # Wrap the chart display in the container div
             st.plotly_chart(fig, use_container_width=True)
-            
-            # Close the chart container div
-            st.markdown('</div>', unsafe_allow_html=True)
             
             logger.info(f"Successfully displayed chart for {name_suffix} comparison")
 
