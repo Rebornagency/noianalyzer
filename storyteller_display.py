@@ -97,11 +97,13 @@ def display_narrative_in_tabs():
     if has_narrative:
         # Process the narrative to ensure consistent styling
         narrative_text = st.session_state.generated_narrative
+        # Escape any HTML tags to prevent breaking the layout (e.g., stray </div>)
+        safe_narrative = narrative_text.replace("<", "&lt;").replace(">", "&gt;")
         
         # Display narrative with consistent styling
         st.markdown(f"""
             <div class="narrative-container">
-                {narrative_text}
+                {safe_narrative}
             </div>
         """, unsafe_allow_html=True)
         
