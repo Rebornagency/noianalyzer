@@ -2827,7 +2827,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # Update layout with modern theme styling
             fig.update_layout(
                 barmode='group',
-                title=None,  # Remove title as we use custom title above
+                title_text='',  # Explicitly clear Plotly title to prevent 'undefined' from appearing
                 template="plotly_dark",
                 plot_bgcolor='rgba(13, 17, 23, 0)',  # Transparent background
                 paper_bgcolor='rgba(13, 17, 23, 0)',  # Transparent paper
@@ -2895,6 +2895,10 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
             # Add dollar sign to y-axis labels
             fig.update_yaxes(tickprefix="$", tickformat=",.0f")
+            
+            # Safety: ensure no stray title text remains (avoids 'undefined' render)
+            if fig.layout.title and (fig.layout.title.text is None or str(fig.layout.title.text).lower() == 'undefined'):
+                fig.update_layout(title_text='')
             
             # Wrap the chart display in the container div
             st.plotly_chart(fig, use_container_width=True)
