@@ -2707,8 +2707,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         for item in low_components:
                             st.markdown(f"  - **{item['Income Category']}** (previously ${item[name_suffix]:,.2f})")
                     else:
-                        st.info("No other income details available for this period.")
-                        logger.info(f"No other income component keys (e.g., parking_current) found in tab_data for {name_suffix}. Displaying 'no details' message.")
+                        # No low_components to report; skip informational message to avoid confusion.
+                        pass
                 else:
                     st.info("Other income components were identified, but all had zero values for both current and prior periods (and 'Show Zero Values' is off).")
                     logger.info(f"Other income components found but resulted in empty df_data for {name_suffix} (likely all zeros and show_zero_values is False).")
