@@ -3220,8 +3220,9 @@ def display_noi_coach():
     with st.form(key="noi_coach_form_app", clear_on_submit=True):
         st.markdown("<div class='chat-input-label'>Ask a question about your financial data:</div>", unsafe_allow_html=True)
         user_question = st.text_input("", placeholder="e.g., What's driving the change in NOI?", label_visibility="collapsed")
-        col1, col2 = st.columns([4,1])
-        with col2:
+        # Center the submit button for cleaner UI
+        col_left, col_center, col_right = st.columns([1,1,1])
+        with col_center:
             submit_button = st.form_submit_button("Ask NOI Coach")
     
     if submit_button and user_question:
@@ -3265,7 +3266,9 @@ def display_unified_insights_no_html(insights_data):
         if summary_text.startswith("Executive Summary:"):
             summary_text = summary_text[len("Executive Summary:"):].strip()
             
-        st.markdown(summary_text)
+        import html as _html_mod  # local import within function
+        escaped = _html_mod.escape(summary_text).replace("\n", "<br>")
+        st.markdown(f"<div class='results-text'>{escaped}</div>", unsafe_allow_html=True)
     
     # Display Key Performance Insights
     if 'performance' in insights_data and insights_data['performance']:
@@ -4226,9 +4229,9 @@ def main():
         </style>
         """, unsafe_allow_html=True)
         
-        col1, col2 = st.columns(2)
+        col_pdf, col_excel, col_spacer = st.columns([1,1,6])
         
-        with col1:
+        with col_pdf:
             # PDF Export button
             if st.button("Generate Complete PDF Report", key="global_pdf_export"):
                 # Use our custom status indicator instead of spinner
@@ -4260,7 +4263,7 @@ def main():
                     # Show error message
                     show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
         
-        with col2:
+        with col_excel:
             # Excel Export button
             if st.button("Export to Excel", key="global_excel_export"):
                 # Use our custom status indicator
@@ -4455,7 +4458,9 @@ def display_unified_insights(insights_data):
             summary_text = summary_text[len("Executive Summary:"):].strip()
             
         with st.container():
-            st.markdown(f"{summary_text}")
+            import html as _html_mod  # local import to avoid top-level issues
+            escaped = _html_mod.escape(summary_text).replace("\n", "<br>")
+            st.markdown(f"<div class='results-text'>{escaped}</div>", unsafe_allow_html=True)
     
     # Display Key Performance Insights
     if 'performance' in insights_data and insights_data['performance']:

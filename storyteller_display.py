@@ -104,10 +104,12 @@ def display_narrative_in_tabs():
         # Escape HTML to ensure safe rendering
         safe_narrative = narrative_clean.replace("<", "&lt;").replace(">", "&gt;")
         
+        # Convert newlines to <br> for proper spacing
+        safe_narrative_html = safe_narrative.replace("\n", "<br>")
         # Display narrative with consistent styling
         st.markdown(f"""
             <div class="narrative-container">
-                {safe_narrative}
+                {safe_narrative_html}
             </div>
         """, unsafe_allow_html=True)
         
