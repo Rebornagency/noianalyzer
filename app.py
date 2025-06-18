@@ -410,13 +410,21 @@ def validate_financial_data(data: Dict[str, Any]) -> Tuple[bool, str]:
         return False, f"NOI inconsistency: Expected {expected_noi:.2f}, got {actual_noi:.2f}"
     
     # Check if OpEx components sum up to total OpEx
+    # Align component keys with those used in data extraction
     opex_components = [
-        "repairs_maintenance", "utilities", "property_management", 
-        "taxes", "insurance", "administrative", 
+        "repairs_maintenance", "utilities", 
+        "management_fees",  # preferred key
+        "property_management",  # legacy key kept for compatibility
+        "property_taxes",  # preferred key
+        "taxes",           # legacy key kept for compatibility
+        "insurance", "administrative", 
         "payroll", "marketing", "other_expenses"
     ]
-    
-    opex_sum = sum(data.get(component, 0) for component in opex_components)
+
+    # Use dict.fromkeys to preserve order while de-duplicating aliases
+    unique_opex_components = list(dict.fromkeys(opex_components))
+
+    opex_sum = sum(data.get(comp, 0) for comp in unique_opex_components)
     total_opex = data.get("opex", 0)
     
     # Allow for small floating point differences
