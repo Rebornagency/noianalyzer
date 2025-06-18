@@ -16,6 +16,7 @@ import tempfile
 import jinja2
 import streamlit.components.v1 as components
 import math
+import html
 
 # Import and initialize Sentry for error tracking
 from sentry_config import (
@@ -2257,7 +2258,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
         # Add OpEx Breakdown expander section
-        with st.expander("Operating Expense Breakdown"):
+        with st.expander("Operating Expense Breakdown", expanded=True):
             opex_components_keys = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
             opex_metrics_names = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
 
@@ -2453,7 +2454,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                 st.info("Operating expense breakdown is not available for this comparison.")
                 
         # Add Other Income Breakdown expander section
-        with st.expander("Other Income Breakdown"):
+        with st.expander("Other Income Breakdown", expanded=True):
             # Check if we have Other Income component data
             other_income_components = [
                 "parking", "laundry", "late_fees", "pet_fees", "application_fees",
@@ -4451,7 +4452,7 @@ def display_unified_insights(insights_data):
         summary_text = insights_data['summary']
         # Remove redundant "Executive Summary:" prefix if it exists
         if summary_text.startswith("Executive Summary:"):
-            summary_text = summary_text[len("Executive Summary:")          :].strip()
+            summary_text = summary_text[len("Executive Summary:"):].strip()
             
         with st.container():
             st.markdown(f"{summary_text}")
