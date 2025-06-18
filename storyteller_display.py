@@ -22,8 +22,10 @@ def display_financial_narrative(narrative: str, property_name: Optional[str] = N
     
     if narrative:
         # Process the narrative to ensure consistent styling
-        # Replace any potential HTML tags that might cause styling issues
-        safe_narrative = narrative.replace("<", "&lt;").replace(">", "&gt;")
+        # Remove any stray closing div tags that might appear in the raw narrative
+        narrative_clean = narrative.replace("</div>", "").replace("<div>", "")
+        # Escape HTML to ensure safe rendering
+        safe_narrative = narrative_clean.replace("<", "&lt;").replace(">", "&gt;")
         
         st.markdown(f"""
             <div class="reborn-content">{safe_narrative}</div>
@@ -97,8 +99,10 @@ def display_narrative_in_tabs():
     if has_narrative:
         # Process the narrative to ensure consistent styling
         narrative_text = st.session_state.generated_narrative
-        # Escape any HTML tags to prevent breaking the layout (e.g., stray </div>)
-        safe_narrative = narrative_text.replace("<", "&lt;").replace(">", "&gt;")
+        # Remove any stray closing div tags that might appear in the raw narrative
+        narrative_clean = narrative_text.replace("</div>", "").replace("<div>", "")
+        # Escape HTML to ensure safe rendering
+        safe_narrative = narrative_clean.replace("<", "&lt;").replace(">", "&gt;")
         
         # Display narrative with consistent styling
         st.markdown(f"""
