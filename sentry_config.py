@@ -64,7 +64,7 @@ def init_sentry():
         integrations = []
         
         if HAS_STREAMLIT_INTEGRATION:
-            integrations.append(StreamlitIntegration(auto_enabling=True))
+            integrations.append(StreamlitIntegration())
         
         if HAS_LOGGING_INTEGRATION:
             integrations.append(LoggingIntegration(
@@ -73,11 +73,10 @@ def init_sentry():
             ))
         
         if HAS_PANDAS_INTEGRATION:
-            integrations.append(PandasIntegration(auto_enabling=True))
+            integrations.append(PandasIntegration())
         
         if HAS_FASTAPI_INTEGRATION:
             integrations.append(FastApiIntegration(
-                auto_enabling=True,
                 transaction_style="endpoint",
             ))
         
