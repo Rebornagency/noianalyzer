@@ -279,6 +279,4 @@ def monitor_performance(operation_name):
         op="function",
         name=operation_name,
         sampled=True
-    )
-
-FIRST_EDIT 
+    ) 
