@@ -1703,7 +1703,7 @@ def display_logo():
                 """,
                 unsafe_allow_html=True,
             )
-            st.session_state.header_css_injected = True
+            # (no session_state flag so it injects every time)
 
         # Determine toggle styling variables based on current theme
         current_theme = st.session_state.get("theme", "dark")
