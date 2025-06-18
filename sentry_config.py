@@ -36,18 +36,24 @@ try:
 except ImportError:
     HAS_FASTAPI_INTEGRATION = False
 
+DEFAULT_SENTRY_DSN = "https://79cb707e8d1573757f94b1afcd1bd7bf@o4509419524653056.ingest.us.sentry.io/4509419570462720"
+
 def init_sentry():
     """
     Initialize Sentry with comprehensive error tracking and performance monitoring.
     Call this function at the start of your application.
     """
     
-    # Get DSN from environment variable
-    sentry_dsn = os.getenv("SENTRY_DSN")
+    # Get DSN from environment variable or fallback to default
+    sentry_dsn = os.getenv("SENTRY_DSN", DEFAULT_SENTRY_DSN)
     
     if not sentry_dsn:
-        logger.warning("SENTRY_DSN environment variable not set. Sentry will not be initialized.")
+        logger.error("No Sentry DSN provided and DEFAULT_SENTRY_DSN is empty. Sentry will not be initialized.")
         return False
+    
+    # Warn if using fallback DSN (env var missing)
+    if os.getenv("SENTRY_DSN") is None:
+        logger.warning("SENTRY_DSN env var not set – using built-in fallback DSN.")
     
     # Get environment info
     environment = os.getenv("SENTRY_ENVIRONMENT", "development")
@@ -108,6 +114,11 @@ def init_sentry():
             
             # Debug mode (only in development)
             debug=environment == "development",
+            
+            # Enable log capture for breadcrumbs / events
+            _experiments={
+                "enable_logs": True,
+            },
         )
         
         # Set user context and tags
@@ -268,4 +279,6 @@ def monitor_performance(operation_name):
         op="function",
         name=operation_name,
         sampled=True
-    ) 
+    )
+
+FIRST_EDIT 
