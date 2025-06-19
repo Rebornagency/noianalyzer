@@ -34,16 +34,22 @@ def inject_custom_css():
     <style>
     /* Global Font and Base Styling */
     :root {
-        --reborn-bg-primary: #111827; /* Dark Blue-Gray */
-        --reborn-bg-secondary: #1F2937; /* Medium Blue-Gray */
-        --reborn-bg-tertiary: #374151; /* Light Blue-Gray */
-        --reborn-text-primary: #F3F4F6; /* Off-white */
-        --reborn-text-secondary: #D1D5DB; /* Light Gray */
-        --reborn-accent-blue: #3B82F6; /* Bright Blue */
-        --reborn-accent-green: #10B981; /* Bright Green */
-        --reborn-accent-red: #EF4444;   /* Bright Red */
-        --reborn-border-color: #4B5563; /* Gray for borders */
+        /* 2024 palette */
+        --reborn-bg-primary: #07101F;
+        --reborn-bg-secondary: #0A122C;
+        --reborn-bg-tertiary: #1E293B;
+        --reborn-text-primary: #FFFFFF;
+        --reborn-text-secondary: #B0B3B8;
+        --reborn-accent-blue: #2E6BF3; /* Brand Primary */
+        --reborn-accent-green: #3CD285; /* Positive */
+        --reborn-accent-red: #FF6B6B;   /* Negative */
+        --reborn-border-color: rgba(255,255,255,0.10);
+        --glow-primary: 0 0 8px rgba(46,107,243,.40);
         --reborn-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        --table-bg: rgba(255,255,255,0.05);
+        --table-border: rgba(255,255,255,0.10);
+        --table-header-bg: rgba(255,255,255,0.08);
+        --row-hover-bg: rgba(255,255,255,0.05);
     }
 
     body, .stApp, .stMarkdown, .stText, .stTextInput, .stTextArea, 
@@ -53,10 +59,20 @@ def inject_custom_css():
     }
     
     body {
-        background-color: var(--reborn-bg-primary) !important;
+        background: linear-gradient(to bottom, #07101F 0%, #0A122C 100%) !important;
         color: var(--reborn-text-primary) !important;
     }
     
+    body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: url('/static/images/noise.png') repeat;
+        opacity: .12;
+        pointer-events: none;
+        z-index: -1;
+    }
+
     .stApp {
         background-color: var(--reborn-bg-primary) !important;
         max-width: 100% !important; /* Full width layout */
@@ -179,23 +195,30 @@ def inject_custom_css():
     
     /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] {
-        border-bottom: 2px solid var(--reborn-border-color) !important;
+        border-bottom: 2px solid var(--table-border) !important;
+        gap: 1rem !important;
+        margin-top: 4rem !important;
     }
     .stTabs [data-baseweb="tab"] {
+        height: 40px !important;
+        padding: 0 1.5rem !important; /* 24px sides */
+        border-radius: 4px 4px 0 0 !important;
         background-color: transparent !important;
         color: var(--reborn-text-secondary) !important;
         font-weight: 500 !important;
-        padding: 0.75rem 1.25rem !important;
+        line-height: 24px !important;
         border-bottom: 2px solid transparent !important;
-        transition: color 0.2s ease, border-color 0.2s ease;
+        transition: color 120ms ease;
     }
     .stTabs [data-baseweb="tab"]:hover {
-        color: var(--reborn-accent-blue) !important;
+        color: var(--reborn-text-primary) !important;
     }
     .stTabs [aria-selected="true"] {
-        color: var(--reborn-accent-blue) !important;
+        background-color: var(--reborn-accent-blue) !important;
+        color: #FFFFFF !important;
         border-bottom-color: var(--reborn-accent-blue) !important;
         font-weight: 600 !important;
+        box-shadow: var(--glow-primary) !important;
     }
     .stTabs [data-baseweb="tab-panel"] {
         padding: 1.5rem 0 !important; /* Add padding to tab content */
@@ -203,7 +226,7 @@ def inject_custom_css():
 
     /* Dataframe Styling */
     .stDataFrame {
-        border: 1px solid var(--reborn-border-color) !important;
+        border: 1px solid var(--table-border) !important;
         border-radius: 8px !important;
         overflow: hidden; /* To respect border radius */
     }
@@ -212,24 +235,41 @@ def inject_custom_css():
         font-size: 0.9rem !important;
     }
     .stDataFrame th {
-        background-color: var(--reborn-bg-tertiary) !important;
-        color: var(--reborn-text-primary) !important;
+        height: 56px !important;
+        background-color: var(--table-header-bg) !important;
+        color: var(--reborn-text-secondary) !important;
         font-weight: 600 !important;
+        font-size: 14px !important;
+        line-height: 20px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.02em !important;
         text-align: left !important;
-        padding: 0.75rem 1rem !important;
-        border-bottom: 2px solid var(--reborn-border-color) !important;
+        padding: 0 16px !important;
+        border-bottom: 1px solid var(--table-border) !important;
     }
     .stDataFrame td {
-        padding: 0.75rem 1rem !important;
-        border-bottom: 1px solid var(--reborn-border-color) !important;
-        color: var(--reborn-text-secondary) !important;
+        height: 48px !important;
+        padding: 0 16px !important;
+        border-bottom: none !important; /* remove cell grid */
+        color: var(--reborn-text-primary) !important;
+        font-size: 16px !important;
+        line-height: 24px !important;
     }
-    .stDataFrame tr:last-child td {
-        border-bottom: none !important;
+    .stDataFrame tr {
+        border-bottom: 1px solid var(--table-border) !important;
     }
-    .stDataFrame tr:nth-child(even) td {
-        background-color: rgba(31, 41, 55, 0.5) !important; /* Subtle striping for even rows */
+    .stDataFrame tr:hover {
+        background-color: var(--row-hover-bg) !important;
     }
+
+    /* Numeric right alignment except first column */
+    .stDataFrame td:nth-child(n+2) {
+        text-align: right !important;
+    }
+
+    /* Delta color helpers */
+    .delta-positive { color: var(--reborn-accent-green) !important; }
+    .delta-negative { color: var(--reborn-accent-red) !important; }
 
     /* File Uploader Styling */
     .stFileUploader label {
