@@ -75,7 +75,22 @@ def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name
     2.  **Key Performance Insights (3-5 bullet points):** Specific, data-driven observations about significant variances or trends in revenue components (GPR, Vacancy, Other Income), operating expenses (major categories), and overall NOI. Quantify insights where possible (e.g., "Vacancy loss decreased by X%, contributing Y to NOI improvement").
     3.  **Actionable Recommendations (3-5 bullet points):** Concrete suggestions based *directly* on the observed variances to improve NOI. Focus on areas like reducing specific expenses, improving rent collection/reducing vacancy, increasing other income, or investigating budget variances.
 
-    Format your response clearly with the numbered sections and bullet points as requested. Be professional and objective.
+    Your reply **must** follow this exact Markdown template (replace bracketed text with your content):
+
+    ### Executive Summary
+    [Concise narrative paragraph(s)]
+
+    ### Key Performance Insights
+    - [Insight 1]
+    - [Insight 2]
+    - [Insight 3]
+
+    ### Actionable Recommendations
+    - [Recommendation 1]
+    - [Recommendation 2]
+    - [Recommendation 3]
+
+    Only include the sections shown above – no additional commentary, headers or footnotes. Be professional, objective and data-driven.
     """
 
     logger.info(f"Sending detailed prompt to GPT API (length: {len(prompt)} chars)...")

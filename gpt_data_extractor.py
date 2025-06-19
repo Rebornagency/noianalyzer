@@ -209,7 +209,8 @@ Focus on extracting these key financial metrics:
    - Rental Income: The primary income from property rentals (may be called "Rent Income", "Rental Revenue", etc.)
    - Laundry/Vending Income: Income from laundry facilities or vending machines (may be called "Laundry", "Vending", "Other Income - Laundry", etc.)
    - Parking Income: Revenue from parking spaces or garages (may be called "Parking", "Garage Income", "Parking Fees", etc.)
-   - Other Revenue: Any additional income sources (may include late fees, application fees, pet fees, etc.)
+   - Application Fees: Income collected from tenant applications (may be called "Application Fees", "Application Income", etc.)
+   - Other Revenue: Any additional income sources (may include late fees, pet fees, etc.)
    - Total Revenue: The sum of all revenue items (may be called "Total Income", "Gross Income", "Total Revenue", etc.)
 
 2. EXPENSE ITEMS:
@@ -235,6 +236,7 @@ Extract the financial data and provide it in JSON format with the following stru
   "rental_income": [number],
   "laundry_income": [number],
   "parking_income": [number],
+  "application_fees": [number],
   "other_revenue": [number],
   "total_revenue": [number],
   "repairs_maintenance": [number],
@@ -310,6 +312,7 @@ IMPORTANT REQUIREMENTS:
                     "rental_income": 0,
                     "laundry_income": 0,
                     "parking_income": 0,
+                    "application_fees": 0,
                     "other_revenue": 0,
                     "total_revenue": 0,
                     "repairs_maintenance": 0,
@@ -332,6 +335,7 @@ IMPORTANT REQUIREMENTS:
                 "rental_income": 0,
                 "laundry_income": 0,
                 "parking_income": 0,
+                "application_fees": 0,
                 "other_revenue": 0,
                 "total_revenue": 0,
                 "repairs_maintenance": 0,
@@ -358,8 +362,8 @@ IMPORTANT REQUIREMENTS:
             'rental_income',
             'laundry_income',
             'parking_income',
-            'other_revenue',
             'application_fees',
+            'other_revenue',
             'total_revenue',
             'repairs_maintenance',
             'utilities',
@@ -394,8 +398,8 @@ IMPORTANT REQUIREMENTS:
             result.get('rental_income', 0),
             result.get('laundry_income', 0),
             result.get('parking_income', 0),
-            result.get('other_revenue', 0),
-            result.get('application_fees', 0)
+            result.get('application_fees', 0),
+            result.get('other_revenue', 0)
         ]
         
         expense_items = [
@@ -424,7 +428,7 @@ IMPORTANT REQUIREMENTS:
                            f"Possible unit mismatch detected (multiplier: {multiplier})")
                 
                 # Adjust individual revenue items to match the reported total
-                for item in ['rental_income', 'laundry_income', 'parking_income', 'other_revenue', 'application_fees']:
+                for item in ['rental_income', 'laundry_income', 'parking_income', 'application_fees', 'other_revenue']:
                     result[item] = result[item] * multiplier
                 
                 # Recalculate total revenue with adjusted items
@@ -432,8 +436,8 @@ IMPORTANT REQUIREMENTS:
                     result.get('rental_income', 0),
                     result.get('laundry_income', 0),
                     result.get('parking_income', 0),
-                    result.get('other_revenue', 0),
-                    result.get('application_fees', 0)
+                    result.get('application_fees', 0),
+                    result.get('other_revenue', 0)
                 ])
             else:
                 # Log the mismatch but keep the reported value
