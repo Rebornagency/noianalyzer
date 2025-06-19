@@ -3228,8 +3228,8 @@ def display_noi_coach():
     with st.form(key="noi_coach_form_app", clear_on_submit=True):
         st.markdown("<div class='chat-input-label'>Ask a question about your financial data:</div>", unsafe_allow_html=True)
         user_question = st.text_input("", placeholder="e.g., What's driving the change in NOI?", label_visibility="collapsed")
-        # Center the submit button for cleaner UI
-        col_left, col_center, col_right = st.columns([1,1,1])
+        # Use wider, equal spacer columns to guarantee perfect centering
+        col_left, col_center, col_right = st.columns([4,2,4])
         with col_center:
             submit_button = st.form_submit_button("Ask NOI Coach")
     
