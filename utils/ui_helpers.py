@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Callable
 
 # Attempt to import from reborn_logo, handle potential ImportError if structure changes
 try:
