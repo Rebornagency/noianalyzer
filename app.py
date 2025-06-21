@@ -710,10 +710,839 @@ def display_data_template(consolidated_data: Dict[str, Any]) -> Dict[str, Any]:
 
 # Helper function to inject custom CSS
 def inject_custom_css():
-    """Delegate to the unified Reborn theme injector so the latest UI tokens & styles are used everywhere."""
-    from utils.ui_helpers import inject_custom_css as _reborn_css
-    _reborn_css()
-    logger.info("Replaced legacy CSS with Reborn theme CSS.")
+    """Inject custom CSS to ensure font consistency and enhanced styling across the application"""
+    st.markdown("""
+    <style>
+    /* Existing font styles - keep these */
+    body, .stApp, .stMarkdown, .stText, .stTextInput, .stTextArea, 
+    .stSelectbox, .stMultiselect, .stDateInput, .stTimeInput, .stNumberInput,
+    .stButton > button, .stDataFrame, .stTable, .stExpander, .stTabs {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+    }
+    
+    /* Ensure markdown content uses Inter and has appropriate sizing */
+    .stMarkdown p, .stMarkdown li { /* Target p and li specifically for content text */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+        font-size: 1rem !important; /* e.g., 16px base for content */
+        line-height: 1.6 !important;
+        color: #D1D5DB !important; /* Light gray for readability */
+    }
+
+    .stMarkdown div { /* General divs in markdown, only font-family */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+    }
+    
+    /* Base layout styling - improved spacing and background */
+    body {
+        background-color: #111827 !important;
+        color: #E5E7EB !important;
+    }
+    
+    /* Full-width layout for better space utilization */
+    .stApp {
+        background-color: #111827 !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+    }
+    
+    /* Expand main content area and reduce unnecessary spacing */
+    .main .block-container {
+        max-width: 95% !important;
+        padding-top: 1rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Adjust sidebar width for better proportions */
+    [data-testid="stSidebar"] {
+        width: 18rem !important;
+    }
+    
+    /* Make sure content sections use the available space */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-left: 0px !important;
+        padding-right: 0px !important;
+    }
+    
+    /* Remove extra padding from containers */
+    .stMarkdown, .stText {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    /* Enhanced section titles (used for Executive Summary, Key Perf. Insights etc.) */
+    .reborn-section-title {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+        font-size: 1.6rem !important; /* Increased from 1.5rem */
+        font-weight: 600 !important;
+        color: var(--reborn-accent-blue) !important;
+        margin-top: 1.5rem !important;
+        margin-bottom: 1rem !important;
+        padding: 0.5rem 0.75rem !important;
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border-radius: 8px !important;
+        border-left: 4px solid var(--reborn-accent-blue) !important;
+        line-height: 1.4 !important;
+        display: block; /* Ensure it takes full width if needed */
+    }
+
+    /* NEW STYLES FOR RESULTS UI */
+    /* Main title for Analysis and Recommendations */
+    .results-main-title {
+        font-size: 2.5rem !important;
+        font-weight: 500 !important;
+        color: #79b8f3 !important;
+        margin-bottom: 2rem !important;
+        padding: 0 !important;
+        background: none !important;
+        border: none !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Section headers (Executive Summary, Key Performance Insights, etc.) */
+    .results-section-header {
+        font-size: 1.8rem !important;
+        font-weight: 500 !important;
+        color: #79b8f3 !important;
+        margin-top: 2rem !important;
+        margin-bottom: 1.5rem !important;
+        padding: 0 !important;
+        background: none !important;
+        border: none !important;
+        line-height: 1.3 !important;
+    }
+
+    /* Content cards with better styling */
+    .results-card {
+        background-color: rgba(22, 27, 34, 0.8) !important;
+        border: 1px solid rgba(56, 68, 77, 0.5) !important;
+        border-radius: 8px !important;
+        padding: 1.5rem !important;
+        margin-bottom: 2rem !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Text styling within results */
+    .results-text {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        color: #e6edf3 !important;
+        margin-bottom: 1rem !important;
+    }
+
+    /* Number prefix for summary */
+    .results-summary-number {
+        font-weight: 500 !important;
+        margin-right: 0.5rem !important;
+        color: #79b8f3 !important;
+    }
+
+    /* Bullet list styling */
+    .results-bullet-list {
+        list-style-type: none !important;
+        padding-left: 0 !important;
+        margin-bottom: 1.5rem !important;
+    }
+
+    .results-bullet-item {
+        display: flex !important;
+        align-items: flex-start !important;
+        margin-bottom: 1rem !important;
+        line-height: 1.6 !important;
+    }
+
+    .results-bullet-marker {
+        color: #79b8f3 !important;
+        margin-right: 0.75rem !important;
+        font-size: 1.5rem !important;
+        line-height: 1 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .results-bullet-text {
+        flex: 1 !important;
+        color: #e6edf3 !important;
+    }
+    /* END NEW STYLES */
+
+    /* Enhanced Upload Card Styling */
+    .upload-card {
+        background-color: rgba(17, 17, 34, 0.8);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 32px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .upload-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: center; /* Center align the title and badge */
+        margin-top: 2.5rem !important; /* Added to create space between upload cards */
+        margin-bottom: 20px !important; /* Add more spacing between upload card header and content */
+    }
+    
+    .upload-card-header h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #EAEAEA;
+        margin: 0;
+    }
+    
+    .required-badge {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #3B82F6;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-left: 8px;
+    }
+    
+    .upload-area {
+        background-color: rgba(13, 13, 13, 0.8);
+        border: 1px solid #222;
+        border-radius: 8px;
+        padding: 32px;
+        text-align: center;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+    
+    .upload-icon {
+        font-size: 32px;
+        color: #888;
+        margin-bottom: 8px;
+    }
+    
+    .upload-text {
+        color: #888;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .upload-subtext {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 16px;
+    }
+    
+    /* Enhanced Instructions Card */
+    .instructions-card {
+        background-color: transparent !important;
+        border-radius: 0;
+        padding: 0;
+        margin-bottom: 32px;
+        box-shadow: none !important;
+    }
+    
+    .instructions-card h3 {
+        font-size: 20px;
+        font-weight: 600;
+        color: #EAEAEA;
+        margin-bottom: 16px;
+    }
+    
+    .instructions-card ol {
+        padding-left: 24px;
+        margin-bottom: 0;
+    }
+    
+    .instructions-card li {
+        color: #EAEAEA;
+        font-size: 14px;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    
+    /* Property Name Input Styling */
+    .property-input-container {
+        background-color: rgba(17, 17, 34, 0.8);
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 32px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .property-input-container label {
+        font-size: 16px;
+        font-weight: 500;
+        color: #EAEAEA;
+        margin-bottom: 8px;
+    }
+    
+    /* File info styling */
+    .file-info {
+        display: flex;
+        align-items: center;
+        background-color: rgba(30, 41, 59, 0.7);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin: 8px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .file-icon {
+        font-size: 24px;
+        margin-right: 12px;
+    }
+    
+    .file-details {
+        flex-grow: 1;
+    }
+    
+    .file-name {
+        color: #E0E0E0;
+        font-weight: 500;
+        font-size: 14px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 250px;
+    }
+    
+    .file-meta {
+        color: #94A3B8;
+        font-size: 12px;
+    }
+    
+    .file-status {
+        color: #22C55E;
+        font-size: 12px;
+        font-weight: 500;
+        background-color: rgba(30, 41, 59, 0.5);
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    /* Feature list styling */
+    .feature-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .feature-item {
+        display: flex;
+        margin-bottom: 24px;
+    }
+
+    .feature-number {
+        background-color: rgba(34, 34, 51, 0.8);
+        color: #EAEAEA;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        margin-right: 16px;
+        flex-shrink: 0;
+    }
+
+    .feature-content {
+        flex: 1;
+    }
+
+    .feature-content h4 {
+        font-size: 16px;
+        font-weight: 500;
+        color: #EAEAEA;
+        margin-top: 0;
+        margin-bottom: 4px;
+    }
+
+    .feature-content p {
+        font-size: 14px;
+        color: #888;
+        margin: 0;
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #e6edf3;
+        margin-bottom: 0.5rem;
+    }
+
+    .feature-description {
+        font-size: 1rem;
+        color: #d1d5db;
+        line-height: 1.5;
+    }
+
+    /* Section header styling */
+    .section-header {
+        font-size: 1.8rem;
+        font-weight: 500;
+        color: #79b8f3;
+        margin-top: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Enhanced Button Styling */
+    .primary-button {
+        background-color: #3B82F6 !important;
+        color: white !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        padding: 12px 24px !important;
+        border-radius: 8px !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+        margin-top: 16px !important;
+        margin-bottom: 24px !important;
+    }
+    
+    .primary-button:hover {
+        background-color: #2563EB !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Styling for Streamlit Expander Headers (e.g., Full Financial Narrative) */
+    .streamlit-expanderHeader { /* General expander header style */
+        background-color: rgba(30, 41, 59, 0.7) !important; /* From load_css fallback, good to have consistently */
+        border-radius: 8px !important;
+        margin-bottom: 0.5rem !important;
+        transition: background-color 0.3s ease !important;
+    }
+    
+    .streamlit-expanderHeader:hover {
+        background-color: rgba(30, 41, 59, 0.9) !important;
+    }
+
+    .streamlit-expanderHeader p { /* Specifically target the text within the expander header */
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+        font-size: 1.25rem !important; /* Larger than content text */
+        font-weight: 600 !important;
+        color: #E0E0E0 !important; /* Light color for header text */
+    }
+    
+    /* Ensure header has no extra spacing */
+    .stApp header {
+        background-color: transparent !important;
+    }
+    
+    /* Remove default Streamlit margins */
+    .stApp > header {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    /* Ensure logo container has no extra spacing */
+    .stMarkdown:first-child {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* Enhanced styling for narrative text */
+    .narrative-text {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        padding: 1.25rem !important;
+        border-radius: 8px !important;
+        margin-bottom: 1.25rem !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Force consistent styling for all elements within narrative text */
+    .narrative-text * {
+        color: #E0E0E0 !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Override any potential color styling in the narrative */
+    .narrative-text span, 
+    .narrative-text p, 
+    .narrative-text div,
+    .narrative-text b,
+    .narrative-text strong,
+    .narrative-text i,
+    .narrative-text em {
+        color: #E0E0E0 !important;
+    }
+    
+    /* Fix for currency values to ensure they're consistently formatted */
+    .narrative-text .currency,
+    .narrative-text .number {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+    }
+    
+    /* Hide redundant expander title when not needed */
+    .financial-narrative + .streamlit-expanderHeader {
+        display: none !important;
+    }
+    
+    /* Styling for narrative container */
+    .narrative-container {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        padding: 1.25rem !important;
+        border-radius: 8px !important;
+        margin-bottom: 1.25rem !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Ensure consistent styling for all elements within the narrative */
+    .narrative-container p, 
+    .narrative-container span, 
+    .narrative-container div {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    /* Ensure consistent styling for numbers and currency values */
+    .narrative-container .currency,
+    .narrative-container .number {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        color: #E0E0E0 !important;
+    }
+    
+    /* Enhanced button styling */
+    .stButton > button {
+        background-color: #1E40AF !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.6rem 1.25rem !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #2563EB !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    .stButton > button:active {
+        transform: translateY(1px) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Card-style elements */
+    .card-container {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border-radius: 8px !important;
+        padding: 1.25rem !important;
+        margin-bottom: 1.25rem !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+        transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+    }
+    
+    .card-container:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* Info, warning, error messages styling */
+    .stInfo, .element-container .alert-info {
+        background-color: rgba(56, 189, 248, 0.1) !important;
+        border-left: 4px solid #38BDF8 !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .stWarning, .element-container .alert-warning {
+        background-color: rgba(251, 191, 36, 0.1) !important;
+        border-left: 4px solid #FBBF24 !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .stError, .element-container .alert-danger {
+        background-color: rgba(239, 68, 68, 0.1) !important;
+        border-left: 4px solid #EF4444 !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .stSuccess, .element-container .alert-success {
+        background-color: rgba(34, 197, 94, 0.1) !important;
+        border-left: 4px solid #22C55E !important;
+        color: #E0E0E0 !important;
+        padding: 1rem !important;
+        border-radius: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    /* File uploader styling */
+    [data-testid="stFileUploader"] {
+        background-color: rgba(30, 41, 59, 0.6) !important;
+        border: 2px dashed rgba(148, 163, 184, 0.4) !important;
+        border-radius: 8px !important;
+        padding: 1rem !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    [data-testid="stFileUploader"]:hover {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border-color: rgba(148, 163, 184, 0.6) !important;
+    }
+    
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: rgba(30, 41, 59, 0.6) !important;
+        border-radius: 8px !important;
+        padding: 0.25rem !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 6px !important;
+        margin: 0.25rem !important;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background-color: #1E40AF !important;
+        color: white !important;
+    }
+    
+    /* OpEx Table Styling */
+    .opex-table-container {
+        margin: 1rem 0 !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        background-color: rgba(22, 27, 34, 0.8) !important;
+        border: 1px solid rgba(56, 68, 77, 0.5) !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .opex-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        color: #e6edf3 !important;
+        background-color: transparent !important;
+    }
+    
+    .opex-table th, .opex-table td {
+        padding: 0.75rem 1rem !important;
+        text-align: left !important;
+        border-bottom: 1px solid rgba(56, 68, 77, 0.3) !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        color: #e6edf3 !important;
+    }
+    
+    .opex-table th {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        font-weight: 600 !important;
+        color: #79b8f3 !important;
+        font-size: 0.95rem !important;
+    }
+    
+    .opex-table tr:hover {
+        background-color: rgba(30, 41, 59, 0.4) !important;
+    }
+    
+    .opex-table tr:last-child td {
+        border-bottom: none !important;
+    }
+    
+    .opex-category-cell {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+    }
+    
+    .opex-category-indicator {
+        width: 12px !important;
+        height: 12px !important;
+        border-radius: 50% !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .opex-positive-value {
+        color: #22c55e !important; /* Green for favorable changes */
+        font-weight: 500 !important;
+    }
+    
+    .opex-negative-value {
+        color: #ef4444 !important; /* Red for unfavorable changes */
+        font-weight: 500 !important;
+    }
+    
+    .opex-neutral-value {
+        color: #e6edf3 !important; /* Default text color */
+    }
+    
+    .opex-chart-container {
+        margin: 1rem 0 !important;
+        background-color: rgba(22, 27, 34, 0.8) !important;
+        border-radius: 8px !important;
+        padding: 1rem !important;
+        border: 1px solid rgba(56, 68, 77, 0.5) !important;
+    }
+    
+    .opex-chart-title {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        color: #79b8f3 !important;
+        margin-bottom: 1rem !important;
+        text-align: center !important;
+    }
+
+    /* Options Container Styling */
+    .options-container {
+        background-color: var(--reborn-bg-secondary);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-left: 4px solid var(--reborn-accent-blue);
+    }
+
+    .options-header {
+        color: var(--reborn-text-primary);
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* NOI Coach Context Styling */
+    .noi-coach-context-container {
+        background-color: var(--reborn-bg-secondary);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid var(--reborn-accent-teal);
+    }
+
+    .noi-coach-context-header {
+        color: var(--reborn-text-primary);
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+    }
+
+    .noi-coach-interface {
+        background-color: var(--reborn-bg-secondary);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .noi-coach-response {
+        background-color: var(--reborn-bg-tertiary);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        border-left: 4px solid var(--reborn-accent-blue);
+    }
+
+    /* Enhanced Instructions List */
+    ol.instructions-list {
+        padding-left: 24px;
+        margin-bottom: 32px;
+    }
+
+    ol.instructions-list li {
+        color: #EAEAEA;
+        font-size: 14px;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+    
+    /* Enhanced Process Documents button */
+    .stButton > button[kind="primary"] {
+        background-color: #0E4DE3 !important; /* Dark blue theme color */
+        color: white !important;
+        border: 1px solid #1C5CF5 !important; /* Slightly lighter blue border */
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+        transition: all 0.3s ease !important;
+        margin-top: 1rem !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background-color: #1C5CF5 !important; /* Hover dark blue */
+        border-color: #0E4DE3 !important;
+        box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+    
+    /* Additional selectors for Process Documents button with higher specificity */
+    div[data-testid="stButton"] > button[kind="primary"],
+    div[data-testid="stButton"] > button[data-testid="baseButton-primary"],
+    .stApp div[data-testid="stButton"] > button[kind="primary"],
+    .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {
+        background-color: #0E4DE3 !important;
+        color: white !important;
+        border: 1px solid #1C5CF5 !important;
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+        transition: all 0.3s ease !important;
+        margin-top: 1rem !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+
+    div[data-testid="stButton"] > button[kind="primary"]:hover,
+    div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover,
+    .stApp div[data-testid="stButton"] > button[kind="primary"]:hover,
+    .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover {
+        background-color: #1C5CF5 !important;
+        border-color: #0E4DE3 !important;
+        box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Target specific button by key if needed */
+    button[data-testid="baseButton-primary"][aria-label*="main_process_button"] {
+        background-color: #0E4DE3 !important;
+        color: white !important;
+        border: 1px solid #1C5CF5 !important;
+    }
+    /* Hide dark/light theme toggle button */
+    .theme-toggle { display: none !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Helper function to summarize data structures for logging
+def summarize_data_for_log(data_dict, max_items=3):
+    """Summarize a data structure for more concise logging"""
+    if not isinstance(data_dict, dict):
+        return str(data_dict)
+    keys = list(data_dict.keys())
+    summary = {k: data_dict[k] for k in keys[:max_items]}
+    if len(keys) > max_items:
+        summary[f"...and {len(keys) - max_items} more keys"] = "..."
+    return summary
 
 # --- Initialize Jinja2 Environment and Load Template Globally ---
 report_template = None  # Initialize to None to prevent NameError if loading fails

@@ -4,28 +4,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* Updated color palette per 2024 design spec */
-    --reborn-bg-primary: #07101F;
-    --reborn-bg-secondary: #0A122C;
+    /* Color palette based on design specs */
+    --reborn-bg-primary: #0A0F1E;
+    --reborn-bg-secondary: #10172A;
     --reborn-bg-tertiary: #1E293B;
-
-    --reborn-text-primary: #FFFFFF;
-    --reborn-text-secondary: #B0B3B8;
-
-    /* Brand accents */
-    --reborn-accent-blue: #2E6BF3;
-    --reborn-success: #3CD285;   /* positive deltas */
-    --reborn-warning: #FF6B6B;   /* negative deltas */
-
-    /* Table tokens */
-    --table-bg: rgba(255,255,255,0.05);
-    --table-border: rgba(255,255,255,0.10);
-    --table-header-bg: rgba(255,255,255,0.08);
-    --row-hover-bg: rgba(255,255,255,0.05);
-
-    /* New visual effects */
-    --glow-primary: 0 0 8px rgba(46,107,243,.40);
-
+    --reborn-text-primary: #F0F0F0;
+    --reborn-text-secondary: #A0A0A0;
+    --reborn-accent-blue: #3B82F6;
+    --reborn-accent-green: #10B981;
+    --reborn-accent-orange: #F59E0B;
+    --reborn-success: #10B981;
+    --reborn-warning: #F87171;
+    --reborn-border: rgba(255, 255, 255, 0.1);
+    
     /* Spacing */
     --reborn-spacing-xs: 8px;
     --reborn-spacing-sm: 16px;
@@ -51,22 +42,10 @@
 /* Global styles */
 body {
     font-family: var(--reborn-font-primary);
-    /* Gradient background */
-    background: linear-gradient(to bottom, #07101F 0%, #0A122C 100%);
+    background-color: var(--reborn-bg-primary);
     color: var(--reborn-text-primary);
     margin: 0;
     padding: 0;
-}
-
-/* Subtle noise overlay */
-body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: url('/static/images/noise.png') repeat;
-    opacity: 0.12; /* 12% */
-    pointer-events: none;
-    z-index: -1;
 }
 
 /* Apply font consistently */
@@ -279,32 +258,24 @@ p, .body-text {
 
 /* Tabs styling */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 1rem; /* 8px grid step */
+    gap: 1px;
     background-color: transparent;
-    border-bottom: 2px solid var(--table-border);
-    margin-top: 4rem; /* mt-16 */
+    border-bottom: 1px solid var(--reborn-border);
 }
 
 .stTabs [data-baseweb="tab"] {
-    height: 40px;
-    padding: 0 1.5rem; /* px-6 */
-    border-radius: 4px 4px 0 0;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 500;
-    transition: color 120ms ease;
+    background-color: transparent;
     color: var(--reborn-text-secondary);
-}
-
-.stTabs [data-baseweb="tab"]:hover {
-    color: var(--reborn-text-primary);
+    font-weight: 600;
+    font-size: 16px;
+    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
+    border-bottom: 2px solid transparent;
 }
 
 .stTabs [aria-selected="true"] {
-    background-color: var(--reborn-accent-blue);
-    color: #FFFFFF;
+    color: var(--reborn-accent-blue);
     border-bottom: 2px solid var(--reborn-accent-blue);
-    box-shadow: var(--glow-primary);
+    background-color: transparent;
 }
 
 /* Chart styling */
@@ -473,62 +444,27 @@ p, .body-text {
 
 /* Table styling */
 .stDataFrame {
-    background-color: var(--table-bg);
-    border-radius: 8px;
-    border: 1px solid var(--table-border);
-    overflow: hidden;
-    padding: 24px;
+    background-color: var(--reborn-bg-secondary);
+    border-radius: var(--reborn-radius-md);
+    border: 1px solid var(--reborn-border);
 }
 
 .stDataFrame [data-testid="stTable"] {
     border-collapse: collapse;
-    width: 100%;
 }
 
-/* Header Row */
 .stDataFrame th {
-    height: 56px;
-    background-color: var(--table-header-bg);
-    color: var(--reborn-text-secondary);
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    border-bottom: 1px solid var(--table-border);
-    padding: 0 16px;
-}
-
-/* Body Rows */
-.stDataFrame td {
-    height: 48px;
+    background-color: var(--reborn-bg-tertiary);
     color: var(--reborn-text-primary);
-    font-size: 16px;
-    line-height: 24px;
-    padding: 0 16px;
-    border: none; /* remove cell grid */
+    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
+    border: 1px solid var(--reborn-border);
+    font-weight: 600;
 }
 
-.stDataFrame tr {
-    border-bottom: 1px solid var(--table-border);
-}
-
-.stDataFrame tr:hover {
-    background-color: var(--row-hover-bg);
-}
-
-/* Numeric alignment */
-.stDataFrame td:nth-child(n+2) {
-    text-align: right;
-}
-
-/* Positive / negative delta colouring */
-.delta-positive {
-    color: var(--reborn-success) !important;
-}
-
-.delta-negative {
-    color: var(--reborn-warning) !important;
+.stDataFrame td {
+    color: var(--reborn-text-primary);
+    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
+    border: 1px solid var(--reborn-border);
 }
 
 /* Input fields */
@@ -596,52 +532,27 @@ p, .body-text {
 }
 
 .opex-table {
-    border-collapse: collapse;
     width: 100%;
+    border-collapse: collapse;
 }
 
 .opex-table th {
-    background-color: var(--table-header-bg);
-    color: var(--reborn-text-secondary);
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    border-bottom: 1px solid var(--table-border);
-    padding: 0 16px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #e6edf3;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(56, 139, 253, 0.15);
+    background-color: rgba(30, 41, 59, 0.7);
 }
 
 .opex-table td {
-    height: 48px;
-    color: var(--reborn-text-primary);
-    font-size: 16px;
-    line-height: 24px;
-    padding: 0 16px;
-    border: none;
-}
-
-.opex-table tr {
-    border-bottom: 1px solid var(--table-border);
-}
-
-.opex-table tr:hover {
-    background-color: var(--row-hover-bg);
-}
-
-/* Expense index column width */
-.index-cell {
-    width: 48px;
-    text-align: center;
-    color: #8A8D93;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-/* Row selection placeholder */
-.stDataFrame tr.selected,
-.opex-table tr.selected {
-    background-color: rgba(46,107,243,0.12);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1rem;
+    color: #e6edf3;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(56, 139, 253, 0.05);
 }
 
 .opex-chart-title {
@@ -731,7 +642,7 @@ p, .body-text {
 }
 
 .noi-title-accent {
-    color: var(--reborn-accent-blue) !important;
+    color: #3B82F6 !important;
 }
 
 /* Enhanced section headers */
@@ -739,7 +650,7 @@ p, .body-text {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 2rem !important;
     font-weight: 500 !important;
-    color: var(--reborn-accent-blue) !important;
+    color: #3B82F6 !important;
     margin-top: 1.5rem !important;
     margin-bottom: 1.5rem !important;
     padding-left: 0.5rem !important;
@@ -779,7 +690,7 @@ p, .body-text {
 
 .required-badge {
     background-color: rgba(59, 130, 246, 0.2);
-    color: var(--reborn-accent-blue);
+    color: #3B82F6;
     font-size: 0.75rem;
     font-weight: 500;
     padding: 0.25rem 0.5rem;
@@ -847,7 +758,7 @@ p, .body-text {
 
 .feature-number {
     background-color: rgba(59, 130, 246, 0.2);
-    color: var(--reborn-accent-blue);
+    color: #3B82F6;
     font-size: 1rem;
     font-weight: 600;
     width: 2rem;
@@ -881,7 +792,7 @@ p, .body-text {
 
 /* Enhanced button styling */
 .primary-button {
-    background-color: var(--reborn-accent-blue) !important;
+    background-color: #3B82F6 !important;
     color: white !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     font-size: 1.1rem !important;
