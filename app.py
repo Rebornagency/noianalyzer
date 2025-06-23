@@ -2563,7 +2563,7 @@ def generate_comprehensive_pdf():
         
         st.success("PDF report generated successfully!")
         return pdf_path
-        except Exception as e:
+    except Exception as e:
         logger.error(f"Failed to generate PDF report: {e}", exc_info=True)
         st.error(f"Could not generate PDF report. Error: {e}")
         return None
