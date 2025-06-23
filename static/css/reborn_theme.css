@@ -4,939 +4,559 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* Color palette based on design specs */
-    --reborn-bg-primary: #0A0F1E;
-    --reborn-bg-secondary: #10172A;
-    --reborn-bg-tertiary: #1E293B;
-    --reborn-text-primary: #F0F0F0;
-    --reborn-text-secondary: #A0A0A0;
-    --reborn-accent-blue: #3B82F6;
-    --reborn-accent-green: #10B981;
-    --reborn-accent-orange: #F59E0B;
-    --reborn-success: #10B981;
-    --reborn-warning: #F87171;
-    --reborn-border: rgba(255, 255, 255, 0.1);
+    /* Light theme - Primary Implementation for ALL views */
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F8F9FA;
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
     
-    /* Spacing */
-    --reborn-spacing-xs: 8px;
-    --reborn-spacing-sm: 16px;
-    --reborn-spacing-md: 24px;
-    --reborn-spacing-lg: 32px;
+    /* Navigation and UI Elements - Universal Application */
+    --nav-selected-bg: #3B82F6;
+    --nav-selected-text: #FFFFFF;
+    --nav-unselected-bg: #F3F4F6;
+    --nav-unselected-text: #374151;
     
-    /* Border radius */
-    --reborn-radius-sm: 6px;
-    --reborn-radius-md: 8px;
-    --reborn-radius-lg: 12px;
-    --reborn-radius-pill: 999px;
+    /* Table and Data Display - Applied to ALL comparison tables */
+    --table-header-bg: #374151;
+    --table-header-text: #FFFFFF;
+    --table-cell-bg: #FFFFFF;
+    --table-border: #E5E7EB;
     
-    /* Shadows */
-    --reborn-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-    --reborn-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    /* Financial Color Coding - Universal for ALL comparison types */
+    --color-positive: #22C55E;    /* Green for positive changes/variances */
+    --color-negative: #EF4444;    /* Red for negative changes/variances */
+    --color-neutral: #6B7280;     /* Grey for neutral/zero changes */
     
-    /* Add explicit font family variables */
-    --reborn-font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    --reborn-font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    --reborn-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    /* Interactive Elements - Applied universally */
+    --hover-bg: #F9FAFB;
+    --focus-ring: #3B82F6;
+    
+    /* Spacing and Layout - Consistent across all views */
+    --border-radius-sm: 6px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    
+    /* Shadows and Depth - Universal application */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
-/* Global styles */
+/* Universal body styling - applies to all tabs and views */
 body {
-    font-family: var(--reborn-font-primary);
-    background-color: var(--reborn-bg-primary);
-    color: var(--reborn-text-primary);
-    margin: 0;
-    padding: 0;
-}
-
-/* Apply font consistently */
-body, .stApp, .stMarkdown, .stText {
-    font-family: var(--reborn-font-primary);
-}
-
-/* Ensure all headings use the same font */
-h1, h2, h3, h4, h5, h6, 
-.main-title, .section-header, .sub-header,
-.stMarkdown h1, .stMarkdown h2, .stMarkdown h3, 
-.stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
-    font-family: var(--reborn-font-heading);
-}
-
-/* Force Streamlit elements to use our font */
-.stTextInput, .stTextArea, .stSelectbox, .stMultiselect,
-.stDateInput, .stTimeInput, .stNumberInput {
-    font-family: var(--reborn-font-primary) !important;
-}
-
-/* Main app styling */
-.stApp {
-    background-color: var(--reborn-bg-primary);
-    color: var(--reborn-text-primary);
-    font-family: var(--reborn-font-primary);
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-    font-family: var(--reborn-font-heading);
-    font-weight: 600;
-    color: var(--reborn-text-primary);
-}
-
-h1, .main-title {
-    font-size: 32px;
-    line-height: 1.2;
-    margin-bottom: var(--reborn-spacing-sm);
-    color: var(--reborn-text-primary);
-    font-weight: 600;
-}
-
-h2, .section-header {
-    font-size: 24px;
-    line-height: 1.3;
-    margin-bottom: var(--reborn-spacing-sm);
-    font-weight: 600;
-    color: var(--reborn-text-primary);
-}
-
-h3, .sub-header {
-    font-size: 20px;
-    line-height: 1.4;
-    font-weight: 600;
-    color: var(--reborn-text-primary);
-}
-
-p, .body-text {
-    font-size: 16px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     line-height: 1.6;
-    font-weight: 400;
-    color: var(--reborn-text-primary);
-}
-
-.caption, .help-text {
-    font-size: 14px;
-    color: var(--reborn-text-secondary);
-}
-
-/* Unified section heading styles */
-.reborn-section-title {
-    font-family: var(--reborn-font-heading);
-    font-size: 1.5rem !important;
-    font-weight: 600 !important;
-    color: var(--reborn-accent-blue) !important;
-    margin-top: 1.5rem !important;
-    margin-bottom: 1rem !important;
-    padding: 0.5rem 0.75rem !important;
-    background-color: rgba(30, 41, 59, 0.8) !important;
-    border-radius: 6px !important;
-    border-left: 4px solid var(--reborn-accent-blue) !important;
-    line-height: 1.4 !important;
-}
-
-/* Variant for executive summary */
-.reborn-section-title.executive-summary {
-    color: #4DB6AC !important;
-    border-left-color: #4DB6AC !important;
-}
-
-/* Variant for insights */
-.reborn-section-title.insights {
-    color: #64B5F6 !important;
-    border-left-color: #64B5F6 !important;
-}
-
-/* Variant for recommendations */
-.reborn-section-title.recommendations {
-    color: #FFB74D !important;
-    border-left-color: #FFB74D !important;
-}
-
-/* Variant for financial narrative */
-.reborn-section-title.narrative {
-    color: #81C784 !important;
-    border-left-color: #81C784 !important;
-}
-
-/* Content styling for consistent text appearance */
-.reborn-content {
-    font-family: var(--reborn-font-primary) !important;
-    font-size: 1rem !important;
-    line-height: 1.6 !important;
-    color: var(--reborn-text-primary) !important;
-    margin-bottom: 1rem !important;
-    padding: 0.5rem 0.75rem !important;
-}
-
-/* Header styling */
-.header-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--reborn-spacing-md) var(--reborn-spacing-lg);
-    margin-bottom: var(--reborn-spacing-md);
-    background-color: var(--reborn-bg-primary);
-}
-
-.logo-container {
-    display: flex;
-    align-items: center;
-}
-
-.logo-container img {
-    height: 40px;
-    margin-right: var(--reborn-spacing-sm);
-}
-
-.header-title {
-    font-size: 32px;
-    font-weight: 600;
-    color: var(--reborn-text-primary);
-    margin: 0;
-}
-
-.header-actions {
-    display: flex;
-    gap: var(--reborn-spacing-sm);
-}
-
-/* Section styling */
-.section-container {
-    background-color: var(--reborn-bg-secondary);
-    border-radius: var(--reborn-radius-md);
-    padding: var(--reborn-spacing-md);
-    margin-bottom: var(--reborn-spacing-md);
-    border: 1px solid var(--reborn-border);
-}
-
-.section-header-container {
-    display: flex;
-    align-items: center;
-    margin-bottom: var(--reborn-spacing-sm);
-}
-
-.section-icon {
-    margin-right: var(--reborn-spacing-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.section-icon.blue svg {
-    color: var(--reborn-accent-blue);
-}
-
-.section-icon.green svg {
-    color: var(--reborn-accent-green);
-}
-
-.section-icon.orange svg {
-    color: var(--reborn-accent-orange);
-}
-
-/* Item styling */
-.insight-item, .recommendation-item {
-    background-color: var(--reborn-bg-tertiary);
-    border-radius: var(--reborn-radius-sm);
-    padding: var(--reborn-spacing-sm) var(--reborn-spacing-md);
-    margin-bottom: var(--reborn-spacing-sm);
-}
-
-/* Button styling */
-.stButton > button {
-    background-color: var(--reborn-accent-blue);
-    color: var(--reborn-text-primary);
-    border: none;
-    border-radius: var(--reborn-radius-pill);
-    padding: var(--reborn-spacing-xs) var(--reborn-spacing-md);
-    font-weight: 600;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
-}
-
-.stButton > button:hover {
-    background-color: rgba(59, 130, 246, 0.8);
-    box-shadow: var(--reborn-shadow-sm);
-}
-
-/* Tabs styling */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 1px;
-    background-color: transparent;
-    border-bottom: 1px solid var(--reborn-border);
-}
-
-.stTabs [data-baseweb="tab"] {
-    background-color: transparent;
-    color: var(--reborn-text-secondary);
-    font-weight: 600;
-    font-size: 16px;
-    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
-    border-bottom: 2px solid transparent;
-}
-
-.stTabs [aria-selected="true"] {
-    color: var(--reborn-accent-blue);
-    border-bottom: 2px solid var(--reborn-accent-blue);
-    background-color: transparent;
-}
-
-/* Chart styling */
-.chart-container {
-    background-color: rgba(13, 17, 23, 0.3);
-    border: 1px solid rgba(56, 139, 253, 0.15);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.chart-title {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 2rem;
-    font-weight: 500;
-    color: #e6edf3;
-    margin-bottom: 1.5rem;
-    padding-left: 0.5rem;
-}
-
-.noi-annotation {
-    position: absolute;
-    right: 10%;
-    top: 40%;
-    background-color: rgba(13, 17, 23, 0.8);
-    border: 1px solid #00bfa5;
-    border-radius: 6px;
-    padding: 10px 15px;
-    max-width: 180px;
-    text-align: center;
-}
-
-.annotation-text {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 14px;
-    color: #e6edf3;
-    margin-bottom: 5px;
-}
-
-.annotation-value {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 18px;
-    font-weight: 500;
-    color: #e6edf3;
-    margin-bottom: 2px;
-}
-
-.annotation-percent {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 16px;
-    color: #00bfa5;
-}
-
-/* Sidebar styling */
-[data-testid="stSidebar"] {
-    background-color: var(--reborn-bg-secondary);
-    border-right: 1px solid var(--reborn-border);
-}
-
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-    padding: var(--reborn-spacing-md);
-}
-
-.sidebar-header {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--reborn-text-primary);
-    margin-top: var(--reborn-spacing-md);
-    margin-bottom: var(--reborn-spacing-sm);
-}
-
-.sidebar-subheader {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--reborn-text-primary);
-    margin-top: var(--reborn-spacing-sm);
-    margin-bottom: var(--reborn-spacing-xs);
-}
-
-.sidebar-text {
-    font-size: 14px;
-    color: var(--reborn-text-secondary);
-    margin-bottom: var(--reborn-spacing-sm);
-}
-
-/* File uploader styling */
-[data-testid="stFileUploader"] {
-    background-color: rgba(30, 41, 59, 0.6) !important;
-    border: 2px dashed rgba(148, 163, 184, 0.4) !important;
-    border-radius: 8px !important;
-    padding: 1rem !important;
-    transition: all 0.3s ease !important;
-}
-
-[data-testid="stFileUploader"]:hover {
-    background-color: rgba(30, 41, 59, 0.8) !important;
-    border-color: rgba(148, 163, 184, 0.6) !important;
-}
-
-/* Enhanced file uploader styling */
-.stFileUploader > div:first-child {
-    background-color: rgba(16, 23, 42, 0.4) !important;
-    border: 1px dashed rgba(59, 130, 246, 0.3) !important;
-    border-radius: 8px !important;
-    padding: 1rem !important;
-    transition: all 0.3s ease !important;
-}
-
-.stFileUploader > div:first-child:hover {
-    background-color: rgba(16, 23, 42, 0.6) !important;
-    border-color: rgba(59, 130, 246, 0.5) !important;
-}
-
-/* Style the browse files button */
-.stFileUploader button {
-    background-color: rgba(59, 130, 246, 0.8) !important;
-    color: white !important;
-    border-radius: 6px !important;
-    padding: 0.5rem 1rem !important;
-    font-weight: 500 !important;
-    border: none !important;
-    transition: all 0.3s ease !important;
-}
-
-.stFileUploader button:hover {
-    background-color: rgba(59, 130, 246, 1) !important;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4) !important;
-}
-
-/* File drag area text */
-.uploadIcon {
-    color: rgba(59, 130, 246, 0.8) !important;
-}
-
-.stFileUploader p {
-    color: #e6edf3 !important;
-}
-
-/* Metric styling */
-.stMetric {
-    background-color: var(--reborn-bg-secondary);
-    border-radius: var(--reborn-radius-md);
-    padding: var(--reborn-spacing-sm);
-    border: 1px solid var(--reborn-border);
-}
-
-.stMetric label {
-    color: var(--reborn-text-secondary);
-    font-size: 14px;
-}
-
-.stMetric [data-testid="stMetricValue"] {
-    color: var(--reborn-text-primary);
-    font-size: 24px;
-    font-weight: 600;
-}
-
-.stMetric [data-testid="stMetricDelta"] {
-    color: var(--reborn-success);
-}
-
-.stMetric [data-testid="stMetricDelta"][data-direction="down"] {
-    color: var(--reborn-warning);
-}
-
-/* Table styling */
-.stDataFrame {
-    background-color: var(--reborn-bg-secondary);
-    border-radius: var(--reborn-radius-md);
-    border: 1px solid var(--reborn-border);
-}
-
-.stDataFrame [data-testid="stTable"] {
-    border-collapse: collapse;
-}
-
-.stDataFrame th {
-    background-color: var(--reborn-bg-tertiary);
-    color: var(--reborn-text-primary);
-    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
-    border: 1px solid var(--reborn-border);
-    font-weight: 600;
-}
-
-.stDataFrame td {
-    color: var(--reborn-text-primary);
-    padding: var(--reborn-spacing-xs) var(--reborn-spacing-sm);
-    border: 1px solid var(--reborn-border);
-}
-
-/* Input fields */
-.stTextInput > div > div {
-    background-color: var(--reborn-bg-tertiary);
-    color: var(--reborn-text-primary);
-    border: 1px solid var(--reborn-border);
-    border-radius: var(--reborn-radius-md);
-}
-
-.stTextInput > div > div:focus-within {
-    border-color: var(--reborn-accent-blue);
-}
-
-.stTextInput > div > div > input {
-    color: var(--reborn-text-primary);
-}
-
-/* Select box */
-.stSelectbox > div > div {
-    background-color: var(--reborn-bg-tertiary);
-    color: var(--reborn-text-primary);
-    border: 1px solid var(--reborn-border);
-    border-radius: var(--reborn-radius-md);
-}
-
-/* Progress bar */
-.stProgress > div > div {
-    background-color: var(--reborn-accent-blue);
-}
-
-/* API config fields */
-.api-config-label {
-    font-size: 14px;
-    color: var(--reborn-text-primary);
-    margin-bottom: 4px;
-    font-weight: 500;
-}
-
-/* Operating Expense Breakdown Modern Styling */
-.opex-container {
-    background-color: rgba(13, 17, 23, 0.7);
-    border: 1px solid rgba(56, 139, 253, 0.15);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-top: 1rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.opex-header {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.75rem;
-    font-weight: 500;
-    color: #e6edf3;
-    margin-bottom: 1.5rem;
-    padding-left: 0.5rem;
-}
-
-.opex-table-container {
-    background-color: rgba(13, 17, 23, 0.5);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 2rem;
-}
-
-.opex-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.opex-table th {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: #e6edf3;
-    padding: 0.75rem 1rem;
-    text-align: left;
-    border-bottom: 1px solid rgba(56, 139, 253, 0.15);
-    background-color: rgba(30, 41, 59, 0.7);
-}
-
-.opex-table td {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1rem;
-    color: #e6edf3;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(56, 139, 253, 0.05);
-}
-
-.opex-chart-title {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: #e6edf3;
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.opex-category-cell {
-    display: flex;
-    align-items: center;
-}
-
-.opex-category-indicator {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 10px;
-    display: inline-block;
-}
-
-.opex-positive-value {
-    color: #4cd964;
-}
-
-.opex-negative-value {
-    color: #ff3b30;
-}
-
-.opex-neutral-value {
-    color: #e6edf3;
-}
-
-.opex-chart-container {
-    background-color: rgba(13, 17, 23, 0.5);
-    border-radius: 10px;
-    padding: 1rem;
-    height: 100%;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-    .stat-cards-container {
-        flex-wrap: wrap;
-    }
-    
-    .stat-card {
-        flex-basis: calc(50% - var(--reborn-spacing-sm));
-    }
-}
-
-@media (max-width: 768px) {
-    .header-container {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--reborn-spacing-sm);
-    }
-}
-
-@media (max-width: 600px) {
-    .stat-card {
-        flex-basis: 100%;
-    }
-}
-
-/* ----- Enhanced Home UI Styling ----- */
-
-/* Full-width layout for better space utilization */
-.main .block-container {
-    max-width: 1400px !important;
-    padding-top: 1rem !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-}
-
-/* Enhanced title styling */
-.noi-title {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 2.5rem !important;
-    font-weight: 600 !important;
-    margin-bottom: 1.5rem !important;
-    padding-left: 0.5rem !important;
-    color: #e6edf3 !important;
-}
-
-.noi-title-accent {
-    color: #3B82F6 !important;
-}
-
-/* Enhanced section headers */
-.section-header {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 2rem !important;
-    font-weight: 500 !important;
-    color: #3B82F6 !important;
-    margin-top: 1.5rem !important;
-    margin-bottom: 1.5rem !important;
-    padding-left: 0.5rem !important;
-}
-
-/* File upload styling */
-.upload-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.upload-card {
-    background-color: rgba(16, 23, 42, 0.7);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 12px;
-    padding: 1.5rem;
     transition: all 0.3s ease;
 }
 
-.upload-card:hover {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+/* Main container - consistent across all comparison views */
+.main-container {
+    background-color: var(--bg-primary);
+    min-height: 100vh;
+    padding: 0;
 }
 
-.upload-card-header {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: #e6edf3;
-    margin-bottom: 1rem;
+/* Streamlit specific overrides - universal application */
+.stApp {
+    background-color: var(--bg-primary);
+}
+
+.stApp > header {
+    background-color: transparent;
+}
+
+/* Tab content containers - applies to Prior Month, Budget, Prior Year, Summary, NOI Coach */
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: var(--bg-primary);
+    padding: 2rem 0;
+}
+
+/* Navigation container - universal styling */
+.nav-container {
+    background-color: var(--bg-primary);
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--table-border);
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
 }
 
-.required-badge {
-    background-color: rgba(59, 130, 246, 0.2);
-    color: #3B82F6;
-    font-size: 0.75rem;
+/* Tab styling - Streamlit specific - applies to ALL five tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+    background-color: transparent;
+    padding: 0.5rem 0;
+}
+
+/* Individual tab styling - universal for all comparison tabs */
+.stTabs [data-baseweb="tab"] {
+    background-color: var(--nav-unselected-bg);
+    color: var(--nav-unselected-text);
+    border-radius: var(--border-radius-xl);
+    padding: 0.75rem 1.5rem;
     font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: 999px;
+    border: none;
+    transition: all 0.2s ease;
+    margin-right: 0.5rem;
 }
 
-/* Enhanced instructions and features cards */
-.info-card {
-    background-color: rgba(16, 23, 42, 0.7);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 12px;
-    padding: 1.5rem 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* Hover state for all tabs */
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: #E5E7EB;
+    transform: translateY(-1px);
 }
 
-.info-card-header {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+/* Selected state styling - applies whether Prior Month, Budget, Prior Year, Summary, or NOI Coach is active */
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    background-color: var(--nav-selected-bg);
+    color: var(--nav-selected-text);
+    box-shadow: var(--shadow-md);
+    font-weight: 600;
+}
+
+/* Remove default Streamlit tab indicators - universal application */
+.stTabs [data-baseweb="tab-highlight"] {
+    display: none;
+}
+
+.stTabs [data-baseweb="tab-border"] {
+    display: none;
+}
+
+/* Search icon styling - appears on all views */
+.nav-search-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.nav-search-icon:hover {
+    color: var(--text-primary);
+}
+
+/* Search container - consistent across all views */
+.nav-search-container {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: var(--border-radius-md);
+    transition: background-color 0.2s ease;
+}
+
+.nav-search-container:hover {
+    background-color: var(--hover-bg);
+}
+
+/* Table container - universal for all comparison tables */
+.comparison-table-container,
+.prior-month-table-container,
+.budget-comparison-table-container,
+.prior-year-comparison-table-container,
+.summary-table-container {
+    background-color: var(--table-cell-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin: 2rem 0;
+}
+
+/* Universal table styling for all comparison types */
+.comparison-table,
+.prior-month-table,
+.budget-comparison-table,
+.prior-year-comparison-table,
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--table-cell-bg);
+}
+
+/* Header styling - consistent across all comparison tables */
+.comparison-table thead th,
+.prior-month-table thead th,
+.budget-comparison-table thead th,
+.prior-year-comparison-table thead th,
+.summary-table thead th {
+    background-color: var(--table-header-bg);
+    color: var(--table-header-text);
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    text-align: left;
+}
+
+/* Data cell styling - universal for all comparison data */
+.comparison-table tbody td,
+.prior-month-table tbody td,
+.budget-comparison-table tbody td,
+.prior-year-comparison-table tbody td,
+.summary-table tbody td {
+    background-color: var(--table-cell-bg);
+    color: var(--text-primary);
+    padding: 1.25rem 1.5rem;
+    border: none;
+    border-bottom: 1px solid var(--table-border);
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+/* Row hover effects - universal application */
+.comparison-table tbody tr:hover td,
+.prior-month-table tbody tr:hover td,
+.budget-comparison-table tbody tr:hover td,
+.prior-year-comparison-table tbody tr:hover td,
+.summary-table tbody tr:hover td {
+    background-color: var(--hover-bg);
+}
+
+/* Remove last row border - universal */
+.comparison-table tbody tr:last-child td,
+.prior-month-table tbody tr:last-child td,
+.budget-comparison-table tbody tr:last-child td,
+.prior-year-comparison-table tbody tr:last-child td,
+.summary-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Metric name column styling - consistent across all views */
+.comparison-table tbody td:first-child,
+.prior-month-table tbody td:first-child,
+.budget-comparison-table tbody td:first-child,
+.prior-year-comparison-table tbody td:first-child,
+.summary-table tbody td:first-child {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Universal positive change styling - for all comparison types */
+.change-positive,
+.variance-positive,
+.growth-positive {
+    color: var(--color-positive) !important;
+    font-weight: 600;
+}
+
+/* Universal negative change styling - for all comparison types */
+.change-negative,
+.variance-negative,
+.growth-negative {
+    color: var(--color-negative) !important;
+    font-weight: 600;
+}
+
+/* Universal neutral/zero change styling - for all comparison types */
+.change-neutral,
+.variance-neutral,
+.growth-neutral {
+    color: var(--color-neutral) !important;
+    font-weight: 500;
+}
+
+/* Currency formatting - universal application */
+.currency-value {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-weight: 500;
+}
+
+/* Percentage formatting - universal application */
+.percentage-value {
+    font-weight: 600;
+}
+
+/* Specific column styling for change indicators - all comparison types */
+.comparison-table .change-dollar-column,
+.prior-month-table .change-dollar-column,
+.budget-comparison-table .variance-dollar-column,
+.prior-year-comparison-table .growth-dollar-column {
+    text-align: right;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.comparison-table .change-percent-column,
+.prior-month-table .change-percent-column,
+.budget-comparison-table .variance-percent-column,
+.prior-year-comparison-table .growth-percent-column {
+    text-align: right;
+    font-weight: 600;
+}
+
+/* Universal expense breakdown container - applies to all comparison views */
+.expense-breakdown-container,
+.prior-month-expense-breakdown,
+.budget-expense-breakdown,
+.prior-year-expense-breakdown {
+    background-color: var(--table-cell-bg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin: 2rem 0;
+    overflow: hidden;
+}
+
+/* Universal expense breakdown header */
+.expense-breakdown-header {
+    background-color: var(--table-header-bg);
+    color: var(--table-header-text);
+    padding: 1.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--table-border);
+}
+
+/* Universal expense breakdown table styling */
+.expense-breakdown-table,
+.prior-month-expense-table,
+.budget-expense-table,
+.prior-year-expense-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--table-cell-bg);
+}
+
+/* Universal header styling for expense tables */
+.expense-breakdown-table thead th,
+.prior-month-expense-table thead th,
+.budget-expense-table thead th,
+.prior-year-expense-table thead th {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 1rem 1.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-bottom: 2px solid var(--table-border);
+    text-align: left;
+}
+
+/* Universal data cell styling for expense tables */
+.expense-breakdown-table tbody td,
+.prior-month-expense-table tbody td,
+.budget-expense-table tbody td,
+.prior-year-expense-table tbody td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--table-border);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease;
+}
+
+/* Universal hover effects for expense tables */
+.expense-breakdown-table tbody tr:hover td,
+.prior-month-expense-table tbody tr:hover td,
+.budget-expense-table tbody tr:hover td,
+.prior-year-expense-table tbody tr:hover td {
+    background-color: var(--hover-bg);
+}
+
+/* Universal index column styling */
+.expense-breakdown-table .index-column,
+.prior-month-expense-table .index-column,
+.budget-expense-table .index-column,
+.prior-year-expense-table .index-column {
+    width: 60px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Universal category column styling */
+.expense-breakdown-table .category-column,
+.prior-month-expense-table .category-column,
+.budget-expense-table .category-column,
+.prior-year-expense-table .category-column {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Universal main title styling - consistent across all views */
+.main-title,
+.prior-month-title,
+.budget-title,
+.prior-year-title,
+.summary-title,
+.noi-coach-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 2rem 0 1rem 0;
+    line-height: 1.2;
+}
+
+/* Universal section titles - consistent across all comparison views */
+.section-title,
+.comparison-section-title {
     font-size: 1.5rem;
-    font-weight: 500;
-    color: #64B5F6;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 2rem 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--table-border);
+}
+
+/* Universal subsection titles */
+.subsection-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 1.5rem 0 0.75rem 0;
+}
+
+/* Universal improved spacing for Streamlit elements */
+.stMarkdown {
     margin-bottom: 1rem;
 }
 
-.info-list {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.1rem;
-    color: #e6edf3;
-    margin-left: 1rem;
-    padding-left: 1rem;
+.stDataFrame {
+    margin: 1.5rem 0;
 }
 
-.info-list li {
-    margin-bottom: 0.75rem;
-    line-height: 1.5;
-}
+/* Universal custom spacing utilities */
+.spacing-sm { margin: 0.5rem 0; }
+.spacing-md { margin: 1rem 0; }
+.spacing-lg { margin: 1.5rem 0; }
+.spacing-xl { margin: 2rem 0; }
 
-.highlight {
-    color: #64B5F6;
-    font-weight: 500;
-}
+/* Universal padding utilities */
+.padding-sm { padding: 0.5rem; }
+.padding-md { padding: 1rem; }
+.padding-lg { padding: 1.5rem; }
+.padding-xl { padding: 2rem; }
 
-.features-card {
-    background-color: rgba(16, 23, 42, 0.7);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 12px;
-    padding: 1.5rem 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.features-header {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.5rem;
-    font-weight: 500;
-    color: #64B5F6;
-    margin-bottom: 1.5rem;
-}
-
-.feature-item {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 1.25rem;
-}
-
-.feature-number {
-    background-color: rgba(59, 130, 246, 0.2);
-    color: #3B82F6;
-    font-size: 1rem;
-    font-weight: 600;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 1rem;
-    flex-shrink: 0;
-}
-
-.feature-content {
-    flex-grow: 1;
-}
-
-.feature-title {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: #64B5F6;
-    margin-bottom: 0.25rem;
-}
-
-.feature-description {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1rem;
-    color: #e6edf3;
-    line-height: 1.5;
-}
-
-/* Enhanced button styling */
-.primary-button {
-    background-color: #3B82F6 !important;
-    color: white !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    font-size: 1.1rem !important;
-    font-weight: 500 !important;
-    padding: 0.75rem 1.5rem !important;
-    border-radius: 8px !important;
-    border: none !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-    transition: all 0.3s ease !important;
-    margin-top: 1rem !important;
-    margin-bottom: 1.5rem !important;
-}
-
-.primary-button:hover {
-    background-color: #2563EB !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    transform: translateY(-2px) !important;
-}
-
-.primary-button:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-}
-
-/* Column adjustments */
-[data-testid="column"] {
-    padding: 0 0.75rem !important;
-}
-
-[data-testid="column"]:first-child {
-    padding-left: 0 !important;
-}
-
-[data-testid="column"]:last-child {
-    padding-right: 0 !important;
-}
-
-/* ----- Responsive Layout Adjustments ----- */
-
-/* Large screens (desktops) */
-@media (min-width: 1200px) {
-    .main .block-container {
-        max-width: 90% !important;
-    }
-}
-
-/* Medium screens (tablets and small desktops) */
-@media (max-width: 1199px) and (min-width: 768px) {
-    .main .block-container {
-        max-width: 95% !important;
+/* Universal mobile responsiveness - applies to all comparison views */
+@media (max-width: 768px) {
+    .nav-container {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
     }
     
-    .upload-container {
-        grid-template-columns: 1fr 1fr;
+    /* Universal table container responsiveness */
+    .comparison-table-container,
+    .prior-month-table-container,
+    .budget-comparison-table-container,
+    .prior-year-comparison-table-container,
+    .summary-table-container,
+    .expense-breakdown-container {
+        overflow-x: auto;
+        margin: 1rem 0;
     }
     
-    .noi-title {
-        font-size: 2.25rem !important;
+    /* Universal table responsiveness */
+    .comparison-table,
+    .prior-month-table,
+    .budget-comparison-table,
+    .prior-year-comparison-table,
+    .summary-table,
+    .expense-breakdown-table {
+        min-width: 600px;
     }
     
-    .section-header {
-        font-size: 1.75rem !important;
+    /* Universal cell padding for mobile */
+    .comparison-table thead th,
+    .comparison-table tbody td,
+    .prior-month-table thead th,
+    .prior-month-table tbody td,
+    .budget-comparison-table thead th,
+    .budget-comparison-table tbody td,
+    .prior-year-comparison-table thead th,
+    .prior-year-comparison-table tbody td {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Universal title responsiveness */
+    .main-title,
+    .prior-month-title,
+    .budget-title,
+    .prior-year-title {
+        font-size: 2rem;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
     }
 }
 
-/* Small screens (tablets and large phones) */
-@media (max-width: 767px) and (min-width: 576px) {
-    .main .block-container {
-        max-width: 100% !important;
-        padding-left: 0.75rem !important;
-        padding-right: 0.75rem !important;
+/* Universal tablet responsiveness */
+@media (max-width: 1024px) {
+    .comparison-table thead th,
+    .comparison-table tbody td,
+    .prior-month-table thead th,
+    .prior-month-table tbody td,
+    .budget-comparison-table thead th,
+    .budget-comparison-table tbody td,
+    .prior-year-comparison-table thead th,
+    .prior-year-comparison-table tbody td {
+        padding: 1rem;
     }
     
-    .upload-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .noi-title {
-        font-size: 2rem !important;
-    }
-    
-    .section-header {
-        font-size: 1.5rem !important;
-    }
-    
-    .feature-item {
-        margin-bottom: 1rem !important;
-    }
-    
-    .info-card, .features-card {
-        padding: 1.25rem !important;
+    .nav-container {
+        padding: 1rem 1.5rem;
     }
 }
 
-/* Extra small screens (phones) */
-@media (max-width: 575px) {
-    .main .block-container {
-        max-width: 100% !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+/* Universal large screen optimizations */
+@media (min-width: 1440px) {
+    .comparison-table-container,
+    .prior-month-table-container,
+    .budget-comparison-table-container,
+    .prior-year-comparison-table-container {
+        max-width: 1200px;
+        margin: 2rem auto;
     }
     
-    .upload-container {
-        grid-template-columns: 1fr;
+    .main-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
     }
-    
-    .noi-title {
-        font-size: 1.75rem !important;
+}
+
+/* Universal focus states for keyboard navigation */
+.stTabs [data-baseweb="tab"]:focus {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.nav-search-container:focus {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+/* Universal high contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --text-primary: #000000;
+        --text-secondary: #333333;
+        --table-border: #666666;
+        --color-positive: #006600;
+        --color-negative: #CC0000;
     }
-    
-    .section-header {
-        font-size: 1.25rem !important;
+}
+
+/* Universal reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
-    
-    .feature-item {
-        margin-bottom: 0.75rem !important;
-    }
-    
-    .feature-number {
-        width: 1.5rem !important;
-        height: 1.5rem !important;
-        font-size: 0.8rem !important;
-    }
-    
-    .feature-title {
-        font-size: 1rem !important;
-    }
-    
-    .feature-description {
-        font-size: 0.9rem !important;
-    }
-    
-    .info-card, .features-card {
-        padding: 1rem !important;
-    }
-    
-    .info-list {
-        font-size: 0.9rem !important;
-        padding-left: 0.75rem !important;
-        margin-left: 0.75rem !important;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        padding: 0.5rem 0.75rem !important;
-        font-size: 0.9rem !important;
-    }
+}
+
+/* Universal screen reader improvements */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
