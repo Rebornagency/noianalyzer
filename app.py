@@ -1269,8 +1269,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Apply the universal light-theme styles
-load_custom_css_universal()
+# Call load_css to apply custom styles
+inject_custom_css()
 
 # Initialize session state variables
 if 'current_month_actuals' not in st.session_state:
@@ -2563,7 +2563,7 @@ def generate_comprehensive_pdf():
         
         st.success("PDF report generated successfully!")
         return pdf_path
-    except Exception as e:
+        except Exception as e:
         logger.error(f"Failed to generate PDF report: {e}", exc_info=True)
         st.error(f"Could not generate PDF report. Error: {e}")
         return None
