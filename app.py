@@ -2651,65 +2651,80 @@ def main():
         # Sidebar for configuration
         with st.sidebar:
             st.markdown("## Configuration")
-            
+
             # Testing Mode Toggle
             testing_mode = st.toggle(
-        "Enable Testing Mode",
+                "Enable Testing Mode",
                 value=is_testing_mode_active(),
                 key="testing_mode",
                 help="Use mock data for demonstration and testing purposes without API calls."
-    )
-    
+            )
+
             # Save config if it changes
-        save_testing_config()
-    
-    if is_testing_mode_active():
-                display_testing_mode_indicator()
-                st.session_state.mock_property_name = st.text_input(
-            "Property Name",
-            value=st.session_state.get("mock_property_name", "Test Property"),
-                    key="mock_property_name"
+            save_testing_config()
+
+        # Show additional sidebar options based on mode
+        if is_testing_mode_active():
+            display_testing_mode_indicator()
+
+            # Testing mode inputs
+            st.session_state.mock_property_name = st.text_input(
+                "Property Name",
+                value=st.session_state.get("mock_property_name", "Test Property"),
+                key="mock_property_name"
+            )
+
+            st.session_state.mock_scenario = st.selectbox(
+                "Select Mock Scenario",
+                [
+                    "Standard Performance",
+                    "High Growth",
+                    "Declining Performance",
+                    "Budget Variance",
+                ],
+                index=[
+                    "Standard Performance",
+                    "High Growth",
+                    "Declining Performance",
+                    "Budget Variance",
+                ].index(st.session_state.get("mock_scenario", "Standard Performance")),
+                key="mock_scenario",
+                help="Choose a pre-defined data scenario to test different outputs."
+            )
+
+            if st.button("Generate Mock Data", use_container_width=True):
+                process_documents_testing_mode()
+
+            # Optional diagnostics
+            if st.checkbox("Show Diagnostics"):
+                if st.button("Run Diagnostics"):
+                    run_testing_mode_diagnostics()
+
+        else:
+            # API Key Configuration
+            with st.expander("API Settings", expanded=False):
+                st.info("API keys are securely stored and never exposed in the frontend.")
+
+                openai_api_key = st.text_input(
+                    "OpenAI API Key",
+                    type="password",
+                    value=get_openai_api_key() or "",
+                    help="Required for AI-powered insights and analysis."
                 )
-                st.session_state.mock_scenario = st.selectbox(
-                    "Select Mock Scenario",
-                    ["Standard Performance", "High Growth", "Declining Performance", "Budget Variance"],
-                    index=["Standard Performance", "High Growth", "Declining Performance", "Budget Variance"].index(
-                        st.session_state.get("mock_scenario", "Standard Performance")
-                    ),
-                    key="mock_scenario",
-                    help="Choose a pre-defined data scenario to test different outputs."
+                extraction_api_url = st.text_input(
+                    "Extraction API URL",
+                    value=get_extraction_api_url() or "",
+                    help="URL for the data extraction service."
                 )
-                if st.button("Generate Mock Data", use_container_width=True):
-                    process_documents_testing_mode()
-                
-                # Optional diagnostics
-                if st.checkbox("Show Diagnostics"):
-                    st.session_state.run_diagnostics = st.button("Run Diagnostics")
-            run_testing_mode_diagnostics()
-            else:
-                # API Key Configuration
-                with st.expander("API Settings", expanded=False):
-                    st.info("API keys are securely stored and never exposed in the frontend.")
-                    openai_api_key = st.text_input(
-                        "OpenAI API Key", 
-                        type="password", 
-                        value=get_openai_api_key() or "",
-                        help="Required for AI-powered insights and analysis."
-                    )
-                    extraction_api_url = st.text_input(
-                        "Extraction API URL", 
-                        value=get_extraction_api_url() or "",
-                        help="URL for the data extraction service."
-                    )
-                    api_key = st.text_input(
-                        "Extraction API Key", 
-                        type="password", 
-                        value=get_api_key() or "",
-                        help="API key for the data extraction service."
-                    )
-                    if st.button("Save API Settings"):
-                        save_api_settings(openai_api_key, extraction_api_url, api_key)
-                        st.success("API settings saved!")
+                api_key = st.text_input(
+                    "Extraction API Key",
+                    type="password",
+                    value=get_api_key() or "",
+                    help="API key for the data extraction service."
+                )
+                if st.button("Save API Settings"):
+                    save_api_settings(openai_api_key, extraction_api_url, api_key)
+                    st.success("API settings saved!")
 
         # Main content
         display_logo()
@@ -2762,44 +2777,44 @@ def main():
             # Display instruction and feature cards
             col1, col2 = st.columns(2)
             with col1:
-            instructions_card([
+                instructions_card([
                     "Upload your property's financial statements.",
                     "The 'Current Month' T-12 is required.",
                     "Provide other documents for deeper comparisons.",
                     "Click 'Analyze' to generate insights."
                 ])
             with col2:
-            feature_list([
+                feature_list([
                     ("Automated Data Extraction", "Extracts key financial data from your documents."),
                     ("Comprehensive NOI Analysis", "Calculates and compares NOI across different periods."),
                     ("AI-Powered Insights", "Generates actionable insights and recommendations."),
-                    ("Financial Storytelling", "Creates a narrative summary of your property's performance.")
+                    ("Financial Storytelling", "Creates a narrative summary of your property's performance."),
                 ])
 
     if st.session_state.processing_completed:
-            # Render navigation - functionality unchanged
-            tab1, tab2, tab3, tab4, tab5 = render_navigation_with_search_universal()
-            
-            comparison_results = st.session_state.get("comparison_results", {})
-            prior_month_data = comparison_results.get("month_vs_prior", {})
-            budget_data = comparison_results.get("actual_vs_budget", {})
-            prior_year_data = comparison_results.get("year_vs_year", {})
-            
-            # Apply consistent styling to all comparison views
-            render_comparison_view_universal(tab1, "prior_month", prior_month_data)
-            render_comparison_view_universal(tab2, "budget", budget_data)
-            render_comparison_view_universal(tab3, "prior_year", prior_year_data)
-            
-            # Summary and NOI Coach tabs - apply same styling principles
-            with tab4:
-                st.write("Summary View")
-                display_unified_insights(st.session_state.get("insights", {}))
+        # Render navigation - functionality unchanged
+        tab1, tab2, tab3, tab4, tab5 = render_navigation_with_search_universal()
+        
+        comparison_results = st.session_state.get("comparison_results", {})
+        prior_month_data = comparison_results.get("month_vs_prior", {})
+        budget_data = comparison_results.get("actual_vs_budget", {})
+        prior_year_data = comparison_results.get("year_vs_year", {})
+        
+        # Apply consistent styling to all comparison views
+        render_comparison_view_universal(tab1, "prior_month", prior_month_data)
+        render_comparison_view_universal(tab2, "budget", budget_data)
+        render_comparison_view_universal(tab3, "prior_year", prior_year_data)
+        
+        # Summary and NOI Coach tabs
+        with tab4:
+            st.write("Summary View")
+            display_unified_insights(st.session_state.get("insights", {}))
 
-            with tab5:
-                if NOI_COACH_AVAILABLE:
-                    display_noi_coach_enhanced()
-                else:
-                    st.error("NOI Coach is not available.")
+        with tab5:
+            if NOI_COACH_AVAILABLE:
+                display_noi_coach_enhanced()
+            else:
+                st.error("NOI Coach is not available.")
 
 def display_features_section():
     """Display the features section using pure Streamlit components without HTML"""
