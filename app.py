@@ -1328,18 +1328,19 @@ if 'testing_config_loaded' not in st.session_state:
     st.session_state.testing_config_loaded = False
 
 def highlight_changes(val):
-    if isinstance(val, str) and val.startswith('-'):
-        return 'color: red'
-    # Check for positive changes, ensuring we don't misinterpret currency symbols or other characters as positive.
-    # A common convention for positive financial changes is an explicit '+' sign or simply no sign for positive numbers.
-    # Given the example df, 'Change ($)' and 'Change (%)' can be positive without a '+'.
-    # We will assume that if it doesn't start with '-', and it's a change column, it's positive if not zero.
-    # However, the original prompt suggests looking for a '+' prefix. Let's stick to that for green.
-    # If no explicit '+', we won't color it green, but it won't be red either.
-    elif isinstance(val, str) and val.startswith('+'): # Explicitly look for '+' for green
-        return 'color: green'
-    # Fallback for values that are not explicitly positive (green) or negative (red)
-    return ''
+    """Style helper for pandas Styler to color positive & negative changes."""
+    # Ensure we're working with a string for consistent checks
+    if not isinstance(val, str):
+        val = str(val)
+
+    if val.strip().startswith('-') and any(char.isdigit() for char in val):
+        # Bright red for negative values
+        return 'color: #EF4444; font-weight: 600;'
+    elif val.strip().startswith('+'):
+        # Bright green for positive values
+        return 'color: #10B981; font-weight: 600;'
+    else:
+        return ''
 
 # Display comparison tab
 def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name_suffix: str):
@@ -1524,8 +1525,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         "Change ($)": "{:}",
                         "Change (%)": "{:}"
                     }).hide(axis="index").set_table_styles([
-                        {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'left')]},
-                        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3'), ('text-align', 'left')]}
+                        {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'center')]},
+                        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
                     ]), use_container_width=True)
 
                     # Create columns for charts with enhanced styling
@@ -3093,7 +3094,7 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
     }).hide(axis="index").set_table_styles([
         {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
         {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
-        {'selector': '.col_heading', 'props': [('text-align', 'left')]} # Ensures header text is left-aligned
+        {'selector': '.col_heading', 'props': [('text-align', 'center')]} # Center-align column headings to improve readability
     ]), use_container_width=True)
 
     # Remove the old HTML and style block as it's no longer used by this function.

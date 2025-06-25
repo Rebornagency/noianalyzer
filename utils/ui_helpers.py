@@ -94,9 +94,9 @@ def inject_custom_css():
         font-family: var(--reborn-font-family) !important;
         font-weight: 600 !important;
     }
-    h1 { font-size: 2.25rem !important; margin-bottom: 1.5rem; }
-    h2 { font-size: 1.8rem !important; margin-bottom: 1.25rem; color: var(--reborn-accent-blue) !important; }
-    h3 { font-size: 1.5rem !important; margin-bottom: 1rem; color: var(--reborn-accent-green) !important; }
+    h1 { font-size: 2.75rem !important; margin-bottom: 1.5rem; }
+    h2 { font-size: 2rem !important; margin-bottom: 1.25rem; color: var(--reborn-accent-blue) !important; }
+    h3 { font-size: 1.6rem !important; margin-bottom: 1rem; color: var(--reborn-accent-green) !important; }
 
     /* Markdown content styling */
     .stMarkdown p, .stMarkdown li {
@@ -209,26 +209,37 @@ def inject_custom_css():
     }
     .stDataFrame table {
         width: 100% !important;
-        font-size: 0.9rem !important;
+        font-size: 1rem !important; /* Increased base font size for readability */
     }
-    .stDataFrame th {
+    .stDataFrame thead th {
         background-color: var(--reborn-bg-tertiary) !important;
         color: var(--reborn-text-primary) !important;
-        font-weight: 600 !important;
-        text-align: left !important;
-        padding: 0.75rem 1rem !important;
-        border-bottom: 2px solid var(--reborn-border-color) !important;
+        font-weight: 700 !important; /* Bolder headers */
+        text-align: center !important; /* Center-align column headers */
+        padding: 1rem 1.25rem !important; /* More vertical + horizontal padding */
     }
-    .stDataFrame td {
-        padding: 0.75rem 1rem !important;
+    .stDataFrame tbody td {
+        padding: 1rem 1.25rem !important; /* More spacious rows */
         border-bottom: 1px solid var(--reborn-border-color) !important;
         color: var(--reborn-text-secondary) !important;
+        font-size: 1rem !important; /* Match table base font size */
+        vertical-align: middle !important; /* Vertically center content */
     }
-    .stDataFrame tr:last-child td {
+    /* Alternate row striping for subtle visual separation */
+    .stDataFrame tbody tr:nth-child(even) td {
+        background-color: rgba(31, 41, 55, 0.3) !important;
+    }
+    /* Alignment rules: first column left-aligned, others right-aligned for numbers */
+    .stDataFrame tbody td:first-child {
+        text-align: left !important;
+        font-weight: 500 !important; /* Slightly bolder metric names */
+    }
+    .stDataFrame tbody td:not(:first-child) {
+        text-align: right !important;
+    }
+    /* Remove last row border */
+    .stDataFrame tbody tr:last-child td {
         border-bottom: none !important;
-    }
-    .stDataFrame tr:nth-child(even) td {
-        background-color: rgba(31, 41, 55, 0.5) !important; /* Subtle striping for even rows */
     }
 
     /* File Uploader Styling */
