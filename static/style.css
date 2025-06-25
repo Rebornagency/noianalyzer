@@ -104,3 +104,159 @@ label, .st-b3, .st-at, .st-ae, .st-af, .st-ag, .st-ah, .st-ai, .st-aj, .st-ak, .
 [data-testid="stDataFrame"] tbody td:first-child {
     font-weight: 600 !important;
 }
+
+.stButton > button {
+    background-color: #3B82F6 !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button:hover {
+    background-color: #2563EB !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* NOI Analyzer Main Stylesheet */
+
+/* Global Settings */
+body, .stApp {
+    background-color: #0A0F1E !important;
+    color: #E6EDF3 !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
+}
+
+/* Universal Text and Title Visibility */
+h1, h2, h3, h4, h5, h6, p, li, label, .stMarkdown, .stMetric, .stTabs [data-baseweb="tab"], .reborn-text {
+    color: #FFFFFF !important;
+}
+
+/* Header and Logo */
+.header-container {
+    padding-bottom: 1rem;
+}
+.reborn-logo {
+    height: 50px !important; /* Fixed height */
+    width: auto !important; /* Maintain aspect ratio */
+}
+
+/* Main Button Styling */
+.stButton > button {
+    background-color: #3B82F6 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button:hover {
+    background-color: #2563EB !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* DataFrame/Leaderboard Styling */
+[data-testid="stDataFrame"] {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+[data-testid="stDataFrame"] thead th {
+    background-color: transparent !important;
+    color: #FFFFFF !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    text-align: left !important;
+    padding: 1rem !important;
+}
+
+[data-testid="stDataFrame"] tbody tr td {
+    background-color: transparent !important;
+    color: #E6EDF3 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    font-weight: 400 !important;
+    font-size: 0.95rem !important;
+    text-align: left !important;
+    padding: 1rem !important;
+    vertical-align: middle !important;
+}
+
+[data-testid="stDataFrame"] tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+[data-testid="stDataFrame"] tbody tr:hover td {
+    background-color: rgba(38, 39, 48, 0.5) !important;
+}
+
+[data-testid="stDataFrame"] tbody td:first-child {
+    font-weight: 600 !important;
+}
+
+/* NOI Coach Styling */
+.chat-message {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+    max-width: 80%;
+}
+
+.user-message {
+    background-color: #1e88e5;
+    color: white;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.assistant-message {
+    background-color: rgba(22, 27, 34, 0.8);
+    color: #e6edf3;
+    margin-right: auto;
+    margin-left: 0;
+    border: 1px solid rgba(56, 68, 77, 0.5);
+}
+
+/* Instructions Card */
+.instructions-card {
+    background-color: rgba(30, 41, 59, 0.8);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #4DB6AC;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.instructions-card h3 {
+    color: #4DB6AC !important;
+    font-size: 1.3rem !important;
+    margin-bottom: 1rem !important;
+    font-weight: 600 !important;
+}
+
+.instructions-card ol {
+    color: #F0F0F0 !important;
+    padding-left: 1.5rem !important;
+    margin-bottom: 1.25rem !important;
+}
+
+.instructions-card li {
+    margin-bottom: 0.5rem !important;
+    line-height: 1.5 !important;
+}
+
+.instructions-card p {
+    color: #E0E0E0 !important;
+    font-style: italic !important;
+    font-size: 0.9rem !important;
+    background-color: rgba(77, 182, 172, 0.1) !important;
+    padding: 0.75rem !important;
+    border-radius: 4px !important;
+    display: inline-block !important;
+}
