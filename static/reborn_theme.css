@@ -1,34 +1,3 @@
-/* Theme variables */
-:root {
-    /* Light theme */
-    --bg-light: #FFFFFF;
-    --text-light: #1A1A1A;
-    --card-bg-light: #F8F9FA;
-
-    /* Dark theme */
-    --bg-dark: #0A0F1E;
-    --text-dark: #FFFFFF;
-    --card-bg-dark: rgba(18, 32, 62, 0.6);
-
-    /* Shared colors */
-    --accent-primary: #3BA9FF;
-    --accent-secondary: #74C0FC;
-    --success: #4ADE80;
-    --danger: #F87171;
-}
-
-/* Base styles */
-.header-container {
-  padding: 1rem 0;
-}
-.logo-container {
-  text-align: left;
-}
-.document-label {
-  margin-top: 1rem;
-  font-size: 1.1rem;
-}
-
 /* Reborn Theme CSS for NOI Analyzer */
 
 /* Global font and layout settings */
@@ -103,4 +72,4 @@ label, .st-b3, .st-at, .st-ae, .st-af, .st-ag, .st-ah, .st-ai, .st-aj, .st-ak, .
 
 [data-testid="stDataFrame"] tbody td:first-child {
     font-weight: 600 !important;
-}
+} 
