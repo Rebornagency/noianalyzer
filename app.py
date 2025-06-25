@@ -1531,34 +1531,44 @@ def inject_custom_css():
     /* Hide dark/light theme toggle button */
     .theme-toggle { display: none !important; }
 
-    /* --- Updated DataFrame Styling (override) --- */
-    .stDataFrame table {
-        font-size: 1rem !important;
+    /* Transparent, modern table styling */
+    .stDataFrame {
+        background-color: transparent !important;
+        border: none !important;
     }
+
     .stDataFrame thead th {
-        font-weight: 700 !important;
-        text-align: center !important;
-        padding: 1rem 1.25rem !important;
+        background-color: rgba(38, 39, 48, 0.2) !important;
+        color: #E6EDF3 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        text-align: left !important;
+        padding: 0.75rem 1rem !important;
     }
-    .stDataFrame tbody td {
-        padding: 1rem 1.25rem !important;
-        font-size: 1rem !important;
+
+    .stDataFrame tbody tr td {
+        background-color: transparent !important;
+        color: #E6EDF3 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        font-weight: 400 !important;
+        font-size: 0.95rem !important;
+        text-align: left !important;
+        padding: 0.75rem 1rem !important;
         vertical-align: middle !important;
     }
-    .stDataFrame tbody tr:nth-child(even) td {
-        background-color: rgba(31,41,55,0.3) !important;
-    }
-    .stDataFrame tbody td:first-child {
-        text-align: left !important;
-        font-weight: 500 !important;
-    }
-    .stDataFrame tbody td:not(:first-child) {
-        text-align: right !important;
-    }
+
     .stDataFrame tbody tr:last-child td {
         border-bottom: none !important;
     }
-    /* --- End Updated DataFrame Styling --- */
+
+    .stDataFrame tbody tr:hover td {
+        background-color: rgba(38, 39, 48, 0.3) !important;
+    }
+
+    .stDataFrame tbody td:first-child {
+        font-weight: 500 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1676,13 +1686,17 @@ from reborn_logo import get_reborn_logo_base64
 
 # Logo display function - updated to use direct embedding with better error handling
 def display_logo():
-    """Display header with logo, company name, and a theme toggle."""
+    """
+    Displays the Reborn logo and title in a consistent header format.
+    This function is now simplified to remove all theme-toggling logic
+    and enforce a consistent dark theme appearance.
+    """
     try:
         logo_base64 = get_reborn_logo_base64()
-        # Fallback detection
+        # Fallback for if logo is unavailable
         invalid_logo = not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100
 
-        # Inject CSS only once
+        # Inject CSS for header styling only once
         if "header_css_injected" not in st.session_state:
             st.markdown(
                 """
@@ -1691,7 +1705,7 @@ def display_logo():
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 0.25rem 0 0.75rem 0; /* tighter spacing */
+                    padding: 0.25rem 0 0.75rem 0;
                     margin-bottom: 0.25rem;
                 }
                 .logo-title-container {
@@ -1704,121 +1718,35 @@ def display_logo():
                     font-family: 'Inter', sans-serif;
                     font-size: 2.25rem;
                     font-weight: 700;
-                    color: #ffffff;
+                    color: #ffffff; /* Enforce white color for title */
                     margin: 0;
                     letter-spacing: 0.05em;
-                }
-                /* Theme toggle pill */
-                .theme-toggle {
-                    position: relative;
-                    width: 56px;
-                    height: 28px;
-                    border-radius: 14px;
-                    background-color: var(--toggle-bg, #374151);
-                    cursor: pointer;
-                    transition: background-color 0.3s ease;
-                }
-                .theme-toggle::before {
-                    content: var(--toggle-emoji, "🌙");
-                    position: absolute;
-                    top: 50%;
-                    left: var(--toggle-pos, 30px);
-                    transform: translateY(-50%);
-                    width: 22px;
-                    height: 22px;
-                    border-radius: 50%;
-                    background: #fff;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 12px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-                    transition: left 0.3s ease;
                 }
                 #MainMenu, header { visibility: hidden; }
                 </style>
                 """,
                 unsafe_allow_html=True,
             )
-            # (no session_state flag so it injects every time)
+            st.session_state.header_css_injected = True
 
-        # Determine toggle styling variables based on current theme
-        current_theme = st.session_state.get("theme", "dark")
-        toggle_css_vars = (
-            "--toggle-bg: #374151; --toggle-pos: 30px; --toggle-emoji: '🌙'" if current_theme == "dark" else
-            "--toggle-bg: #E5E7EB; --toggle-pos: 4px; --toggle-emoji: '☀️'"
-        )
-
-        # Build HTML (logo + text + toggle)
+        # Build HTML for the header (logo + text)
         left_part = (
             (f"<img src='data:image/png;base64,{logo_base64}' class='reborn-logo' alt='Reborn Logo'>" if not invalid_logo else "")
-        ) + "<h1 class='reborn-text'>REBORN</h1>"
+            + "<h1 class='reborn-text'>REBORN</h1>"
+        )
 
         st.markdown(
             f"""
             <div class='header-container'>
                 <div class='logo-title-container'>{left_part}</div>
-                <div id='theme-toggle' class='theme-toggle' style='{toggle_css_vars}'></div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        # Inject JS once to wire the toggle
-        if "header_toggle_js" not in st.session_state:
-            st.markdown(
-                """
-                <script>
-                // Theme helper (matches one defined in main JS)
-                function _toggleThemeReborn() {
-                    const root = parent.document.documentElement;
-                    const current = root.getAttribute('data-theme') || 'dark';
-                    const next = current === 'dark' ? 'light' : 'dark';
-                    root.setAttribute('data-theme', next);
-                    localStorage.setItem('preferred-theme', next);
-                    // update CSS variables for smoother UI feedback
-                    const toggle = document.getElementById('theme-toggle');
-                    if (toggle) {
-                        toggle.style.setProperty('--toggle-bg', next === 'dark' ? '#374151' : '#E5E7EB');
-                        toggle.style.setProperty('--toggle-pos', next === 'dark' ? '30px' : '4px');
-                        toggle.style.setProperty('--toggle-emoji', next === 'dark' ? '"🌙"' : '"☀️"');
-                    }
-                }
-                document.addEventListener('DOMContentLoaded', function () {
-                    const tgt = document.getElementById('theme-toggle');
-                    if (tgt) {
-                        tgt.addEventListener('click', function(){
-                            // Call the global toggleTheme() already injected by main()
-                            if (typeof toggleTheme === 'function') { toggleTheme(); }
-                            // Ensure Streamlit session_state updates via hidden button
-                            const hiddenBtn = document.querySelector("button[data-testid='baseButton-theme_toggle_hidden']");
-                            if (hiddenBtn) { hiddenBtn.click(); }
-                        });
-                    }
-                });
-                </script>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.session_state.header_toggle_js = True
-
-        # Update Streamlit session_state theme when rerunning (based on localStorage)
-        if st.session_state.get('theme_synced') is not True:
-            st.markdown(
-                """
-                <script>
-                const savedTheme = localStorage.getItem('preferred-theme') || 'dark';
-                if (window.parent) {
-                   window.parent.postMessage({ rebornThemeSync: savedTheme }, '*');
-                }
-                </script>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.session_state.theme_synced = True
-
     except Exception as e:
         logger.error(f"Error in display_logo: {e}", exc_info=True)
+        # Fallback to simple text if there's an error
         st.markdown("<h1>REBORN</h1>", unsafe_allow_html=True)
 
 # New function for small logo display
@@ -2159,9 +2087,6 @@ if 'generated_narrative' not in st.session_state:
     st.session_state.generated_narrative = None
 if 'show_narrative_editor' not in st.session_state:
     st.session_state.show_narrative_editor = False
-# Theme selection
-if 'theme' not in st.session_state:
-    st.session_state.theme = "dark"  # Default to dark theme
 if 'user_initiated_processing' not in st.session_state:
     st.session_state.user_initiated_processing = False
 
