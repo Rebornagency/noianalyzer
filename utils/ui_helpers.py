@@ -630,4 +630,13 @@ def display_features_section():
                 content_func=lambda html=content_html: st.markdown(html, unsafe_allow_html=True),
                 card_id=f"feature-card-{i}"
             )
-    logger.info("Displayed features section.") 
+    logger.info("Displayed features section.")
+
+# --- Convenience wrapper used by app.py ---
+
+def load_custom_css_universal() -> None:
+    """Backward-compatibility shim – delegates to inject_custom_css().
+    app.py expects this symbol; keeping here ensures the call succeeds in all modes.
+    """
+    inject_custom_css()
+    logger.debug("load_custom_css_universal called – custom CSS injected.") 
