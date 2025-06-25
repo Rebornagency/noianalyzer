@@ -1530,6 +1530,35 @@ def inject_custom_css():
     }
     /* Hide dark/light theme toggle button */
     .theme-toggle { display: none !important; }
+
+    /* --- Updated DataFrame Styling (override) --- */
+    .stDataFrame table {
+        font-size: 1rem !important;
+    }
+    .stDataFrame thead th {
+        font-weight: 700 !important;
+        text-align: center !important;
+        padding: 1rem 1.25rem !important;
+    }
+    .stDataFrame tbody td {
+        padding: 1rem 1.25rem !important;
+        font-size: 1rem !important;
+        vertical-align: middle !important;
+    }
+    .stDataFrame tbody tr:nth-child(even) td {
+        background-color: rgba(31,41,55,0.3) !important;
+    }
+    .stDataFrame tbody td:first-child {
+        text-align: left !important;
+        font-weight: 500 !important;
+    }
+    .stDataFrame tbody td:not(:first-child) {
+        text-align: right !important;
+    }
+    .stDataFrame tbody tr:last-child td {
+        border-bottom: none !important;
+    }
+    /* --- End Updated DataFrame Styling --- */
     </style>
     """, unsafe_allow_html=True)
 
