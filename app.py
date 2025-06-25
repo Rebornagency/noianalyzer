@@ -1532,42 +1532,46 @@ def inject_custom_css():
     .theme-toggle { display: none !important; }
 
     /* Transparent, modern table styling */
-    .stDataFrame {
+    [data-testid="stDataFrame"] {
         background-color: transparent !important;
         border: none !important;
     }
 
-    .stDataFrame thead th {
-        background-color: rgba(38, 39, 48, 0.2) !important;
-        color: #E6EDF3 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    [data-testid="stDataFrame"] thead th {
+        background-color: transparent !important;
+        color: #FFFFFF !important; /* Brighter white for headers */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
         font-weight: 600 !important;
-        font-size: 0.9rem !important;
+        font-size: 1rem !important;
         text-align: left !important;
-        padding: 0.75rem 1rem !important;
+        padding: 1rem !important;
     }
 
-    .stDataFrame tbody tr td {
+    [data-testid="stDataFrame"] tbody tr td {
         background-color: transparent !important;
         color: #E6EDF3 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         font-weight: 400 !important;
         font-size: 0.95rem !important;
         text-align: left !important;
-        padding: 0.75rem 1rem !important;
+        padding: 1rem !important;
         vertical-align: middle !important;
     }
 
-    .stDataFrame tbody tr:last-child td {
+    [data-testid="stDataFrame"] tbody tr:last-child td {
         border-bottom: none !important;
     }
 
-    .stDataFrame tbody tr:hover td {
-        background-color: rgba(38, 39, 48, 0.3) !important;
+    [data-testid="stDataFrame"] tbody tr:hover td {
+        background-color: rgba(38, 39, 48, 0.5) !important;
     }
 
-    .stDataFrame tbody td:first-child {
-        font-weight: 500 !important;
+    [data-testid="stDataFrame"] tbody td:first-child {
+        font-weight: 600 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: #FFFFFF !important; /* Brighter white for all titles */
     }
     </style>
     """, unsafe_allow_html=True)
