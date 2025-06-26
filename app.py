@@ -2287,7 +2287,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # --- END NEW CODE ---
 
         # --- NEW: Main Comparison Bar Chart ---
-        st.markdown(f"### Current vs {name_suffix} Overview")
+        st.markdown(f"### Overview")
         main_bar_fig = px.bar(
             df,
             x="Metric",
