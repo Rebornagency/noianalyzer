@@ -2286,6 +2286,29 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         df = pd.DataFrame(chart_data)
         # --- END NEW CODE ---
 
+        # --- NEW: Main Comparison Bar Chart ---
+        st.markdown(f"### Current vs {name_suffix} Overview")
+        main_bar_fig = px.bar(
+            df,
+            x="Metric",
+            y=["Current", name_suffix],
+            barmode="group",
+            labels={"value": "Amount ($)", "variable": "Period", "Metric": ""},
+            color_discrete_map={"Current": "#3B82F6", name_suffix: "#10B981"}
+        )
+        main_bar_fig.update_layout(
+            title_text=f"Current vs {name_suffix}",
+            title_font_color="#FFFFFF",
+            title_font_size=20,
+            font_color="#FFFFFF",
+            legend_title_text="",
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(tickangle=-45)
+        )
+        st.plotly_chart(main_bar_fig, use_container_width=True)
+        # --- END NEW CODE ---
+
         # Apply styling for changes
         styled_df = main_metrics_df.style.applymap(
             highlight_changes, 
