@@ -2778,14 +2778,15 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         
         try:
             logger.info(f"Creating charts for {name_suffix} comparison")
-            # Create bar chart for visual comparison
             
-            # Add chart container and title for modern styling (single HTML block to avoid stray text)
-            st.markdown(
-                f'<div class="chart-container"><div class="chart-title">Current vs {safe_text(name_suffix)}</div></div>',
-                unsafe_allow_html=True
-            )
-
+            # BEGIN PATCH: Temporarily suppress duplicate bottom chart rendering
+            original_markdown = st.markdown
+            original_plotly_chart = st.plotly_chart
+            st.markdown = lambda *args, **kwargs: None
+            st.plotly_chart = lambda *args, **kwargs: None
+            # END PATCH
+            
+            # Create bar chart for visual comparison
             fig = go.Figure()
 
             # Calculate change percentages for hover data
@@ -2963,6 +2964,11 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             
             # Wrap the chart display in the container div
             st.plotly_chart(fig, use_container_width=True)
+            
+            # BEGIN PATCH: Restore Streamlit chart functions
+            st.markdown = original_markdown
+            st.plotly_chart = original_plotly_chart
+            # END PATCH
             
             logger.info(f"Successfully displayed chart for {name_suffix} comparison")
 
