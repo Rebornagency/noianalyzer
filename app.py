@@ -931,21 +931,23 @@ def display_logo_small():
 # Show instructions to the user
 def show_instructions():
     """Display instructions for using the NOI Analyzer"""
-    st.markdown("""
-        <div class="instructions-card">
-            <h3>Instructions:</h3>
-            <ol>
-                <li>Upload your financial documents using the file uploaders.</li>
-                <li>At minimum, upload a <strong>Current Month Actuals</strong> file.</li>
-                <li>For comparative analysis, upload additional files (Prior Month, Budget, Prior Year).</li>
-                <li>Click "Process Documents" to analyze the data.</li>
-                <li>View the results in the analysis tabs.</li>
-                <li>Export your results as PDF or Excel using the export options.</li>
-            </ol>
-            <p><em>Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF.</em></p>
-        </div>
-    """, unsafe_allow_html=True)
+    instructions_html = """
+    <div style="background-color: rgba(30, 41, 59, 0.8); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #4DB6AC; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3 style="color: #4DB6AC; font-size: 1.3rem; margin-bottom: 1rem; font-weight: 600;">Instructions:</h3>
+        <ol style="color: #F0F0F0; padding-left: 1.5rem; margin-bottom: 1.25rem;">
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">Upload your financial documents using the file uploaders</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">At minimum, upload a <b style="color: #4DB6AC;">Current Month Actuals</b> file</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">Click "<b style="color: #4DB6AC;">Process Documents</b>" to analyze the data</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">View the results in the analysis tabs</li>
+            <li style="margin-bottom: 0.5rem; line-height: 1.5;">Export your results as PDF or Excel using the export options</li>
+        </ol>
+        <p style="color: #E0E0E0; font-style: italic; font-size: 0.9rem; background-color: rgba(77, 182, 172, 0.1); padding: 0.75rem; border-radius: 4px; display: inline-block;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>
+    </div>
+    """
+    st.markdown(instructions_html, unsafe_allow_html=True)
 
+# Function to show processing status with better visual indicators
 def show_processing_status(message, is_running=False, status_type="info"):
     """
     Display a processing status message with enhanced visual styling.
@@ -955,16 +957,66 @@ def show_processing_status(message, is_running=False, status_type="info"):
     - is_running (bool): Whether the process is currently running (adds an animation)
     - status_type (str): Type of status - "info", "success", "warning", or "error"
     """
-    icon_map = {
-        "info": "ℹ️",
-        "success": "✅",
-        "warning": "⚠️",
-        "error": "❌"
+    # Define colors based on status type
+    colors = {
+        "info": "#38BDF8",      # Blue
+        "success": "#22C55E",   # Green
+        "warning": "#FBBF24",   # Yellow
+        "error": "#EF4444"      # Red
     }
-    st.markdown(
-        f'<div class="processing-status {status_type}"><span class="icon">{icon_map[status_type]}</span> {message}</div>', 
-        unsafe_allow_html=True
-    )
+    
+    color = colors.get(status_type, colors["info"])
+    
+    # Define the animation for running status
+    if is_running:
+        animation = f"""
+        <style>
+        @keyframes pulse {{
+            0% {{ transform: scale(1); opacity: 1; }}
+            50% {{ transform: scale(1.1); opacity: 0.8; }}
+            100% {{ transform: scale(1); opacity: 1; }}
+        }}
+        .status-dot {{
+            animation: pulse 1.5s infinite ease-in-out;
+        }}
+        </style>
+        """
+    else:
+        animation = ""
+    
+    # Create the HTML for the status indicator
+    status_html = f"""
+    {animation}
+    <div style="
+        display: flex;
+        align-items: center;
+        background-color: rgba(30, 41, 59, 0.8);
+        border-left: 4px solid {color};
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    ">
+        <div class="status-dot" style="
+            background-color: {color};
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        "></div>
+        <div style="
+            color: #E0E0E0;
+            font-size: 1rem;
+            line-height: 1.5;
+        ">
+            {message}
+        </div>
+    </div>
+    """
+    
+    # Display the status
+    st.markdown(status_html, unsafe_allow_html=True)
 
 # Function to display file information with enhanced styling
 def show_file_info(file_name, file_size=None, file_type=None, uploaded=False):
