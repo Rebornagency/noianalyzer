@@ -1618,6 +1618,31 @@ def inject_custom_css():
         font-family: 'Inter', sans-serif !important;
         font-size: 1.5rem !important;
     }
+
+    .streamlit-expanderHeader:hover {
+        background-color: rgba(30, 41, 59, 0.9) !important;
+    }
+
+    [data-testid="stExpander"] summary {
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        color: #FFFFFF !important;
+    }
+    
+    /* Ensure header has no extra spacing */
+    .stApp header {
+        background-color: transparent !important;
+        text-align: center;
+    }
+
+    /* Main comparison chart title */
+    .js-plotly-plot .plotly .g-gtitle {
+        font-family: 'Inter', sans-serif !important;
+        fill: #FFFFFF !important;
+        font-size: 1.5rem !important;
+        font-weight: 600 !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
