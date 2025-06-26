@@ -1167,14 +1167,16 @@ def inject_custom_css():
 
     .streamlit-expanderHeader p { /* Specifically target the text within the expander header */
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-        font-size: 1.5rem !important; /* Larger than content text */
-        font-weight: 600 !important;
+        font-size: 1.6rem !important; /* Larger than content text */
+        font-weight: 700 !important;
         color: #FFFFFF !important; /* Light color for header text */
+        text-align: center;
     }
     
     /* Ensure header has no extra spacing */
     .stApp header {
         background-color: transparent !important;
+        text-align: center;
     }
     
     /* Remove default Streamlit margins */
@@ -1603,6 +1605,18 @@ def inject_custom_css():
 
     h1, h2, h3, h4, h5, h6 {
         color: #FFFFFF !important; /* Brighter white for all titles */
+    }
+
+    [data-testid="stRadio"] label p {
+        color: #FFFFFF !important;
+        font-size: 1rem !important;
+    }
+
+    /* Target plotly chart titles */
+    .js-plotly-plot .plotly .g-gtitle {
+        fill: #FFFFFF !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 1.5rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
