@@ -713,6 +713,52 @@ def inject_custom_css():
     """Inject custom CSS to ensure font consistency and enhanced styling across the application"""
     st.markdown("""
     <style>
+    /* Reborn Theme CSS for NOI Analyzer */
+
+    /* Import Inter font from Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+        /* Color palette based on design specs */
+        --reborn-bg-primary: #0A0F1E;
+        --reborn-bg-secondary: #10172A;
+        --reborn-bg-tertiary: #1E293B;
+        --reborn-text-primary: #F0F0F0;
+        --reborn-text-secondary: #A0A0A0;
+        --reborn-accent-blue: #3B82F6;
+        --reborn-accent-green: #10B981;
+        --reborn-accent-orange: #F59E0B;
+        --reborn-success: #10B981;
+        --reborn-warning: #F87171;
+        --reborn-border: rgba(255, 255, 255, 0.1);
+        
+        /* Spacing */
+        --reborn-spacing-xs: 8px;
+        --reborn-spacing-sm: 16px;
+        --reborn-spacing-md: 24px;
+        --reborn-spacing-lg: 32px;
+        
+        /* Border radius */
+        --reborn-radius-sm: 6px;
+        --reborn-radius-md: 8px;
+        --reborn-radius-lg: 12px;
+        --reborn-radius-pill: 999px;
+        
+        /* Shadows */
+        --reborn-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --reborn-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+        
+        /* Add explicit font family variables */
+        --reborn-font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        --reborn-font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        --reborn-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    }
+    
+    .reborn-logo {
+        height: 64px !important;
+        max-width: 100%;
+    }
+
     /* Existing font styles - keep these */
     body, .stApp, .stMarkdown, .stText, .stTextInput, .stTextArea, 
     .stSelectbox, .stMultiselect, .stDateInput, .stTimeInput, .stNumberInput,
@@ -775,9 +821,9 @@ def inject_custom_css():
     /* Enhanced section titles (used for Executive Summary, Key Perf. Insights etc.) */
     .reborn-section-title {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-        font-size: 1.6rem !important; /* Increased from 1.5rem */
+        font-size: 1.8rem !important; /* Increased from 1.5rem */
         font-weight: 600 !important;
-        color: var(--reborn-accent-blue) !important;
+        color: #FFFFFF !important; /* Changed to white */
         margin-top: 1.5rem !important;
         margin-bottom: 1rem !important;
         padding: 0.5rem 0.75rem !important;
@@ -805,7 +851,7 @@ def inject_custom_css():
     .results-section-header {
         font-size: 1.8rem !important;
         font-weight: 500 !important;
-        color: #79b8f3 !important;
+        color: #FFFFFF !important; /* Changed to white */
         margin-top: 2rem !important;
         margin-bottom: 1.5rem !important;
         padding: 0 !important;
@@ -1080,7 +1126,7 @@ def inject_custom_css():
     .section-header {
         font-size: 1.8rem;
         font-weight: 500;
-        color: #79b8f3;
+        color: #FFFFFF !important; /* Changed to white */
         margin-top: 2rem;
         margin-bottom: 1.5rem;
     }
@@ -1121,9 +1167,9 @@ def inject_custom_css():
 
     .streamlit-expanderHeader p { /* Specifically target the text within the expander header */
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
-        font-size: 1.25rem !important; /* Larger than content text */
+        font-size: 1.5rem !important; /* Larger than content text */
         font-weight: 600 !important;
-        color: #E0E0E0 !important; /* Light color for header text */
+        color: #FFFFFF !important; /* Light color for header text */
     }
     
     /* Ensure header has no extra spacing */
@@ -1210,36 +1256,21 @@ def inject_custom_css():
         margin-bottom: 0.75rem !important;
     }
     
-    /* Ensure consistent styling for numbers and currency values */
-    .narrative-container .currency,
-    .narrative-container .number {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-        color: #E0E0E0 !important;
+    .opex-chart-title {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 1.5rem !important; /* Increased font size */
+        font-weight: 500;
+        color: #FFFFFF !important; /* Changed to white */
+        margin-bottom: 1rem;
+        text-align: center;
     }
     
-    /* Enhanced button styling */
-    .stButton > button {
-        background-color: #1E40AF !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 0.6rem 1.25rem !important;
-        font-weight: 500 !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    [data-testid="stRadio"] > label {
+        font-size: 1.2rem !important;
+        font-weight: 600 !important;
+        color: #FFFFFF !important;
     }
-    
-    .stButton > button:hover {
-        background-color: #2563EB !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
-        transform: translateY(-1px) !important;
-    }
-    
-    .stButton > button:active {
-        transform: translateY(1px) !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-    }
-    
+
     /* Card-style elements */
     .card-container {
         background-color: rgba(30, 41, 59, 0.8) !important;
@@ -3163,13 +3194,15 @@ def display_noi_coach():
         "budget": "Budget",
         "prior_year": "Prior Year"
     }
+    st.markdown("### Analyze against:", unsafe_allow_html=True)
     selected_context_key = st.radio(
         "Analyze against:",
         options=list(contexts.keys()),
         format_func=lambda k: contexts[k],
         index=list(contexts.keys()).index(st.session_state.noi_coach_selected_context),
         horizontal=True,
-        key="noi_coach_context_radio"
+        key="noi_coach_context_radio",
+        label_visibility="collapsed"
     )
     if selected_context_key != st.session_state.noi_coach_selected_context:
         st.session_state.noi_coach_selected_context = selected_context_key
