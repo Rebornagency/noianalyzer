@@ -154,9 +154,33 @@ def display_noi_coach():
         with chat_container:
             for message in st.session_state.noi_coach_messages:
                 if message["role"] == "user":
-                    st.markdown(f'<div class="chat-message user-message"><p><strong>You:</strong> {message["content"]}</p></div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div style="
+                        background-color: rgba(59, 130, 246, 0.1);
+                        border-radius: 8px;
+                        padding: 10px 15px;
+                        margin: 5px 0 5px auto;
+                        max-width: 80%;
+                        align-self: flex-end;
+                        border-left: 3px solid #3B82F6;
+                    ">
+                        <p style="margin: 0; color: #E0E0E0;"><strong>You:</strong> {message["content"]}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
                 else:
-                    st.markdown(f'<div class="chat-message assistant-message"><p><strong>NOI Coach:</strong> {message["content"]}</p></div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div style="
+                        background-color: rgba(30, 41, 59, 0.7);
+                        border-radius: 8px;
+                        padding: 10px 15px;
+                        margin: 5px auto 5px 0;
+                        max-width: 80%;
+                        align-self: flex-start;
+                        border-left: 3px solid #4DB6AC;
+                    ">
+                        <p style="margin: 0; color: #F0F0F0;"><strong>NOI Coach:</strong> {message["content"]}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
         
         # Input area
         st.markdown("### Ask a Question")
