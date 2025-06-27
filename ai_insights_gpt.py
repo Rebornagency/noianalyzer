@@ -99,7 +99,7 @@ def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name
     try:
         # Call OpenAI API
         response = client.chat.completions.create(
-            model="gpt-4", # Or "gpt-4-turbo"
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a senior real estate financial analyst specializing in detailed NOI variance analysis and reporting."},
                 {"role": "user", "content": prompt}
@@ -439,7 +439,7 @@ def ask_noi_coach(question: str, comparison_results: Dict[str, Any], current_vie
     logger.info(f"Sending NOI coach request with current_view: {current_view}")
     
     resp = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
         messages=[
           {"role": "system", "content": system},
           {"role": "user",   "content": user}

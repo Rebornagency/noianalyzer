@@ -53,7 +53,7 @@ def generate_consolidated_insights_with_gpt(comparison_results: Dict[str, Any], 
     try:
         # Call OpenAI API
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a senior real estate accountant."},
                 {"role": "user", "content": prompt}

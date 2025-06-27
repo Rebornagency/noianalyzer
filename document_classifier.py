@@ -390,7 +390,7 @@ Respond in JSON format with document_type and period fields.
         try:
             # Call OpenAI API with updated client format
             response = self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a senior real estate accountant specializing in financial document classification."},
                     {"role": "user", "content": prompt}

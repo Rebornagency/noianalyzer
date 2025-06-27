@@ -79,12 +79,12 @@ def create_narrative(comparison_results: Dict[str, Any], property_name: str = ""
             f"Sending prompt to OpenAI API",
             extra={
                 "prompt_length": len(prompt),
-                "model": "gpt-4"
+                "model": "gpt-3.5-turbo"
             }
         )
         
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[
                 {
                     "role": "system", 

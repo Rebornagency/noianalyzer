@@ -328,7 +328,7 @@ class GPTDataExtractor:
         try:
             # Call GPT API
             response = self.client.chat.completions.create(
-                model="gpt-4",  # Use GPT-4 for better extraction quality
+                model="gpt-3.5-turbo",  # Switched to cheaper model for testing
                 temperature=0.1,  # Low temperature for consistent results
                 messages=[
                     {"role": "system", "content": "You are a financial data extraction expert. Extract structured data from financial documents accurately."},
