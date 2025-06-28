@@ -17,7 +17,7 @@ import jinja2
 import streamlit.components.v1 as components
 import math
 import html
-from constants import OPEX_COMPONENTS
+from constants import OPEX_COMPONENTS, INCOME_COMPONENTS
 
 # Import and initialize Sentry for error tracking
 from sentry_config import (
@@ -3431,6 +3431,50 @@ def generate_comprehensive_pdf():
         if hasattr(st.session_state, 'insights') and st.session_state.insights and 'summary' in st.session_state.insights:
             context['performance_data']['executive_summary'] = st.session_state.insights['summary']
         
+        # -------------------------------------------------------------
+        # NEW: Build Operating Expense and Other Income breakdown data
+        # -------------------------------------------------------------
+        try:
+            current_data_safe = st.session_state.comparison_results.get('current', {})
+            # Attempt to get a sensible prior period for variance calculations
+            prior_data_safe = (st.session_state.comparison_results.get('prior_month') or
+                               st.session_state.comparison_results.get('prior') or
+                               st.session_state.comparison_results.get('prior_year') or
+                               st.session_state.comparison_results.get('budget') or
+                               {})
+
+            # Helper to build breakdown list
+            def build_breakdown(components_list):
+                breakdown = []
+                total_current = sum(float(current_data_safe.get(c, 0) or 0) for c in components_list)
+                for comp in components_list:
+                    current_val = float(current_data_safe.get(comp, 0) or 0)
+                    prior_val = float(prior_data_safe.get(comp, 0) or 0)
+                    percent_of_total = (current_val / total_current * 100) if total_current else 0
+                    variance_pct = ((current_val - prior_val) / prior_val) if prior_val else 0
+                    breakdown.append({
+                        'category': comp.replace('_', ' ').title(),
+                        'current': current_val,
+                        'prior': prior_val,
+                        'variance': variance_pct,
+                        'percentage': percent_of_total
+                    })
+                return breakdown
+
+            # Operating Expenses breakdown
+            opex_breakdown = build_breakdown(OPEX_COMPONENTS)
+            context['opex_breakdown_available'] = any(item['current'] for item in opex_breakdown)
+            context['opex_breakdown_data'] = opex_breakdown
+
+            # Other Income breakdown
+            income_breakdown = build_breakdown(INCOME_COMPONENTS)
+            context['income_breakdown_available'] = any(item['current'] for item in income_breakdown)
+            context['income_breakdown_data'] = income_breakdown
+        except Exception as breakdown_err:
+            logger.warning(f"PDF EXPORT: Failed to build breakdown data: {breakdown_err}")
+            context['opex_breakdown_available'] = False
+            context['income_breakdown_available'] = False
+        
         # Render the template to HTML
         html_content = report_template.render(**context)
         logger.info("PDF EXPORT: Comprehensive HTML content rendered from template")
@@ -4273,7 +4317,7 @@ def main():
         st.markdown("""
         <div class="export-container">
             <h2 class="export-title">Export Options</h2>
-            <div class="export-description">Download your analysis as PDF or Excel for sharing and reporting.</div>
+            <div class="export-description">Download your analysis as PDF for sharing and reporting.</div>
         </div>
         
         <style>
@@ -4298,7 +4342,7 @@ def main():
         </style>
         """, unsafe_allow_html=True)
         
-        col_pdf, col_excel, col_spacer = st.columns([1,1,6])
+        col_pdf, col_spacer = st.columns([1,7])
         
         with col_pdf:
             # PDF Export button
@@ -4331,14 +4375,6 @@ def main():
                     logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
                     # Show error message
                     show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
-        
-        with col_excel:
-            # Excel Export button
-            if st.button("Export to Excel", key="global_excel_export"):
-                # Use our custom status indicator
-                show_processing_status("Generating Excel export...", is_running=True)
-                # Excel export logic here
-                show_processing_status("Excel export functionality coming soon!", status_type="info")
 
 def display_features_section():
     """Display the features section using pure Streamlit components without HTML"""
