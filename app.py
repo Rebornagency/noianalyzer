@@ -17,6 +17,7 @@ import jinja2
 import streamlit.components.v1 as components
 import math
 import html
+from constants import OPEX_COMPONENTS
 
 # Import and initialize Sentry for error tracking
 from sentry_config import (
@@ -2319,7 +2320,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         
         # Add OpEx Breakdown expander section
         with st.expander("Operating Expense Breakdown", expanded=True):
-            opex_components_keys = ["property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees"]
+            opex_components_keys = OPEX_COMPONENTS
             opex_metrics_names = ["Property Taxes", "Insurance", "Repairs & Maintenance", "Utilities", "Management Fees"]
 
             # Check if any opex components exist in the data (either in current_values or prior_values)

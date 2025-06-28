@@ -11,8 +11,9 @@ from functools import lru_cache
 import json
 import re
 from datetime import datetime
+import math
 
-from constants import CURRENCY_SYMBOL, DISPLAY_PRECISION, FINANCIAL_TOLERANCE, MAIN_METRICS, OPEX_COMPONENTS, INCOME_COMPONENTS
+from constants import CURRENCY_SYMBOL, DISPLAY_PRECISION, FINANCIAL_TOLERANCE, MAIN_METRICS, OPEX_COMPONENTS, INCOME_COMPONENTS, FIELD_SYNONYMS, FINANCIAL_EPS
 from utils.error_handler import setup_logger, handle_errors, NOIAnalyzerError
 
 logger = setup_logger(__name__)
@@ -22,6 +23,7 @@ logger = setup_logger(__name__)
 def safe_float(value: Any, default: float = 0.0) -> float:
     """
     Safely convert value to float with custom default.
+    Now recognises accounting negatives formatted like "(1,234)".
     
     Args:
         value: Value to convert
@@ -42,12 +44,18 @@ def safe_float(value: Any, default: float = 0.0) -> float:
     
     # Handle string values
     if isinstance(value, str):
+        s = value.strip()
+        # Detect parentheses negative e.g. (1,234.50)
+        is_negative_paren = s.startswith('(') and s.endswith(')')
+        if is_negative_paren:
+            s = s[1:-1]
         # Remove currency symbols, commas, and whitespace
-        clean_value = re.sub(r'[^\d.-]', '', value.strip())
-        if not clean_value:
+        clean_value = re.sub(r'[^\d.-]', '', s)
+        if not clean_value or clean_value == '.':
             return default
         try:
-            return float(clean_value)
+            num = float(clean_value)
+            return -num if is_negative_paren else num
         except ValueError:
             return default
     
@@ -513,4 +521,34 @@ def create_fallback_financial_data() -> Dict[str, Any]:
     for field in additional_fields:
         fallback_data[field] = 0.0
     
-    return fallback_data 
+    return fallback_data
+
+
+def safe_percent_change(current: float, previous: float) -> float:
+    """Calculate percent change with consistent rules.
+    If |previous| <= FINANCIAL_EPS →
+        • both zero  → 0.0
+        • current > 0 → 100.0
+        • current < 0 → -100.0
+    """
+    try:
+        curr = safe_float(current)
+        prev = safe_float(previous)
+    except Exception:
+        return 0.0
+    if abs(prev) <= FINANCIAL_EPS:
+        if abs(curr) <= FINANCIAL_EPS:
+            return 0.0
+        return 100.0 if curr > 0 else -100.0
+    return ((curr - prev) / prev) * 100.0
+
+
+def normalize_field_names(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a new dict where all synonym keys are mapped to canonical field names."""
+    if not isinstance(data, dict):
+        return data  # type: ignore
+    normalized = {}
+    for k, v in data.items():
+        canonical = FIELD_SYNONYMS.get(k, k)
+        normalized[canonical] = v
+    return normalized 

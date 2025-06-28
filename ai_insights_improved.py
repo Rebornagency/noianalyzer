@@ -9,8 +9,7 @@ Now includes direct GPT integration for narrative generation.
 import logging
 import os
 from typing import Dict, Any, Optional
-from openai import OpenAI
-from config import get_openai_api_key
+from utils.openai_utils import chat_completion
 
 # Configure logging
 logging.basicConfig(
@@ -32,9 +31,6 @@ def generate_consolidated_insights_with_gpt(comparison_results: Dict[str, Any], 
     """
     logger.info(f"Generating professional insights with GPT for property: {property_name}")
     
-    # Initialize OpenAI client with API key
-    client = OpenAI(api_key=get_openai_api_key())
-    
     # Format comparison results for the prompt
     formatted_results = format_comparison_results_for_prompt(comparison_results)
     
@@ -51,21 +47,14 @@ def generate_consolidated_insights_with_gpt(comparison_results: Dict[str, Any], 
     """
     
     try:
-        # Call OpenAI API
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        content = chat_completion(
             messages=[
                 {"role": "system", "content": "You are a senior real estate accountant."},
-                {"role": "user", "content": prompt}
-            ]
+                {"role": "user", "content": prompt},
+            ],
+            model="gpt-3.5-turbo",
         )
-        
-        # Extract the content from the response
-        content = response.choices[0].message.content
-        
-        # Parse the content into our expected format
         insights = parse_gpt_response(content)
-        
         return insights
     except Exception as e:
         logger.error(f"Error generating insights with GPT: {str(e)}")

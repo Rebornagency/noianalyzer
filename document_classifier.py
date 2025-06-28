@@ -9,7 +9,7 @@ import logging
 import json
 import re
 from typing import Dict, Any, List, Tuple, Optional, Union
-from openai import OpenAI
+from utils.openai_utils import chat_completion
 
 # Configure logging
 logging.basicConfig(
@@ -40,8 +40,7 @@ class DocumentClassifier:
         if not self.api_key:
             logger.warning("OpenAI API key not set. Please set OPENAI_API_KEY environment variable or provide it during initialization.")
         
-        # Initialize OpenAI client
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = None  # no longer needed; using utility wrapper
         
         # Document types we can classify
         self.document_types = [
@@ -389,18 +388,15 @@ Respond in JSON format with document_type and period fields.
         
         try:
             # Call OpenAI API with updated client format
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+            response_text = chat_completion(
                 messages=[
                     {"role": "system", "content": "You are a senior real estate accountant specializing in financial document classification."},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
-                temperature=0.1,  # Low temperature for more deterministic results
-                max_tokens=150
+                model="gpt-3.5-turbo",
+                temperature=0.1,
+                max_tokens=150,
             )
-            
-            # Extract response text
-            response_text = response.choices[0].message.content.strip()
             
             # Parse JSON response
             try:

@@ -6,19 +6,37 @@ used throughout the NOI Analyzer application.
 """
 
 # Financial Metrics
-MAIN_METRICS = ["gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"]
-
-OPEX_COMPONENTS = [
-    "repairs_maintenance", "utilities", "property_management", 
-    "taxes", "insurance", "administrative", 
-    "payroll", "marketing", "other_expenses"
+MAIN_METRICS = [
+    "gpr", "vacancy_loss", "other_income", "egi", "opex", "noi"
 ]
 
+# Canonical OpEx components – keep these names everywhere
+OPEX_COMPONENTS = [
+    "property_taxes",
+    "insurance",
+    "repairs_maintenance",
+    "utilities",
+    "management_fees",
+    # historical / less-common buckets
+    "administrative",
+    "payroll",
+    "marketing",
+    "other_expenses"
+]
+
+# Canonical Other-Income components
 INCOME_COMPONENTS = [
-    "parking", "laundry", "late_fees", "pet_fees", 
-    "application_fees", "storage_fees", "amenity_fees", 
-    "utility_reimbursements", "cleaning_fees", 
-    "cancellation_fees", "miscellaneous"
+    "parking",
+    "laundry",
+    "late_fees",
+    "pet_fees",
+    "application_fees",
+    "storage_fees",
+    "amenity_fees",
+    "utility_reimbursements",
+    "cleaning_fees",
+    "cancellation_fees",
+    "miscellaneous"
 ]
 
 # Document Types
@@ -49,8 +67,22 @@ FIELD_MAPPING = {
     "egi": ["effective_gross_income", "adjusted_income", "effective_income"]
 }
 
+# Field-name synonyms → canonical name.  Used by utils.common.normalize_field_names()
+FIELD_SYNONYMS = {
+    # OpEx
+    "taxes": "property_taxes",
+    "property_tax": "property_taxes",
+    "repairs_and_maintenance": "repairs_maintenance",
+    "property_management": "management_fees",
+    # Other Income aliases
+    "parking_income": "parking",
+    "laundry_income": "laundry",
+    "misc": "miscellaneous",
+}
+
 # Validation tolerances
-FINANCIAL_TOLERANCE = 1.0  # Dollar tolerance for financial calculations
+FINANCIAL_TOLERANCE = 1.0  # Dollar tolerance for financial checks
+FINANCIAL_EPS = 1e-4       # Small epsilon for divide-by-zero guards
 
 # UI Constants
 DISPLAY_PRECISION = 2  # Decimal places for financial displays

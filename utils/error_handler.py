@@ -10,6 +10,7 @@ import traceback
 from typing import Dict, Any, Optional, Tuple, Union, Callable
 from functools import wraps
 from datetime import datetime
+import os
 
 from constants import ERROR_MESSAGES, SUCCESS_MESSAGES, LOG_FORMAT, LOG_LEVEL
 
@@ -76,6 +77,21 @@ def setup_logger(name: str, level: str = LOG_LEVEL) -> logging.Logger:
     if logger.handlers:
         return logger
     
+    class _SensitiveDataFilter(logging.Filter):
+        """Redact obvious secrets such as API keys in log records."""
+        REDACT_PATTERNS = [
+            "OPENAI_API_KEY",
+            "EXTRACTION_API_KEY",
+        ]
+
+        def filter(self, record: logging.LogRecord) -> bool:  # noqa: D401
+            msg = record.getMessage()
+            for env_name in self.REDACT_PATTERNS:
+                secret = os.environ.get(env_name)
+                if secret and secret in msg:
+                    record.msg = msg.replace(secret, "***REDACTED***")
+            return True
+
     logger.setLevel(getattr(logging, level.upper()))
     
     # Console handler
@@ -93,6 +109,9 @@ def setup_logger(name: str, level: str = LOG_LEVEL) -> logging.Logger:
     
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
+    
+    # Attach sensitive-data filter
+    logger.addFilter(_SensitiveDataFilter())
     
     return logger
 

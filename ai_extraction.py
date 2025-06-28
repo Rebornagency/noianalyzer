@@ -7,9 +7,9 @@ import time
 from typing import Dict, Any, List, Optional, BinaryIO, Union
 import streamlit as st
 from config import get_extraction_api_url, get_api_key
-from constants import ERROR_MESSAGES, DEFAULT_API_CONFIG
+from constants import ERROR_MESSAGES, DEFAULT_API_CONFIG, FILE_UPLOAD_CONFIG, MAIN_METRICS, OPEX_COMPONENTS
 from utils.error_handler import setup_logger, handle_errors, graceful_degradation, APIError
-from utils.common import safe_float, safe_string, create_fallback_financial_data
+from utils.common import safe_float, safe_string, create_fallback_financial_data, normalize_field_names
 
 # Setup logger
 logger = setup_logger(__name__)
@@ -53,10 +53,10 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
     # Get API URL and API key from config if not provided
     if api_url is None:
         api_url = get_extraction_api_url()
-        # Ensure the URL ends with /extract
-        if api_url and api_url.endswith('/'):
-            api_url = f"{api_url}extract"
-        elif api_url:
+    # Normalise URL: remove trailing slashes and ensure single /extract suffix
+    if api_url:
+        api_url = api_url.rstrip('/')
+        if not api_url.endswith('/extract'):
             api_url = f"{api_url}/extract"
     
     if api_key is None:
@@ -82,6 +82,11 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
     # Prepare files for API request with validation
     try:
         file_content = file.getvalue()
+        # Size guardrail (bytes)
+        max_size_bytes = FILE_UPLOAD_CONFIG.get("MAX_FILE_SIZE", 200) * 1024 * 1024
+        if len(file_content) > max_size_bytes:
+            logger.error(f"Uploaded file exceeds size limit: {len(file_content)} bytes")
+            raise APIError("Uploaded file too large (limit {} MB)".format(FILE_UPLOAD_CONFIG.get("MAX_FILE_SIZE", 200)))
         file_type = getattr(file, 'type', 'application/octet-stream')
         files = {"file": (file_name, file_content, file_type)}
         
@@ -266,6 +271,9 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
     """
     logger.info(f"Validating extraction result for {file_name}")
     
+    # Normalise field names first so downstream logic is consistent
+    result = normalize_field_names(result)
+    
     # Ensure required fields exist with safe defaults
     enriched_result = {
         "file_name": safe_string(file_name),
@@ -276,10 +284,7 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
     }
     
     # Validate financial fields and provide safe defaults
-    financial_fields = [
-        "gpr", "vacancy_loss", "other_income", "egi", "opex", "noi",
-        "property_taxes", "insurance", "repairs_maintenance", "utilities"
-    ]
+    financial_fields = MAIN_METRICS + OPEX_COMPONENTS
     
     missing_fields = []
     for field in financial_fields:

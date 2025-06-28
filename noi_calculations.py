@@ -1,9 +1,11 @@
 import logging
-from typing import Dict, Any, List, Optional
 import json
 import time
+from typing import Dict, Any, Optional
 from functools import lru_cache
-import re # Added for regex in enhanced safe_float
+
+from utils.common import safe_float, safe_percent_change
+from constants import OPEX_COMPONENTS, INCOME_COMPONENTS, MAIN_METRICS
 
 # Configure logging
 logging.basicConfig(
@@ -11,45 +13,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('noi_calculations')
-
-@lru_cache(maxsize=128)
-def safe_float(value: Any, default: float = 0.0) -> float: # Added default parameter to match common.py
-    """Safely convert value to float with caching for performance and robust handling."""
-    if value is None:
-        return default
-    
-    # Handle numpy types if numpy is an expected dependency, otherwise remove this block
-    # For now, assuming it might be encountered from pandas dataframes if they are used upstream.
-    if hasattr(value, 'item'):
-        try:
-            return float(value.item())
-        except (ValueError, TypeError):
-            # Fall through to string/numeric conversion if item() fails or isn't float-convertible
-            pass 
-            
-    # Handle string values
-    if isinstance(value, str):
-        # Remove currency symbols, commas, and whitespace. Keep decimal point and minus sign.
-        clean_value = re.sub(r'[^\d.-]', '', value.strip())
-        if not clean_value or clean_value == '.': # Handle empty or just a dot
-            return default
-        try:
-            return float(clean_value)
-        except ValueError:
-            return default
-    
-    # Handle numeric values (int, float, etc.)
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
-
-@lru_cache(maxsize=256)
-def safe_percent_change(current: float, previous: float) -> float:
-    """Calculate percentage change with caching for frequently used calculations"""
-    if abs(previous) < 0.0001:  # Avoid division by near-zero
-        return 0.0 if abs(current) < 0.0001 else 100.0
-    return ((current - previous) / previous) * 100
 
 @lru_cache(maxsize=128)
 def calculate_egi(gpr: float, vacancy_loss: float, concessions: float, bad_debt: float, other_income: float) -> float:
@@ -136,12 +99,13 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
             return {}
             
         result = {}
-        metrics = [
-            "gpr", "vacancy_loss", "concessions", "bad_debt", "other_income", "egi", "opex", "noi",
-            "property_taxes", "insurance", "repairs_and_maintenance", "utilities", "management_fees",
-            "parking", "laundry", "late_fees", "pet_fees", "application_fees", "storage_fees",
-            "amenity_fees", "utility_reimbursements", "cleaning_fees", "cancellation_fees", "miscellaneous"
-        ]
+        # Build metric universe dynamically from constants to avoid drift
+        metrics = list(dict.fromkeys(
+            ["concessions", "bad_debt"]
+            + MAIN_METRICS
+            + OPEX_COMPONENTS
+            + INCOME_COMPONENTS
+        ))
         
         # Log metric availability in both datasets
         metrics_present_current = [m for m in metrics if m in current]
@@ -275,7 +239,7 @@ def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
     sum_components = calculate_opex_sum(
         safe_float(current.get("property_taxes")),
         safe_float(current.get("insurance")),
-        safe_float(current.get("repairs_and_maintenance")),
+        safe_float(current.get("repairs_maintenance")),
         safe_float(current.get("utilities")),
         safe_float(current.get("management_fees"))
     )
