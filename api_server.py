@@ -34,6 +34,7 @@ from openai import OpenAI, RateLimitError, APIError, APITimeoutError
 from pydantic import BaseModel, Field, validator
 from config.settings import get_settings, API_TITLE, API_DESCRIPTION, API_VERSION
 from src.utils.helpers import get_api_key, validate_required_fields, validate_data, determine_document_type
+from pay_per_use.api import router as pay_per_use_router
 
 # Import the debug logger
 from utils.debug_logger import DebugContextLogger, DebugLoggerSettings
@@ -696,6 +697,8 @@ async def http_error():
         status_code=404, 
         detail="Resource not found - This is a test error to demonstrate logging"
     )
+
+app.include_router(pay_per_use_router)
 
 if __name__ == "__main__":
     # Get settings
