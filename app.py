@@ -18,9 +18,6 @@ import streamlit.components.v1 as components
 import math
 import html
 from constants import OPEX_COMPONENTS, INCOME_COMPONENTS
-from pay_per_use.stripe_integration import create_checkout_session
-from pay_per_use.job_store import global_job_store as job_store
-from pay_per_use.models import JobInfo, JobStatus
 
 # Import and initialize Sentry for error tracking
 from sentry_config import (
@@ -31,9 +28,6 @@ from sentry_config import (
 
 # Initialize Sentry as early as possible
 sentry_initialized = init_sentry()
-
-# Enable/disable paid workflow (defaults to ON in production)
-PAY_PER_USE_MODE = os.getenv("NOI_PAY_PER_USE", "true").lower() == "true"
 
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
@@ -3732,16 +3726,6 @@ def main():
             if prior_year_file_main is not None:
                 st.session_state.prior_year_actuals = prior_year_file_main
             
-            # Collect user e-mail (needed to deliver the report)
-            email_val = st.text_input(
-                "Email Address (for report delivery)",
-                value=st.session_state.get("user_email", ""),
-                help="Where should we e-mail the finished NOI report?",
-                key="email_input_main",
-            )
-            if email_val != st.session_state.get("user_email", ""):
-                st.session_state.user_email = email_val
-
             # Enhanced property input using component function
             main_page_property_name_input = property_input(value=st.session_state.property_name)
             if main_page_property_name_input != st.session_state.property_name:
@@ -3837,49 +3821,6 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
-                import uuid, pathlib
-
-                # --- Pay-per-use Stripe flow ---
-                if PAY_PER_USE_MODE and not is_testing_mode_active():
-                    user_email = (st.session_state.get("user_email") or "").strip()
-                    if not user_email or "@" not in user_email:
-                        st.error("Please enter a valid e-mail address before clicking Process Documents.")
-                        st.stop()
-
-                    if not st.session_state.get("current_month_actuals"):
-                        st.error("Current Month Actuals file is required before proceeding.")
-                        st.stop()
-
-                    # Gather uploaded files from session_state
-                    upload_keys = [
-                        "current_month_actuals", "prior_month_actuals",
-                        "current_month_budget", "prior_year_actuals",
-                    ]
-                    uploads = {
-                        k: st.session_state.get(k) for k in upload_keys if st.session_state.get(k)
-                    }
-
-                    job_id = uuid.uuid4().hex
-                    temp_dir = pathlib.Path(f"/tmp/noi_{job_id}")
-                    temp_dir.mkdir(parents=True, exist_ok=True)
-
-                    for k, upload_file in uploads.items():
-                        dest = temp_dir / upload_file.name
-                        with open(dest, "wb") as fout:
-                            fout.write(upload_file.getbuffer())
-
-                    job_store.save(JobInfo(job_id=job_id, status=JobStatus.pending))
-
-                    checkout_url = create_checkout_session(user_email, job_id)
-
-                    st.success("Redirecting to secure payment …")
-                    st.components.v1.html(
-                        f"<script>window.location.href='{checkout_url}';</script>", height=0
-                    )
-                    st.stop()
-                # --- End Pay-per-use flow ---
-                
-                # Original free/testing workflow
                 st.session_state.user_initiated_processing = True
                 # Reset states for a fresh processing cycle
                 st.session_state.template_viewed = False
@@ -3895,12 +3836,22 @@ def main():
                     add_breadcrumb("Process Documents button clicked (Testing Mode)", "user_action", "info",
                                    {"property_name": st.session_state.mock_property_name,
                                     "scenario": st.session_state.mock_scenario})
+                    # Call the existing testing mode processing function
+                    # This function should handle setting processing_completed = True
                     process_documents_testing_mode() 
-                    save_testing_config() 
+                    save_testing_config() # Save current testing config
                 else:
                     logger.info("Main page 'Process Documents' clicked. Initiating processing cycle.")
+                    # Debug: Check file state when button is clicked
+                    logger.info(f"BUTTON CLICK DEBUG: current_month_actuals = {bool(st.session_state.get('current_month_actuals'))}")
+                    logger.info(f"BUTTON CLICK DEBUG: prior_month_actuals = {bool(st.session_state.get('prior_month_actuals'))}")
+                    logger.info(f"BUTTON CLICK DEBUG: current_month_budget = {bool(st.session_state.get('current_month_budget'))}")
+                    logger.info(f"BUTTON CLICK DEBUG: prior_year_actuals = {bool(st.session_state.get('prior_year_actuals'))}")
+                    
                     add_breadcrumb(
-                        "Process Documents button clicked (Production Mode)", "user_action", "info",
+                        "Process Documents button clicked (Production Mode)", 
+                        "user_action", 
+                        "info",
                         {
                             "has_current_month": bool(st.session_state.get('current_month_actuals')),
                             "has_prior_month": bool(st.session_state.get('prior_month_actuals')),
@@ -3912,204 +3863,972 @@ def main():
                 st.rerun() # Rerun to start the processing logic below
 
         with col2:
-            # Instructions or placeholder content for second column
-            st.markdown('<h2 class="section-header">Quick Start Guide</h2>', unsafe_allow_html=True)
-            st.markdown("""
-            **Step 1:** Upload your Current Month Actuals file (required)
+            # Enhanced Instructions section using component function
+            instructions_card([
+                'Upload your financial documents using the file uploaders',
+                'At minimum, upload a <span style="color: #79b8f3; font-weight: 500;">Current Month Actuals</span> file',
+                'For comparative analysis, upload additional files (Prior Month, Budget, Prior Year)',
+                'Click "<span style="color: #79b8f3; font-weight: 500;">Process Documents</span>" to analyze the data',
+                'Review and edit extracted data in the template that appears',
+                'Confirm data to view the analysis results',
+                'Export your results as PDF or Excel using the export options'
+            ])
             
-            **Step 2:** Enter your email address where you'd like to receive the report
+            st.markdown('<p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>', unsafe_allow_html=True)
             
-            **Step 3:** Optionally upload other files for comparison (Prior Month, Budget, Prior Year)
-            
-            **Step 4:** Enter your property name for reference
-            
-            **Step 5:** Click "Process Documents" to start the analysis
-            
-            The system will securely process your payment and email you the completed NOI analysis report.
-            """)
-
-    # Continue with processing logic if user has initiated processing
-    elif st.session_state.get('user_initiated_processing', False):
-        if not st.session_state.get('template_viewed', False):
-            # Processing documents
-            try:
-                show_processing_status("Processing documents...", is_running=True)
-                
-                # Process all uploaded documents
-                consolidated_data = process_all_documents()
-                
-                if consolidated_data and 'error' not in consolidated_data:
-                    st.session_state.consolidated_data = consolidated_data
-                    st.session_state.template_viewed = True
-                    st.rerun()
-                else:
-                    error_msg = consolidated_data.get('error', 'Unknown error occurred during processing')
-                    st.error(f"Error processing documents: {error_msg}")
-                    st.session_state.user_initiated_processing = False
-                    
-            except Exception as e:
-                logger.error(f"Error in document processing: {str(e)}", exc_info=True)
-                st.error("An error occurred during document processing. Please try again.")
-                st.session_state.user_initiated_processing = False
-                
-        elif st.session_state.get('template_viewed', False) and not st.session_state.get('processing_completed', False):
-            # Show template verification and continue to comparison calculations
-            consolidated_data = st.session_state.get('consolidated_data', {})
-            
-            if consolidated_data:
-                show_processing_status("Calculating comparisons...", is_running=True)
-                
+            # Enhanced Features section using component function
+            feature_list([
+                {
+                    'title': 'Automated Data Extraction',
+                    'description': 'Extract financial data from multiple file formats with AI-powered recognition'
+                },
+                {
+                    'title': 'Comparative Analysis',
+                    'description': 'Compare current performance against prior periods and budgets automatically'
+                },
+                {
+                    'title': 'NOI Coach Integration',
+                    'description': 'Get AI-powered insights and recommendations for your financial performance'
+                },
+                {
+                    'title': 'Professional Export',
+                    'description': 'Export comprehensive reports in PDF or Excel format for presentations'
+                },
+                {
+                    'title': 'Real-time Validation',
+                    'description': 'Review and edit extracted data before analysis with interactive templates'
+                }
+            ])
+    
+    # --- Stage 1: Document Extraction (if user initiated processing and no data yet) ---
+    # Debug: Check the conditions
+    logger.info(f"STAGE 1 DEBUG: user_initiated_processing = {st.session_state.get('user_initiated_processing', False)}")
+    logger.info(f"STAGE 1 DEBUG: consolidated_data in session_state = {'consolidated_data' in st.session_state}")
+    logger.info(f"STAGE 1 DEBUG: consolidated_data value = {st.session_state.get('consolidated_data', 'NOT_SET')}")
+    
+    if st.session_state.user_initiated_processing and ('consolidated_data' not in st.session_state or st.session_state.consolidated_data is None):
+        # If in testing mode, the data should have been populated by process_documents_testing_mode already
+        # and processing_completed might be true.
+        # The original processing logic should only run if not in testing mode or if testing mode failed to set data.
+        if is_testing_mode_active() and st.session_state.get('processing_completed', False):
+            logger.info("STAGE 1: Testing mode active and processing completed. Skipping normal document extraction.")
+            # Data should be populated by process_documents_testing_mode, so we might not need to do anything here.
+            # However, the flow expects consolidated_data to be present.
+            # We need to ensure the rest of the app flow works after mock data is loaded.
+            # The main thing is that the `else` block below (actual document processing) is skipped.
+            pass # Explicitly do nothing here, as data is handled by testing mode.
+        
+        elif not is_testing_mode_active() or not st.session_state.get('processing_completed', False):
+            # Start performance monitoring for document processing
+            with monitor_performance("document_extraction"):
                 try:
-                    comparison_results = calculate_noi_comparisons(consolidated_data)
-                    st.session_state.comparison_results = comparison_results
-                    st.session_state.processing_completed = True
-                    st.rerun()
-                    
-                except Exception as e:
-                    logger.error(f"Error calculating comparisons: {str(e)}", exc_info=True)
-                    st.error("Error calculating comparisons. Please try again.")
-                    st.session_state.user_initiated_processing = False
-                    
-    # Display results if processing is completed
-    elif st.session_state.get('processing_completed', False):
-        # Main results display
-        try:
-            comparison_results = st.session_state.get('comparison_results', {})
-            consolidated_data = st.session_state.get('consolidated_data', {})
-            
-            if comparison_results and consolidated_data:
-                # Create tabs for different views
-                tabs = st.tabs(["📊 Analysis", "🧠 AI Insights", "📖 Financial Narrative", "🎯 NOI Coach", "📄 Export"])
-                
-                with tabs[0]:
-                    # Display comparison analysis
-                    display_comparison_analysis(comparison_results)
-                
-                with tabs[1]:
-                    # AI Insights
-                    display_ai_insights(comparison_results, consolidated_data)
-                
-                with tabs[2]:
-                    # Financial Narrative
-                    display_financial_narrative_tab()
-                
-                with tabs[3]:
-                    # NOI Coach
-                    if NOI_COACH_AVAILABLE:
-                        display_noi_coach_enhanced()
+                    add_breadcrumb("Starting document extraction", "processing", "info")
+                    show_processing_status("Processing documents. This may take a minute...", is_running=True)
+                    logger.info("APP.PY: --- User Initiated Document Processing START ---")
+
+                    # Ensure current_month_file is from session state, as button click clears local vars
+                    if not st.session_state.current_month_actuals:
+                        add_breadcrumb("Document processing failed - no current month file", "processing", "error")
+                        show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
+                        st.session_state.user_initiated_processing = False # Reset flag as processing cannot continue
+                        st.rerun() # Rerun to show the error and stop
+                        return # Explicitly return
+
+                    # Pass file objects from session state to process_all_documents
+                    # process_all_documents internally uses st.session_state to get file objects
+                    raw_consolidated_data = process_all_documents()
+                    logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
+
+                    if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
+                        st.session_state.consolidated_data = raw_consolidated_data
+                        st.session_state.template_viewed = False # Ensure template is shown
+                        add_breadcrumb("Document extraction successful", "processing", "info")
+                        logger.info("Document extraction successful. Data stored. Proceeding to template display.")
+                    elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
+                        error_message = raw_consolidated_data["error"]
+                        add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
+                        capture_message_with_context(
+                            f"Document processing error: {error_message}",
+                            level="error",
+                            context={"raw_data": str(raw_consolidated_data)[:500]},
+                            tags={"stage": "document_extraction"}
+                        )
+                        logger.error(f"Error during document processing: {error_message}")
+                        st.error(f"An error occurred during document processing: {error_message}")
+                        st.session_state.user_initiated_processing = False # Reset flag
+                    elif not raw_consolidated_data:
+                        add_breadcrumb("No data extracted from documents", "processing", "warning")
+                        capture_message_with_context(
+                            "No data was extracted from documents",
+                            level="warning",
+                            tags={"stage": "document_extraction"}
+                        )
+                        logger.warning("No data was extracted from the documents or data is empty.")
+                        st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
+                        st.session_state.user_initiated_processing = False # Reset flag
                     else:
-                        st.error("NOI Coach module not available")
-                
-                with tabs[4]:
-                    # Export options
-                    display_export_options()
+                        add_breadcrumb("Unknown document processing error", "processing", "error")
+                        capture_message_with_context(
+                            f"Unknown error during document processing. Data: {str(raw_consolidated_data)[:200]}",
+                            level="error",
+                            tags={"stage": "document_extraction"}
+                        )
+                        logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
+                        st.error("An unknown error occurred or the data structure is invalid after processing.")
+                        st.session_state.user_initiated_processing = False # Reset flag
                     
+                    st.rerun() # Rerun to move to template display or show error
+
+                except Exception as e_extract:
+                    add_breadcrumb("Exception during document extraction", "processing", "error", {"exception": str(e_extract)})
+                    capture_exception_with_context(
+                        e_extract,
+                        context={
+                            "stage": "document_extraction",
+                            "has_files": {
+                                "current_month": bool(st.session_state.get('current_month_actuals')),
+                                "prior_month": bool(st.session_state.get('prior_month_actuals')),
+                                "budget": bool(st.session_state.get('current_month_budget')),
+                                "prior_year": bool(st.session_state.get('prior_year_actuals'))
+                            }
+                        },
+                        tags={"severity": "high", "stage": "document_extraction"}
+                    )
+                    logger.error(f"Exception during document extraction stage: {str(e_extract)}", exc_info=True)
+                    st.error(f"An unexpected error occurred during document extraction: {str(e_extract)}")
+                    st.session_state.user_initiated_processing = False # Reset flag
+                    st.rerun()
+                return # Stop further execution in this run, let rerun handle next step
+
+    # --- Stage 2: Data Template Display and Confirmation ---
+    # This block executes if consolidated_data exists but template hasn't been viewed/confirmed
+    if 'consolidated_data' in st.session_state and \
+       st.session_state.consolidated_data and \
+       not st.session_state.get('template_viewed', False) and \
+       not st.session_state.get('processing_completed', False): # Ensure analysis hasn't already run
+        
+        logger.info("Displaying data template for user review.")
+        show_processing_status("Documents processed. Please review the extracted data.", status_type="info")
+        
+        # Ensure consolidated_data is not an error message from a previous step
+        if isinstance(st.session_state.consolidated_data, dict) and "error" not in st.session_state.consolidated_data:
+            verified_data = display_data_template(st.session_state.consolidated_data)
+            
+            if verified_data is not None:
+                st.session_state.consolidated_data = verified_data # Update with (potentially) edited data
+                st.session_state.template_viewed = True
+                st.session_state.user_initiated_processing = False # Reset, as next step is auto analysis
+                logger.info("Data confirmed by user via template. Proceeding to analysis preparation.")
+                st.rerun() # Rerun to trigger analysis stage
+            else:
+                # Template is displayed, waiting for user confirmation. Nothing else to do in this run.
+                logger.info("Data template is active. Waiting for user confirmation.")
+        else:
+            # If consolidated_data holds an error or is invalid, don't show template.
+            # This case should ideally be caught earlier.
+            logger.error("Attempted to display template with invalid consolidated_data.")
+            st.error("Cannot display data template due to an issue with extracted data. Please try processing again.")
+            # Clear problematic data and reset flags
+            if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+            st.session_state.user_initiated_processing = False
+            st.session_state.template_viewed = False
+            st.rerun()
+        return # Stop further execution in this run
+
+    # --- Stage 3: Financial Analysis (if data confirmed and not yet processed) ---
+    if st.session_state.get('template_viewed', False) and \
+       not st.session_state.get('processing_completed', False) and \
+       'consolidated_data' in st.session_state and \
+       st.session_state.consolidated_data:
+
+        logger.info("APP.PY: --- Financial Analysis START ---")
+        show_processing_status("Processing verified data for analysis...", is_running=True)
+        try:
+            # Ensure consolidated_data is valid before analysis
+            if not isinstance(st.session_state.consolidated_data, dict) or "error" in st.session_state.consolidated_data:
+                logger.error("Analysis cannot proceed: consolidated_data is invalid or contains an error.")
+                st.error("Analysis cannot proceed due to an issue with the prepared data. Please re-process documents.")
+                # Reset states to allow user to restart
+                st.session_state.processing_completed = False
+                st.session_state.template_viewed = False
+                st.session_state.user_initiated_processing = False
+                if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                st.rerun()
+                return
+
+            # Validate consolidated data structure before processing
+            if not st.session_state.consolidated_data or not isinstance(st.session_state.consolidated_data, dict):
+                logger.error("consolidated_data is missing or invalid")
+                st.error("Error: Invalid data structure. Please try processing the documents again.")
+                return
+            
+            # The data in st.session_state.consolidated_data is already formatted 
+            # by process_single_document_core (via process_all_documents).
+            # It's ready for calculate_noi_comparisons.
+            consolidated_data_for_analysis = st.session_state.consolidated_data
+            
+            # Validate that consolidated_data_for_analysis (which is st.session_state.consolidated_data) is valid
+            if not consolidated_data_for_analysis or not isinstance(consolidated_data_for_analysis, dict):
+                logger.error("Formatted data for analysis is invalid or not a dict (expected from session state)")
+                st.error("Error: Failed to prepare financial data for analysis. Please check your documents and try again.")
+                return
+            
+            # Check that we have at least some valid financial data
+            required_keys = ['current_month', 'prior_month', 'budget', 'prior_year']
+            available_keys = [key for key in required_keys if key in consolidated_data_for_analysis and consolidated_data_for_analysis[key]]
+            logger.info(f"Available data types for analysis: {available_keys}")
+            
+            if not available_keys:
+                # If 'current_month_actuals' (or similar raw key) exists and is non-empty, it implies a formatting or key mapping issue.
+                # However, process_all_documents should already map to 'current_month', etc.
+                # This check primarily ensures that at least one period has data.
+                raw_current_key_exists = any(k in consolidated_data_for_analysis for k in ['current_month_actuals', 'current_month']) # Example check
+                if raw_current_key_exists and consolidated_data_for_analysis.get(list(consolidated_data_for_analysis.keys())[0]): # if first key has data
+                     logger.warning("Data seems to exist in consolidated_data_for_analysis but not with standard keys or is empty.")
+                st.error("Error: No valid financial data found for key periods (current_month, prior_month, etc.). Please ensure your documents contain the required financial information.")
+                return
+            
+            st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
+            
+            if st.session_state.comparison_results and not st.session_state.comparison_results.get("error"):
+                insights = generate_insights_with_gpt(st.session_state.comparison_results, get_openai_api_key())
+                st.session_state.insights = {
+                    "summary": insights.get("summary", "No summary available."),
+                    "performance": insights.get("performance", []),
+                    "recommendations": insights.get("recommendations", [])
+                }
+                narrative = create_narrative(st.session_state.comparison_results, st.session_state.property_name)
+                st.session_state.generated_narrative = narrative
+                st.session_state.edited_narrative = narrative # Initialize edited with generated
+
+                st.session_state.processing_completed = True
+                st.session_state.user_initiated_processing = False # Processing is done
+                show_processing_status("Analysis complete!", status_type="success")
+                logger.info("Financial analysis, insights, and narrative generated successfully.")
+            else:
+                error_msg = st.session_state.comparison_results.get("error", "Unknown error during analysis.") if st.session_state.comparison_results else "Comparison results are empty."
+                logger.error(f"Error during financial analysis: {error_msg}")
+                st.error(f"An error occurred during analysis: {error_msg}")
+                st.session_state.processing_completed = False # Ensure it's marked as not completed
+                # Don't delete consolidated_data here, user might want to re-run analysis if it was a transient issue
+            
+            st.rerun() # Rerun to display results or updated status
+        except Exception as e_analysis:
+            logger.error(f"Exception during financial analysis stage: {str(e_analysis)}", exc_info=True)
+            st.error(f"An unexpected error occurred during analysis: {str(e_analysis)}")
+            st.session_state.processing_completed = False
+            st.rerun()
+        return # Stop further execution
+
+    # --- Stage 4: Display Results or Welcome Page ---
+    if st.session_state.get('processing_completed', False):
+        # Show results after processing is fully completed
+        # Modern styled title
+        st.markdown(f"""
+        <h1 class="noi-title">
+            <span class="noi-title-accent">NOI</span> Analysis Results
+            {' - <span class="noi-title-property">' + st.session_state.property_name + '</span>' if st.session_state.property_name else ''}
+        </h1>
+        """, unsafe_allow_html=True)
+        
+        # Add styling for property name
+        st.markdown("""
+        <style>
+        .noi-title-property {
+            color: #e6edf3;
+            font-weight: 400;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Get the comparison results from session state
+        # The st.session_state.comparison_results should be populated by calculate_noi_comparisons
+        # and is expected to have keys like 'month_vs_prior', 'actual_vs_budget', 'year_vs_year', 
+        # and 'current', 'prior', 'budget', 'prior_year' for raw data.
+
+        if not hasattr(st.session_state, 'comparison_results') or not st.session_state.comparison_results:
+            st.error("Error: Comparison results are not available. Please try processing the documents again.")
+            logger.error("st.session_state.comparison_results is missing or empty when trying to display tabs.")
+            return
+
+        comparison_data_for_tabs = st.session_state.comparison_results
+        logger.info(f"Using comparison_results from session state for tabs. Top-level keys: {list(comparison_data_for_tabs.keys())}")
+        try:
+            # Use structure summary for INFO level instead of full structure
+            logger.info(f"comparison_data_for_tabs summary: {len(comparison_data_for_tabs)} top-level keys, data types: {set(type(v).__name__ for v in comparison_data_for_tabs.values())}")
+            # Full structure details moved to DEBUG level
+            logger.debug(f"Full comparison_data_for_tabs structure: {json.dumps({k: list(v.keys()) if isinstance(v, dict) else type(v).__name__ for k, v in comparison_data_for_tabs.items()}, default=str, indent=2)}")
         except Exception as e:
-            logger.error(f"Error displaying results: {str(e)}", exc_info=True)
-            st.error("Error displaying results. Please try again.")
+            logger.error(f"Error logging comparison_data_for_tabs structure: {e}")
 
-except Exception as e:
-    logger.error(f"Error in main function: {str(e)}", exc_info=True)
-    st.error("An error occurred while processing the request. Please try again.")
+        # Create tabs for each comparison type with modern styling
+        st.markdown("""
+        <style>
+        /* Tabs styling */
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: rgba(16, 23, 42, 0.5) !important;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 0.25rem 0.25rem 0 0.25rem !important;
+            gap: 0 !important;
+            border-bottom: none !important;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 8px 8px 0 0 !important;
+            padding: 0.75rem 1.25rem !important;
+            margin: 0 0.125rem !important;
+            background-color: rgba(16, 23, 42, 0.3) !important;
+            border: none !important;
+            color: rgba(230, 237, 243, 0.7) !important;
+            font-size: 1rem !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            background-color: #3B82F6 !important;
+            color: white !important;
+        }
+        
+        .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+            background-color: rgba(16, 23, 42, 0.5) !important;
+            color: #e6edf3 !important;
+        }
+        
+        .stTabs [data-baseweb="tab-panel"] {
+            background-color: rgba(16, 23, 42, 0.2) !important;
+            border-radius: 0 0 10px 10px !important;
+            padding: 1.5rem !important;
+            border: 1px solid rgba(59, 130, 246, 0.1) !important;
+            border-top: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Summary", "NOI Coach"])
+        
+        with tabs[0]:
+            st.header("Current Month vs. Prior Month")
+            # Ensure 'month_vs_prior' data exists and is not empty
+            month_vs_prior_calculations = comparison_data_for_tabs.get('month_vs_prior', {})
+            if month_vs_prior_calculations:
+                logger.info(f"APP.PY: Preparing to display Prior Month tab with data: {list(month_vs_prior_calculations.keys())}")
+                try:
+                    # Move full JSON dumps to DEBUG level
+                    logger.debug(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_calculations, default=str, indent=2)}")
+                except Exception as e_log_json:
+                    logger.error(f"APP.PY: Error logging JSON for Prior Month tab data: {e_log_json}")
+                
+                # Combine comparison calculations with raw data that display_comparison_tab expects
+                month_vs_prior_data = month_vs_prior_calculations.copy()
+                month_vs_prior_data["current"] = comparison_data_for_tabs.get("current", {})
+                month_vs_prior_data["prior"] = comparison_data_for_tabs.get("prior", {})
+                
+                display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
+            else:
+                st.warning("Not enough data for Prior Month comparison.")
+                logger.warning("APP.PY: 'month_vs_prior' data is missing or empty in comparison_data_for_tabs.")
+                # Optionally, display current month summary if available
+                current_data_summary = comparison_data_for_tabs.get('current', {})
+                if current_data_summary:
+                    st.write("Current Month Data Summary:")
+                    current_summary_to_display = {k: v for k, v in current_data_summary.items() if v is not None and v != 0}
+                    if current_summary_to_display:
+                        st.json(current_summary_to_display)
+                    else:
+                        st.info("No current month data values to display.")
+                
+        with tabs[1]:
+            st.header("Actual vs. Budget")
+            # Ensure 'actual_vs_budget' data exists and is not empty
+            actual_vs_budget_calculations = comparison_data_for_tabs.get('actual_vs_budget', {})
+            if actual_vs_budget_calculations:
+                logger.info(f"APP.PY: Preparing to display Budget tab with data: {list(actual_vs_budget_calculations.keys())}")
+                try:
+                    # Move full JSON dumps to DEBUG level
+                    logger.debug(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_calculations, default=str, indent=2)}")
+                except Exception as e_log_json:
+                    logger.error(f"APP.PY: Error logging JSON for Budget tab data: {e_log_json}")
+                
+                # Combine comparison calculations with raw data that display_comparison_tab expects
+                actual_vs_budget_data = actual_vs_budget_calculations.copy()
+                actual_vs_budget_data["current"] = comparison_data_for_tabs.get("current", {})
+                actual_vs_budget_data["budget"] = comparison_data_for_tabs.get("budget", {})
+                
+                display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
+            else:
+                st.warning("Not enough data for Budget comparison.")
+                logger.warning("APP.PY: 'actual_vs_budget' data is missing or empty in comparison_data_for_tabs.")
 
-# Add missing utility functions
-def upload_card(title: str, key: str, required: bool = False, help_text: str = ""):
-    """Create a styled upload card component."""
+        with tabs[2]:
+            st.header("Current Year vs. Prior Year")
+            # Ensure 'year_vs_year' data exists and is not empty
+            year_vs_year_calculations = comparison_data_for_tabs.get('year_vs_year', {})
+            if year_vs_year_calculations:
+                logger.info(f"APP.PY: Preparing to display Prior Year tab with data: {list(year_vs_year_calculations.keys())}")
+                try:
+                    # Move full JSON dumps to DEBUG level
+                    logger.debug(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_calculations, default=str, indent=2)}")
+                except Exception as e_log_json:
+                    logger.error(f"APP.PY: Error logging JSON for Prior Year tab data: {e_log_json}")
+                
+                # Combine comparison calculations with raw data that display_comparison_tab expects
+                year_vs_year_data = year_vs_year_calculations.copy()
+                year_vs_year_data["current"] = comparison_data_for_tabs.get("current", {})
+                year_vs_year_data["prior_year"] = comparison_data_for_tabs.get("prior_year", {})
+                
+                display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
+            else:
+                st.warning("Not enough data for Prior Year comparison.")
+                logger.warning("APP.PY: 'year_vs_year' data is missing or empty in comparison_data_for_tabs.")
+        
+        with tabs[3]: # Summary Tab (formerly Financial Narrative & Insights)
+            st.header("Overall Summary & Insights")
+            
+            # Display the narrative text and editor
+            display_narrative_in_tabs()
+            
+            # Display the consolidated insights (summary, performance, recommendations)
+            if "insights" in st.session_state and st.session_state.insights:
+                try:
+                    display_unified_insights_no_html(st.session_state.insights)
+                except Exception as e:
+                    logger.error(f"Error displaying insights: {e}")
+                    st.error("An error occurred while displaying insights. Please try processing documents again.")
+            else:
+                logger.info("No insights data found in session state for Financial Narrative & Insights tab.")
+                st.info("Insights (including summary and recommendations) will be displayed here once generated.")
+
+        # Display NOI Coach section
+        with tabs[4]: # NOI Coach tab
+            # if NOI_COACH_AVAILABLE:
+            #     display_noi_coach_enhanced()
+            # else:
+            #     display_noi_coach()
+            display_noi_coach() # Directly call the app.py internal version
+    
+    # Add this code in the main UI section after displaying all tabs
+    # (after the st.tabs() section in the main function)
+    if st.session_state.processing_completed:
+        # Add a separator
+        st.markdown("---")
+
+        # Add export options in a container at the bottom with modern styling
+        st.markdown("""
+        <div class="export-container">
+            <h2 class="export-title">Export Options</h2>
+            <div class="export-description">Download your analysis as PDF for sharing and reporting.</div>
+        </div>
+        
+        <style>
+        .export-container {
+            margin-bottom: 1.5rem;
+        }
+        
+        .export-title {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1.75rem;
+            font-weight: 500;
+            color: #3B82F6;
+            margin-bottom: 0.5rem;
+        }
+        
+        .export-description {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1rem;
+            color: #e6edf3;
+            margin-bottom: 1.5rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        col_pdf, col_spacer = st.columns([1,7])
+        
+        with col_pdf:
+            # PDF Export button
+            if st.button("Generate Complete PDF Report", key="global_pdf_export"):
+                # Use our custom status indicator instead of spinner
+                show_processing_status("Generating comprehensive PDF report...", is_running=True)
+                try:
+                    pdf_bytes = generate_comprehensive_pdf() 
+                    
+                    if pdf_bytes:
+                        # Create a unique filename with timestamp
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
+                        pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
+                        
+                        # Display download button
+                        st.download_button(
+                            label="Download Complete PDF Report",
+                            data=pdf_bytes,
+                            file_name=pdf_filename,
+                            mime="application/pdf",
+                            key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
+                        )
+                        # Show success message
+                        show_processing_status("PDF report generated successfully!", status_type="success")
+                    else:
+                        # Show error message
+                        show_processing_status("Failed to generate PDF report. Please check the logs for details.", status_type="error")
+                except Exception as e:
+                    logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
+                    # Show error message
+                    show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
+
+def display_features_section():
+    """Display the features section using pure Streamlit components without HTML"""
+    st.markdown("## Features")
+    
+    # Feature 1: Comparative Analysis
     with st.container():
-        st.markdown(f"### {title}")
-        if required:
-            st.markdown("**(Required)**")
-        if help_text:
-            st.caption(help_text)
-        uploaded_file = st.file_uploader(
-            f"Choose {title} file",
-            type=['pdf', 'xlsx', 'csv'],
-            key=key,
-            label_visibility="collapsed"
-        )
-        return uploaded_file
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("**1**")
+        with col2:
+            st.markdown("### Comparative Analysis")
+            st.markdown("Compare current performance against budget, prior month, and prior year")
+    
+    st.markdown("---")
+    
+    # Feature 2: Financial Insights
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("**2**")
+        with col2:
+            st.markdown("### Financial Insights")
+            st.markdown("AI-generated analysis of key metrics and trends")
+    
+    st.markdown("---")
+    
+    # Feature 3: NOI Coach
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("**3**")
+        with col2:
+            st.markdown("### NOI Coach")
+            st.markdown("Ask questions about your financial data and get AI-powered insights")
+    
+    st.markdown("---")
+    
+    # Feature 4: Export Options
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("**4**")
+        with col2:
+            st.markdown("### Export Options")
+            st.markdown("Save results as PDF or Excel for sharing and reporting")
 
-def property_input(value: str = ""):
-    """Create a property name input field."""
-    return st.text_input(
-        "Property Name",
-        value=value,
-        help="Enter the name of the property for this analysis"
+def display_features_section_enhanced():
+    """Display the features section using pure Streamlit components with enhanced styling"""
+    st.markdown("## Features")
+    
+    # Custom CSS for the number circles - minimal and safe
+    st.markdown("""
+    <style>
+    .number-circle {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #79b8f3;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 20px;
+        margin: 10px auto;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Feature 1: Comparative Analysis
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">1</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### Comparative Analysis")
+            st.markdown("Compare current performance against budget, prior month, and prior year")
+    
+    st.markdown("---")
+    
+    # Feature 2: Financial Insights
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">2</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### Financial Insights")
+            st.markdown("AI-generated analysis of key metrics and trends")
+    
+    st.markdown("---")
+    
+    # Feature 3: NOI Coach
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">3</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### NOI Coach")
+            st.markdown("Ask questions about your financial data and get AI-powered insights")
+    
+    st.markdown("---")
+    
+    # Feature 4: Export Options
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown('<div class="number-circle">4</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown("### Export Options")
+            st.markdown("Save results as PDF or Excel for sharing and reporting")
+
+def display_features_section_no_html():
+    """Display the features section using pure Streamlit components with NO HTML at all"""
+    st.markdown("## Features")
+    
+    # Feature 1: Comparative Analysis
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            # Use emoji or text for the number
+            st.markdown("🔵")
+            st.markdown("1")
+        with col2:
+            st.markdown("### Comparative Analysis")
+            st.markdown("Compare current performance against budget, prior month, and prior year")
+    
+    st.markdown("---")
+    
+    # Feature 2: Financial Insights
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("🔵")
+            st.markdown("2")
+        with col2:
+            st.markdown("### Financial Insights")
+            st.markdown("AI-generated analysis of key metrics and trends")
+    
+    st.markdown("---")
+    
+    # Feature 3: NOI Coach
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("🔵")
+            st.markdown("3")
+        with col2:
+            st.markdown("### NOI Coach")
+            st.markdown("Ask questions about your financial data and get AI-powered insights")
+    
+    st.markdown("---")
+    
+    # Feature 4: Export Options
+    with st.container():
+        col1, col2 = st.columns([1, 20])
+        with col1:
+            st.markdown("🔵")
+            st.markdown("4")
+        with col2:
+            st.markdown("### Export Options")
+            st.markdown("Save results as PDF or Excel for sharing and reporting")
+
+def display_unified_insights(insights_data):
+    """
+    Display unified insights using native Streamlit components.
+    
+    Args:
+        insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
+    """
+    logger.info("Displaying unified insights")
+    
+    if not insights_data or not isinstance(insights_data, dict):
+        st.warning("No insights data available to display.")
+        return
+    
+    logger.info(f"Insights data keys: {list(insights_data.keys())}")
+    
+    # Display Executive Summary
+    if 'summary' in insights_data:
+        st.markdown("## Executive Summary")
+        
+        summary_text = insights_data['summary']
+        # Remove redundant "Executive Summary:" prefix if it exists
+        if summary_text.startswith("Executive Summary:"):
+            summary_text = summary_text[len("Executive Summary:"):].strip()
+            
+        with st.container():
+            import html as _html_mod  # local import to avoid top-level issues
+            escaped = _html_mod.escape(summary_text).replace("\n", "<br>")
+            st.markdown(f"<div class='results-text'>{escaped}</div>", unsafe_allow_html=True)
+    
+    # Display Key Performance Insights
+    if 'performance' in insights_data and insights_data['performance']:
+        st.markdown("## Key Performance Insights")
+        
+        performance_markdown = ""
+        for insight in insights_data['performance']:
+            performance_markdown += f"- {insight}\n"
+        if performance_markdown:
+            st.markdown(performance_markdown)
+    
+    # Display Recommendations
+    if 'recommendations' in insights_data and insights_data['recommendations']:
+        st.markdown("## Recommendations")
+        
+        recommendations_markdown = ""
+        for recommendation in insights_data['recommendations']:
+            recommendations_markdown += f"- {recommendation}\n"
+        if recommendations_markdown:
+            st.markdown(recommendations_markdown)
+
+def display_opex_breakdown(opex_data, comparison_type="prior month"):
+    """
+    Display operating expense breakdown using Streamlit DataFrame.
+    
+    Args:
+        opex_data: Dictionary containing operating expense data. 
+                   Example: {"property_taxes": {"current": 100, "prior": 90}, ...}
+        comparison_type: Type of comparison (e.g., "Prior Month", "Budget")
+    """
+    if not opex_data or not isinstance(opex_data, dict):
+        st.info("No operating expense data provided for breakdown.")
+        return
+
+    opex_df_list = []
+    for category_key, data_values in opex_data.items():
+        if not data_values or not isinstance(data_values, dict):
+            logger.warning(f"Skipping invalid OpEx data for category: {category_key}")
+            continue
+            
+        current = data_values.get('current', 0.0)
+        prior = data_values.get('prior', 0.0) # Assuming 'prior' as the comparison key
+        
+        change = current - prior
+        percent_change = (change / prior * 100) if prior != 0 else 0.0
+        
+        display_name = category_key.replace('_', ' ').title()
+        
+        opex_df_list.append({
+            "Expense Category": display_name,
+            "Current": current,
+            comparison_type: prior, # Use the dynamic comparison_type for the column name
+            "Change ($)": change,
+            "Change (%)": percent_change
+        })
+
+    if not opex_df_list:
+        st.info("No valid operating expense items to display.")
+        return
+
+    opex_df = pd.DataFrame(opex_df_list)
+
+    # Format for display
+    opex_df_display = opex_df.copy()
+    opex_df_display["Current"] = opex_df_display["Current"].apply(lambda x: f"${x:,.2f}")
+    opex_df_display[comparison_type] = opex_df_display[comparison_type].apply(lambda x: f"${x:,.2f}")
+    opex_df_display["Change ($)"] = opex_df_display["Change ($)"].apply(
+        lambda x: f"+${x:,.2f}" if x > 0 else (f"-${abs(x):,.2f}" if x < 0 else f"${x:,.2f}")
+    )
+    opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(
+        lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
     )
 
-def display_comparison_analysis(comparison_results):
-    """Display the main comparison analysis."""
-    try:
-        if 'month_vs_prior' in comparison_results:
-            st.subheader("Month vs Prior Month")
-            display_comparison_tab(comparison_results['month_vs_prior'], "_prior", " vs Prior")
-        
-        if 'actual_vs_budget' in comparison_results:
-            st.subheader("Actual vs Budget")
-            display_comparison_tab(comparison_results['actual_vs_budget'], "_budget", " vs Budget")
-            
-        if 'year_vs_year' in comparison_results:
-            st.subheader("Year over Year")
-            display_comparison_tab(comparison_results['year_vs_year'], "_yoy", " vs Prior Year")
-            
-    except Exception as e:
-        logger.error(f"Error in display_comparison_analysis: {str(e)}", exc_info=True)
-        st.error("Error displaying comparison analysis")
+    styled_df = opex_df_display.style.applymap(
+        highlight_changes,
+        subset=['Change ($)', 'Change (%)']
+    )
 
-def display_ai_insights(comparison_results, consolidated_data):
-    """Display AI insights."""
-    try:
-        if 'insights' not in st.session_state:
-            with st.spinner("Generating AI insights..."):
-                insights = generate_insights_with_gpt(comparison_results, consolidated_data)
-                st.session_state.insights = insights
+    st.markdown("#### Operating Expenses Breakdown")
+    st.dataframe(styled_df.format({
+        "Current": "{:}",
+        comparison_type: "{:}",
+        "Change ($)": "{:}",
+        "Change (%)": "{:}"
+    }).hide(axis="index").set_table_styles([
+        {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
+        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
+        {'selector': '.col_heading', 'props': [('text-align', 'center')]} # Center-align column headings to improve readability
+    ]), use_container_width=True)
+
+    # Remove the old HTML and style block as it's no longer used by this function.
+    # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
+    # were part of the old HTML rendering method. If they are not used elsewhere for st.markdown,
+    # they might eventually be cleaned up from the CSS file. For now, we only remove the Python string.
+
+def display_card_container(title, content):
+    """
+    Display content in a consistently styled card container.
+    
+    Args:
+        title: Card title
+        content: Function to render card content
+    """
+    st.markdown(f"### {title}")
+    
+    with st.container():
+        # Create a visual container with styling
+        st.markdown("""        <div style="background-color: rgba(22, 27, 34, 0.8); 
+                    border: 1px solid rgba(56, 68, 77, 0.5); 
+                    border-radius: 8px; 
+                    padding: 16px; 
+                    margin-bottom: 20px;">
+        </div>
+        """, unsafe_allow_html=True)
         
-        insights = st.session_state.get('insights', {})
-        if insights:
-            display_insights(insights)
+        # This is a trick - we're creating an empty styled container above,
+        # then putting the actual content below it in a Streamlit container
+        content()
+
+# Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display an enhanced upload card component using Streamlit-native containers.
+    
+    Args:
+        title: Title of the upload card
+        required: Whether this upload is required
+        key: Unique key for the file uploader
+        file_types: List of accepted file types
+        help_text: Help text for the uploader
+        
+    Returns:
+        The uploaded file object
+    """
+    if file_types is None:
+        file_types = ["xlsx", "xls", "csv", "pdf"]
+    
+    # Use Streamlit container instead of HTML div
+    with st.container():
+        # 1. Header section - only use markdown for the header, not to wrap widgets
+        st.markdown(f"""
+        <div class="upload-card-header">
+            <h3>{title}</h3>
+            {' <span class="required-badge">Required</span>' if required else ''}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # ADD THIS: Empty space between title and uploader for better spacing
+        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+        
+        # 2. Add the file uploader - not wrapped in HTML
+        uploaded_file = st.file_uploader(
+            f"Upload {title}",
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            help=help_text or f"Upload your {title.lower()} file"
+        )
+        
+        # 3. Display upload area styling or file info
+        if not uploaded_file:
+            st.markdown("""
+            <div class="upload-area">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Drag and drop file here</div>
+                <div class="upload-subtext">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
+            </div>
+            """, unsafe_allow_html=True)
         else:
-            st.info("No insights available")
+            # Display file info
+            file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
+            file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
             
-    except Exception as e:
-        logger.error(f"Error in display_ai_insights: {str(e)}", exc_info=True)
-        st.error("Error generating AI insights")
+            st.markdown(f"""
+            <div class="file-info">
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                    <div class="file-name">{uploaded_file.name}</div>
+                    <div class="file-meta">{file_size} • {file_type}</div>
+                </div>
+                <div class="file-status">Uploaded</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    return uploaded_file
 
-def display_financial_narrative_tab():
-    """Display financial narrative tab."""
-    try:
-        if 'generated_narrative' not in st.session_state:
-            with st.spinner("Generating financial narrative..."):
-                narrative = create_narrative()
-                st.session_state.generated_narrative = narrative
-                st.session_state.edited_narrative = narrative
-        
-        display_narrative_in_tabs()
-        
-    except Exception as e:
-        logger.error(f"Error in display_financial_narrative_tab: {str(e)}", exc_info=True)
-        st.error("Error displaying financial narrative")
+def instructions_card(items):
+    """
+    Display an enhanced instructions card.
+    
+    Args:
+        items: List of instruction steps
+    """
+    items_html = "".join([f"<li>{item}</li>" for item in items])
+    st.markdown(f"""
+    <div class="instructions-card">
+        <h3 class="feature-title">Instructions</h3>
+        <ol class="instructions-list">
+            {items_html}
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
 
-def display_export_options():
-    """Display export options."""
-    try:
-        st.subheader("Export Options")
-        
-        if st.button("Generate PDF Report", type="primary"):
-            with st.spinner("Generating PDF report..."):
-                pdf_bytes = generate_comprehensive_pdf()
-                if pdf_bytes:
-                    st.download_button(
-                        label="Download PDF Report",
-                        data=pdf_bytes,
-                        file_name=f"NOI_Analysis_{st.session_state.get('property_name', 'Property')}.pdf",
-                        mime="application/pdf"
-                    )
-                else:
-                    st.error("Error generating PDF report")
-                    
-    except Exception as e:
-        logger.error(f"Error in display_export_options: {str(e)}", exc_info=True)
-        st.error("Error in export options")
+def feature_list(features):
+    """
+    Display an enhanced feature list.
+    
+    Args:
+        features: List of dictionaries with 'title' and 'description' keys
+    """
+    st.markdown("<h3 class=\"feature-title\">Features</h3>", unsafe_allow_html=True)
+    
+    for idx, feature in enumerate(features):
+        st.markdown(f"""
+        <div class="feature-item">
+            <div class="feature-number">{idx + 1}</div>
+            <div class="feature-content">
+                <h4>{feature['title']}</h4>
+                <p>{feature['description']}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
+def property_input(value=""):
+    """
+    Display an enhanced property name input using Streamlit-native containers.
+    
+    Args:
+        value: Current property name value
+        
+    Returns:
+        The entered property name
+    """
+    with st.container():
+        # Header only - don't try to wrap the input widget in HTML
+        st.markdown("""
+        <div class="upload-card-header">
+            <h3>Property Information</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Property name input - not wrapped in HTML
+        property_name = st.text_input(
+            "Property Name",
+            value=value,
+            help="Enter the name of the property being analyzed",
+            key="main_property_name_input"
+        )
+    
+    return property_name
+
+# Helper function to summarize data structures for logging
+def summarize_data_for_log(data_dict, max_items=3):
+    """Summarize a data structure for more concise logging"""
+    if not isinstance(data_dict, dict):
+        return str(data_dict)
+    keys = list(data_dict.keys())
+    summary = {k: data_dict[k] for k in keys[:max_items]}
+    if len(keys) > max_items:
+        summary[f"...and {len(keys) - max_items} more keys"] = "..."
+    return summary
+
+# Run the main function when the script is executed directly
 if __name__ == "__main__":
     main()
+
