@@ -3734,9 +3734,10 @@ def main():
             
             # Collect user e-mail (needed to deliver the report)
             email_val = st.text_input(
-                "Email Address (to receive your report)",
+                "Email Address (for report delivery)",
                 value=st.session_state.get("user_email", ""),
-                key="user_email_input_main",
+                help="Where should we e-mail the finished NOI report?",
+                key="email_input_main",
             )
             if email_val != st.session_state.get("user_email", ""):
                 st.session_state.user_email = email_val
@@ -3840,3 +3841,275 @@ def main():
 
                 # --- Pay-per-use Stripe flow ---
                 if PAY_PER_USE_MODE and not is_testing_mode_active():
+                    user_email = (st.session_state.get("user_email") or "").strip()
+                    if not user_email or "@" not in user_email:
+                        st.error("Please enter a valid e-mail address before clicking Process Documents.")
+                        st.stop()
+
+                    if not st.session_state.get("current_month_actuals"):
+                        st.error("Current Month Actuals file is required before proceeding.")
+                        st.stop()
+
+                    # Gather uploaded files from session_state
+                    upload_keys = [
+                        "current_month_actuals", "prior_month_actuals",
+                        "current_month_budget", "prior_year_actuals",
+                    ]
+                    uploads = {
+                        k: st.session_state.get(k) for k in upload_keys if st.session_state.get(k)
+                    }
+
+                    job_id = uuid.uuid4().hex
+                    temp_dir = pathlib.Path(f"/tmp/noi_{job_id}")
+                    temp_dir.mkdir(parents=True, exist_ok=True)
+
+                    for k, upload_file in uploads.items():
+                        dest = temp_dir / upload_file.name
+                        with open(dest, "wb") as fout:
+                            fout.write(upload_file.getbuffer())
+
+                    job_store.save(JobInfo(job_id=job_id, status=JobStatus.pending))
+
+                    checkout_url = create_checkout_session(user_email, job_id)
+
+                    st.success("Redirecting to secure payment …")
+                    st.components.v1.html(
+                        f"<script>window.location.href='{checkout_url}';</script>", height=0
+                    )
+                    st.stop()
+                # --- End Pay-per-use flow ---
+                
+                # Original free/testing workflow
+                st.session_state.user_initiated_processing = True
+                # Reset states for a fresh processing cycle
+                st.session_state.template_viewed = False
+                st.session_state.processing_completed = False
+                if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                if 'comparison_results' in st.session_state: del st.session_state.comparison_results
+                if 'insights' in st.session_state: del st.session_state.insights
+                if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
+                if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
+                
+                if is_testing_mode_active():
+                    logger.info("Main page 'Process Documents' clicked in TESTING MODE.")
+                    add_breadcrumb("Process Documents button clicked (Testing Mode)", "user_action", "info",
+                                   {"property_name": st.session_state.mock_property_name,
+                                    "scenario": st.session_state.mock_scenario})
+                    process_documents_testing_mode() 
+                    save_testing_config() 
+                else:
+                    logger.info("Main page 'Process Documents' clicked. Initiating processing cycle.")
+                    add_breadcrumb(
+                        "Process Documents button clicked (Production Mode)", "user_action", "info",
+                        {
+                            "has_current_month": bool(st.session_state.get('current_month_actuals')),
+                            "has_prior_month": bool(st.session_state.get('prior_month_actuals')),
+                            "has_budget": bool(st.session_state.get('current_month_budget')),
+                            "has_prior_year": bool(st.session_state.get('prior_year_actuals')),
+                            "property_name": st.session_state.get('property_name', 'Unknown')
+                        }
+                    )
+                st.rerun() # Rerun to start the processing logic below
+
+        with col2:
+            # Instructions or placeholder content for second column
+            st.markdown('<h2 class="section-header">Quick Start Guide</h2>', unsafe_allow_html=True)
+            st.markdown("""
+            **Step 1:** Upload your Current Month Actuals file (required)
+            
+            **Step 2:** Enter your email address where you'd like to receive the report
+            
+            **Step 3:** Optionally upload other files for comparison (Prior Month, Budget, Prior Year)
+            
+            **Step 4:** Enter your property name for reference
+            
+            **Step 5:** Click "Process Documents" to start the analysis
+            
+            The system will securely process your payment and email you the completed NOI analysis report.
+            """)
+
+    # Continue with processing logic if user has initiated processing
+    elif st.session_state.get('user_initiated_processing', False):
+        if not st.session_state.get('template_viewed', False):
+            # Processing documents
+            try:
+                show_processing_status("Processing documents...", is_running=True)
+                
+                # Process all uploaded documents
+                consolidated_data = process_all_documents()
+                
+                if consolidated_data and 'error' not in consolidated_data:
+                    st.session_state.consolidated_data = consolidated_data
+                    st.session_state.template_viewed = True
+                    st.rerun()
+                else:
+                    error_msg = consolidated_data.get('error', 'Unknown error occurred during processing')
+                    st.error(f"Error processing documents: {error_msg}")
+                    st.session_state.user_initiated_processing = False
+                    
+            except Exception as e:
+                logger.error(f"Error in document processing: {str(e)}", exc_info=True)
+                st.error("An error occurred during document processing. Please try again.")
+                st.session_state.user_initiated_processing = False
+                
+        elif st.session_state.get('template_viewed', False) and not st.session_state.get('processing_completed', False):
+            # Show template verification and continue to comparison calculations
+            consolidated_data = st.session_state.get('consolidated_data', {})
+            
+            if consolidated_data:
+                show_processing_status("Calculating comparisons...", is_running=True)
+                
+                try:
+                    comparison_results = calculate_noi_comparisons(consolidated_data)
+                    st.session_state.comparison_results = comparison_results
+                    st.session_state.processing_completed = True
+                    st.rerun()
+                    
+                except Exception as e:
+                    logger.error(f"Error calculating comparisons: {str(e)}", exc_info=True)
+                    st.error("Error calculating comparisons. Please try again.")
+                    st.session_state.user_initiated_processing = False
+                    
+    # Display results if processing is completed
+    elif st.session_state.get('processing_completed', False):
+        # Main results display
+        try:
+            comparison_results = st.session_state.get('comparison_results', {})
+            consolidated_data = st.session_state.get('consolidated_data', {})
+            
+            if comparison_results and consolidated_data:
+                # Create tabs for different views
+                tabs = st.tabs(["📊 Analysis", "🧠 AI Insights", "📖 Financial Narrative", "🎯 NOI Coach", "📄 Export"])
+                
+                with tabs[0]:
+                    # Display comparison analysis
+                    display_comparison_analysis(comparison_results)
+                
+                with tabs[1]:
+                    # AI Insights
+                    display_ai_insights(comparison_results, consolidated_data)
+                
+                with tabs[2]:
+                    # Financial Narrative
+                    display_financial_narrative_tab()
+                
+                with tabs[3]:
+                    # NOI Coach
+                    if NOI_COACH_AVAILABLE:
+                        display_noi_coach_enhanced()
+                    else:
+                        st.error("NOI Coach module not available")
+                
+                with tabs[4]:
+                    # Export options
+                    display_export_options()
+                    
+        except Exception as e:
+            logger.error(f"Error displaying results: {str(e)}", exc_info=True)
+            st.error("Error displaying results. Please try again.")
+
+except Exception as e:
+    logger.error(f"Error in main function: {str(e)}", exc_info=True)
+    st.error("An error occurred while processing the request. Please try again.")
+
+# Add missing utility functions
+def upload_card(title: str, key: str, required: bool = False, help_text: str = ""):
+    """Create a styled upload card component."""
+    with st.container():
+        st.markdown(f"### {title}")
+        if required:
+            st.markdown("**(Required)**")
+        if help_text:
+            st.caption(help_text)
+        uploaded_file = st.file_uploader(
+            f"Choose {title} file",
+            type=['pdf', 'xlsx', 'csv'],
+            key=key,
+            label_visibility="collapsed"
+        )
+        return uploaded_file
+
+def property_input(value: str = ""):
+    """Create a property name input field."""
+    return st.text_input(
+        "Property Name",
+        value=value,
+        help="Enter the name of the property for this analysis"
+    )
+
+def display_comparison_analysis(comparison_results):
+    """Display the main comparison analysis."""
+    try:
+        if 'month_vs_prior' in comparison_results:
+            st.subheader("Month vs Prior Month")
+            display_comparison_tab(comparison_results['month_vs_prior'], "_prior", " vs Prior")
+        
+        if 'actual_vs_budget' in comparison_results:
+            st.subheader("Actual vs Budget")
+            display_comparison_tab(comparison_results['actual_vs_budget'], "_budget", " vs Budget")
+            
+        if 'year_vs_year' in comparison_results:
+            st.subheader("Year over Year")
+            display_comparison_tab(comparison_results['year_vs_year'], "_yoy", " vs Prior Year")
+            
+    except Exception as e:
+        logger.error(f"Error in display_comparison_analysis: {str(e)}", exc_info=True)
+        st.error("Error displaying comparison analysis")
+
+def display_ai_insights(comparison_results, consolidated_data):
+    """Display AI insights."""
+    try:
+        if 'insights' not in st.session_state:
+            with st.spinner("Generating AI insights..."):
+                insights = generate_insights_with_gpt(comparison_results, consolidated_data)
+                st.session_state.insights = insights
+        
+        insights = st.session_state.get('insights', {})
+        if insights:
+            display_insights(insights)
+        else:
+            st.info("No insights available")
+            
+    except Exception as e:
+        logger.error(f"Error in display_ai_insights: {str(e)}", exc_info=True)
+        st.error("Error generating AI insights")
+
+def display_financial_narrative_tab():
+    """Display financial narrative tab."""
+    try:
+        if 'generated_narrative' not in st.session_state:
+            with st.spinner("Generating financial narrative..."):
+                narrative = create_narrative()
+                st.session_state.generated_narrative = narrative
+                st.session_state.edited_narrative = narrative
+        
+        display_narrative_in_tabs()
+        
+    except Exception as e:
+        logger.error(f"Error in display_financial_narrative_tab: {str(e)}", exc_info=True)
+        st.error("Error displaying financial narrative")
+
+def display_export_options():
+    """Display export options."""
+    try:
+        st.subheader("Export Options")
+        
+        if st.button("Generate PDF Report", type="primary"):
+            with st.spinner("Generating PDF report..."):
+                pdf_bytes = generate_comprehensive_pdf()
+                if pdf_bytes:
+                    st.download_button(
+                        label="Download PDF Report",
+                        data=pdf_bytes,
+                        file_name=f"NOI_Analysis_{st.session_state.get('property_name', 'Property')}.pdf",
+                        mime="application/pdf"
+                    )
+                else:
+                    st.error("Error generating PDF report")
+                    
+    except Exception as e:
+        logger.error(f"Error in display_export_options: {str(e)}", exc_info=True)
+        st.error("Error in export options")
+
+if __name__ == "__main__":
+    main()
