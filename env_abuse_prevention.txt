@@ -1,0 +1,28 @@
+# NOI Analyzer - Credit System with Abuse Prevention
+# Environment Variables Configuration
+
+# EXISTING CREDIT SYSTEM VARIABLES
+FREE_TRIAL_CREDITS=3
+CREDITS_PER_ANALYSIS=1
+BACKEND_URL=http://localhost:8000
+
+# NEW ABUSE PREVENTION VARIABLES
+MAX_TRIALS_PER_IP=2          # Maximum free trials allowed per IP address
+TRIAL_COOLDOWN_DAYS=7        # Days before IP can get free trials again
+ADMIN_API_KEY=your_secret_admin_key_here  # For accessing admin endpoints
+
+# STRIPE CONFIGURATION (update these URLs)
+CREDIT_SUCCESS_URL=https://yourdomain.com/credit-success?session_id={CHECKOUT_SESSION_ID}
+CREDIT_CANCEL_URL=https://yourdomain.com/pricing
+
+# DATABASE
+DATABASE_PATH=noi_analyzer.db
+
+# EXISTING STRIPE VARIABLES
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Replace these with REAL Stripe Price IDs after creating products:
+STRIPE_STARTER_PRICE_ID=price_1ABC123DEF456789      # Replace with real Starter Pack price ID
+STRIPE_PROFESSIONAL_PRICE_ID=price_1XYZ789GHI012345 # Replace with real Professional Pack price ID  
+STRIPE_BUSINESS_PRICE_ID=price_1QRS456TUV890123     # Replace with real Business Pack price ID 

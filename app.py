@@ -57,6 +57,22 @@ except ImportError:
     def display_noi_coach_enhanced():
         st.error("NOI Coach module not available. Please ensure noi_coach.py is in the project directory.")
 
+# Try to import credit system modules
+try:
+    from utils.credit_ui import (
+        display_credit_balance, display_credit_store, check_credits_for_analysis,
+        display_insufficient_credits, display_free_trial_welcome, init_credit_system
+    )
+    CREDIT_SYSTEM_AVAILABLE = True
+except ImportError:
+    CREDIT_SYSTEM_AVAILABLE = False
+    def display_credit_balance(*args, **kwargs): pass
+    def display_credit_store(*args, **kwargs): st.error("Credit system not available")
+    def check_credits_for_analysis(*args, **kwargs): return True, "Credit check unavailable"
+    def display_insufficient_credits(*args, **kwargs): pass
+    def display_free_trial_welcome(*args, **kwargs): pass
+    def init_credit_system(*args, **kwargs): pass
+
 # Import mock data generators for testing mode
 try:
     from mock_data import (
@@ -3511,6 +3527,10 @@ def main():
     Sets up the UI and coordinates all functionality.
     """
     try:
+        # Initialize credit system
+        if CREDIT_SYSTEM_AVAILABLE:
+            init_credit_system()
+        
         # Add Sentry breadcrumb for main function start
         add_breadcrumb("Main function started", "app", "info")
         
@@ -3529,6 +3549,18 @@ def main():
         
         # Inject custom CSS to ensure font consistency
         inject_custom_css()
+        
+        # Handle page routing for credit system
+        if CREDIT_SYSTEM_AVAILABLE:
+            # Check if we should show credit store
+            if st.session_state.get('show_credit_store', False):
+                display_credit_store()
+                
+                # Back to main app button
+                if st.button("← Back to NOI Analyzer", use_container_width=True):
+                    st.session_state.show_credit_store = False
+                    st.rerun()
+                return
         
         # Load custom CSS
         inject_custom_css()
@@ -3814,6 +3846,23 @@ def main():
             '''
             , unsafe_allow_html=True)
             
+            # Add email input field 
+            email_input = st.text_input(
+                "Email Address",
+                placeholder="Enter your email address",
+                help="We'll track your credits and send you the analysis report",
+                key="user_email_input"
+            )
+            
+            # Store email in session state for credit tracking
+            if email_input:
+                st.session_state.user_email = email_input
+                
+                # Display credit balance and free trial welcome
+                if CREDIT_SYSTEM_AVAILABLE:
+                    display_free_trial_welcome(email_input)
+                    display_credit_balance(email_input)
+            
             if st.button(
                 "Process Documents", 
                 type="primary",
@@ -3821,17 +3870,18 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
-                st.session_state.user_initiated_processing = True
-                # Reset states for a fresh processing cycle
-                st.session_state.template_viewed = False
-                st.session_state.processing_completed = False
-                if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
-                if 'comparison_results' in st.session_state: del st.session_state.comparison_results
-                if 'insights' in st.session_state: del st.session_state.insights
-                if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
-                if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
-                
                 if is_testing_mode_active():
+                    # Keep testing mode functionality unchanged
+                    st.session_state.user_initiated_processing = True
+                    # Reset states for a fresh processing cycle
+                    st.session_state.template_viewed = False
+                    st.session_state.processing_completed = False
+                    if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                    if 'comparison_results' in st.session_state: del st.session_state.comparison_results
+                    if 'insights' in st.session_state: del st.session_state.insights
+                    if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
+                    if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
+                    
                     logger.info("Main page 'Process Documents' clicked in TESTING MODE.")
                     add_breadcrumb("Process Documents button clicked (Testing Mode)", "user_action", "info",
                                    {"property_name": st.session_state.mock_property_name,
@@ -3840,27 +3890,83 @@ def main():
                     # This function should handle setting processing_completed = True
                     process_documents_testing_mode() 
                     save_testing_config() # Save current testing config
+                    st.rerun()
                 else:
-                    logger.info("Main page 'Process Documents' clicked. Initiating processing cycle.")
-                    # Debug: Check file state when button is clicked
-                    logger.info(f"BUTTON CLICK DEBUG: current_month_actuals = {bool(st.session_state.get('current_month_actuals'))}")
-                    logger.info(f"BUTTON CLICK DEBUG: prior_month_actuals = {bool(st.session_state.get('prior_month_actuals'))}")
-                    logger.info(f"BUTTON CLICK DEBUG: current_month_budget = {bool(st.session_state.get('current_month_budget'))}")
-                    logger.info(f"BUTTON CLICK DEBUG: prior_year_actuals = {bool(st.session_state.get('prior_year_actuals'))}")
+                    # Production mode - check credits
+                    if not email_input:
+                        st.error("Please enter your email address to proceed.")
+                        st.stop()
                     
-                    add_breadcrumb(
-                        "Process Documents button clicked (Production Mode)", 
-                        "user_action", 
-                        "info",
-                        {
-                            "has_current_month": bool(st.session_state.get('current_month_actuals')),
-                            "has_prior_month": bool(st.session_state.get('prior_month_actuals')),
-                            "has_budget": bool(st.session_state.get('current_month_budget')),
-                            "has_prior_year": bool(st.session_state.get('prior_year_actuals')),
-                            "property_name": st.session_state.get('property_name', 'Unknown')
-                        }
-                    )
-                st.rerun() # Rerun to start the processing logic below
+                    if not st.session_state.current_month_actuals:
+                        st.error("Please upload at least the Current Month Actuals file to proceed.")
+                        st.stop()
+                    
+                    # Check if user has enough credits
+                    if CREDIT_SYSTEM_AVAILABLE:
+                        has_credits, message = check_credits_for_analysis(email_input)
+                        
+                        if has_credits:
+                            # User has credits - proceed with processing
+                            st.session_state.user_initiated_processing = True
+                            # Reset states for a fresh processing cycle
+                            st.session_state.template_viewed = False
+                            st.session_state.processing_completed = False
+                            if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                            if 'comparison_results' in st.session_state: del st.session_state.comparison_results
+                            if 'insights' in st.session_state: del st.session_state.insights
+                            if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
+                            if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
+                            
+                            logger.info(f"Main page 'Process Documents' clicked for {email_input} with sufficient credits.")
+                            add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info",
+                                           {"email": email_input,
+                                            "property_name": st.session_state.get('property_name', 'Unknown')})
+                            
+                            st.success(message + " - Starting analysis...")
+                            st.rerun()
+                        else:
+                            # Insufficient credits
+                            logger.info(f"User {email_input} has insufficient credits")
+                            display_insufficient_credits()
+                            st.stop()
+                    else:
+                        # Fallback to legacy payment system if credit system not available
+                        # Collect uploaded files
+                        files_to_upload = []
+                        doc_types = []
+                        
+                        if st.session_state.current_month_actuals:
+                            files_to_upload.append(st.session_state.current_month_actuals)
+                            doc_types.append("current_month_actuals")
+                        
+                        if st.session_state.prior_month_actuals:
+                            files_to_upload.append(st.session_state.prior_month_actuals)
+                            doc_types.append("prior_month_actuals")
+                        
+                        if st.session_state.current_month_budget:
+                            files_to_upload.append(st.session_state.current_month_budget)
+                            doc_types.append("current_month_budget")
+                        
+                        if st.session_state.prior_year_actuals:
+                            files_to_upload.append(st.session_state.prior_year_actuals)
+                            doc_types.append("prior_year_actuals")
+                        
+                        # Import and call the payment redirect function
+                        from pay_per_use.stripe_redirect import create_stripe_job_and_redirect
+                        
+                        logger.info(f"Credit system unavailable - redirecting to payment for {len(files_to_upload)} files")
+                        add_breadcrumb(
+                            "Redirecting to Stripe payment (fallback)", 
+                            "payment", 
+                            "info",
+                            {
+                                "email": email_input,
+                                "files_count": len(files_to_upload),
+                                "property_name": st.session_state.get('property_name', 'Unknown')
+                            }
+                        )
+                        
+                        create_stripe_job_and_redirect(email_input, files_to_upload, doc_types)
 
         with col2:
             # Enhanced Instructions section using component function
@@ -3944,6 +4050,79 @@ def main():
                         st.session_state.template_viewed = False # Ensure template is shown
                         add_breadcrumb("Document extraction successful", "processing", "info")
                         logger.info("Document extraction successful. Data stored. Proceeding to template display.")
+                        
+                        # Deduct credits after successful document processing (if using credit system)
+                        if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
+                            email = st.session_state.get('user_email', '')
+                            if email:
+                                try:
+                                    # Import the credit service function
+                                    from utils.credit_ui import get_user_credits
+                                    import requests
+                                    import os
+                                    
+                                    # Deduct credits via API call
+                                    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+                                    response = requests.post(
+                                        f"{backend_url}/pay-per-use/jobs",
+                                        data={
+                                            "email": email,
+                                            "use_credits": "true"
+                                        },
+                                        files={},  # Empty files since we're using existing processed data
+                                        timeout=10
+                                    )
+                                    
+                                    if response.status_code == 200:
+                                        result = response.json()
+                                        credits_deducted = result.get("credits_deducted", 1)
+                                        logger.info(f"Credits deducted successfully: {credits_deducted} for user {email}")
+                                        st.info(f"✅ {credits_deducted} credit(s) deducted for this analysis")
+                                    else:
+                                        logger.warning(f"Failed to deduct credits via API: {response.text}")
+                                        
+                                except Exception as e:
+                                    logger.warning(f"Could not deduct credits: {e}")
+                                    # Continue with processing even if credit deduction fails
+                                    pass
+                        
+                        # Deduct credits after successful document processing (if using credit system)
+                        if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
+                            email = st.session_state.get('user_email', '')
+                            if email and not st.session_state.get('credits_deducted', False):
+                                try:
+                                    import requests
+                                    import os
+                                    import uuid
+                                    
+                                    # Create a unique job ID for this analysis
+                                    job_id = str(uuid.uuid4())
+                                    
+                                    # Deduct credits via API call
+                                    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+                                    response = requests.get(
+                                        f"{backend_url}/pay-per-use/credits/{email}",
+                                        timeout=10
+                                    )
+                                    
+                                    if response.status_code == 200:
+                                        credit_data = response.json()
+                                        if credit_data.get("credits", 0) >= 1:
+                                            # User still has credits, this is just to confirm deduction
+                                            # The actual deduction was confirmed during the button click
+                                            st.session_state.credits_deducted = True
+                                            logger.info(f"Credit deduction confirmed for user {email}")
+                                            st.success("✅ 1 credit used for this analysis")
+                                        else:
+                                            logger.warning(f"User {email} no longer has sufficient credits")
+                                            st.warning("⚠️ Credit balance changed during processing")
+                                    else:
+                                        logger.warning(f"Could not verify credits for {email}")
+                                        
+                                except Exception as e:
+                                    logger.warning(f"Could not verify credit deduction: {e}")
+                                    # Continue with processing even if verification fails
+                                    pass
                     elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
                         error_message = raw_consolidated_data["error"]
                         add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
