@@ -3530,6 +3530,9 @@ def main():
         # Initialize credit system
         if CREDIT_SYSTEM_AVAILABLE:
             init_credit_system()
+            logger.info("Credit system initialized successfully")
+        else:
+            logger.warning("Credit system not available - check utils.credit_ui import")
         
         # Add Sentry breadcrumb for main function start
         add_breadcrumb("Main function started", "app", "info")
@@ -3625,6 +3628,12 @@ def main():
 
     # === TESTING MODE SIDEBAR CONTROLS ===
     st.sidebar.markdown("---")
+    
+    # Debug: Show credit system status
+    if CREDIT_SYSTEM_AVAILABLE:
+        st.sidebar.success("💳 Credit System: Active")
+    else:
+        st.sidebar.error("💳 Credit System: Disabled")
     st.sidebar.markdown("### 🧪 Testing Mode")
     
     # Testing mode toggle
@@ -3705,6 +3714,26 @@ def main():
     
     st.sidebar.markdown("---")
 
+    # Add email input field at the top level - ALWAYS visible
+    email_input = st.text_input(
+        "Email Address",
+        placeholder="Enter your email address",
+        help="We'll track your credits and send you the analysis report",
+        key="user_email_input"
+    )
+    
+    # Store email in session state for credit tracking
+    if email_input:
+        st.session_state.user_email = email_input
+        
+        # Display credit balance and free trial welcome
+        if CREDIT_SYSTEM_AVAILABLE:
+            display_free_trial_welcome(email_input)
+            display_credit_balance(email_input)
+        else:
+            st.sidebar.error("💳 Credit System Unavailable")
+            st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
+    
     # Display initial UI or results based on processing_completed
     if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
         # Show welcome content when no data has been processed and template is not active
@@ -3846,22 +3875,7 @@ def main():
             '''
             , unsafe_allow_html=True)
             
-            # Add email input field 
-            email_input = st.text_input(
-                "Email Address",
-                placeholder="Enter your email address",
-                help="We'll track your credits and send you the analysis report",
-                key="user_email_input"
-            )
-            
-            # Store email in session state for credit tracking
-            if email_input:
-                st.session_state.user_email = email_input
-                
-                # Display credit balance and free trial welcome
-                if CREDIT_SYSTEM_AVAILABLE:
-                    display_free_trial_welcome(email_input)
-                    display_credit_balance(email_input)
+            # Email input is now handled at the top level
             
             if st.button(
                 "Process Documents", 
@@ -3893,7 +3907,8 @@ def main():
                     st.rerun()
                 else:
                     # Production mode - check credits
-                    if not email_input:
+                    user_email = st.session_state.get('user_email', '')
+                    if not user_email:
                         st.error("Please enter your email address to proceed.")
                         st.stop()
                     
@@ -3903,7 +3918,7 @@ def main():
                     
                     # Check if user has enough credits
                     if CREDIT_SYSTEM_AVAILABLE:
-                        has_credits, message = check_credits_for_analysis(email_input)
+                        has_credits, message = check_credits_for_analysis(user_email)
                         
                         if has_credits:
                             # User has credits - proceed with processing
@@ -3917,16 +3932,16 @@ def main():
                             if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
                             if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
                             
-                            logger.info(f"Main page 'Process Documents' clicked for {email_input} with sufficient credits.")
+                            logger.info(f"Main page 'Process Documents' clicked for {user_email} with sufficient credits.")
                             add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info",
-                                           {"email": email_input,
+                                           {"email": user_email,
                                             "property_name": st.session_state.get('property_name', 'Unknown')})
                             
                             st.success(message + " - Starting analysis...")
                             st.rerun()
                         else:
                             # Insufficient credits
-                            logger.info(f"User {email_input} has insufficient credits")
+                            logger.info(f"User {user_email} has insufficient credits")
                             display_insufficient_credits()
                             st.stop()
                     else:
@@ -3960,13 +3975,13 @@ def main():
                             "payment", 
                             "info",
                             {
-                                "email": email_input,
+                                "email": user_email,
                                 "files_count": len(files_to_upload),
                                 "property_name": st.session_state.get('property_name', 'Unknown')
                             }
                         )
                         
-                        create_stripe_job_and_redirect(email_input, files_to_upload, doc_types)
+                        create_stripe_job_and_redirect(user_email, files_to_upload, doc_types)
 
         with col2:
             # Enhanced Instructions section using component function

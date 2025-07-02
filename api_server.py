@@ -35,6 +35,7 @@ from pydantic import BaseModel, Field, validator
 from config.settings import get_settings, API_TITLE, API_DESCRIPTION, API_VERSION
 from src.utils.helpers import get_api_key, validate_required_fields, validate_data, determine_document_type
 from pay_per_use.api import router as pay_per_use_router
+from fastapi.responses import HTMLResponse
 
 # Import the debug logger
 from utils.debug_logger import DebugContextLogger, DebugLoggerSettings
@@ -697,6 +698,67 @@ async def http_error():
         status_code=404, 
         detail="Resource not found - This is a test error to demonstrate logging"
     )
+
+# -------------------------------------------------------------
+# Simple success / cancel pages for Stripe Checkout redirects
+# -------------------------------------------------------------
+
+@app.get("/payment-success", response_class=HTMLResponse)
+async def payment_success():
+    """Minimal HTML page shown after a successful Stripe payment."""
+    return """
+    <html>
+        <head>
+            <title>Payment Successful</title>
+            <meta charset='utf-8'/>
+            <style>
+                body {font-family: Arial, sans-serif; text-align: center; padding-top: 4rem;}
+                .card {display: inline-block; padding: 2rem 3rem; border: 1px solid #e1e1e1; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);} 
+                h1 {color: #28a745; margin-bottom: 1rem;}
+                p {color: #444;}
+                a {color: #0d6efd; text-decoration: none;}
+            </style>
+        </head>
+        <body>
+            <div class='card'>
+                <h1>✅ Payment successful!</h1>
+                <p>Thank you. Your purchase is confirmed and processing has started.</p>
+                <p>Check your email for your report or updated credit balance.</p>
+                <p><a href='/'>Return to app</a></p>
+            </div>
+            <script>
+                // Auto-close tab after 5 s if it was opened in a new tab
+                setTimeout(function(){ window.close(); }, 5000);
+            </script>
+        </body>
+    </html>
+    """
+
+@app.get("/payment-cancel", response_class=HTMLResponse)
+async def payment_cancel():
+    """Minimal HTML page shown if the customer cancels at Stripe."""
+    return """
+    <html>
+        <head>
+            <title>Payment Cancelled</title>
+            <meta charset='utf-8'/>
+            <style>
+                body {font-family: Arial, sans-serif; text-align: center; padding-top: 4rem;}
+                .card {display: inline-block; padding: 2rem 3rem; border: 1px solid #e1e1e1; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);} 
+                h1 {color: #dc3545; margin-bottom: 1rem;}
+                p {color: #444;}
+                a {color: #0d6efd; text-decoration: none;}
+            </style>
+        </head>
+        <body>
+            <div class='card'>
+                <h1>❌ Payment cancelled</h1>
+                <p>Your payment wasn't completed, so no charges were made.</p>
+                <p>You can close this window or <a href='/'>return to the app</a> to try again.</p>
+            </div>
+        </body>
+    </html>
+    """
 
 app.include_router(pay_per_use_router)
 
