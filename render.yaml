@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: noi-analyzer-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python api_server.py
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 8000
+      - key: HOST
+        value: 0.0.0.0
+    # Add your environment variables here:
+    # - key: STRIPE_SECRET_KEY
+    #   value: your_stripe_secret_key
+    # - key: RESEND_API_KEY  
+    #   value: your_resend_api_key 
