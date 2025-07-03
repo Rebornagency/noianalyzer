@@ -1,7 +1,9 @@
-# Minimal requirements for credit system API only
-# Core web framework
+# Ultra-minimal requirements for credit system API only
+# NO pandas, numpy, or any data processing libraries
+
+# Core web framework - minimal versions
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn==0.24.0
 
 # Payment processing
 stripe==7.8.0
@@ -9,38 +11,13 @@ stripe==7.8.0
 # Email service
 resend==2.10.0
 
-# HTTP requests
+# HTTP client
 requests==2.31.0
 
-# Environment variables
+# Environment
 python-dotenv==1.0.0
 
-# Database
-sqlalchemy==2.0.23
-alembic==1.13.1
+# Database (using sqlite3 which is built-in to Python)
+# No SQLAlchemy or other ORMs to avoid dependencies
 
-# Security
-passlib[bcrypt]==1.7.4
-
-# Validation
-pydantic==2.5.0
-
-# Date/time utilities
-python-dateutil==2.8.2
-
-# UUID generation (built-in to Python, but some systems need this)
-uuid==1.30
-
-# JSON handling (built-in to Python)
-# No additional JSON libraries needed
-
-# REMOVED: All document processing libraries that require compilation
-# - pandas
-# - numpy  
-# - pdfplumber
-# - openpyxl
-# - python-docx
-# - streamlit
-# - jinja2
-# - weasyprint
-# - Pillow 
+# That's it - absolutely minimal set! 
