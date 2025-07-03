@@ -148,17 +148,38 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         if path == "/health":
             self._send_json_response({"status": "healthy", "service": "credit-api"})
             
+        elif path == "/packages" or path == "/pay-per-use/packages":
+            # Convert CREDIT_PACKAGES dict into list with extra fields expected by UI
+            packages_list = []
+            for package_id, info in CREDIT_PACKAGES.items():
+                per_credit = info['price'] / 100 / info['credits']
+                packages_list.append({
+                    "package_id": package_id,
+                    "name": info['name'],
+                    "credits": info['credits'],
+                    "price_cents": info['price'],
+                    "price_dollars": info['price'] / 100,
+                    "per_credit_cost": per_credit,
+                    "description": f"Top up {info['credits']} credits"
+                })
+            self._send_json_response(packages_list)
+        
+        elif path.startswith("/pay-per-use/credits/"):
+            # Extract email from path
+            email = path.split("/pay-per-use/credits/")[-1]
+            if not email:
+                self._send_error("Email required")
+                return
+            credits = self.db.get_credits(email)
+            self._send_json_response({"email": email, "credits": credits, "recent_transactions": []})
+        
         elif path == "/credits":
             email = query_params.get('email', [None])[0]
             if not email:
                 self._send_error("Email parameter required")
                 return
-            
             credits = self.db.get_credits(email)
             self._send_json_response({"email": email, "credits": credits})
-            
-        elif path == "/packages":
-            self._send_json_response(CREDIT_PACKAGES)
             
         else:
             self._send_error("Endpoint not found", 404)
@@ -169,31 +190,32 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         path = parsed_url.path
         data = self._get_post_data()
         
-        if path == "/create-checkout":
+        if path == "/create-checkout" or path == "/pay-per-use/credits/purchase":
             # Simplified checkout creation (mock Stripe response)
-            email = data.get('email')
-            package = data.get('package')
+            if path == "/pay-per-use/credits/purchase":
+                # Form data (x-www-form-urlencoded) used by Streamlit call
+                email = data.get('email')
+                package = data.get('package_id')
+            else:
+                email = data.get('email')
+                package = data.get('package')
             
             if not email or not package:
                 self._send_error("Email and package required")
                 return
-            
             if package not in CREDIT_PACKAGES:
                 self._send_error("Invalid package")
                 return
-            
             package_info = CREDIT_PACKAGES[package]
             transaction_id = self.db.create_transaction(
                 email, package, package_info['credits'], package_info['price']
             )
-            
-            # Mock checkout URL (in real implementation, this would be Stripe)
             checkout_url = f"https://mock-checkout.example.com/pay/{transaction_id}"
-            
-            self._send_json_response({
-                "checkout_url": checkout_url,
-                "transaction_id": transaction_id
-            })
+            self._send_json_response({"checkout_url": checkout_url, "transaction_id": transaction_id})
+        
+        elif path == "/pay-per-use/init":
+            # No-op initializer for frontend; just return OK
+            self._send_json_response({"status": "initialized"})
             
         elif path == "/mock-payment-success":
             # Mock payment success (for testing)
