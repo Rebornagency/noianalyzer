@@ -1,0 +1,13 @@
+# Ultra-minimal requirements - ZERO external dependencies
+# This server uses only Python built-in modules:
+# - http.server
+# - sqlite3 
+# - json
+# - os
+# - logging
+# - urllib.parse
+# - uuid
+# - threading
+# - time
+
+# NO EXTERNAL PACKAGES NEEDED! 
