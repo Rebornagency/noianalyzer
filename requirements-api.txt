@@ -1,18 +1,8 @@
-# Ultra-minimal requirements for credit system API only
-# NO pandas, numpy, or any data processing libraries
-
-# Core web framework - minimal versions
+# ABSOLUTE MINIMAL - Only 4 essential packages
 fastapi==0.104.1
 uvicorn==0.24.0
-
-# Payment processing
-stripe==7.8.0
-
-# Email service
-resend==2.10.0
-
-# HTTP client
-requests==2.31.0
+stripe==6.8.0
+python-dotenv==1.0.0
 
 # Environment
 python-dotenv==1.0.0

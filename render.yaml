@@ -3,7 +3,7 @@ services:
     name: noi-analyzer-api
     env: python
     buildCommand: pip install -r requirements-api.txt
-    startCommand: uvicorn api_server_minimal:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn api_server_credit_only:app --host 0.0.0.0 --port $PORT
     plan: free
     envVars:
       - key: PYTHON_VERSION
