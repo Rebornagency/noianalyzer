@@ -763,13 +763,11 @@ async def payment_cancel():
 app.include_router(pay_per_use_router)
 
 if __name__ == "__main__":
-    # Get settings
-    settings = get_settings()
-    
-    # Start server
+    import uvicorn
+    # For local development
     uvicorn.run(
         "api_server:app",
-        host=settings['api']['host'],
-        port=settings['api']['port'],
-        reload=settings['api']['debug']
+        host="0.0.0.0",
+        port=8000,
+        reload=True
     )
