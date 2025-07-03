@@ -15,8 +15,14 @@ def get_user_credits(email: str) -> Optional[Dict[str, Any]]:
         if response.status_code == 200:
             return response.json()
         else:
-            logger.error(f"Failed to get credits for {email}: {response.text}")
+            logger.error(f"Failed to get credits for {email}: HTTP {response.status_code} - {response.text[:200]}")
             return None
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"Cannot connect to backend API at {BACKEND_URL}: {e}")
+        return None
+    except requests.exceptions.Timeout as e:
+        logger.error(f"Timeout connecting to backend API at {BACKEND_URL}: {e}")
+        return None
     except Exception as e:
         logger.error(f"Error getting credits: {e}")
         return None
@@ -34,14 +40,29 @@ def get_credit_packages() -> list:
         logger.error(f"Error getting packages: {e}")
         return []
 
+def test_backend_connection() -> bool:
+    """Test if backend API is available"""
+    try:
+        response = requests.get(f"{BACKEND_URL}/health", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
 def display_credit_balance(email: str):
     """Display user's credit balance in sidebar"""
     if not email:
         return
     
+    # First test if backend is available
+    if not test_backend_connection():
+        st.sidebar.error("💳 Backend API Unavailable")
+        st.sidebar.info(f"🔧 **Debug Info:**\n- Backend URL: `{BACKEND_URL}`\n- The API server is not responding\n- Start it with: `python api_server.py`")
+        return
+    
     credit_data = get_user_credits(email)
     if not credit_data:
-        st.sidebar.error("Unable to load credit balance")
+        st.sidebar.error("💳 Unable to load credit balance")
+        st.sidebar.info(f"🔧 **Debug Info:**\n- Backend URL: `{BACKEND_URL}`\n- Make sure your API server is running\n- Check that API server includes the `/pay-per-use/credits/{email}` endpoint")
         return
     
     credits = credit_data.get("credits", 0)
