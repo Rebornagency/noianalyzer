@@ -3796,10 +3796,7 @@ def main():
             st.markdown('<div class="options-container">', unsafe_allow_html=True)
             st.markdown('<h3 class="options-header">Display Options</h3>', unsafe_allow_html=True)
 
-            # Create a row for the options
-            options_col1, options_col2 = st.columns(2)
-
-            # Show Zero Values toggle (now full width since theme toggle moved to header)
+            # Show Zero Values toggle (full width since theme toggle moved to header)
             show_zero_values = st.checkbox(
                 "Show Zero Values", 
                 value=st.session_state.show_zero_values,
