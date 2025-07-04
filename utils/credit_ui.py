@@ -6,7 +6,31 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+def get_backend_url():
+    """Get the correct backend URL by testing available options"""
+    backend_url = os.getenv("BACKEND_URL")
+    if backend_url:
+        return backend_url
+    
+    # Try common ports
+    test_urls = [
+        "http://localhost:8000",  # FastAPI servers
+        "http://localhost:10000"  # Ultra minimal server
+    ]
+    
+    for url in test_urls:
+        try:
+            response = requests.get(f"{url}/health", timeout=2)
+            if response.status_code == 200:
+                return url
+        except:
+            continue
+    
+    # Default fallback
+    return "http://localhost:8000"
+
+# Update the global BACKEND_URL
+BACKEND_URL = get_backend_url()
 
 def get_user_credits(email: str) -> Optional[Dict[str, Any]]:
     """Get user credit information from API"""
@@ -168,7 +192,7 @@ def display_credit_store():
     st.markdown("### Choose a Credit Package")
     st.markdown("Credits never expire and can be used for any NOI analysis.")
     
-    # Display packages in columns
+    # Display packages in columns using Streamlit native components
     cols = st.columns(min(len(packages), 3))
     
     for idx, package in enumerate(packages):
@@ -176,68 +200,101 @@ def display_credit_store():
         
         with col:
             # Calculate savings
-            if idx == 0:
-                savings_text = ""
-            else:
+            savings_text = ""
+            if idx > 0 and len(packages) > 1:
                 base_per_credit = packages[0]["per_credit_cost"]
                 current_per_credit = package["per_credit_cost"]
                 savings_percent = ((base_per_credit - current_per_credit) / base_per_credit) * 100
                 if savings_percent > 0:
-                    savings_text = f"<span style='color: #22C55E; font-weight: bold;'>Save {savings_percent:.0f}%!</span>"
+                    savings_text = f"Save {savings_percent:.0f}%!"
+            
+            # Use Streamlit container for styling
+            with st.container():
+                # Package title
+                if idx == 1:  # Highlight middle package
+                    st.markdown(f"### 🔥 **{package['name']}**")
                 else:
-                    savings_text = ""
-            
-            # Package card
-            st.markdown(
-                f"""
-                <div style="
-                    border: 2px solid #E5E7EB;
-                    border-radius: 12px;
-                    padding: 1.5rem;
-                    text-align: center;
-                    background: white;
-                    margin-bottom: 1rem;
-                    {('border-color: #3B82F6; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);' if idx == 1 else '')}
-                ">
-                    <h3 style="margin-bottom: 0.5rem; color: #1F2937;">{package['name']}</h3>
-                    <div style="font-size: 2rem; font-weight: bold; color: #1F2937; margin-bottom: 0.5rem;">
-                        {package['credits']} Credits
-                    </div>
-                    <div style="font-size: 1.5rem; color: #3B82F6; margin-bottom: 0.5rem;">
-                        ${package['price_dollars']:.2f}
-                    </div>
-                    <div style="color: #6B7280; font-size: 0.9rem; margin-bottom: 0.5rem;">
-                        ${package['per_credit_cost']:.2f} per credit
-                    </div>
-                    {savings_text}
-                    <div style="color: #6B7280; font-size: 0.8rem; margin-top: 1rem;">
-                        {package['description']}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            
-            # Purchase button
-            email = st.session_state.get('user_email', '')
-            if email and st.button(f"Buy {package['name']}", key=f"buy_{package['package_id']}", use_container_width=True):
-                purchase_credits(email, package['package_id'], package['name'])
+                    st.markdown(f"### {package['name']}")
+                
+                # Credits amount
+                st.markdown(f"**{package['credits']} Credits**")
+                
+                # Price
+                st.markdown(f"### ${package['price_dollars']:.2f}")
+                
+                # Per credit cost
+                st.markdown(f"*${package['per_credit_cost']:.2f} per credit*")
+                
+                # Savings badge
+                if savings_text:
+                    st.success(savings_text)
+                
+                # Description
+                st.caption(package.get('description', f"Top up {package['credits']} credits"))
+                
+                # Purchase button
+                email = st.session_state.get('user_email', '')
+                button_key = f"buy_{package['package_id']}"
+                
+                if not email:
+                    st.warning("Please enter your email in the main app to purchase credits.")
+                elif st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary" if idx == 1 else "secondary"):
+                    purchase_credits(email, package['package_id'], package['name'])
+                
+                # Add spacing between cards
+                st.markdown("---")
 
 def purchase_credits(email: str, package_id: str, package_name: str):
     """Handle credit purchase"""
     try:
+        # Add debug logging
+        logger.info(f"Attempting to purchase credits: email={email}, package_id={package_id}, package_name={package_name}")
+        logger.info(f"Backend URL: {BACKEND_URL}")
+        
+        # Test backend connection first
+        if not test_backend_connection():
+            st.error("❌ **Backend API Unavailable**")
+            st.info(f"""
+            **Debug Information:**
+            - Backend URL: `{BACKEND_URL}`
+            - The API server is not responding
+            - Please ensure the API server is running
+            
+            **Quick Fix:**
+            Try running one of these commands to start the API server:
+            ```
+            python api_server_minimal.py
+            ```
+            or
+            ```
+            python ultra_minimal_api.py
+            ```
+            """)
+            return
+        
+        # Make the purchase request
+        url = f"{BACKEND_URL}/pay-per-use/credits/purchase"
+        data = {"email": email, "package_id": package_id}
+        
+        logger.info(f"Making POST request to: {url}")
+        logger.info(f"Request data: {data}")
+        
         response = requests.post(
-            f"{BACKEND_URL}/pay-per-use/credits/purchase",
-            data={"email": email, "package_id": package_id},
-            timeout=30
+            url,
+            data=data,
+            timeout=30,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
         )
+        
+        logger.info(f"Response status code: {response.status_code}")
+        logger.info(f"Response text: {response.text[:500]}...")  # Log first 500 chars
         
         if response.status_code == 200:
             result = response.json()
             checkout_url = result.get('checkout_url')
             
             if checkout_url:
-                st.success(f"Redirecting to checkout for {package_name}...")
+                st.success(f"✅ Redirecting to checkout for {package_name}...")
                 
                 # JavaScript redirect
                 st.markdown(f"""
@@ -249,12 +306,66 @@ def purchase_credits(email: str, package_id: str, package_name: str):
                 # Fallback link
                 st.markdown(f"If you're not redirected automatically, [click here to complete purchase]({checkout_url})")
             else:
-                st.error("Failed to create checkout session.")
+                st.error("❌ Failed to create checkout session.")
+                st.info(f"Server response: {result}")
         else:
-            st.error(f"Failed to initiate purchase: {response.text}")
+            error_msg = f"Failed to initiate purchase: {response.text}"
+            st.error(f"❌ {error_msg}")
             
+            # Show detailed error info
+            with st.expander("🔧 Debug Information"):
+                st.code(f"""
+Status Code: {response.status_code}
+URL: {url}
+Request Data: {data}
+Response: {response.text}
+                """)
+                
+                # Suggest alternative solutions
+                st.markdown("""
+                **Possible Solutions:**
+                1. Check if the API server is running
+                2. Verify the BACKEND_URL environment variable
+                3. Check if the package_id is valid
+                4. Try refreshing the page and trying again
+                """)
+            
+    except requests.exceptions.ConnectionError as e:
+        st.error("❌ **Connection Error**")
+        st.error("Cannot connect to the backend API server.")
+        with st.expander("🔧 Technical Details"):
+            st.code(f"""
+Backend URL: {BACKEND_URL}
+Error: {str(e)}
+            """)
+            st.markdown("""
+            **Solutions:**
+            1. Make sure the API server is running
+            2. Check your internet connection
+            3. Verify the BACKEND_URL is correct
+            """)
+        
+    except requests.exceptions.Timeout as e:
+        st.error("❌ **Request Timeout**")
+        st.error("The request took too long to complete.")
+        st.info("Please try again. If the problem persists, contact support.")
+        
     except Exception as e:
-        st.error(f"Error initiating purchase: {str(e)}")
+        logger.error(f"Unexpected error during purchase: {str(e)}", exc_info=True)
+        st.error(f"❌ **Unexpected Error**")
+        st.error(f"An unexpected error occurred: {str(e)}")
+        with st.expander("🔧 Technical Details"):
+            st.code(f"""
+Error Type: {type(e).__name__}
+Error Message: {str(e)}
+Backend URL: {BACKEND_URL}
+            """)
+            st.markdown("""
+            **Next Steps:**
+            1. Try refreshing the page
+            2. Check that all required information is correct
+            3. Contact support if the issue persists
+            """)
 
 def check_credits_for_analysis(email: str) -> tuple[bool, str]:
     """Check if user has enough credits for analysis"""

@@ -121,12 +121,30 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         self._send_json_response({"error": message}, status)
     
     def _get_post_data(self):
-        """Get POST data from request"""
+        """Get POST data from request - handle both JSON and form-encoded data"""
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             if content_length > 0:
                 post_data = self.rfile.read(content_length)
-                return json.loads(post_data.decode('utf-8'))
+                content_type = self.headers.get('Content-Type', '')
+                
+                if 'application/json' in content_type:
+                    # Parse JSON data
+                    return json.loads(post_data.decode('utf-8'))
+                elif 'application/x-www-form-urlencoded' in content_type:
+                    # Parse form-encoded data
+                    from urllib.parse import parse_qs
+                    parsed = parse_qs(post_data.decode('utf-8'))
+                    # Convert lists to single values
+                    return {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in parsed.items()}
+                else:
+                    # Try to parse as JSON first, then as form data
+                    try:
+                        return json.loads(post_data.decode('utf-8'))
+                    except json.JSONDecodeError:
+                        from urllib.parse import parse_qs
+                        parsed = parse_qs(post_data.decode('utf-8'))
+                        return {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in parsed.items()}
         except Exception as e:
             logger.error(f"Error parsing POST data: {e}")
         return {}
@@ -190,6 +208,9 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         path = parsed_url.path
         data = self._get_post_data()
         
+        logger.info(f"POST request to {path}")
+        logger.info(f"Request data: {data}")
+        
         if path == "/create-checkout" or path == "/pay-per-use/credits/purchase":
             # Simplified checkout creation (mock Stripe response)
             if path == "/pay-per-use/credits/purchase":
@@ -200,27 +221,61 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 email = data.get('email')
                 package = data.get('package')
             
-            if not email or not package:
-                self._send_error("Email and package required")
+            logger.info(f"Purchase request - Email: {email}, Package: {package}")
+            
+            if not email:
+                logger.error("Purchase failed: No email provided")
+                self._send_error("Email is required")
                 return
+                
+            if not package:
+                logger.error("Purchase failed: No package_id provided")
+                self._send_error("Package ID is required")
+                return
+                
             if package not in CREDIT_PACKAGES:
-                self._send_error("Invalid package")
+                logger.error(f"Purchase failed: Invalid package '{package}'. Available: {list(CREDIT_PACKAGES.keys())}")
+                self._send_error(f"Invalid package '{package}'. Available packages: {', '.join(CREDIT_PACKAGES.keys())}")
                 return
+                
             package_info = CREDIT_PACKAGES[package]
-            transaction_id = self.db.create_transaction(
-                email, package, package_info['credits'], package_info['price']
-            )
-            checkout_url = f"https://mock-checkout.example.com/pay/{transaction_id}"
-            self._send_json_response({"checkout_url": checkout_url, "transaction_id": transaction_id})
+            logger.info(f"Creating transaction for {email} - Package: {package_info['name']}")
+            
+            try:
+                transaction_id = self.db.create_transaction(
+                    email, package, package_info['credits'], package_info['price']
+                )
+                
+                # Create a mock checkout URL
+                checkout_url = f"https://mock-checkout.example.com/pay/{transaction_id}"
+                
+                logger.info(f"Transaction created successfully: {transaction_id}")
+                
+                response_data = {
+                    "checkout_url": checkout_url, 
+                    "transaction_id": transaction_id,
+                    "package": package_info['name'],
+                    "credits": package_info['credits'],
+                    "price": package_info['price'] / 100
+                }
+                
+                self._send_json_response(response_data)
+                
+            except Exception as e:
+                logger.error(f"Failed to create transaction: {e}")
+                self._send_error(f"Failed to create transaction: {str(e)}")
         
         elif path == "/pay-per-use/init":
             # No-op initializer for frontend; just return OK
-            self._send_json_response({"status": "initialized"})
+            logger.info("System initialization requested")
+            self._send_json_response({"status": "initialized", "packages": len(CREDIT_PACKAGES)})
             
         elif path == "/mock-payment-success":
             # Mock payment success (for testing)
             transaction_id = data.get('transaction_id')
             email = data.get('email')
+            
+            logger.info(f"Mock payment success - Transaction: {transaction_id}, Email: {email}")
             
             if not transaction_id or not email:
                 self._send_error("Transaction ID and email required")
@@ -233,6 +288,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 credits = CREDIT_PACKAGES[package]['credits']
                 self.db.add_credits(email, credits)
                 
+                logger.info(f"Added {credits} credits to {email}")
+                
                 self._send_json_response({
                     "success": True,
                     "credits_added": credits,
@@ -242,6 +299,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 self._send_error("Invalid package")
                 
         else:
+            logger.warning(f"Unknown POST endpoint: {path}")
             self._send_error("Endpoint not found", 404)
 
 def run_server():
