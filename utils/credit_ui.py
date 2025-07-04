@@ -381,14 +381,20 @@ def purchase_credits(email: str, package_id: str, package_name: str):
             checkout_url = result.get('checkout_url')
             
             if checkout_url:
-                # Check if this is a mock URL from the minimal API
-                if "mock-checkout.example.com" in checkout_url:
-                    # Handle mock checkout with simulated success
+                # Check if this is a mock/development URL that should be simulated
+                is_mock_url = ("mock-checkout.example.com" in checkout_url or 
+                              "localhost:" in checkout_url or
+                              "127.0.0.1:" in checkout_url)
+                
+                if is_mock_url:
+                    # Handle mock/localhost checkout with simulated success
                     st.success(f"✅ **Purchase Initiated!**")
                     st.info(f"""
                     **{package_name}** - {result.get('credits', 0)} credits for ${result.get('price', 0):.2f}
                     
                     🎯 **Development Mode**: This is a simulated purchase for testing purposes.
+                    
+                    **Note**: The backend returned a localhost URL, indicating it's in development mode.
                     """)
                     
                     # Simulate payment completion after a short delay
@@ -422,8 +428,40 @@ def purchase_credits(email: str, package_id: str, package_name: str):
                                 st.session_state.credits_updated = True
                                 time.sleep(1)
                                 st.rerun()
+                            elif complete_response.status_code == 404:
+                                # Complete-payment endpoint doesn't exist, provide manual instruction
+                                st.warning(f"""
+                                ⚠️ **Payment Simulation Completed**
+                                
+                                The backend server doesn't have payment completion functionality.
+                                This means you're likely connected to a production server in development mode.
+                                
+                                **Transaction Details:**
+                                - **Package**: {package_name}
+                                - **Credits**: {result.get('credits', 0)}
+                                - **Amount**: ${result.get('price', 0):.2f}
+                                - **Transaction ID**: {transaction_id}
+                                
+                                **Next Steps:**
+                                1. Refresh the page to check if credits were added automatically
+                                2. Contact support if credits don't appear within a few minutes
+                                """)
                             else:
                                 st.warning("Payment simulation completed, but credit update failed. Please refresh the page.")
+                        except requests.exceptions.RequestException as e:
+                            logger.error(f"Error completing mock payment (connection error): {e}")
+                            st.warning(f"""
+                            ⚠️ **Payment Initiated Successfully**
+                            
+                            Could not connect to payment completion service, but your purchase request was processed.
+                            
+                            **What to do:**
+                            1. **Refresh the page** to check if credits were added
+                            2. **Wait a few minutes** for processing to complete
+                            3. **Contact support** if credits don't appear
+                            
+                            **Transaction ID**: {transaction_id}
+                            """)
                         except Exception as e:
                             logger.error(f"Error completing mock payment: {e}")
                             st.warning("Payment completed but there was an issue updating credits. Please refresh the page.")

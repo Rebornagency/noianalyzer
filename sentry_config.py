@@ -68,8 +68,8 @@ def init_sentry():
         
         if HAS_LOGGING_INTEGRATION:
             integrations.append(LoggingIntegration(
-                level=logging.INFO,
-                event_level=logging.ERROR,
+                level=logging.WARNING,  # Only capture warnings and above
+                event_level=logging.ERROR,  # Only send errors as events
             ))
         
         if HAS_PANDAS_INTEGRATION:
@@ -111,8 +111,8 @@ def init_sentry():
             # Set max breadcrumbs
             max_breadcrumbs=100,
             
-            # Debug mode (only in development)
-            debug=environment == "development",
+            # Debug mode - disabled to reduce log noise
+            debug=False,
             
             # Enable log capture for breadcrumbs / events
             _experiments={
