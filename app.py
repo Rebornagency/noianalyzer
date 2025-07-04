@@ -4944,9 +4944,6 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
         
-        # ADD THIS: Empty space between title and uploader for better spacing
-        st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
-        
         # 2. Add the file uploader - not wrapped in HTML
         uploaded_file = st.file_uploader(
             f"Upload {title}",
@@ -5030,21 +5027,16 @@ def property_input(value=""):
     Returns:
         The entered property name
     """
-    with st.container():
-        # Header only - don't try to wrap the input widget in HTML
-        st.markdown("""
-        <div class="upload-card-header">
-            <h3>Property Information</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Property name input - not wrapped in HTML
-        property_name = st.text_input(
-            "Property Name",
-            value=value,
-            help="Enter the name of the property being analyzed",
-            key="main_property_name_input"
-        )
+    # Simple header without extra containers
+    st.markdown("### Property Information")
+    
+    # Property name input - clean and simple
+    property_name = st.text_input(
+        "Property Name",
+        value=value,
+        help="Enter the name of the property being analyzed",
+        key="main_property_name_input"
+    )
     
     return property_name
 
