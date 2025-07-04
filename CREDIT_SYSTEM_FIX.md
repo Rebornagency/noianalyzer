@@ -2,16 +2,112 @@
 
 ## Issues Fixed
 
-### 1. HTML Display Problem
+### 1. HTML Display Problem ✅
 - **Problem**: Raw HTML was showing instead of rendered cards in the credit purchase interface
 - **Solution**: Replaced complex HTML with Streamlit native components for better compatibility
 
-### 2. Purchase API Error
+### 2. Purchase API Error ✅
 - **Problem**: "Email and package required" error when clicking purchase buttons
 - **Solution**: 
   - Fixed form data parsing in API server to handle both JSON and form-encoded data
   - Added better error handling and debugging
   - Improved backend URL auto-detection
+
+### 3. Mock Checkout URL Issue ✅
+- **Problem**: Checkout URLs were pointing to `mock-checkout.example.com` which doesn't work
+- **Solution**: 
+  - Smart detection of mock vs real checkout URLs
+  - Automatic payment simulation for development/testing
+  - Graceful fallback to production server
+
+## How the Credit System Now Works
+
+### 🔄 **Automatic Backend Detection**
+The system now automatically tries backends in this order:
+1. **Production Server**: `https://noianalyzer-1.onrender.com` (primary)
+2. **Local FastAPI**: `http://localhost:8000` 
+3. **Local Minimal**: `http://localhost:10000`
+
+### 💳 **Smart Purchase Flow**
+
+#### For Mock/Development URLs:
+- Shows "Purchase Initiated" with package details
+- Simulates payment processing (2-second delay)
+- Automatically adds credits to account
+- Updates credit balance in real-time
+- Shows success confirmation
+
+#### For Real Stripe URLs:
+- Opens checkout in new tab/window
+- Shows fallback link if redirect fails
+- Handles real payment processing
+
+## Testing the System
+
+### ✅ **Quick Test**
+1. Enter your email in the NOI Analyzer
+2. Click "🛒 Buy Credits" in the sidebar or main header
+3. Choose any package and click "Buy [Package Name]"
+4. You should see either:
+   - **Development Mode**: Automatic simulation and credit addition
+   - **Production Mode**: Redirect to real Stripe checkout
+
+### 🔧 **Troubleshooting**
+
+#### If "Redirecting to checkout..." shows but nothing happens:
+1. **Check your backend**: Look for `Backend connected successfully` in logs
+2. **Try refreshing**: Sometimes the first connection takes a moment
+3. **Check popup blockers**: Ensure your browser allows popups
+
+#### If you see "Backend API Unavailable":
+1. The system will show debug information
+2. Try refreshing the page
+3. Check that you're connected to the internet
+
+#### If credits don't update after purchase:
+1. Refresh the page manually
+2. Check the sidebar for updated balance
+3. Look for success messages in the interface
+
+## Production vs Development
+
+### 🌐 **Production Mode** (`https://noianalyzer-1.onrender.com`)
+- Real Stripe integration
+- Actual payment processing
+- Credits added via webhooks
+
+### 🛠️ **Development Mode** (Local servers)
+- Simulated payments
+- Instant credit addition
+- Perfect for testing
+
+## Environment Variables
+
+```bash
+# Optional: Force a specific backend
+export BACKEND_URL="https://your-custom-backend.com"
+
+# For production Stripe (not needed for development)
+export STRIPE_SECRET_KEY="sk_..."
+export STRIPE_WEBHOOK_SECRET="whsec_..."
+```
+
+## Success Indicators
+
+✅ **Working correctly when you see:**
+- Credit balance in top-right header
+- "Backend connected successfully" in logs
+- Smooth purchase flow without errors
+- Credits update after purchase
+
+❌ **Needs attention when you see:**
+- "Backend API Unavailable" messages
+- "Failed to initiate purchase" errors
+- Credits not updating after payment
+
+---
+
+**Latest Update**: Credit system now handles both development and production environments seamlessly with smart URL detection and automatic payment simulation for testing.
 
 ## How to Start the Credit System
 

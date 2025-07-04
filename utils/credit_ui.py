@@ -3,6 +3,7 @@ import requests
 import os
 from typing import Dict, Any, Optional
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -12,22 +13,25 @@ def get_backend_url():
     if backend_url:
         return backend_url
     
-    # Try common ports
+    # Try production server first since it's more likely to be working
     test_urls = [
+        "https://noianalyzer-1.onrender.com",  # Production server (primary)
         "http://localhost:8000",  # FastAPI servers
         "http://localhost:10000"  # Ultra minimal server
     ]
     
     for url in test_urls:
         try:
-            response = requests.get(f"{url}/health", timeout=2)
+            response = requests.get(f"{url}/health", timeout=5)
             if response.status_code == 200:
+                logger.info(f"Backend connected successfully: {url}")
                 return url
         except:
             continue
     
-    # Default fallback
-    return "http://localhost:8000"
+    # Default fallback to production
+    logger.warning("No backend server responding, using production as fallback")
+    return "https://noianalyzer-1.onrender.com"
 
 # Update the global BACKEND_URL
 BACKEND_URL = get_backend_url()
@@ -377,17 +381,65 @@ def purchase_credits(email: str, package_id: str, package_name: str):
             checkout_url = result.get('checkout_url')
             
             if checkout_url:
-                st.success(f"✅ Redirecting to checkout for {package_name}...")
-                
-                # JavaScript redirect
-                st.markdown(f"""
-                <script>
-                window.open('{checkout_url}', '_self');
-                </script>
-                """, unsafe_allow_html=True)
-                
-                # Fallback link
-                st.markdown(f"If you're not redirected automatically, [click here to complete purchase]({checkout_url})")
+                # Check if this is a mock URL from the minimal API
+                if "mock-checkout.example.com" in checkout_url:
+                    # Handle mock checkout with simulated success
+                    st.success(f"✅ **Purchase Initiated!**")
+                    st.info(f"""
+                    **{package_name}** - {result.get('credits', 0)} credits for ${result.get('price', 0):.2f}
+                    
+                    🎯 **Development Mode**: This is a simulated purchase for testing purposes.
+                    """)
+                    
+                    # Simulate payment completion after a short delay
+                    time.sleep(2)
+                    
+                    # Make a request to complete the payment
+                    transaction_id = result.get('transaction_id')
+                    if transaction_id:
+                        try:
+                            # Try to complete the mock payment
+                            complete_url = f"{BACKEND_URL}/complete-payment"
+                            complete_response = requests.post(
+                                complete_url,
+                                json={"transaction_id": transaction_id},
+                                timeout=10
+                            )
+                            
+                            if complete_response.status_code == 200:
+                                complete_result = complete_response.json()
+                                st.success(f"""
+                                🎉 **Payment Completed Successfully!**
+                                
+                                - **Credits Added**: {complete_result.get('credits_added', 0)}
+                                - **New Balance**: {complete_result.get('new_balance', 0)} credits
+                                - **Email**: {complete_result.get('email', email)}
+                                
+                                You can now use your credits for NOI analysis!
+                                """)
+                                
+                                # Refresh the credit display
+                                st.session_state.credits_updated = True
+                                time.sleep(1)
+                                st.rerun()
+                            else:
+                                st.warning("Payment simulation completed, but credit update failed. Please refresh the page.")
+                        except Exception as e:
+                            logger.error(f"Error completing mock payment: {e}")
+                            st.warning("Payment completed but there was an issue updating credits. Please refresh the page.")
+                else:
+                    # Real checkout URL - use standard redirect
+                    st.success(f"✅ Redirecting to checkout for {package_name}...")
+                    
+                    # JavaScript redirect
+                    st.markdown(f"""
+                    <script>
+                    window.open('{checkout_url}', '_blank');
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
+                    # Fallback link
+                    st.markdown(f"If you're not redirected automatically, [click here to complete purchase]({checkout_url})")
             else:
                 st.error("❌ Failed to create checkout session.")
                 st.info(f"Server response: {result}")

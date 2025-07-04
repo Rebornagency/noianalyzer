@@ -199,6 +199,95 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
             credits = self.db.get_credits(email)
             self._send_json_response({"email": email, "credits": credits})
             
+        elif path.startswith("/checkout/"):
+            # Handle checkout page
+            transaction_id = path.split("/checkout/")[-1]
+            if not transaction_id:
+                self._send_error("Transaction ID required", 404)
+                return
+            
+            # For testing purposes, create a simple checkout page that auto-completes
+            checkout_html = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Credit Purchase - NOI Analyzer</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; text-align: center; padding: 2rem; background: #f5f5f5; }}
+                    .checkout-card {{ 
+                        background: white; 
+                        border-radius: 8px; 
+                        padding: 2rem; 
+                        max-width: 400px; 
+                        margin: 2rem auto; 
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    }}
+                    .spinner {{ 
+                        border: 4px solid #f3f3f3; 
+                        border-top: 4px solid #3498db; 
+                        border-radius: 50%; 
+                        width: 40px; 
+                        height: 40px; 
+                        animation: spin 1s linear infinite; 
+                        margin: 1rem auto;
+                    }}
+                    @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+                    .success {{ color: #28a745; }}
+                    .processing {{ color: #6c757d; }}
+                </style>
+            </head>
+            <body>
+                <div class="checkout-card">
+                    <h2>Credit Purchase</h2>
+                    <div class="spinner"></div>
+                    <p class="processing">Processing your payment...</p>
+                    <p><small>Transaction ID: {transaction_id}</small></p>
+                </div>
+                
+                <script>
+                    // Simulate payment processing and auto-complete
+                    setTimeout(function() {{
+                        fetch('/complete-payment', {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{ transaction_id: '{transaction_id}' }})
+                        }})
+                        .then(response => response.json())
+                        .then(data => {{
+                            if (data.success) {{
+                                document.querySelector('.spinner').style.display = 'none';
+                                document.querySelector('.processing').innerHTML = 
+                                    '<div class="success">✅ Payment successful!<br/>' +
+                                    data.credits_added + ' credits added to your account<br/>' +
+                                    'Redirecting back to the app...</div>';
+                                
+                                // Redirect back to main app after 3 seconds
+                                setTimeout(function() {{
+                                    window.close(); // Try to close the tab first
+                                    window.location.href = 'http://localhost:8501'; // Fallback redirect
+                                }}, 3000);
+                            }} else {{
+                                document.querySelector('.processing').innerHTML = 
+                                    '<div style="color: red;">❌ Payment failed: ' + data.error + '</div>';
+                            }}
+                        }})
+                        .catch(error => {{
+                            document.querySelector('.processing').innerHTML = 
+                                '<div style="color: red;">❌ Payment processing error</div>';
+                        }});
+                    }}, 2000); // 2 second delay to simulate processing
+                </script>
+            </body>
+            </html>
+            """
+            
+            # Send HTML response
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(checkout_html.encode('utf-8'))
+        
         else:
             self._send_error("Endpoint not found", 404)
     
@@ -246,8 +335,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     email, package, package_info['credits'], package_info['price']
                 )
                 
-                # Create a mock checkout URL
-                checkout_url = f"https://mock-checkout.example.com/pay/{transaction_id}"
+                # Create a working local checkout URL instead of mock
+                checkout_url = f"http://localhost:10000/checkout/{transaction_id}"
                 
                 logger.info(f"Transaction created successfully: {transaction_id}")
                 
@@ -269,6 +358,70 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
             # No-op initializer for frontend; just return OK
             logger.info("System initialization requested")
             self._send_json_response({"status": "initialized", "packages": len(CREDIT_PACKAGES)})
+            
+        elif path == "/complete-payment":
+            # Complete payment and add credits to user account
+            transaction_id = data.get('transaction_id')
+            
+            logger.info(f"Completing payment for transaction: {transaction_id}")
+            
+            if not transaction_id:
+                self._send_error("Transaction ID required")
+                return
+            
+            try:
+                # Get transaction details from database
+                conn = sqlite3.connect(self.db.db_path)
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT email, package_type, credits, amount, status 
+                    FROM transactions 
+                    WHERE id = ?
+                """, (transaction_id,))
+                
+                transaction = cursor.fetchone()
+                
+                if not transaction:
+                    conn.close()
+                    self._send_error("Transaction not found")
+                    return
+                
+                email, package_type, credits, amount, status = transaction
+                
+                if status != 'pending':
+                    conn.close()
+                    self._send_error(f"Transaction already {status}")
+                    return
+                
+                # Add credits to user account
+                self.db.add_credits(email, credits)
+                
+                # Mark transaction as completed
+                cursor.execute("""
+                    UPDATE transactions 
+                    SET status = 'completed' 
+                    WHERE id = ?
+                """, (transaction_id,))
+                
+                conn.commit()
+                conn.close()
+                
+                new_balance = self.db.get_credits(email)
+                
+                logger.info(f"Payment completed successfully: {email} received {credits} credits, new balance: {new_balance}")
+                
+                self._send_json_response({
+                    "success": True,
+                    "credits_added": credits,
+                    "new_balance": new_balance,
+                    "email": email,
+                    "package": package_type
+                })
+                
+            except Exception as e:
+                logger.error(f"Failed to complete payment: {e}")
+                self._send_error(f"Payment completion failed: {str(e)}")
             
         elif path == "/mock-payment-success":
             # Mock payment success (for testing)
