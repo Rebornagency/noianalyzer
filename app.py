@@ -60,13 +60,14 @@ except ImportError:
 # Try to import credit system modules
 try:
     from utils.credit_ui import (
-        display_credit_balance, display_credit_store, check_credits_for_analysis,
+        display_credit_balance, display_credit_balance_header, display_credit_store, check_credits_for_analysis,
         display_insufficient_credits, display_free_trial_welcome, init_credit_system
     )
     CREDIT_SYSTEM_AVAILABLE = True
 except ImportError:
     CREDIT_SYSTEM_AVAILABLE = False
     def display_credit_balance(*args, **kwargs): pass
+    def display_credit_balance_header(*args, **kwargs): pass
     def display_credit_store(*args, **kwargs): st.error("Credit system not available")
     def check_credits_for_analysis(*args, **kwargs): return True, "Credit check unavailable"
     def display_insufficient_credits(*args, **kwargs): pass
@@ -3726,13 +3727,26 @@ def main():
     if email_input:
         st.session_state.user_email = email_input
         
-        # Display credit balance and free trial welcome
+        # Display credit balance and free trial welcome in sidebar
         if CREDIT_SYSTEM_AVAILABLE:
             display_free_trial_welcome(email_input)
             display_credit_balance(email_input)
         else:
             st.sidebar.error("💳 Credit System Unavailable")
             st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
+    
+    # Add header credit display for main page
+    if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
+        # Create header layout with credit display in top right
+        header_col1, header_col2 = st.columns([3, 1])
+        
+        with header_col2:
+            display_credit_balance_header(st.session_state.user_email)
+            
+            # Add buy more credits button in header
+            if st.button("🛒 Buy More Credits", key="header_buy_credits", use_container_width=True):
+                st.session_state.show_credit_store = True
+                st.rerun()
     
     # Display initial UI or results based on processing_completed
     if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
@@ -4002,7 +4016,7 @@ def main():
                 },
                 {
                     'title': 'Comparative Analysis',
-                    'description': 'Compare current performance against prior periods and budgets automatically'
+                    'description': 'Compare current performance against budget, prior month, and prior year'
                 },
                 {
                     'title': 'NOI Coach Integration',
@@ -4198,6 +4212,19 @@ def main():
        not st.session_state.get('template_viewed', False) and \
        not st.session_state.get('processing_completed', False): # Ensure analysis hasn't already run
         
+        # Add header credit display for template review page
+        if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
+            # Create header layout with credit display in top right
+            template_header_col1, template_header_col2 = st.columns([3, 1])
+            
+            with template_header_col2:
+                display_credit_balance_header(st.session_state.user_email)
+                
+                # Add buy more credits button in header
+                if st.button("🛒 Buy More Credits", key="template_header_buy_credits", use_container_width=True):
+                    st.session_state.show_credit_store = True
+                    st.rerun()
+        
         logger.info("Displaying data template for user review.")
         show_processing_status("Documents processed. Please review the extracted data.", status_type="info")
         
@@ -4313,6 +4340,19 @@ def main():
 
     # --- Stage 4: Display Results or Welcome Page ---
     if st.session_state.get('processing_completed', False):
+        # Add header credit display for results page
+        if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
+            # Create header layout with credit display in top right
+            results_header_col1, results_header_col2 = st.columns([3, 1])
+            
+            with results_header_col2:
+                display_credit_balance_header(st.session_state.user_email)
+                
+                # Add buy more credits button in header
+                if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True):
+                    st.session_state.show_credit_store = True
+                    st.rerun()
+        
         # Show results after processing is fully completed
         # Modern styled title
         st.markdown(f"""

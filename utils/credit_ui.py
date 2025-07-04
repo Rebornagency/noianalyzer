@@ -72,6 +72,89 @@ def test_backend_connection() -> bool:
     except:
         return False
 
+def display_credit_balance_header(email: str):
+    """Display user's credit balance in the main page header"""
+    if not email:
+        return
+    
+    # First test if backend is available
+    if not test_backend_connection():
+        st.markdown("""
+        <div style="
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        ">
+            <div style="color: #EF4444; font-weight: 600;">💳 Backend API Unavailable</div>
+            <div style="color: #888; font-size: 0.8rem;">Please start the API server</div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    credit_data = get_user_credits(email)
+    if not credit_data:
+        st.markdown("""
+        <div style="
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        ">
+            <div style="color: #EF4444; font-weight: 600;">💳 Unable to load credits</div>
+            <div style="color: #888; font-size: 0.8rem;">Check API server connection</div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    credits = credit_data.get("credits", 0)
+    
+    # Color coding based on credit level
+    if credits >= 10:
+        color = "#22C55E"  # Green
+        emoji = "🟢"
+        status = "Good"
+    elif credits >= 3:
+        color = "#F59E0B"  # Amber
+        emoji = "🟡"
+        status = "Low"
+    elif credits > 0:
+        color = "#EF4444"  # Red
+        emoji = "🔴"
+        status = "Very Low"
+    else:
+        color = "#6B7280"  # Gray
+        emoji = "⚫"
+        status = "Empty"
+    
+    # Compact header display
+    st.markdown(
+        f"""
+        <div style="
+            background: linear-gradient(135deg, {color}22, {color}11);
+            border: 1px solid {color}44;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        ">
+            <div style="font-size: 1.2rem;">{emoji}</div>
+            <div style="font-size: 1.1rem; font-weight: bold; color: {color};">{credits}</div>
+            <div style="color: #888; font-size: 0.9rem;">Credits</div>
+            <div style="color: #888; font-size: 0.8rem;">({status})</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def display_credit_balance(email: str):
     """Display user's credit balance in sidebar"""
     if not email:
@@ -395,13 +478,13 @@ def display_insufficient_credits():
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🛒 Buy Credits", use_container_width=True):
+        if st.button("🛒 Buy Credits", use_container_width=True, key="insufficient_buy_credits"):
             st.session_state.show_credit_store = True
             st.rerun()
     
     with col2:
-        if st.button("📊 View Pricing", use_container_width=True):
-            st.session_state.show_pricing = True
+        if st.button("📊 View Pricing", use_container_width=True, key="insufficient_view_pricing"):
+            st.session_state.show_credit_store = True  # Use the same store interface
             st.rerun()
 
 def display_free_trial_welcome(email: str):
