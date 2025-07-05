@@ -381,12 +381,20 @@ def purchase_credits(email: str, package_id: str, package_name: str):
             checkout_url = result.get('checkout_url')
             
             if checkout_url:
+                # TEMPORARY DEBUG: Show the actual URL being returned
+                st.info(f"""
+                🔍 **Debug Info**: 
+                - **Checkout URL**: `{checkout_url}`
+                - **URL Type**: {'Real Stripe' if 'stripe.com' in checkout_url else 'Mock/Development'}
+                """)
+                
                 # Check if this is a mock/development URL that should be simulated
                 is_mock_url = ("mock-checkout.example.com" in checkout_url or 
                               "localhost:" in checkout_url or
                               "127.0.0.1:" in checkout_url)
                 
-                if is_mock_url:
+                # TEMPORARY: Disable auto-completion to force real checkout
+                if False and is_mock_url:  # Changed to False to disable auto-completion
                     # Handle mock/localhost checkout with simulated success
                     st.success(f"✅ **Purchase Initiated!**")
                     st.info(f"""
@@ -466,10 +474,22 @@ def purchase_credits(email: str, package_id: str, package_name: str):
                             logger.error(f"Error completing mock payment: {e}")
                             st.warning("Payment completed but there was an issue updating credits. Please refresh the page.")
                 else:
-                    # Real checkout URL - use standard redirect
-                    st.success(f"✅ Redirecting to checkout for {package_name}...")
+                    # Treat ALL URLs as real checkout URLs for debugging
+                    if 'stripe.com' in checkout_url:
+                        st.success(f"✅ **Real Stripe Checkout!**")
+                        st.info("This will redirect to actual Stripe payment processing.")
+                    else:
+                        st.warning(f"⚠️ **Non-Stripe URL Detected**")
+                        st.info(f"""
+                        This URL doesn't look like a Stripe checkout URL. 
+                        
+                        **Expected**: `https://checkout.stripe.com/c/pay/...`
+                        **Received**: `{checkout_url}`
+                        
+                        **This means your backend isn't properly configured with Stripe.**
+                        """)
                     
-                    # JavaScript redirect
+                    # JavaScript redirect for any URL
                     st.markdown(f"""
                     <script>
                     window.open('{checkout_url}', '_blank');
