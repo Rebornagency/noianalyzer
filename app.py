@@ -3735,15 +3735,14 @@ def main():
             st.sidebar.error("💳 Credit System Unavailable")
             st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
     
-    # Add header credit display for main page
+    # Add header credit display for main page (centered)
     if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
-        # Create header layout with credit display in top right
-        header_col1, header_col2 = st.columns([3, 1])
+        # Center the credit display
+        display_credit_balance_header(st.session_state.user_email)
         
-        with header_col2:
-            display_credit_balance_header(st.session_state.user_email)
-            
-            # Add buy more credits button in header
+        # Add buy more credits button centered below
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
             if st.button("🛒 Buy More Credits", key="header_buy_credits", use_container_width=True):
                 st.session_state.show_credit_store = True
                 st.rerun()
@@ -4212,15 +4211,14 @@ def main():
        not st.session_state.get('template_viewed', False) and \
        not st.session_state.get('processing_completed', False): # Ensure analysis hasn't already run
         
-        # Add header credit display for template review page
+        # Add header credit display for template review page (centered)
         if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
-            # Create header layout with credit display in top right
-            template_header_col1, template_header_col2 = st.columns([3, 1])
+            # Center the credit display
+            display_credit_balance_header(st.session_state.user_email)
             
-            with template_header_col2:
-                display_credit_balance_header(st.session_state.user_email)
-                
-                # Add buy more credits button in header
+            # Add buy more credits button centered below
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
                 if st.button("🛒 Buy More Credits", key="template_header_buy_credits", use_container_width=True):
                     st.session_state.show_credit_store = True
                     st.rerun()
@@ -4340,15 +4338,14 @@ def main():
 
     # --- Stage 4: Display Results or Welcome Page ---
     if st.session_state.get('processing_completed', False):
-        # Add header credit display for results page
+        # Add header credit display for results page (centered)
         if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
-            # Create header layout with credit display in top right
-            results_header_col1, results_header_col2 = st.columns([3, 1])
+            # Center the credit display
+            display_credit_balance_header(st.session_state.user_email)
             
-            with results_header_col2:
-                display_credit_balance_header(st.session_state.user_email)
-                
-                # Add buy more credits button in header
+            # Add buy more credits button centered below
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
                 if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True):
                     st.session_state.show_credit_store = True
                     st.rerun()
