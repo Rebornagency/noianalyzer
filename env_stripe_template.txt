@@ -1,0 +1,65 @@
+# 🎯 Stripe Configuration Template for NOI Analyzer
+# Copy this to your .env file and replace the placeholder values
+
+# ===========================================
+# STRIPE API CONFIGURATION
+# ===========================================
+# Get these from: https://dashboard.stripe.com/apikeys
+STRIPE_SECRET_KEY=sk_test_REPLACE_WITH_YOUR_SECRET_KEY
+STRIPE_PUBLISHABLE_KEY=pk_test_REPLACE_WITH_YOUR_PUBLISHABLE_KEY
+
+# ===========================================
+# STRIPE PRODUCT PRICE IDs  
+# ===========================================
+# Create products in Stripe Dashboard and copy the price IDs here
+# Each price ID looks like: price_1ABC123DEF456789
+
+# Starter Pack - 5 credits for $25.00
+STRIPE_STARTER_PRICE_ID=price_REPLACE_WITH_STARTER_PRICE_ID
+
+# Professional Pack - 15 credits for $60.00  
+STRIPE_PROFESSIONAL_PRICE_ID=price_REPLACE_WITH_PROFESSIONAL_PRICE_ID
+
+# Business Pack - 50 credits for $150.00
+STRIPE_BUSINESS_PRICE_ID=price_REPLACE_WITH_BUSINESS_PRICE_ID
+
+# ===========================================
+# WEBHOOK CONFIGURATION
+# ===========================================
+# Get this from: https://dashboard.stripe.com/webhooks
+STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_YOUR_WEBHOOK_SECRET
+
+# ===========================================
+# SUCCESS/CANCEL URLs
+# ===========================================
+# Where users go after payment success/cancellation
+CREDIT_SUCCESS_URL=http://localhost:8501?success=true
+CREDIT_CANCEL_URL=http://localhost:8501?cancelled=true
+
+# ===========================================
+# BACKEND CONFIGURATION  
+# ===========================================
+# Your API server URL
+BACKEND_URL=https://noianalyzer-1.onrender.com
+
+# ===========================================
+# INSTRUCTIONS
+# ===========================================
+# 1. Create a Stripe account at https://stripe.com
+# 2. Go to Dashboard → Products and create the 3 credit packages
+# 3. Copy the price IDs from each product to the variables above
+# 4. Go to Dashboard → API Keys and copy your keys
+# 5. Save this file as .env in your project root
+# 6. Run: python update_stripe_prices.py
+# 7. Test your credit purchases!
+
+# ===========================================
+# TEST CARDS FOR TESTING
+# ===========================================
+# Use these in Stripe checkout for testing:
+# Success: 4242 4242 4242 4242
+# Decline: 4000 0000 0000 0002  
+# 3D Secure: 4000 0000 0000 3220
+# Expiry: Any future date (12/25)
+# CVC: Any 3 digits (123)
+# ZIP: Any 5 digits (12345) 
