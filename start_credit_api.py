@@ -7,6 +7,26 @@ This will try different server options and start the first one that works
 import sys
 import os
 
+# Add helper to detect Stripe config
+STRIPE_ENV_VARS = [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_STARTER_PRICE_ID",
+    "STRIPE_PROFESSIONAL_PRICE_ID",
+    "STRIPE_BUSINESS_PRICE_ID",
+]
+
+def is_stripe_configured() -> bool:
+    """Return True if a Stripe secret key and at least one price ID are configured (non-placeholder)."""
+    secret_key = os.getenv("STRIPE_SECRET_KEY")
+    if not secret_key:
+        return False
+    # At least one non-placeholder price ID
+    for var in STRIPE_ENV_VARS[1:]:
+        val = os.getenv(var, "").strip()
+        if val and not val.startswith("PLACEHOLDER"):
+            return True
+    return False
+
 def start_ultra_minimal():
     """Start the ultra minimal API server (most reliable)"""
     print("🚀 Starting Ultra Minimal Credit API Server...")
@@ -72,13 +92,21 @@ def main():
     
     # Try to start servers in order of reliability
     print("🔍 Auto-selecting best server option...")
-    
-    # First try ultra minimal (most reliable)
+
+    # NEW: Prefer the minimal FastAPI server when Stripe is configured
+    if is_stripe_configured():
+        print("\n1️⃣ Detected Stripe configuration – trying minimal FastAPI server first...")
+        if start_minimal():
+            return
+        print("\n2️⃣ Falling back to ultra minimal server...")
+        start_ultra_minimal()
+        return
+
+    # Original order when Stripe is NOT configured
     print("\n1️⃣ Trying ultra minimal server...")
     if start_ultra_minimal():
         return
     
-    # Then try minimal FastAPI
     print("\n2️⃣ Trying minimal FastAPI server...")
     if start_minimal():
         return
