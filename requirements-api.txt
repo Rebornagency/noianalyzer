@@ -1,7 +1,7 @@
-# ABSOLUTE MINIMAL - Only 4 essential packages
+# Minimal requirements for credit/Stripe API only
 fastapi==0.104.1
 uvicorn==0.24.0
-stripe==6.8.0
+stripe==9.7.0
 python-dotenv==1.0.0
 
 # Environment
@@ -10,4 +10,4 @@ python-dotenv==1.0.0
 # Database (using sqlite3 which is built-in to Python)
 # No SQLAlchemy or other ORMs to avoid dependencies
 
-# That's it - absolutely minimal set! 
+# That's it - minimal set for credit system only! 
