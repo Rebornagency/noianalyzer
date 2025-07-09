@@ -243,6 +243,117 @@ async def stripe_webhook(request: Request):
     return JSONResponse(status_code=200, content={"received": True})
 
 # Payment success/cancel pages
+@app.get("/credit-success", response_class=HTMLResponse)
+async def credit_success(session_id: str = None):
+    """Credit purchase success page"""
+    return f"""
+    <html>
+        <head>
+            <title>Credits Purchase Successful</title>
+            <meta charset='utf-8'/>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif; 
+                    text-align: center; 
+                    padding: 2rem;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }}
+                .card {{
+                    background: white; 
+                    color: #333;
+                    border-radius: 12px; 
+                    padding: 3rem 2rem; 
+                    max-width: 500px; 
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    animation: slideIn 0.5s ease-out;
+                }} 
+                @keyframes slideIn {{
+                    from {{ opacity: 0; transform: translateY(20px); }}
+                    to {{ opacity: 1; transform: translateY(0); }}
+                }}
+                h1 {{ color: #28a745; margin-bottom: 1rem; font-size: 2rem; }}
+                .success-icon {{ font-size: 4rem; margin-bottom: 1rem; }}
+                p {{ color: #666; line-height: 1.6; margin-bottom: 1rem; }}
+                .session-id {{ font-family: monospace; font-size: 0.9rem; color: #888; }}
+                .action-btn {{
+                    background: #28a745;
+                    color: white;
+                    padding: 12px 24px;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-block;
+                    margin: 0.5rem;
+                    transition: background 0.3s;
+                }}
+                .action-btn:hover {{ background: #218838; }}
+                .secondary-btn {{
+                    background: #6c757d;
+                    color: white;
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 0.9rem;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-block;
+                    margin: 0.25rem;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class='card'>
+                <div class='success-icon'>🎉</div>
+                <h1>Credits Purchase Successful!</h1>
+                <p><strong>Thank you for your purchase!</strong></p>
+                <p>Your credits have been added to your account and are ready to use for NOI analysis.</p>
+                
+                <div style="margin: 2rem 0;">
+                    <a href="#" onclick="closeAndReturn()" class="action-btn">Return to NOI Analyzer</a>
+                </div>
+                
+                <p style="font-size: 0.9rem; color: #666;">
+                    You can now close this tab and continue using the NOI Analyzer app.
+                    Your credit balance should update automatically.
+                </p>
+                
+                {f'<p class="session-id">Session ID: {session_id}</p>' if session_id else ''}
+            </div>
+            
+            <script>
+                function closeAndReturn() {{
+                    // Try to close the tab first
+                    window.close();
+                    
+                    // If that doesn't work (popup blocker), try to go back
+                    setTimeout(function() {{
+                        // If we're still here, try going back to the app
+                        if (window.opener) {{
+                            window.opener.focus();
+                            window.close();
+                        }} else {{
+                            // Last resort - redirect to a common app URL
+                            window.location.href = 'http://localhost:8501'; // Streamlit default
+                        }}
+                    }}, 500);
+                }}
+                
+                // Auto-close after 5 seconds
+                setTimeout(function() {{
+                    closeAndReturn();
+                }}, 5000);
+            </script>
+        </body>
+    </html>
+    """
+
 @app.get("/payment-success", response_class=HTMLResponse)
 async def payment_success():
     """Success page after payment"""
