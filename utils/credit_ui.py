@@ -312,9 +312,12 @@ def display_credit_store():
                 # Per credit cost
                 st.markdown(f"*${package['per_credit_cost']:.2f} per credit*")
                 
-                # Savings badge
+                # Savings badge (or placeholder for consistent height)
                 if savings_text:
                     st.success(savings_text)
+                else:
+                    # Invisible placeholder to maintain equal card height
+                    st.markdown('<div style="height: 2.2rem"></div>', unsafe_allow_html=True)
                 
                 # Description
                 st.caption(package.get('description', f"Top up {package['credits']} credits"))
@@ -325,7 +328,7 @@ def display_credit_store():
                 
                 if not email:
                     st.warning("Please enter your email in the main app to purchase credits.")
-                elif st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary" if idx == 1 else "secondary"):
+                elif st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary"):
                     purchase_credits(email, package['package_id'], package['name'])
                 
                 # Add spacing between cards
