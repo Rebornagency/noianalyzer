@@ -381,123 +381,15 @@ def purchase_credits(email: str, package_id: str, package_name: str):
             checkout_url = result.get('checkout_url')
             
             if checkout_url:
-                # TEMPORARY DEBUG: Show the actual URL being returned
-                st.info(f"""
-                🔍 **Debug Info**: 
-                - **Checkout URL**: `{checkout_url}`
-                - **URL Type**: {'Real Stripe' if 'stripe.com' in checkout_url else 'Mock/Development'}
-                """)
+                # Direct redirect to Stripe checkout
+                st.markdown(f"""
+                <script>
+                window.open('{checkout_url}', '_blank');
+                </script>
+                """, unsafe_allow_html=True)
                 
-                # Check if this is a mock/development URL that should be simulated
-                is_mock_url = ("mock-checkout.example.com" in checkout_url or 
-                              "localhost:" in checkout_url or
-                              "127.0.0.1:" in checkout_url)
-                
-                # TEMPORARY: Disable auto-completion to force real checkout
-                if False and is_mock_url:  # Changed to False to disable auto-completion
-                    # Handle mock/localhost checkout with simulated success
-                    st.success(f"✅ **Purchase Initiated!**")
-                    st.info(f"""
-                    **{package_name}** - {result.get('credits', 0)} credits for ${result.get('price', 0):.2f}
-                    
-                    🎯 **Development Mode**: This is a simulated purchase for testing purposes.
-                    
-                    **Note**: The backend returned a localhost URL, indicating it's in development mode.
-                    """)
-                    
-                    # Simulate payment completion after a short delay
-                    time.sleep(2)
-                    
-                    # Make a request to complete the payment
-                    transaction_id = result.get('transaction_id')
-                    if transaction_id:
-                        try:
-                            # Try to complete the mock payment
-                            complete_url = f"{BACKEND_URL}/complete-payment"
-                            complete_response = requests.post(
-                                complete_url,
-                                json={"transaction_id": transaction_id},
-                                timeout=10
-                            )
-                            
-                            if complete_response.status_code == 200:
-                                complete_result = complete_response.json()
-                                st.success(f"""
-                                🎉 **Payment Completed Successfully!**
-                                
-                                - **Credits Added**: {complete_result.get('credits_added', 0)}
-                                - **New Balance**: {complete_result.get('new_balance', 0)} credits
-                                - **Email**: {complete_result.get('email', email)}
-                                
-                                You can now use your credits for NOI analysis!
-                                """)
-                                
-                                # Refresh the credit display
-                                st.session_state.credits_updated = True
-                                time.sleep(1)
-                                st.rerun()
-                            elif complete_response.status_code == 404:
-                                # Complete-payment endpoint doesn't exist, provide manual instruction
-                                st.warning(f"""
-                                ⚠️ **Payment Simulation Completed**
-                                
-                                The backend server doesn't have payment completion functionality.
-                                This means you're likely connected to a production server in development mode.
-                                
-                                **Transaction Details:**
-                                - **Package**: {package_name}
-                                - **Credits**: {result.get('credits', 0)}
-                                - **Amount**: ${result.get('price', 0):.2f}
-                                - **Transaction ID**: {transaction_id}
-                                
-                                **Next Steps:**
-                                1. Refresh the page to check if credits were added automatically
-                                2. Contact support if credits don't appear within a few minutes
-                                """)
-                            else:
-                                st.warning("Payment simulation completed, but credit update failed. Please refresh the page.")
-                        except requests.exceptions.RequestException as e:
-                            logger.error(f"Error completing mock payment (connection error): {e}")
-                            st.warning(f"""
-                            ⚠️ **Payment Initiated Successfully**
-                            
-                            Could not connect to payment completion service, but your purchase request was processed.
-                            
-                            **What to do:**
-                            1. **Refresh the page** to check if credits were added
-                            2. **Wait a few minutes** for processing to complete
-                            3. **Contact support** if credits don't appear
-                            
-                            **Transaction ID**: {transaction_id}
-                            """)
-                        except Exception as e:
-                            logger.error(f"Error completing mock payment: {e}")
-                            st.warning("Payment completed but there was an issue updating credits. Please refresh the page.")
-                else:
-                    # Treat ALL URLs as real checkout URLs for debugging
-                    if 'stripe.com' in checkout_url:
-                        st.success(f"✅ **Real Stripe Checkout!**")
-                        st.info("This will redirect to actual Stripe payment processing.")
-                    else:
-                        st.warning(f"⚠️ **Non-Stripe URL Detected**")
-                        st.info(f"""
-                        This URL doesn't look like a Stripe checkout URL. 
-                        
-                        **Expected**: `https://checkout.stripe.com/c/pay/...`
-                        **Received**: `{checkout_url}`
-                        
-                        **This means your backend isn't properly configured with Stripe.**
-                        """)
-                    
-                    # JavaScript redirect for any URL
-                    st.markdown(f"""
-                    <script>
-                    window.open('{checkout_url}', '_blank');
-                    </script>
-                    """, unsafe_allow_html=True)
-                    
-                    # Fallback link
-                    st.markdown(f"If you're not redirected automatically, [click here to complete purchase]({checkout_url})")
+                st.success("🔄 **Redirecting to Stripe checkout...**")
+                st.info("A new tab should open with your Stripe payment page. If it doesn't open automatically, please check your popup blocker settings.")
             else:
                 st.error("❌ Failed to create checkout session.")
                 st.info(f"Server response: {result}")
