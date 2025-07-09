@@ -212,17 +212,28 @@ async def use_credits_for_analysis(
 @app.post("/pay-per-use/stripe/webhook")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhooks for credit purchases only"""
+    logger.info("🎯 WEBHOOK RECEIVED - Processing Stripe webhook")
+    
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
+    
+    logger.info(f"Webhook payload size: {len(payload)} bytes")
+    logger.info(f"Stripe signature header present: {bool(sig_header)}")
+    
     try:
         event = verify_webhook(payload, sig_header)
+        logger.info(f"✅ Webhook verified successfully - Event type: {event['type']}")
     except ValueError as e:
+        logger.error(f"❌ Webhook verification failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
     if event["type"] == "checkout.session.completed":
+        logger.info("💳 Processing checkout.session.completed event")
         session = event["data"]["object"]
         metadata = session.get("metadata", {})
         session_type = metadata.get("type", "credit_purchase")
+        
+        logger.info(f"Session metadata: {metadata}")
         
         if session_type == "credit_purchase":
             # Handle credit purchase
@@ -230,15 +241,23 @@ async def stripe_webhook(request: Request):
             package_id = metadata.get("package_id")
             email = metadata.get("email")
             
+            logger.info(f"Credit purchase - user_id: {user_id}, package_id: {package_id}, email: {email}")
+            
             if not user_id or not package_id:
+                logger.error(f"❌ Missing metadata - user_id: {user_id}, package_id: {package_id}")
                 return JSONResponse(status_code=400, content={"error": "Missing credit purchase metadata"})
             
             # Add credits to user account
+            logger.info(f"🏦 Adding credits to user {user_id} from package {package_id}")
             success = credit_service.add_credits_from_purchase(user_id, package_id, session["id"])
             if success:
+                logger.info(f"✅ Credits successfully added to user {user_id}")
                 return JSONResponse(status_code=200, content={"received": True, "credits_added": True})
             else:
+                logger.error(f"❌ Failed to add credits to user {user_id}")
                 return JSONResponse(status_code=500, content={"error": "Failed to add credits"})
+    else:
+        logger.info(f"ℹ️ Received webhook event type: {event['type']} (not processed)")
 
     return JSONResponse(status_code=200, content={"received": True})
 
@@ -340,7 +359,7 @@ async def credit_success(session_id: str = None):
                             window.close();
                         }} else {{
                             // Last resort - redirect to a common app URL
-                            window.location.href = 'http://localhost:8501'; // Streamlit default
+                            window.location.href = 'https://noianalyzer.streamlit.app'; // Your actual app URL
                         }}
                     }}, 500);
                 }}
