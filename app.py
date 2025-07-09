@@ -4095,51 +4095,17 @@ def main():
                         # Deduct credits after successful document processing (if using credit system)
                         if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
                             email = st.session_state.get('user_email', '')
-                            if email:
-                                try:
-                                    # Import the credit service function
-                                    from utils.credit_ui import get_user_credits
-                                    import requests
-                                    import os
-                                    
-                                    # Deduct credits via API call
-                                    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-                                    response = requests.post(
-                                        f"{backend_url}/pay-per-use/jobs",
-                                        data={
-                                            "email": email,
-                                            "use_credits": "true"
-                                        },
-                                        files={},  # Empty files since we're using existing processed data
-                                        timeout=10
-                                    )
-                                    
-                                    if response.status_code == 200:
-                                        result = response.json()
-                                        credits_deducted = result.get("credits_deducted", 1)
-                                        logger.info(f"Credits deducted successfully: {credits_deducted} for user {email}")
-                                        st.info(f"✅ {credits_deducted} credit(s) deducted for this analysis")
-                                    else:
-                                        logger.warning(f"Failed to deduct credits via API: {response.text}")
-                                        
-                                except Exception as e:
-                                    logger.warning(f"Could not deduct credits: {e}")
-                                    # Continue with processing even if credit deduction fails
-                                    pass
-                        
-                        # Deduct credits after successful document processing (if using credit system)
-                        if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
-                            email = st.session_state.get('user_email', '')
                             if email and not st.session_state.get('credits_deducted', False):
                                 try:
                                     import requests
                                     import os
-                                    import uuid
                                     
-                                    # Create a unique job ID for this analysis
-                                    job_id = str(uuid.uuid4())
+                                    # Mark credits as deducted to prevent double deduction
+                                    st.session_state.credits_deducted = True
+                                    logger.info(f"Credit deduction confirmed for user {email}")
+                                    st.success("✅ 1 credit used for this analysis")
                                     
-                                    # Deduct credits via API call
+                                    # Verify current credit balance
                                     backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
                                     response = requests.get(
                                         f"{backend_url}/pay-per-use/credits/{email}",
@@ -4148,15 +4114,11 @@ def main():
                                     
                                     if response.status_code == 200:
                                         credit_data = response.json()
-                                        if credit_data.get("credits", 0) >= 1:
-                                            # User still has credits, this is just to confirm deduction
-                                            # The actual deduction was confirmed during the button click
-                                            st.session_state.credits_deducted = True
-                                            logger.info(f"Credit deduction confirmed for user {email}")
-                                            st.success("✅ 1 credit used for this analysis")
-                                        else:
+                                        remaining_credits = credit_data.get("credits", 0)
+                                        logger.info(f"User {email} has {remaining_credits} credits remaining")
+                                        if remaining_credits == 0:
                                             logger.warning(f"User {email} no longer has sufficient credits")
-                                            st.warning("⚠️ Credit balance changed during processing")
+                                            st.info("💡 Consider buying more credits for future analyses")
                                     else:
                                         logger.warning(f"Could not verify credits for {email}")
                                         

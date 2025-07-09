@@ -329,15 +329,7 @@ def display_credit_store():
                 if not email:
                     st.warning("Please enter your email in the main app to purchase credits.")
                 else:
-                    # Choose button label based on tier position
-                    if idx == 0:
-                        btn_label = "Get Started →"
-                    elif idx == 1:
-                        btn_label = "Upgrade →"
-                    else:
-                        btn_label = "Scale Up →"
-
-                    if st.button(btn_label, key=button_key, use_container_width=True, type="primary"):
+                    if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary"):
                         purchase_credits(email, package['package_id'], package['name'])
                 
                 # Add spacing between cards

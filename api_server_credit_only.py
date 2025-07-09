@@ -168,7 +168,7 @@ class DatabaseService:
             else:
                 # Create new user with free trial
                 user_id = uuid4().hex
-                free_credits = int(os.getenv("FREE_TRIAL_CREDITS", "3"))
+                free_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
                 
                 conn.execute('''
                     INSERT INTO users (user_id, email, credits, free_trial_used, created_at)

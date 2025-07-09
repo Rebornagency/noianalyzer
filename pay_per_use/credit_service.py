@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class CreditService:
     def __init__(self):
         self.credits_per_analysis = int(os.getenv("CREDITS_PER_ANALYSIS", "1"))
-        self.free_trial_credits = int(os.getenv("FREE_TRIAL_CREDITS", "3"))
+        self.free_trial_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
     
     def get_user_by_email(self, email: str, ip_address: str = None, user_agent: str = None) -> User:
         """Get or create user by email"""

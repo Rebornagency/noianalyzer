@@ -128,7 +128,7 @@ class DatabaseService:
                 )
             else:
                 # Check for IP abuse before creating new user
-                free_trial_credits = 0
+                free_trial_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
                 free_trial_allowed = True
                 
                 if ip_address:
@@ -137,7 +137,7 @@ class DatabaseService:
                         logger.warning(f"Free trial denied for IP {ip_address}: {reason}")
                 
                 if free_trial_allowed:
-                    free_trial_credits = int(os.getenv("FREE_TRIAL_CREDITS", "3"))
+                    free_trial_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
                     if ip_address:
                         self._record_ip_trial_usage(ip_address)
                 
@@ -301,6 +301,7 @@ class DatabaseService:
                 # Check if package already exists
                 cursor = conn.execute('SELECT package_id FROM credit_packages WHERE package_id = ?', (package['package_id'],))
                 if not cursor.fetchone():
+                    # Create new package
                     conn.execute('''
                         INSERT INTO credit_packages (package_id, name, credits, price_cents, stripe_price_id, description)
                         VALUES (?, ?, ?, ?, ?, ?)
@@ -313,12 +314,13 @@ class DatabaseService:
                         package['description']
                     ))
                 else:
-                    # Update existing package with new Stripe price ID
+                    # Update existing package with new credits, price, and Stripe price ID
                     conn.execute('''
                         UPDATE credit_packages 
-                        SET stripe_price_id = ?
+                        SET name = ?, credits = ?, price_cents = ?, stripe_price_id = ?, description = ?
                         WHERE package_id = ?
-                    ''', (package['stripe_price_id'], package['package_id']))
+                    ''', (package['name'], package['credits'], package['price_cents'], 
+                          package['stripe_price_id'], package['description'], package['package_id']))
             
             conn.commit()
             logger.info("Default credit packages created/updated")
