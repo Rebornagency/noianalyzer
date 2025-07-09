@@ -1467,7 +1467,7 @@ def inject_custom_css():
         border-radius: 8px;
         padding: 1rem;
         margin: 1rem 0;
-        border-left: 4px solid var(--reborn-accent-blue);
+        border-left: none;
     }
 
     .options-header {
@@ -1659,6 +1659,16 @@ def inject_custom_css():
         fill: #FFFFFF !important;
         font-size: 1.5rem !important;
         font-weight: 600 !important;
+    }
+
+    /* CSS Reset for button styles */
+    .stApp .stButton > button {
+        /* Keep default Streamlit base styles while enabling flex centering */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        cursor: pointer;
     }
 
     </style>
@@ -3749,7 +3759,7 @@ def main():
         # Add buy more credits button centered below
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("🛒 Buy More Credits", key="header_buy_credits", use_container_width=True):
+            if st.button("🛒 Buy More Credits", key="header_buy_credits", use_container_width=True, type="primary"):
                 st.session_state.show_credit_store = True
                 st.rerun()
     
@@ -4225,7 +4235,7 @@ def main():
             # Add buy more credits button centered below
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("🛒 Buy More Credits", key="template_header_buy_credits", use_container_width=True):
+                if st.button("🛒 Buy More Credits", key="template_header_buy_credits", use_container_width=True, type="primary"):
                     st.session_state.show_credit_store = True
                     st.rerun()
         
@@ -4352,7 +4362,7 @@ def main():
             # Add buy more credits button centered below
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True):
+                if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
                     st.session_state.show_credit_store = True
                     st.rerun()
         
