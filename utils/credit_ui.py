@@ -519,4 +519,35 @@ def init_credit_system():
         if response.status_code != 200:
             logger.warning("Failed to initialize credit packages")
     except Exception as e:
-        logger.warning(f"Could not initialize credit system: {e}") 
+        logger.warning(f"Could not initialize credit system: {e}")
+    
+    # Add JavaScript to handle credit purchase success messages
+    st.markdown("""
+    <script>
+    // Listen for credit purchase success messages from payment window
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'CREDIT_PURCHASE_SUCCESS' && event.data.action === 'RETURN_TO_MAIN') {
+            console.log('Credit purchase successful, returning to main interface');
+            // Clear credit store flag and return to main app
+            window.parent.postMessage({
+                type: 'STREAMLIT_MESSAGE',
+                message: 'CLEAR_CREDIT_STORE'
+            }, '*');
+        }
+    });
+    
+    // Check URL parameters for credit success
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('credit_success') === '1' && urlParams.get('return_to_main') === '1') {
+        console.log('Credit success detected in URL, clearing store flag');
+        // Remove the URL parameters and refresh to main interface
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+        
+        // Force a refresh to clear the credit store state
+        setTimeout(function() {
+            window.location.reload();
+        }, 100);
+    }
+    </script>
+    """, unsafe_allow_html=True) 

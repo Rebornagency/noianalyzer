@@ -3556,6 +3556,12 @@ def main():
         
         # Handle page routing for credit system
         if CREDIT_SYSTEM_AVAILABLE:
+            # Clear credit store flag if user returned from successful purchase
+            if 'credit_success' in st.query_params or st.session_state.get('clear_credit_store', False):
+                st.session_state.show_credit_store = False
+                st.session_state.clear_credit_store = False
+                logger.info("Cleared credit store flag - user returned from successful purchase")
+            
             # Check if we should show credit store
             if st.session_state.get('show_credit_store', False):
                 display_credit_store()

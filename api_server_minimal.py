@@ -355,11 +355,20 @@ async def credit_success(session_id: str = None):
                     setTimeout(function() {{
                         // If we're still here, try going back to the app
                         if (window.opener) {{
-                            window.opener.focus();
+                            // Tell the parent window to go back to main interface
+                            try {{
+                                window.opener.postMessage({{
+                                    type: 'CREDIT_PURCHASE_SUCCESS',
+                                    action: 'RETURN_TO_MAIN'
+                                }}, '*');
+                                window.opener.focus();
+                            }} catch(e) {{
+                                console.log('Could not message parent window');
+                            }}
                             window.close();
                         }} else {{
-                            // Last resort - redirect to a common app URL
-                            window.location.href = 'https://noianalyzer.streamlit.app'; // Your actual app URL
+                            // Redirect to main app with flag to return to main interface
+                            window.location.href = 'https://noianalyzer.streamlit.app?credit_success=1&return_to_main=1';
                         }}
                     }}, 500);
                 }}
