@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 # Constants
 CREDIT_PACKAGES = {
-    "basic": {"credits": 10, "price": 500, "name": "Basic Pack"},
-    "standard": {"credits": 25, "price": 1000, "name": "Standard Pack"},
-    "premium": {"credits": 50, "price": 1800, "name": "Premium Pack"}
+    "starter": {"credits": 3, "price": 1500, "name": "Starter Pack"},
+    "professional": {"credits": 10, "price": 3000, "name": "Professional Pack"},
+    "business": {"credits": 40, "price": 7500, "name": "Business Pack"}
 }
 
 class DatabaseManager:

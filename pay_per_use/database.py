@@ -270,26 +270,26 @@ class DatabaseService:
         # IMPORTANT: You need to replace these placeholder price IDs with real ones from Stripe!
         default_packages = [
             {
-                "package_id": "starter-5",
+                "package_id": "starter-3",
                 "name": "Starter Pack",
-                "credits": 5,
-                "price_cents": 2500,  # $25.00
+                "credits": 3,
+                "price_cents": 1500,  # $15.00
                 "stripe_price_id": os.getenv("STRIPE_STARTER_PRICE_ID", "PLACEHOLDER_STARTER_PRICE_ID"),
                 "description": "Perfect for trying out our service"
             },
             {
-                "package_id": "professional-15",
+                "package_id": "professional-10",
                 "name": "Professional Pack",
-                "credits": 15,
-                "price_cents": 6000,  # $60.00 (20% discount)
+                "credits": 10,
+                "price_cents": 3000,  # $30.00
                 "stripe_price_id": os.getenv("STRIPE_PROFESSIONAL_PRICE_ID", "PLACEHOLDER_PROFESSIONAL_PRICE_ID"),
                 "description": "Great for regular users"
             },
             {
-                "package_id": "business-50",
+                "package_id": "business-40",
                 "name": "Business Pack",
-                "credits": 50,
-                "price_cents": 15000,  # $150.00 (40% discount)
+                "credits": 40,
+                "price_cents": 7500,  # $75.00
                 "stripe_price_id": os.getenv("STRIPE_BUSINESS_PRICE_ID", "PLACEHOLDER_BUSINESS_PRICE_ID"),
                 "description": "Best value for power users"
             }

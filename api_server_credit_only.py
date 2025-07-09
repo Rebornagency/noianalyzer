@@ -130,9 +130,9 @@ class DatabaseService:
     
     def create_default_packages(self):
         packages = [
-            ("starter-5", "Starter Pack", 5, 2500, "price_starter", "Perfect for trying out"),
-            ("professional-15", "Professional Pack", 15, 6000, "price_professional", "Great for regular users"),
-            ("business-50", "Business Pack", 50, 15000, "price_business", "Best value for power users")
+            ("starter-3", "Starter Pack", 3, 1500, "price_starter", "Perfect for trying out"),
+            ("professional-10", "Professional Pack", 10, 3000, "price_professional", "Great for regular users"),
+            ("business-40", "Business Pack", 40, 7500, "price_business", "Best value for power users")
         ]
         
         conn = self.get_connection()
