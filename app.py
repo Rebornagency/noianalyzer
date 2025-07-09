@@ -1465,8 +1465,8 @@ def inject_custom_css():
     .options-container {
         background-color: var(--reborn-bg-secondary);
         border-radius: 8px;
-        padding: 1rem;
-        margin: 1rem 0;
+        padding: 0.5rem 1rem 1rem 1rem; /* smaller top padding */
+        margin: 0 0 1rem 0; /* remove top margin */
         border-left: none;
     }
 
