@@ -381,15 +381,21 @@ def purchase_credits(email: str, package_id: str, package_name: str):
             checkout_url = result.get('checkout_url')
             
             if checkout_url:
-                # Direct redirect to Stripe checkout
+                # Use Streamlit's built-in redirect or direct browser navigation
+                st.success("🔄 **Redirecting to Stripe checkout...**")
+                st.info("Taking you to Stripe to complete your purchase...")
+                
+                # Use direct browser redirect instead of opening new tab
                 st.markdown(f"""
                 <script>
-                window.open('{checkout_url}', '_blank');
+                setTimeout(function() {{
+                    window.location.href = '{checkout_url}';
+                }}, 1000);
                 </script>
                 """, unsafe_allow_html=True)
                 
-                st.success("🔄 **Redirecting to Stripe checkout...**")
-                st.info("A new tab should open with your Stripe payment page. If it doesn't open automatically, please check your popup blocker settings.")
+                # Also provide a manual link as backup
+                st.markdown(f"**[Click here if not redirected automatically →]({checkout_url})**")
             else:
                 st.error("❌ Failed to create checkout session.")
                 st.info(f"Server response: {result}")
