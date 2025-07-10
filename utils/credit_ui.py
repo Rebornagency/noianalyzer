@@ -299,7 +299,7 @@ def display_credit_store():
             with st.container():
                 # Package title
                 if idx == 1:  # Highlight middle package
-                    st.markdown(f"### 🔥 **{package['name']}**")
+                    st.markdown(f"### **{package['name']}**")
                 else:
                     st.markdown(f"### {package['name']}")
                 
@@ -387,19 +387,17 @@ def purchase_credits(email: str, package_id: str, package_name: str):
             if checkout_url:
                 # Use Streamlit's built-in redirect or direct browser navigation
                 st.success("🔄 **Redirecting to Stripe checkout...**")
-                st.info("Taking you to Stripe to complete your purchase...")
                 
-                # Use direct browser redirect instead of opening new tab
+                # Immediate redirect via meta refresh and JS fallback
                 st.markdown(f"""
+                <meta http-equiv='refresh' content='0; url={checkout_url}' />
                 <script>
-                setTimeout(function() {{
                     window.location.href = '{checkout_url}';
-                }}, 1000);
                 </script>
                 """, unsafe_allow_html=True)
                 
-                # Also provide a manual link as backup
-                st.markdown(f"**[Click here if not redirected automatically →]({checkout_url})**")
+                # Provide manual link only if redirect fails (rare)
+                st.markdown(f"<small>If you are not redirected, <a href='{checkout_url}' target='_blank'>click here to continue to Stripe.</a></small>", unsafe_allow_html=True)
             else:
                 st.error("❌ Failed to create checkout session.")
                 st.info(f"Server response: {result}")
