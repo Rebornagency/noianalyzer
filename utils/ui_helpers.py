@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Attempt to import from reborn_logo, handle potential ImportError if structure changes
 try:
@@ -144,6 +144,9 @@ def inject_custom_css():
     }
     
     /* Input Fields Styling */
+    .stTextInput {
+        margin-bottom: 0.25rem !important; /* tighten spacing below Property Name input */
+    }
     .stTextInput > div > div > input, 
     .stTextArea > div > textarea,
     .stNumberInput > div > div > input {

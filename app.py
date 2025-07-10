@@ -1798,38 +1798,39 @@ def display_logo():
         # Fallback for if logo is unavailable
         invalid_logo = not logo_base64 or not isinstance(logo_base64, str) or len(logo_base64) < 100
 
-        # Inject CSS for header styling only once
-        if "header_css_injected" not in st.session_state:
-            st.markdown(
-                """
-                <style>
-                .header-container {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 0.25rem 0 0.75rem 0;
-                    margin-bottom: 0.25rem;
-                }
-                .logo-title-container {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                }
-                .reborn-logo { height: 64px; }
-                .reborn-text {
-                    font-family: 'Inter', sans-serif;
-                    font-size: 2.25rem;
-                    font-weight: 700;
-                    color: #ffffff; /* Enforce white color for title */
-                    margin: 0;
-                    letter-spacing: 0.05em;
-                }
-                #MainMenu, header { visibility: hidden; }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.session_state.header_css_injected = True
+        # Inject CSS for header styling (every run to avoid loss after rerun)
+        st.markdown(
+            """
+            <style>
+            .header-container {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.25rem 0 0.75rem 0;
+                margin-bottom: 0.25rem;
+            }
+            .logo-title-container {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                flex-wrap: nowrap;
+            }
+            .reborn-logo { height: 64px; }
+            .reborn-text {
+                font-family: 'Inter', sans-serif;
+                font-size: 2.25rem;
+                font-weight: 700;
+                color: #ffffff; /* Enforce white color for title */
+                margin: 0;
+                letter-spacing: 0.05em;
+                white-space: nowrap;
+                display: inline-block;
+            }
+            #MainMenu, header { visibility: hidden; }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
         # Build HTML for the header (logo + text)
         left_part = (
