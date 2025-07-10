@@ -8,7 +8,7 @@ import os
 import logging
 import datetime
 from typing import Dict, Any, List
-from fastapi import FastAPI, HTTPException, Request, Form
+from fastapi import FastAPI, HTTPException, Request, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 import uvicorn
@@ -263,8 +263,11 @@ async def stripe_webhook(request: Request):
 
 # Payment success/cancel pages
 @app.get("/credit-success", response_class=HTMLResponse)
-async def credit_success(session_id: str = None):
+async def credit_success(session_id: str = Query(None)):
     """Credit purchase success page"""
+    # Get main app URL from environment or use default
+    main_app_url = os.getenv("MAIN_APP_URL", "https://noianalyzer.streamlit.app")
+    
     return f"""
     <html>
         <head>
@@ -368,7 +371,7 @@ async def credit_success(session_id: str = None):
                             window.close();
                         }} else {{
                             // Redirect to main app with flag to return to main interface
-                            window.location.href = 'https://noianalyzer.streamlit.app?credit_success=1&return_to_main=1';
+                            window.location.href = '{main_app_url}?credit_success=1&return_to_main=1';
                         }}
                     }}, 500);
                 }}

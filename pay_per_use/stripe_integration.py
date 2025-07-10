@@ -52,7 +52,7 @@ def create_credit_checkout_session(email: str, package_id: str) -> str:
         mode="payment",
         customer_email=email,
         line_items=[{"price": package.stripe_price_id, "quantity": 1}],
-        success_url=os.getenv("CREDIT_SUCCESS_URL", "http://localhost:8501/?credit_success=1&return_to_main=1"),
+        success_url=os.getenv("CREDIT_SUCCESS_URL", "https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}"),
         cancel_url=os.getenv("CREDIT_CANCEL_URL", "https://noianalyzer-1.onrender.com/payment-cancel"),
         metadata=metadata,
     )

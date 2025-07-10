@@ -12,8 +12,8 @@ TRIAL_COOLDOWN_DAYS=7        # Days before IP can get free trials again
 ADMIN_API_KEY=your_secret_admin_key_here  # For accessing admin endpoints
 
 # STRIPE CONFIGURATION (update these URLs)
-CREDIT_SUCCESS_URL=https://yourdomain.com/credit-success?session_id={CHECKOUT_SESSION_ID}
-CREDIT_CANCEL_URL=https://yourdomain.com/pricing
+CREDIT_SUCCESS_URL=https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}
+CREDIT_CANCEL_URL=https://noianalyzer-1.onrender.com/payment-cancel
 
 # DATABASE
 DATABASE_PATH=noi_analyzer.db
