@@ -271,6 +271,169 @@ def display_credit_store():
     """Display credit purchase interface"""
     st.title("🛒 Buy Credits")
     
+    # Enhanced CSS styling for professional card appearance
+    st.markdown("""
+    <style>
+    /* Main container spacing */
+    .stApp > div > div > div > div:nth-child(3) {
+        padding: 2rem 1rem !important;
+    }
+    
+    /* Enhanced Credit Package Card Styling */
+    div[data-testid="column"] > div {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        padding: 2rem 1.5rem !important;
+        margin: 0.5rem !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        backdrop-filter: blur(10px) !important;
+        transition: all 0.3s ease !important;
+        height: auto !important;
+        min-height: 420px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        position: relative !important;
+    }
+    
+    div[data-testid="column"] > div:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+        border-color: rgba(14, 77, 227, 0.4) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    /* Package Title Styling */
+    div[data-testid="column"] h3 {
+        margin-top: 0 !important;
+        margin-bottom: 1.25rem !important;
+        font-size: 1.6rem !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        text-align: center !important;
+        color: #FFFFFF !important;
+        padding-bottom: 0.5rem !important;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Credits Display */
+    div[data-testid="column"] > div > div > p:first-of-type {
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        color: rgba(255, 255, 255, 0.9) !important;
+        text-align: center !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    /* Price Display Enhancement */
+    div[data-testid="column"] h3:nth-of-type(2) {
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+        color: #FFFFFF !important;
+        margin: 1.5rem 0 !important;
+        text-align: center !important;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    
+    /* Per Credit Price Styling */
+    div[data-testid="column"] > div > div > p:nth-of-type(2) {
+        color: rgba(255, 255, 255, 0.7) !important;
+        font-size: 1rem !important;
+        font-style: italic !important;
+        margin-bottom: 1.5rem !important;
+        text-align: center !important;
+    }
+    
+    /* Success Badge (Save %) Styling */
+    div[data-testid="column"] div[data-testid="stAlert"] {
+        margin: 1.25rem 0 1.5rem 0 !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 25px !important;
+        text-align: center !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        background: linear-gradient(135deg, #22C55E, #16A34A) !important;
+        border: 1px solid rgba(34, 197, 94, 0.3) !important;
+        box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2) !important;
+    }
+    
+    /* Placeholder for consistent height */
+    div[data-testid="column"] div[style*="height: 48px"] {
+        height: 48px !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    /* Description Text */
+    div[data-testid="column"] > div > div > div:last-of-type {
+        color: rgba(255, 255, 255, 0.8) !important;
+        font-size: 0.95rem !important;
+        line-height: 1.5 !important;
+        margin: 1rem 0 2rem 0 !important;
+        text-align: center !important;
+        flex-grow: 1 !important;
+    }
+    
+    /* Button Container Alignment */
+    div[data-testid="column"] div[data-testid="stButton"] {
+        margin-top: auto !important;
+        padding-top: 1rem !important;
+    }
+    
+    /* Button Styling Enhancement */
+    div[data-testid="column"] button[data-testid="baseButton-primary"] {
+        width: 100% !important;
+        padding: 1rem 1.5rem !important;
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        border: none !important;
+        background: linear-gradient(135deg, #0E4DE3 0%, #1C5CF5 100%) !important;
+        color: white !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 12px rgba(14, 77, 227, 0.4) !important;
+        text-transform: none !important;
+        letter-spacing: 0.5px !important;
+    }
+    
+    div[data-testid="column"] button[data-testid="baseButton-primary"]:hover {
+        background: linear-gradient(135deg, #1C5CF5 0%, #2563EB 100%) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 16px rgba(14, 77, 227, 0.6) !important;
+    }
+    
+    /* Header spacing improvements */
+    .stApp h1 {
+        margin-bottom: 2rem !important;
+        text-align: center !important;
+        font-size: 2.5rem !important;
+    }
+    
+    .stApp h3:first-of-type {
+        margin-bottom: 0.75rem !important;
+        text-align: center !important;
+        font-size: 1.75rem !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Subtitle spacing */
+    .stApp > div > div > div > div:nth-child(3) > div:nth-child(3) {
+        margin-bottom: 3rem !important;
+        text-align: center !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+        font-size: 1.1rem !important;
+    }
+    
+    /* Ensure consistent column gaps */
+    div[data-testid="column"] {
+        padding: 0 0.75rem !important;
+    }
+    
+    </style>
+    """, unsafe_allow_html=True)
+    
     packages = get_credit_packages()
     if not packages:
         st.error("Unable to load credit packages. Please try again later.")
@@ -317,7 +480,7 @@ def display_credit_store():
                     st.success(savings_text)
                 else:
                     # Invisible placeholder to maintain equal card height
-                    st.markdown('<div style="height: 2.2rem"></div>', unsafe_allow_html=True)
+                    st.markdown('<div style="height: 48px; margin-bottom: 1rem;"></div>', unsafe_allow_html=True)
                 
                 # Description
                 st.caption(package.get('description', f"Top up {package['credits']} credits"))
