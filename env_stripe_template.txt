@@ -34,11 +34,11 @@ STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_YOUR_WEBHOOK_SECRET
 # ===========================================
 # Where users go after payment success/cancellation
 # For production, use your actual domain:
-CREDIT_SUCCESS_URL=https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}
+CREDIT_SUCCESS_URL=https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}&email={email}
 CREDIT_CANCEL_URL=https://noianalyzer-1.onrender.com/payment-cancel
 
 # For local development only:
-# CREDIT_SUCCESS_URL=http://localhost:8000/credit-success?session_id={CHECKOUT_SESSION_ID}
+# CREDIT_SUCCESS_URL=http://localhost:8000/credit-success?session_id={CHECKOUT_SESSION_ID}&email={email}
 # CREDIT_CANCEL_URL=http://localhost:8000/payment-cancel
 
 # Main app URL (where users return after payment)

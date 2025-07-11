@@ -263,7 +263,7 @@ async def stripe_webhook(request: Request):
 
 # Payment success/cancel pages
 @app.get("/credit-success", response_class=HTMLResponse)
-async def credit_success(session_id: str = Query(None)):
+async def credit_success(session_id: str = Query(None), email: str = Query(None)):
     """Credit purchase success page"""
     # Get main app URL from environment or use default
     main_app_url = os.getenv("MAIN_APP_URL", "https://noianalyzer.streamlit.app")
@@ -345,8 +345,6 @@ async def credit_success(session_id: str = Query(None)):
                     You can now close this tab and continue using the NOI Analyzer app.
                     Your credit balance should update automatically.
                 </p>
-                
-                {f'<p class="session-id">Session ID: {session_id}</p>' if session_id else ''}
             </div>
             
             <script>
@@ -369,7 +367,8 @@ async def credit_success(session_id: str = Query(None)):
                     
                     // If no parent window or messaging failed, redirect to main app
                     console.log('Redirecting to main app: {main_app_url}');
-                    window.location.href = '{main_app_url}?credit_success=1&return_to_main=1';
+                    const emailParam = '{email}' ? '&email={email}' : '';
+                    window.location.href = '{main_app_url}?credit_success=1&return_to_main=1' + emailParam;
                 }}
                 
                 // Auto-redirect after 3 seconds (reduced from 5)
@@ -377,13 +376,14 @@ async def credit_success(session_id: str = Query(None)):
                     closeAndReturn();
                 }}, 3000);
                 
-                // Also try immediate redirect if user doesn't click button
-                setTimeout(function() {{
-                    if (document.visibilityState === 'visible') {{
-                        console.log('Page still visible, attempting redirect...');
-                        window.location.href = '{main_app_url}?credit_success=1&return_to_main=1';
-                    }}
-                }}, 8000);
+                                 // Also try immediate redirect if user doesn't click button
+                 setTimeout(function() {{
+                     if (document.visibilityState === 'visible') {{
+                         console.log('Page still visible, attempting redirect...');
+                         const emailParam = '{email}' ? '&email={email}' : '';
+                         window.location.href = '{main_app_url}?credit_success=1&return_to_main=1' + emailParam;
+                     }}
+                 }}, 8000);
             </script>
         </body>
     </html>

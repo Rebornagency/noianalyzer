@@ -1,6 +1,7 @@
 import os
 import stripe
 from typing import Dict, Any, Optional
+from urllib.parse import quote
 from .models import JobStatus, CreditPackage
 from .database import db_service
 from uuid import uuid4
@@ -52,7 +53,7 @@ def create_credit_checkout_session(email: str, package_id: str) -> str:
         mode="payment",
         customer_email=email,
         line_items=[{"price": package.stripe_price_id, "quantity": 1}],
-        success_url=os.getenv("CREDIT_SUCCESS_URL", "https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}"),
+        success_url=os.getenv("CREDIT_SUCCESS_URL", f"https://noianalyzer-1.onrender.com/credit-success?session_id={{CHECKOUT_SESSION_ID}}&email={quote(email)}"),
         cancel_url=os.getenv("CREDIT_CANCEL_URL", "https://noianalyzer-1.onrender.com/payment-cancel"),
         metadata=metadata,
     )

@@ -3567,11 +3567,26 @@ def main():
         
         # Handle page routing for credit system
         if CREDIT_SYSTEM_AVAILABLE:
-            # Clear credit store flag if user returned from successful purchase
-            if 'credit_success' in st.query_params or st.session_state.get('clear_credit_store', False):
+            # Handle successful credit purchase return
+            if 'credit_success' in st.query_params:
                 st.session_state.show_credit_store = False
                 st.session_state.clear_credit_store = False
-                logger.info("Cleared credit store flag - user returned from successful purchase")
+                
+                # Pre-fill email if provided in URL
+                if 'email' in st.query_params:
+                    returned_email = st.query_params['email']
+                    st.session_state.user_email = returned_email
+                    logger.info(f"Pre-filled email from successful purchase: {returned_email}")
+                
+                # Show success notification
+                st.session_state.show_credit_success = True
+                logger.info("User returned from successful credit purchase")
+            
+            # Clear credit store flag if needed
+            elif st.session_state.get('clear_credit_store', False):
+                st.session_state.show_credit_store = False
+                st.session_state.clear_credit_store = False
+                logger.info("Cleared credit store flag")
             
             # Check if we should show credit store
             if st.session_state.get('show_credit_store', False):
@@ -3733,8 +3748,12 @@ def main():
     st.sidebar.markdown("---")
 
     # Add email input field at the top level - ALWAYS visible
+    # Pre-fill email if user returned from successful purchase
+    default_email = st.session_state.get('user_email', '')
+    
     email_input = st.text_input(
         "Email Address",
+        value=default_email,
         placeholder="Enter your email address",
         help="We'll track your credits and send you the analysis report",
         key="user_email_input"
@@ -3751,6 +3770,17 @@ def main():
         else:
             st.sidebar.error("💳 Credit System Unavailable")
             st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
+    
+    # Show success notification if user returned from successful purchase
+    if st.session_state.get('show_credit_success', False):
+        st.success("🎉 **Credits Successfully Added!** Your credits have been added to your account and are ready to use.")
+        
+        # Clear the success flag after showing
+        st.session_state.show_credit_success = False
+        
+        # Force refresh of credit balance display
+        if email_input and CREDIT_SYSTEM_AVAILABLE:
+            st.rerun()
     
     # Add header credit display for main page (centered)
     if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
