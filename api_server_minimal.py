@@ -351,35 +351,39 @@ async def credit_success(session_id: str = Query(None)):
             
             <script>
                 function closeAndReturn() {{
-                    // Try to close the tab first
-                    window.close();
-                    
-                    // If that doesn't work (popup blocker), try to go back
-                    setTimeout(function() {{
-                        // If we're still here, try going back to the app
-                        if (window.opener) {{
-                            // Tell the parent window to go back to main interface
-                            try {{
-                                window.opener.postMessage({{
-                                    type: 'CREDIT_PURCHASE_SUCCESS',
-                                    action: 'RETURN_TO_MAIN'
-                                }}, '*');
-                                window.opener.focus();
-                            }} catch(e) {{
-                                console.log('Could not message parent window');
-                            }}
-                            window.close();
-                        }} else {{
-                            // Redirect to main app with flag to return to main interface
-                            window.location.href = '{main_app_url}?credit_success=1&return_to_main=1';
+                    // First try to communicate with parent window if it exists
+                    if (window.opener) {{
+                        try {{
+                            window.opener.postMessage({{
+                                type: 'CREDIT_PURCHASE_SUCCESS',
+                                action: 'RETURN_TO_MAIN'
+                            }}, '*');
+                            window.opener.focus();
+                            // Close this window after messaging parent
+                            setTimeout(function() {{ window.close(); }}, 1000);
+                            return;
+                        }} catch(e) {{
+                            console.log('Could not message parent window:', e);
                         }}
-                    }}, 500);
+                    }}
+                    
+                    // If no parent window or messaging failed, redirect to main app
+                    console.log('Redirecting to main app: {main_app_url}');
+                    window.location.href = '{main_app_url}?credit_success=1&return_to_main=1';
                 }}
                 
-                // Auto-close after 5 seconds
+                // Auto-redirect after 3 seconds (reduced from 5)
                 setTimeout(function() {{
                     closeAndReturn();
-                }}, 5000);
+                }}, 3000);
+                
+                // Also try immediate redirect if user doesn't click button
+                setTimeout(function() {{
+                    if (document.visibilityState === 'visible') {{
+                        console.log('Page still visible, attempting redirect...');
+                        window.location.href = '{main_app_url}?credit_success=1&return_to_main=1';
+                    }}
+                }}, 8000);
             </script>
         </body>
     </html>
