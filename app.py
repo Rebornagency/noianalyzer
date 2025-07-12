@@ -3575,8 +3575,12 @@ def main():
                 # Pre-fill email if provided in URL
                 if 'email' in st.query_params:
                     returned_email = st.query_params['email']
-                    st.session_state.user_email = returned_email
-                    logger.info(f"Pre-filled email from successful purchase: {returned_email}")
+                    # Only set email if it's a valid email (not None, empty, or "None")
+                    if returned_email and returned_email.lower() != 'none' and '@' in returned_email:
+                        st.session_state.user_email = returned_email
+                        logger.info(f"Pre-filled email from successful purchase: {returned_email}")
+                    else:
+                        logger.warning(f"Invalid email parameter received: {returned_email}")
                 
                 # Show success notification
                 st.session_state.show_credit_success = True

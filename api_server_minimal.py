@@ -268,6 +268,9 @@ async def credit_success(session_id: str = Query(None), email: str = Query(None)
     # Get main app URL from environment or use default
     main_app_url = os.getenv("MAIN_APP_URL", "https://noianalyzer.streamlit.app")
     
+    # Handle email parameter properly - avoid None string
+    email_param = email if email and email.lower() != 'none' else ""
+    
     return f"""
     <html>
         <head>
@@ -348,7 +351,7 @@ async def credit_success(session_id: str = Query(None), email: str = Query(None)
             </div>
             
             <script>
-                function closeAndReturn() {{
+                                function closeAndReturn() {{
                     // First try to communicate with parent window if it exists
                     if (window.opener) {{
                         try {{
@@ -367,7 +370,7 @@ async def credit_success(session_id: str = Query(None), email: str = Query(None)
                     
                     // If no parent window or messaging failed, redirect to main app
                     console.log('Redirecting to main app: {main_app_url}');
-                    const emailParam = '{email}' ? '&email={email}' : '';
+                    const emailParam = '{email_param}' ? '&email={email_param}' : '';
                     window.location.href = '{main_app_url}?credit_success=1&return_to_main=1' + emailParam;
                 }}
                 
@@ -376,14 +379,14 @@ async def credit_success(session_id: str = Query(None), email: str = Query(None)
                     closeAndReturn();
                 }}, 3000);
                 
-                                 // Also try immediate redirect if user doesn't click button
-                 setTimeout(function() {{
-                     if (document.visibilityState === 'visible') {{
-                         console.log('Page still visible, attempting redirect...');
-                         const emailParam = '{email}' ? '&email={email}' : '';
-                         window.location.href = '{main_app_url}?credit_success=1&return_to_main=1' + emailParam;
-                     }}
-                 }}, 8000);
+                // Also try immediate redirect if user doesn't click button
+                setTimeout(function() {{
+                    if (document.visibilityState === 'visible') {{
+                        console.log('Page still visible, attempting redirect...');
+                        const emailParam = '{email_param}' ? '&email={email_param}' : '';
+                        window.location.href = '{main_app_url}?credit_success=1&return_to_main=1' + emailParam;
+                    }}
+                }}, 8000);
             </script>
         </body>
     </html>
