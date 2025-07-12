@@ -3779,12 +3779,8 @@ def main():
     if st.session_state.get('show_credit_success', False):
         st.success("🎉 **Credits Successfully Added!** Your credits have been added to your account and are ready to use.")
         
-        # Clear the success flag after showing
+        # Clear the success flag after showing - this prevents the infinite loop
         st.session_state.show_credit_success = False
-        
-        # Force refresh of credit balance display
-        if email_input and CREDIT_SYSTEM_AVAILABLE:
-            st.rerun()
     
     # Add header credit display for main page (centered)
     if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
