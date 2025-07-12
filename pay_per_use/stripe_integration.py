@@ -49,14 +49,21 @@ def create_credit_checkout_session(email: str, package_id: str) -> str:
     }
     
     # Build success URL with email parameter
-    base_success_url = os.getenv("CREDIT_SUCCESS_URL", "https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}")
+    base_success_url = os.getenv("CREDIT_SUCCESS_URL")
     
-    # Ensure email parameter is always included
-    if "email=" not in base_success_url:
-        separator = "&" if "?" in base_success_url else "?"
-        success_url_with_email = f"{base_success_url}{separator}email={quote(email)}"
+    if base_success_url:
+        # If environment variable is set, use it but ensure email is included
+        if "email=" not in base_success_url and "{email}" not in base_success_url:
+            separator = "&" if "?" in base_success_url else "?"
+            success_url_with_email = f"{base_success_url}{separator}email={quote(email)}"
+        elif "{email}" in base_success_url:
+            # Replace {email} placeholder with actual email
+            success_url_with_email = base_success_url.replace("{email}", quote(email))
+        else:
+            success_url_with_email = base_success_url
     else:
-        success_url_with_email = base_success_url
+        # Default URL with both session_id and email
+        success_url_with_email = f"https://noianalyzer-1.onrender.com/credit-success?session_id={{CHECKOUT_SESSION_ID}}&email={quote(email)}"
     
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],

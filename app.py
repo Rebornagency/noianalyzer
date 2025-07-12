@@ -3584,7 +3584,13 @@ def main():
                 
                 # Show success notification
                 st.session_state.show_credit_success = True
+                
+                # Clear the query params flag to allow normal credit store functionality
+                st.session_state.purchase_return_handled = True
                 logger.info("User returned from successful credit purchase")
+                
+                # Clear URL parameters to prevent repeated processing
+                st.query_params.clear()
             
             # Clear credit store flag if needed
             elif st.session_state.get('clear_credit_store', False):
@@ -3592,8 +3598,14 @@ def main():
                 st.session_state.clear_credit_store = False
                 logger.info("Cleared credit store flag")
             
-            # Check if we should show credit store
+            # Check if we should show credit store (prioritize this over other flows)
             if st.session_state.get('show_credit_store', False):
+                # Clear any purchase return flags when entering credit store
+                if 'purchase_return_handled' in st.session_state:
+                    del st.session_state.purchase_return_handled
+                if 'show_credit_success' in st.session_state:
+                    del st.session_state.show_credit_success
+                    
                 display_credit_store()
                 
                 # Back to main app button
@@ -3791,7 +3803,11 @@ def main():
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
             if st.button("🛒 Buy More Credits", key="header_buy_credits", use_container_width=True, type="primary"):
+                logger.info("🛒 Buy More Credits button clicked - showing credit store")
                 st.session_state.show_credit_store = True
+                # Clear any conflicting flags
+                if 'show_credit_success' in st.session_state:
+                    del st.session_state.show_credit_success
                 st.rerun()
     
     # Display initial UI or results based on processing_completed
@@ -4229,7 +4245,11 @@ def main():
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
                 if st.button("🛒 Buy More Credits", key="template_header_buy_credits", use_container_width=True, type="primary"):
+                    logger.info("🛒 Template Buy More Credits button clicked - showing credit store")
                     st.session_state.show_credit_store = True
+                    # Clear any conflicting flags
+                    if 'show_credit_success' in st.session_state:
+                        del st.session_state.show_credit_success
                     st.rerun()
         
         logger.info("Displaying data template for user review.")
@@ -4356,7 +4376,11 @@ def main():
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
                 if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
+                    logger.info("🛒 Results Buy More Credits button clicked - showing credit store")
                     st.session_state.show_credit_store = True
+                    # Clear any conflicting flags
+                    if 'show_credit_success' in st.session_state:
+                        del st.session_state.show_credit_success
                     st.rerun()
         
         # Show results after processing is fully completed

@@ -225,7 +225,11 @@ def display_credit_balance(email: str):
         
     # Buy more credits button
     if st.sidebar.button("🛒 Buy More Credits", use_container_width=True):
+        logger.info("🛒 Sidebar Buy More Credits button clicked - showing credit store")
         st.session_state.show_credit_store = True
+        # Clear any conflicting flags
+        if 'show_credit_success' in st.session_state:
+            del st.session_state.show_credit_success
         st.rerun()
     
     # Transaction history in expander
