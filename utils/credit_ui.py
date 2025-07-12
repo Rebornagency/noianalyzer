@@ -661,20 +661,31 @@ def display_insufficient_credits():
             st.rerun()
 
 def display_free_trial_welcome(email: str):
-    """Display welcome message for new users with free trial"""
+    """Display welcome message for new users with free trial - only once per session"""
+    # Check if we've already shown the welcome message for this email in this session
+    welcome_key = f"free_trial_welcome_shown_{email}"
+    if st.session_state.get(welcome_key, False):
+        return
+    
     credit_data = get_user_credits(email)
     if not credit_data:
         return
     
-    # Check if this is a new user who just got free trial credits
-    if credit_data.get("total_used", 0) == 0 and credit_data.get("free_trial_used", False):
-        st.success("🎉 **Welcome! You've received 3 free trial credits!**")
+    # Check if this is a new user who just got free trial credits (never used any)
+    is_new_user = (credit_data.get("total_used", 0) == 0 and 
+                   credit_data.get("free_trial_used", False) and
+                   credit_data.get("credits", 0) > 0)
+    
+    if is_new_user:
+        # Get the actual number of free trial credits from environment
+        free_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
+        
+        st.success(f"🎉 **Welcome! You've received {free_credits} free trial credit{'s' if free_credits != 1 else ''}!**")
         st.info("Each NOI analysis uses 1 credit. Try our service risk-free!")
         
-        # Store that we've shown this message
-        if "free_trial_welcome_shown" not in st.session_state:
-            st.session_state.free_trial_welcome_shown = True
-            st.balloons()
+        # Store that we've shown this message for this email in this session
+        st.session_state[welcome_key] = True
+        st.balloons()
 
 def init_credit_system():
     """Initialize credit system - call this early in your main app"""

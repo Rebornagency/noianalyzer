@@ -115,6 +115,8 @@ class DatabaseService:
                            (datetime.now(), email))
                 conn.commit()
                 
+                logger.info(f"Retrieved existing user {email} with {row['credits']} credits")
+                
                 return User(
                     user_id=row['user_id'],
                     email=row['email'],
@@ -140,6 +142,8 @@ class DatabaseService:
                     free_trial_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
                     if ip_address:
                         self._record_ip_trial_usage(ip_address)
+                else:
+                    free_trial_credits = 0  # No free credits if IP restrictions apply
                 
                 # Create new user
                 user_id = uuid4().hex
@@ -154,9 +158,9 @@ class DatabaseService:
                 if free_trial_credits > 0:
                     self._add_transaction_internal(conn, user_id, TransactionType.bonus, 
                                                  free_trial_credits, "Free trial credits")
-                    logger.info(f"Created new user {email} with {free_trial_credits} free credits")
+                    logger.info(f"✅ Created new user {email} with {free_trial_credits} free trial credits")
                 else:
-                    logger.info(f"Created new user {email} with no free credits (IP restriction)")
+                    logger.info(f"⚠️ Created new user {email} with no free credits (IP restriction or already used trial)")
                 
                 conn.commit()
                 
