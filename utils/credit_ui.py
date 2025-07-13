@@ -428,6 +428,9 @@ def display_credit_store():
         text-align: center !important;
         color: rgba(255, 255, 255, 0.8) !important;
         font-size: 1.1rem !important;
+        max-width: 600px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
     
     /* Ensure consistent column gaps */
@@ -505,6 +508,28 @@ def display_credit_store():
     /* Per-credit cost */
     div[data-testid="column"] > div > div > p:nth-of-type(2) {
         font-size: 1.05rem !important;
+    }
+
+    /* ===== Card alignment fixes ===== */
+    /* Ensure all cards have equal height */
+    div[data-testid="column"] > div {
+        min-height: 450px !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* Push buttons to bottom */
+    div[data-testid="column"] div[data-testid="stButton"] {
+        margin-top: auto !important;
+        padding-top: 1rem !important;
+    }
+
+    /* Ensure description text takes available space */
+    div[data-testid="column"] > div > div > div:last-of-type {
+        flex-grow: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     /* =============================================== */
     
