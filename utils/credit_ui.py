@@ -461,12 +461,17 @@ def display_credit_store():
         opacity: 0.85 !important;
     }
 
-    /* Headline gradient */
-    .stApp h3:first-of-type {
-        font-size: 2rem !important;
-        background: linear-gradient(90deg, #5da7ff, #9bcaff) !important;
+    /* Headline gradient (applies only to main section header) */
+    .stApp h2 {
+        background: linear-gradient(90deg, #5da7ff 0%, #9bcaff 100%) !important;
         -webkit-background-clip: text !important;
         -webkit-text-fill-color: transparent !important;
+    }
+
+    /* Ensure card titles & prices remain visible */
+    div[data-testid="column"] h3 {
+        -webkit-text-fill-color: #ffffff !important;
+        color: #ffffff !important;
     }
 
     /* Purchase button sizing */
