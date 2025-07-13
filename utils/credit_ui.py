@@ -273,7 +273,7 @@ def display_credit_balance(email: str):
 
 def display_credit_store():
     """Display credit purchase interface"""
-    st.title("🛒 Buy Credits")
+    # st.title("🛒 Buy Credits")  # Removed: single headline will be used below per new UI spec
     
     # Enhanced CSS styling for professional card appearance
     st.markdown("""
@@ -434,6 +434,51 @@ def display_credit_store():
     div[data-testid="column"] {
         padding: 0 0.75rem !important;
     }
+
+    /* ======================= */
+    /* UI Redesign Overrides   */
+    /* ======================= */
+    /* Card container refresh */
+    div[data-testid="column"] > div {
+        background: #101922 !important;
+        border: 1px solid #1f2a36 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.35) !important;
+    }
+
+    /* Card hover state */
+    div[data-testid="column"] > div:hover {
+        border-color: #1f2a36 !important;
+        background: rgba(255,255,255,0.06) !important;
+    }
+
+    /* Discount badge subtle styling */
+    div[data-testid="column"] div[data-testid="stAlert"] {
+        background: linear-gradient(135deg, #244533, #1b362a) !important;
+        border-radius: 6px !important;
+        border: 1px solid #305f41 !important;
+        box-shadow: none !important;
+        opacity: 0.85 !important;
+    }
+
+    /* Headline gradient */
+    .stApp h3:first-of-type {
+        font-size: 2rem !important;
+        background: linear-gradient(90deg, #5da7ff, #9bcaff) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+    }
+
+    /* Purchase button sizing */
+    div[data-testid="column"] button[data-testid="baseButton-primary"] {
+        width: 85% !important;
+        margin: 0 auto !important;
+        height: 48px !important;
+    }
+
+    /* ======================= */
+    /* End UI Redesign Overrides */
+    /* ======================= */
     
     </style>
     """, unsafe_allow_html=True)
@@ -443,7 +488,7 @@ def display_credit_store():
         st.error("Unable to load credit packages. Please try again later.")
         return
     
-    st.markdown("### Choose a Credit Package")
+    st.markdown("## Choose a Credit Package")
     st.markdown("Credits never expire and can be used for any NOI analysis.")
     
     # Display packages in columns using Streamlit native components
