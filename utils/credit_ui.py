@@ -294,10 +294,10 @@ def display_credit_store():
         backdrop-filter: blur(10px) !important;
         transition: all 0.3s ease !important;
         height: auto !important;
-        min-height: 420px !important;
+        min-height: 480px !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
+        justify-content: flex-start !important;
         position: relative !important;
     }
     
@@ -510,26 +510,20 @@ def display_credit_store():
         font-size: 1.05rem !important;
     }
 
-    /* ===== Card alignment fixes ===== */
-    /* Ensure all cards have equal height */
-    div[data-testid="column"] > div {
-        min-height: 450px !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    /* Push buttons to bottom */
+    /* ===== Perfect Button Alignment ===== */
+    /* Force buttons to bottom with consistent positioning */
     div[data-testid="column"] div[data-testid="stButton"] {
-        margin-top: auto !important;
-        padding-top: 1rem !important;
+        position: absolute !important;
+        bottom: 2rem !important;
+        left: 2rem !important;
+        right: 2rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    /* Ensure description text takes available space */
-    div[data-testid="column"] > div > div > div:last-of-type {
-        flex-grow: 1 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+    /* Ensure card content doesn't overlap with button */
+    div[data-testid="column"] > div {
+        padding-bottom: 5rem !important;
     }
     /* =============================================== */
     
