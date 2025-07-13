@@ -461,11 +461,12 @@ def display_credit_store():
         opacity: 0.85 !important;
     }
 
-    /* Headline gradient (applies only to main section header) */
+    /* Headline style */
     .stApp h2 {
-        background: linear-gradient(90deg, #5da7ff 0%, #9bcaff 100%) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
+        color: #ffffff !important;
+        font-size: 2.25rem !important;
+        font-weight: 700 !important;
+        text-align: center !important;
     }
 
     /* Ensure card titles & prices remain visible */
@@ -479,11 +480,33 @@ def display_credit_store():
         width: 85% !important;
         margin: 0 auto !important;
         height: 48px !important;
+        font-size: 1.2rem !important; /* larger CTA text */
     }
 
-    /* ======================= */
-    /* End UI Redesign Overrides */
-    /* ======================= */
+    /* ===== Typography upgrades & spacing tweaks ===== */
+    /* Plan title */
+    div[data-testid="column"] h3 {
+        font-size: 1.8rem !important;
+    }
+
+    /* Price */
+    div[data-testid="column"] h3:nth-of-type(2) {
+        font-size: 2.7rem !important;
+        margin: 1.25rem 0 1.25rem 0 !important; /* equal spacing above & below */
+    }
+
+    /* Credits count */
+    div[data-testid="column"] > div > div > p:first-of-type {
+        font-size: 1.3rem !important;
+        margin-top: 1rem !important;  /* add top margin to center section */
+        margin-bottom: 1rem !important;
+    }
+
+    /* Per-credit cost */
+    div[data-testid="column"] > div > div > p:nth-of-type(2) {
+        font-size: 1.05rem !important;
+    }
+    /* =============================================== */
     
     </style>
     """, unsafe_allow_html=True)
@@ -533,8 +556,15 @@ def display_credit_store():
                 if savings_text:
                     st.success(savings_text)
                 else:
-                    # Invisible placeholder to maintain equal card height
-                    st.markdown('<div style="height: 48px; margin-bottom: 1rem;"></div>', unsafe_allow_html=True)
+                    # Creative badge substitute for Starter pack to keep layout aligned
+                    st.markdown(
+                        """
+                        <div style="margin: 1.25rem 0 1.5rem 0; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(255,255,255,0.04); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf;">
+                            Ideal entry point 🚀
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                 
                 # Description
                 st.caption(package.get('description', f"Top up {package['credits']} credits"))
