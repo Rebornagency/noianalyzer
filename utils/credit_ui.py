@@ -362,6 +362,10 @@ def display_credit_store():
         background: linear-gradient(135deg, #22C55E, #16A34A) !important;
         border: 1px solid rgba(34, 197, 94, 0.3) !important;
         box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2) !important;
+        min-height: 48px !important; /* Ensure uniform badge height across cards */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     /* Placeholder for consistent height */
@@ -517,7 +521,25 @@ def display_credit_store():
         return
     
     st.markdown("## Choose a Credit Package")
-    st.markdown("Credits never expire and can be used for any NOI analysis.")
+    # Center-align subtitle and follow with a value-proposition blurb on time saved
+    st.markdown(
+        """
+        <div style="text-align: center; font-size: 1.05rem; color: rgba(255,255,255,0.85); margin-bottom: 0.75rem;">
+            Credits never expire and can be used for any NOI analysis.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Highlight the key benefit – time saved – in a subtle accent colour
+    st.markdown(
+        """
+        <div style="text-align: center; font-size: 1.15rem; color: #FACC15; margin-bottom: 2.5rem; font-weight: 600;">
+            ⏱ Save <span style="font-weight: 800;">up to 3 hours</span> of manual spreadsheet work per analysis.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     
     # Display packages in columns using Streamlit native components
     cols = st.columns(min(len(packages), 3))
@@ -551,6 +573,19 @@ def display_credit_store():
                 
                 # Per credit cost
                 st.markdown(f"*${package['per_credit_cost']:.2f} per credit*")
+
+                # Realistic estimate: on average, each NOI analysis takes ~2 hours when done manually.
+                # With the tool, most of that labour is automated, leaving only review/adjustment (~15 min).
+                # That equates to roughly 1.75 hours saved per analysis. We round to whole hours for clarity:
+                hours_saved = int(round(package['credits'] * 1.75))
+                st.markdown(
+                    f"""
+                    <div style='color:#FACC15; font-weight:600; text-align:center; margin-top:0.5rem;'>
+                        ⏱ Save ~{hours_saved} hours of work!
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
                 
                 # Savings badge (or placeholder for consistent height)
                 if savings_text:
@@ -559,7 +594,7 @@ def display_credit_store():
                     # Creative badge substitute for Starter pack to keep layout aligned
                     st.markdown(
                         """
-                        <div style="margin: 1.25rem 0 1.5rem 0; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(255,255,255,0.04); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf;">
+                        <div style="height:48px; margin: 1.25rem 0 1.5rem 0; border-radius: 6px; background: rgba(255,255,255,0.04); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf; display:flex; align-items:center; justify-content:center;">
                             Ideal entry point 🚀
                         </div>
                         """,
