@@ -294,10 +294,10 @@ def display_credit_store():
         backdrop-filter: blur(10px) !important;
         transition: all 0.3s ease !important;
         height: auto !important;
-        min-height: 480px !important;
+        min-height: 420px !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-start !important;
+        justify-content: space-between !important;
         position: relative !important;
     }
     
@@ -428,9 +428,6 @@ def display_credit_store():
         text-align: center !important;
         color: rgba(255, 255, 255, 0.8) !important;
         font-size: 1.1rem !important;
-        max-width: 600px !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
     }
     
     /* Ensure consistent column gaps */
@@ -508,22 +505,6 @@ def display_credit_store():
     /* Per-credit cost */
     div[data-testid="column"] > div > div > p:nth-of-type(2) {
         font-size: 1.05rem !important;
-    }
-
-    /* ===== Perfect Button Alignment ===== */
-    /* Force buttons to bottom with consistent positioning */
-    div[data-testid="column"] div[data-testid="stButton"] {
-        position: absolute !important;
-        bottom: 2rem !important;
-        left: 2rem !important;
-        right: 2rem !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    /* Ensure card content doesn't overlap with button */
-    div[data-testid="column"] > div {
-        padding-bottom: 5rem !important;
     }
     /* =============================================== */
     
