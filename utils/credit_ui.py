@@ -288,16 +288,17 @@ def display_credit_store():
         background: rgba(255, 255, 255, 0.05) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 12px !important;
-        padding: 2rem 1.5rem 3rem 1.5rem !important; /* Adequate bottom padding for CTA */
+        padding: 2rem 1.5rem 4rem 1.5rem !important; /* More bottom padding for CTA */
         margin: 0.5rem !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
         backdrop-filter: blur(10px) !important;
         transition: all 0.3s ease !important;
-        height: 480px !important; /* Fixed height for all cards */
+        height: 560px !important; /* Increased fixed height for content fit */
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
         position: relative !important;
+        /* No overflow hidden so content visible */
     }
     
     div[data-testid="column"] > div:hover {
@@ -385,9 +386,11 @@ def display_credit_store():
     
     /* Button Container Alignment */
     div[data-testid="column"] div[data-testid="stButton"] {
-        margin-top: auto !important; /* Push CTA to bottom within flex column */
-        padding-top: 1rem !important;
-        width: 100% !important; /* ensure full-width alignment */
+         margin-top: auto !important; /* Push CTA to bottom within flex column */
+         padding-top: 1rem !important;
+         width: 100% !important; /* ensure full-width alignment */
+         margin-bottom: 0 !important; /* Prevent button from extending beyond card */
+         box-sizing: border-box !important;
     }
     
     /* Button Styling Enhancement */
@@ -481,7 +484,7 @@ def display_credit_store():
 
     /* Purchase button sizing */
     div[data-testid="column"] button[data-testid="baseButton-primary"] {
-        width: 85% !important;
+        width: 90% !important;
         margin: 0 auto !important;
         height: 48px !important;
         font-size: 1.2rem !important; /* larger CTA text */
@@ -613,9 +616,9 @@ def display_credit_store():
                 else:
                     if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary"):
                         purchase_credits(email, package['package_id'], package['name'])
-                
-                # Add spacing between cards
-                st.markdown("---")
+    
+    # Add proper spacing after all cards are displayed
+    st.markdown("<br><br>", unsafe_allow_html=True)
 
 def purchase_credits(email: str, package_id: str, package_name: str):
     """Handle credit purchase"""
