@@ -297,7 +297,6 @@ def display_credit_store():
         min-height: 460px !important; /* ensure consistent card height for button alignment */
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
         position: relative !important;
     }
     
@@ -374,14 +373,15 @@ def display_credit_store():
         margin-bottom: 1.5rem !important;
     }
     
-    /* Description Text */
-    div[data-testid="column"] > div > div > div:last-of-type {
+    /* Description Text - use robust selector and reserve space */
+    div[data-testid="stCaptionContainer"] {
         color: rgba(255, 255, 255, 0.8) !important;
         font-size: 0.95rem !important;
         line-height: 1.5 !important;
         margin: 1rem 0 2rem 0 !important;
         text-align: center !important;
-        flex-grow: 1 !important;
+        flex-grow: 1 !important; /* Allow this to absorb remaining space */
+        min-height: 42px !important; /* Reserve space for 2 lines of text */
     }
     
     /* Button Container Alignment */
