@@ -288,16 +288,15 @@ def display_credit_store():
         background: rgba(255, 255, 255, 0.05) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-radius: 12px !important;
-        padding: 2rem 1.5rem !important;
+        padding: 2rem 1.5rem 5rem 1.5rem !important; /* Extra bottom padding for button space */
         margin: 0.5rem !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
         backdrop-filter: blur(10px) !important;
         transition: all 0.3s ease !important;
-        height: auto !important;
-        min-height: 420px !important;
+        height: 480px !important; /* Fixed height for all cards */
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
+        justify-content: flex-start !important;
         position: relative !important;
     }
     
@@ -386,8 +385,12 @@ def display_credit_store():
     
     /* Button Container Alignment */
     div[data-testid="column"] div[data-testid="stButton"] {
-        margin-top: auto !important;
-        padding-top: 1rem !important;
+        position: absolute !important;
+        bottom: 2rem !important;
+        left: 1.5rem !important;
+        right: 1.5rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     
     /* Button Styling Enhancement */
