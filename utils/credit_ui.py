@@ -597,7 +597,7 @@ def display_credit_store():
                     # Creative badge substitute for Starter pack to keep layout aligned
                     st.markdown(
                         """
-                        <div style="height:48px; margin: 1.25rem 0 1.5rem 0; border-radius: 6px; background: rgba(255,255,255,0.04); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf; display:flex; align-items:center; justify-content:center;">
+                        <div style="min-height:48px; margin: 1.25rem 0 1.5rem 0; padding: 0.75rem 1rem; border-radius: 25px; background: linear-gradient(135deg, #244533, #1b362a); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf; display:flex; align-items:center; justify-content:center;">
                             Ideal entry point 🚀
                         </div>
                         """,
