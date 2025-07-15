@@ -294,7 +294,7 @@ def display_credit_store():
         backdrop-filter: blur(10px) !important;
         transition: all 0.3s ease !important;
         height: auto !important;
-        min-height: 420px !important;
+        min-height: 460px !important; /* ensure consistent card height for button alignment */
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
@@ -362,7 +362,7 @@ def display_credit_store():
         background: linear-gradient(135deg, #22C55E, #16A34A) !important;
         border: 1px solid rgba(34, 197, 94, 0.3) !important;
         box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2) !important;
-        min-height: 48px !important; /* Ensure uniform badge height across cards */
+        min-height: 72px !important; /* Ensure uniform badge height across cards */
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -594,7 +594,7 @@ def display_credit_store():
                     # Creative badge substitute for Starter pack to keep layout aligned
                     st.markdown(
                         """
-                        <div style="height:48px; margin: 1.25rem 0 1.5rem 0; border-radius: 6px; background: rgba(255,255,255,0.04); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf; display:flex; align-items:center; justify-content:center;">
+                        <div style="height:72px; margin: 1.25rem 0 1.5rem 0; border-radius: 6px; background: rgba(255,255,255,0.04); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf; display:flex; align-items:center; justify-content:center;">
                             Ideal entry point 🚀
                         </div>
                         """,
