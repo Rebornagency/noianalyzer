@@ -57,6 +57,8 @@ async def get_user_credits(email: str, request: Request):
                 } for tx in dashboard_data["recent_transactions"]
             ]
         }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -119,6 +121,10 @@ async def create_job(
     use_credits: bool = Form(True)  # Default to credit-based system
 ):
     """Create analysis job - credit-based by default, legacy payment as fallback"""
+    # Basic email validation to reject disposable / invalid addresses early
+    from utils.email_utils import is_valid_email, is_disposable_email
+    if not is_valid_email(email) or is_disposable_email(email):
+        raise HTTPException(status_code=400, detail="Disposable or invalid email address not allowed")
     # Get IP address and user agent for abuse prevention
     ip_address = request.client.host if request.client else None
     user_agent = request.headers.get("user-agent", "")

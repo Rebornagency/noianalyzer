@@ -102,7 +102,13 @@ class DatabaseService:
     
     # USER MANAGEMENT
     def get_or_create_user(self, email: str, ip_address: str = None, user_agent: str = None) -> User:
-        """Get existing user or create new one"""
+        """Get existing user or create new one.  Reject disposable / invalid emails if enabled."""
+        # Optional runtime toggle
+        if os.getenv("BLOCK_DISPOSABLE_EMAILS", "true").lower() == "true":
+            from utils.email_utils import is_valid_email, is_disposable_email
+            if not is_valid_email(email) or is_disposable_email(email):
+                raise ValueError("Disposable or invalid email addresses are not allowed. Please use a real email.")
+
         conn = self.get_connection()
         try:
             # Try to get existing user
