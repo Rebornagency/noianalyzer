@@ -4655,12 +4655,15 @@ def main():
             st.session_state.display_privacy = True
 
     with col3:
-        col3.markdown("""
-        <div style='text-align:center;'>
-            <em>Complete privacy • Secure payments • Professional analysis</em><br/>
-            <strong>Contact:</strong> rebornenterprisellc@gmail.com
-        </div>
-        """, unsafe_allow_html=True)
+        pass  # column left empty to keep spacing
+
+    # Centered tagline and contact below buttons
+    st.markdown("""
+    <div style='text-align:center; margin-top: 0.5rem;'>
+        <em>Complete privacy • Secure payments • Professional analysis</em><br/>
+        <strong>Contact:</strong> rebornenterprisellc@gmail.com
+    </div>
+    """, unsafe_allow_html=True)
 
     # Display Terms of Service when button is clicked
     if st.session_state.get('display_terms', False):
