@@ -4648,17 +4648,17 @@ def main():
     
     with col1:
         if st.button("📄 Terms of Service", key="show_terms"):
-            st.session_state.show_terms = True
+            st.session_state.display_terms = True
     
     with col2:
         if st.button("🔒 Privacy Policy", key="show_privacy"):
-            st.session_state.show_privacy = True
+            st.session_state.display_privacy = True
     
     with col3:
         st.markdown("*Complete privacy • Secure payments • Professional analysis*")
     
     # Display Terms of Service when button is clicked
-    if st.session_state.get('show_terms', False):
+    if st.session_state.get('display_terms', False):
         with st.expander("📄 Terms of Service", expanded=True):
             st.markdown("""
             **Effective Date:** January 2024 | **Last Updated:** January 2024
@@ -4708,11 +4708,11 @@ def main():
             """)
             
             if st.button("Close Terms", key="close_terms"):
-                st.session_state.show_terms = False
+                st.session_state.display_terms = False
                 st.rerun()
     
     # Display Privacy Policy when button is clicked
-    if st.session_state.get('show_privacy', False):
+    if st.session_state.get('display_privacy', False):
         with st.expander("🔒 Privacy Policy", expanded=True):
             st.markdown("""
             **Effective Date:** January 2024 | **Last Updated:** January 2024
@@ -4780,7 +4780,7 @@ def main():
             """)
             
             if st.button("Close Privacy Policy", key="close_privacy"):
-                st.session_state.show_privacy = False
+                st.session_state.display_privacy = False
                 st.rerun()
 
 def display_features_section():

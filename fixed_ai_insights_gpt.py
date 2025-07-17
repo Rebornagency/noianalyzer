@@ -12,8 +12,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger('ai_insights_gpt')
 
-# Hardcoded API key for direct integration
-OPENAI_API_KEY = "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"
+# SECURITY FIX: Removed hardcoded API key - use environment variables only
+# OPENAI_API_KEY = "..." # REMOVED FOR SECURITY
 
 def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name: str = "") -> Dict[str, Any]:
     """
@@ -28,8 +28,8 @@ def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name
     """
     logger.info(f"Generating detailed insights with GPT for property: {property_name}")
 
-    # Use hardcoded API key directly
-    api_key = OPENAI_API_KEY
+    # Get API key from environment variables
+    api_key = os.getenv("OPENAI_API_KEY", "")
     
     # Log API key status (masked)
     if api_key and len(api_key) > 10:
