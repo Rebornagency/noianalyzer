@@ -4644,18 +4644,19 @@ def main():
     st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
     
     # Legal links in footer
-    col1, col2, col3 = st.columns([1, 1, 2])
-    
+    spacer_col, col1, col2, col3 = st.columns([0.5, 1, 1, 2])
+
     with col1:
         if st.button("📄 Terms of Service", key="show_terms"):
             st.session_state.display_terms = True
-    
+
     with col2:
         if st.button("🔒 Privacy Policy", key="show_privacy"):
             st.session_state.display_privacy = True
-    
+
     with col3:
         st.markdown("*Complete privacy • Secure payments • Professional analysis*")
+        st.markdown("**Contact:** rebornenterprisellc@gmail.com")
     
     # Display Terms of Service when button is clicked
     if st.session_state.get('display_terms', False):
