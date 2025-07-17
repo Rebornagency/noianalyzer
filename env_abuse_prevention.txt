@@ -6,10 +6,10 @@ FREE_TRIAL_CREDITS=1
 CREDITS_PER_ANALYSIS=1
 BACKEND_URL=http://localhost:8000
 
-# NEW ABUSE PREVENTION VARIABLES
-MAX_TRIALS_PER_IP=2          # Maximum free trials allowed per IP address
-TRIAL_COOLDOWN_DAYS=7        # Days before IP can get free trials again
-ADMIN_API_KEY=your_secret_admin_key_here  # For accessing admin endpoints
+# NEW ABUSE PREVENTION VARIABLES - PRODUCTION SETTINGS
+MAX_TRIALS_PER_IP=1          # Maximum free trials allowed per IP address (reduced for production)
+TRIAL_COOLDOWN_DAYS=30       # Days before IP can get free trials again (increased for production)
+ADMIN_API_KEY=CHANGE_THIS_TO_STRONG_PASSWORD_NOW  # For accessing admin endpoints
 
 # STRIPE CONFIGURATION (update these URLs)
 CREDIT_SUCCESS_URL=https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}&email={email}
@@ -18,11 +18,11 @@ CREDIT_CANCEL_URL=https://noianalyzer-1.onrender.com/payment-cancel
 # DATABASE
 DATABASE_PATH=noi_analyzer.db
 
-# EXISTING STRIPE VARIABLES
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# EXISTING STRIPE VARIABLES - REPLACE WITH REAL VALUES FOR PRODUCTION
+STRIPE_SECRET_KEY=sk_live_REPLACE_WITH_REAL_STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET=whsec_REPLACE_WITH_REAL_WEBHOOK_SECRET
 
 # Replace these with REAL Stripe Price IDs after creating products:
-STRIPE_STARTER_PRICE_ID=price_1ABC123DEF456789      # Replace with real Starter Pack price ID
-STRIPE_PROFESSIONAL_PRICE_ID=price_1XYZ789GHI012345 # Replace with real Professional Pack price ID  
-STRIPE_BUSINESS_PRICE_ID=price_1QRS456TUV890123     # Replace with real Business Pack price ID 
+STRIPE_STARTER_PRICE_ID=price_REPLACE_WITH_REAL_STARTER_PRICE_ID
+STRIPE_PROFESSIONAL_PRICE_ID=price_REPLACE_WITH_REAL_PROFESSIONAL_PRICE_ID  
+STRIPE_BUSINESS_PRICE_ID=price_REPLACE_WITH_REAL_BUSINESS_PRICE_ID 

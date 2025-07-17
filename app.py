@@ -4637,6 +4637,152 @@ def main():
                     # Show error message
                     show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
 
+    # Legal Footer - Terms of Service and Privacy Policy
+    st.markdown("---")
+    
+    # Privacy guarantee prominently displayed
+    st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
+    
+    # Legal links in footer
+    col1, col2, col3 = st.columns([1, 1, 2])
+    
+    with col1:
+        if st.button("📄 Terms of Service", key="show_terms"):
+            st.session_state.show_terms = True
+    
+    with col2:
+        if st.button("🔒 Privacy Policy", key="show_privacy"):
+            st.session_state.show_privacy = True
+    
+    with col3:
+        st.markdown("*Complete privacy • Secure payments • Professional analysis*")
+    
+    # Display Terms of Service when button is clicked
+    if st.session_state.get('show_terms', False):
+        with st.expander("📄 Terms of Service", expanded=True):
+            st.markdown("""
+            **Effective Date:** January 2024 | **Last Updated:** January 2024
+
+            ## 🔒 **ZERO DOCUMENT STORAGE POLICY**
+
+            **We do NOT store your documents.** This is our commitment to your privacy:
+
+            - ✅ **Documents are processed immediately** upon upload
+            - ✅ **All documents are permanently deleted** after analysis
+            - ✅ **No copies are retained** on our servers
+            - ✅ **Processing happens in temporary memory** only
+
+            ## Credit System & Fair Use
+
+            - Each analysis requires 1 credit
+            - New users receive 1 free trial credit
+            - Maximum of 1 free trial per IP address
+            - Credits are non-refundable once analysis is completed
+            - All payments processed securely through Stripe
+
+            ## Acceptable Use
+
+            **You May:**
+            - ✅ Upload legitimate financial documents for analysis
+            - ✅ Use the service for real estate investment analysis
+            - ✅ Share generated reports with authorized parties
+
+            **You May NOT:**
+            - ❌ Upload documents you don't have permission to analyze
+            - ❌ Create multiple accounts to bypass credit limits
+            - ❌ Use automated tools to abuse the service
+
+            ## Limitation of Liability
+
+            - Analysis results are for informational purposes only
+            - We do not provide financial or investment advice
+            - Our total liability is limited to the amount you paid for credits
+
+                         ## Contact Information
+
+             For questions about these Terms of Service, please contact us at: rebornenterprisellc@gmail.com
+
+             ---
+
+             By using NOI Analyzer, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
+            """)
+            
+            if st.button("Close Terms", key="close_terms"):
+                st.session_state.show_terms = False
+                st.rerun()
+    
+    # Display Privacy Policy when button is clicked
+    if st.session_state.get('show_privacy', False):
+        with st.expander("🔒 Privacy Policy", expanded=True):
+            st.markdown("""
+            **Effective Date:** January 2024 | **Last Updated:** January 2024
+
+            ## 🔒 **ZERO DOCUMENT STORAGE GUARANTEE**
+
+            **We NEVER Store Your Documents** - This is our most important promise:
+
+            - 🚫 **NO document storage** - Your uploaded files are NEVER saved to our servers
+            - ⚡ **Immediate processing** - Documents are analyzed in real-time and immediately discarded
+            - 🗑️ **Automatic deletion** - All uploaded content is permanently deleted within minutes
+            - 🔐 **Memory-only processing** - Analysis happens in temporary server memory only
+            - ✅ **Complete privacy** - Your sensitive financial data never leaves the processing pipeline
+
+            ## Information We Collect (Minimal)
+
+            **What we collect:**
+            - Email address (for account identification)
+            - Credit balance and transaction history
+            - Usage analytics (anonymized)
+
+            **What we DO NOT collect:**
+            - ❌ **Document content** - No financial data from your uploads
+            - ❌ **Property details** - No addresses, names, or identifying information
+            - ❌ **Personal financial information** - No bank accounts, SSNs, etc.
+            - ❌ **Browsing history** - No tracking of other websites you visit
+
+            ## Information Sharing
+
+            **We Share With (Limited Partners Only):**
+            - **Stripe** - Only payment information for credit purchases
+            - **Sentry** - Only technical error logs (no personal data)
+            - **Email Service** - Only your email address to send analysis reports
+
+            **We NEVER Share With:**
+            - ❌ **Advertisers** - We don't sell or share data for marketing
+            - ❌ **Data brokers** - Your information is never sold
+            - ❌ **Government agencies** (except valid legal requests)
+
+            ## Data Security
+
+            - 🔐 **HTTPS encryption** for all data transmission
+            - 🛡️ **Secure server infrastructure** with regular security updates
+            - 🔒 **Access controls** - Only authorized personnel can access systems
+            - 🚫 **No admin access** to user documents (they don't exist to access)
+
+            ## Your Privacy Rights
+
+            - 📧 **View your data** - Request a copy of your account information
+            - ✏️ **Correct your data** - Update your email or account details
+            - 🗑️ **Delete your account** - Complete removal of all associated data
+
+                         ## Contact Information
+
+             **Privacy Questions:** rebornenterprisellc@gmail.com
+             **General Support:** rebornenterprisellc@gmail.com
+
+             ---
+
+            **Privacy Summary:**
+            - 🔒 Your uploaded documents are NEVER stored
+            - 📧 Only email address for account management
+            - 🛡️ HTTPS encryption for all communications
+            - 👤 You control your data completely
+            """)
+            
+            if st.button("Close Privacy Policy", key="close_privacy"):
+                st.session_state.show_privacy = False
+                st.rerun()
+
 def display_features_section():
     """Display the features section using pure Streamlit components without HTML"""
     st.markdown("## Features")

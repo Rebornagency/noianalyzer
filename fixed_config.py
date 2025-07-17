@@ -13,8 +13,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger('config')
 
-# Hardcoded OpenAI API key (will be used as primary source)
-HARDCODED_OPENAI_API_KEY = "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"
+# SECURITY FIX: Removed hardcoded API key - use environment variables only
+# HARDCODED_OPENAI_API_KEY = "..." # REMOVED FOR SECURITY
 
 # OpenAI API key from environment
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
@@ -33,27 +33,22 @@ API_TIMEOUT = int(os.environ.get("API_TIMEOUT", "120"))
 
 def get_openai_api_key():
     """
-    Get OpenAI API key from hardcoded value, environment or session state.
+    Get OpenAI API key from environment or session state.
     
     Returns:
         OpenAI API key
     """
-    # First priority: Use hardcoded API key
-    if HARDCODED_OPENAI_API_KEY:
-        logger.info("Using hardcoded OpenAI API key")
-        return HARDCODED_OPENAI_API_KEY
-        
-    # Second priority: Check if API key is in session state (set via UI)
+    # First priority: Check if API key is in session state (set via UI)
     if 'openai_api_key' in st.session_state and st.session_state.openai_api_key:
         logger.info("Using OpenAI API key from session state")
         return st.session_state.openai_api_key
         
-    # Third priority: Use environment variable
+    # Second priority: Use environment variable
     if OPENAI_API_KEY:
         logger.info("Using OpenAI API key from environment variable")
         return OPENAI_API_KEY
         
-    logger.warning("No OpenAI API key found in any source")
+    logger.warning("No OpenAI API key found - please set OPENAI_API_KEY environment variable or enter in UI")
     return ""
 
 def get_extraction_api_url():

@@ -594,15 +594,8 @@ def display_credit_store():
                 if savings_text:
                     st.success(savings_text)
                 else:
-                    # Creative badge substitute for Starter pack to keep layout aligned
-                    st.markdown(
-                        """
-                        <div style="min-height:48px; margin: 1.25rem 0 1.5rem 0; padding: 0.75rem 1rem; border-radius: 25px; background: linear-gradient(135deg, #244533, #1b362a); text-align: center; font-weight: 600; font-size: 0.95rem; color: #9aa7bf; display:flex; align-items:center; justify-content:center;">
-                            Ideal entry point 🚀
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    # Use st.success to create identical styling to other badges
+                    st.success("Ideal entry point 🚀")
                 
                 # Description
                 st.caption(package.get('description', f"Top up {package['credits']} credits"))
@@ -798,6 +791,10 @@ def display_free_trial_welcome(email: str):
                    credit_data.get("free_trial_used", False) and
                    credit_data.get("credits", 0) > 0)
     
+    # Check if this is a returning user
+    is_returning_user = (credit_data.get("total_used", 0) > 0 or 
+                        credit_data.get("total_purchased", 0) > 0)
+    
     if is_new_user:
         # Get the actual number of free trial credits from environment
         free_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
@@ -808,6 +805,12 @@ def display_free_trial_welcome(email: str):
         # Store that we've shown this message for this email in this session
         st.session_state[welcome_key] = True
         st.balloons()
+    elif is_returning_user:
+        # Show returning user message
+        st.info(f"👋 **Welcome back!** You have {credit_data.get('credits', 0)} credits remaining.")
+        
+        # Store that we've shown this message for this email in this session
+        st.session_state[welcome_key] = True
 
 def init_credit_system():
     """Initialize credit system - call this early in your main app"""
