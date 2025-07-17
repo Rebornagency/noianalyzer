@@ -4655,9 +4655,13 @@ def main():
             st.session_state.display_privacy = True
 
     with col3:
-        st.markdown("*Complete privacy • Secure payments • Professional analysis*")
-        st.markdown("**Contact:** rebornenterprisellc@gmail.com")
-    
+        col3.markdown("""
+        <div style='text-align:center;'>
+            <em>Complete privacy • Secure payments • Professional analysis</em><br/>
+            <strong>Contact:</strong> rebornenterprisellc@gmail.com
+        </div>
+        """, unsafe_allow_html=True)
+
     # Display Terms of Service when button is clicked
     if st.session_state.get('display_terms', False):
         with st.expander("📄 Terms of Service", expanded=True):
