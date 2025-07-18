@@ -4644,19 +4644,16 @@ def main():
     st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
     
     # Legal links in footer
-    left_spacer, center_col, right_spacer = st.columns([1, 2, 1])
+    spacer_left, col_terms, col_privacy, spacer_right = st.columns([2, 1, 1, 2])
 
     # Inside the centred column, create two equal columns for the buttons
-    with center_col:
-        btn_terms_col, btn_privacy_col = st.columns(2)
+    with col_terms:
+        if st.button("📄 Terms of Service", key="show_terms"):
+            st.session_state.display_terms = True
 
-        with btn_terms_col:
-            if st.button("📄 Terms of Service", key="show_terms"):
-                st.session_state.display_terms = True
-
-        with btn_privacy_col:
-            if st.button("🔒 Privacy Policy", key="show_privacy"):
-                st.session_state.display_privacy = True
+    with col_privacy:
+        if st.button("🔒 Privacy Policy", key="show_privacy"):
+            st.session_state.display_privacy = True
 
     # Centered tagline and contact below buttons
     st.markdown("""
