@@ -6,8 +6,8 @@ python-dotenv==1.0.0
 email-validator==2.1.0
 python-multipart==0.0.6
 
-# Environment
-python-dotenv==1.0.0
+# Optional but required when running the full API server
+pandas==2.1.4
 
 # Database (using sqlite3 which is built-in to Python)
 # No SQLAlchemy or other ORMs to avoid dependencies
