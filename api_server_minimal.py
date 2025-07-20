@@ -303,8 +303,8 @@ async def credit_success(session_id: str = Query(None), email: str = Query(None)
                 }}
                 h1 {{ color: #28a745; margin-bottom: 1rem; font-size: 2rem; }}
                 .success-icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-                p {{ color: #666; line-height: 1.6; margin-bottom: 1rem; }}
-                .session-id {{ font-family: monospace; font-size: 0.9rem; color: #888; }}
+                p {{ color: #ffffff; line-height: 1.6; margin-bottom: 1rem; }}
+                .session-id {{ font-family: monospace; font-size: 0.9rem; color: #ffffff; }}
                 .action-btn {{
                     background: #28a745;
                     color: white;
@@ -344,7 +344,7 @@ async def credit_success(session_id: str = Query(None), email: str = Query(None)
                     <a href="#" onclick="closeAndReturn()" class="action-btn">Return to NOI Analyzer</a>
                 </div>
                 
-                <p style="font-size: 0.9rem; color: #666;">
+                <p style="font-size: 0.9rem; color: #ffffff;">
                     You can now close this tab and continue using the NOI Analyzer app.
                     Your credit balance should update automatically.
                 </p>

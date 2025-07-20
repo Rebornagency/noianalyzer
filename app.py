@@ -977,18 +977,18 @@ def inject_custom_css():
     
     .upload-icon {
         font-size: 32px;
-        color: #888;
+        color: #ffffff;
         margin-bottom: 8px;
     }
-    
+
     .upload-text {
-        color: #888;
+        color: #ffffff;
         font-size: 14px;
         margin-bottom: 4px;
     }
-    
+
     .upload-subtext {
-        color: #666;
+        color: #ffffff;
         font-size: 12px;
         margin-bottom: 16px;
     }
@@ -1123,7 +1123,7 @@ def inject_custom_css():
 
     .feature-content p {
         font-size: 14px;
-        color: #888;
+        color: #ffffff;
         margin: 0;
     }
 
