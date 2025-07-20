@@ -75,13 +75,47 @@ body {
 }
 
 p, div {
-    color: #c9d1d9;
+    color: #ffffff;
+}
+
+/* Ensure white text for key UI elements */
+.stButton>button,
+.stButton>button div {
+    color: #ffffff !important;
+}
+
+.stCheckbox label,
+.stCheckbox>div,
+.stCheckbox>label {
+    color: #ffffff !important;
+}
+
+.stAlert,
+.stAlert p {
+    color: #ffffff !important;
+}
+
+/* Ensure white text for key UI elements */
+.stButton>button,
+.stButton>button div {
+    color: #ffffff !important;
+}
+
+.stCheckbox label,
+.stCheckbox>div,
+.stCheckbox>label {
+    color: #ffffff !important;
+}
+
+.stAlert,
+.stAlert p {
+    color: #ffffff !important;
 }
 
 /* Section labels */
 .section-label {
     font-weight: 500;
-    color: #c9d1d9;
+    color: #ffffff;
     margin-bottom: 8px;
 }
 
@@ -128,7 +162,7 @@ p, div {
 /* Custom widget styling */
 .widget-label {
     font-weight: 500;
-    color: #c9d1d9;
+    color: #ffffff;
 }
 
 /* Text field styling */
