@@ -78,6 +78,23 @@ p, div {
     color: #c9d1d9;
 }
 
+/* Ensure white text for key UI elements */
+.stButton>button,
+.stButton>button div {
+    color: #ffffff !important;
+}
+
+.stCheckbox label,
+.stCheckbox>div,
+.stCheckbox>label {
+    color: #ffffff !important;
+}
+
+.stAlert,
+.stAlert p {
+    color: #ffffff !important;
+}
+
 /* Section labels */
 .section-label {
     font-weight: 500;
