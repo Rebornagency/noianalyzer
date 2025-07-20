@@ -85,13 +85,12 @@ p, div {
 }
 
 .stCheckbox label,
-.stCheckbox>div,
-.stCheckbox>label {
+.stCheckbox label span {
     color: #ffffff !important;
 }
 
-.stAlert,
-.stAlert p {
+.stAlert p,
+.stAlert span {
     color: #ffffff !important;
 }
 

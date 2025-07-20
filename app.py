@@ -799,7 +799,7 @@ def inject_custom_css():
     /* Base layout styling - improved spacing and background */
     body {
         background-color: #111827 !important;
-        color: #E5E7EB !important;
+        color: #ffffff !important;
     }
     
     /* Full-width layout for better space utilization */
@@ -4657,7 +4657,7 @@ def main():
 
     # Centered tagline and contact below buttons
     st.markdown("""
-    <div style='text-align:center; margin-top: 0.5rem;'>
+    <div style='text-align:center; margin-top: 0.5rem; color: #ffffff;'>
         <em>Complete privacy • Secure payments • Professional analysis</em><br/>
         <strong>Contact:</strong> rebornenterprisellc@gmail.com
     </div>
