@@ -5,10 +5,8 @@ stripe==9.7.0
 python-dotenv==1.0.0
 email-validator==2.1.0
 python-multipart==0.0.6
-
-# Environment
-python-dotenv==1.0.0
-
+# Use a version with pre-built wheels for Python 3.13
+pandas==2.2.3
 # Database (using sqlite3 which is built-in to Python)
 # No SQLAlchemy or other ORMs to avoid dependencies
 

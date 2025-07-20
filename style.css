@@ -85,15 +85,29 @@ p, div {
 }
 
 .stCheckbox label,
-.stCheckbox>div,
-.stCheckbox>label,
 .stCheckbox label span {
     color: #ffffff !important;
 }
 
-.stAlert,
 .stAlert p,
 .stAlert span {
+    color: #ffffff !important;
+}
+
+/* Ensure white text for key UI elements */
+.stButton>button,
+.stButton>button div {
+    color: #ffffff !important;
+}
+
+.stCheckbox label,
+.stCheckbox>div,
+.stCheckbox>label {
+    color: #ffffff !important;
+}
+
+.stAlert,
+.stAlert p {
     color: #ffffff !important;
 }
 
