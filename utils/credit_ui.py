@@ -93,7 +93,7 @@ def display_credit_balance_header(email: str):
             text-align: center;
         ">
             <div style="color: #EF4444; font-weight: 600;">💳 Backend API Unavailable</div>
-            <div style="color: #888; font-size: 0.8rem;">Please start the API server</div>
+            <div style="color: #ffffff; font-size: 0.8rem;">Please start the API server</div>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -110,7 +110,7 @@ def display_credit_balance_header(email: str):
             text-align: center;
         ">
             <div style="color: #EF4444; font-weight: 600;">💳 Unable to load credits</div>
-            <div style="color: #888; font-size: 0.8rem;">Check API server connection</div>
+            <div style="color: #ffffff; font-size: 0.8rem;">Check API server connection</div>
         </div>
         """, unsafe_allow_html=True)
         return
@@ -152,8 +152,8 @@ def display_credit_balance_header(email: str):
         ">
             <div style="font-size: 1.2rem;">{emoji}</div>
             <div style="font-size: 1.1rem; font-weight: bold; color: {color};">{credits}</div>
-            <div style="color: #888; font-size: 0.9rem;">Credits</div>
-            <div style="color: #888; font-size: 0.8rem;">({status})</div>
+            <div style="color: #ffffff; font-size: 0.9rem;">Credits</div>
+            <div style="color: #ffffff; font-size: 0.8rem;">({status})</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -208,7 +208,7 @@ def display_credit_balance(email: str):
         ">
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">{emoji}</div>
             <div style="font-size: 1.5rem; font-weight: bold; color: {color};">{credits}</div>
-            <div style="color: #888; font-size: 0.9rem;">Credits Available</div>
+            <div style="color: #ffffff; font-size: 0.9rem;">Credits Available</div>
         </div>
         """,
         unsafe_allow_html=True
