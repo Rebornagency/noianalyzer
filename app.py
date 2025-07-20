@@ -1033,7 +1033,7 @@ def inject_custom_css():
     .property-input-container label {
         font-size: 16px;
         font-weight: 500;
-        color: #EAEAEA;
+        color: #FFFFFF;
         margin-bottom: 8px;
     }
     
@@ -1669,6 +1669,19 @@ def inject_custom_css():
         justify-content: center;
         box-sizing: border-box;
         cursor: pointer;
+    }
+
+    /* Bright white labels for inputs and checkboxes */
+    [data-testid="stTextInput"] label,
+    [data-testid="stCheckbox"] label {
+        color: #FFFFFF !important;
+    }
+
+    /* Consistent styling for footer legal buttons */
+    button[aria-label="show_terms"],
+    button[aria-label="show_privacy"] {
+        color: #FFFFFF !important;
+        border: 1px solid #FFFFFF !important;
     }
 
     </style>
