@@ -1308,9 +1308,9 @@ def inject_custom_css():
     
     /* Info, warning, error messages styling */
     .stInfo, .element-container .alert-info {
-        background-color: rgba(56, 189, 248, 0.1) !important;
-        border-left: 4px solid #38BDF8 !important;
-        color: #E0E0E0 !important;
+        background-color: rgba(96, 165, 250, 0.25) !important;
+        border-left: 4px solid #60A5FA !important;
+        color: #FFFFFF !important;
         padding: 1rem !important;
         border-radius: 8px !important;
         margin: 1rem 0 !important;
@@ -1475,10 +1475,11 @@ def inject_custom_css():
     }
 
     /* Ensure checkbox labels in options container are bright white */
-    .options-container [data-testid="stCheckbox"] label,
-    .options-container [data-testid="stCheckbox"] label * {
-        color: #FFFFFF !important;
-    }
+.options-container [data-testid="stCheckbox"] label,
+.options-container [data-testid="stCheckbox"] label * {
+    color: #FFFFFF !important;  /* Ensure checkbox labels and nested elements are bright white */
+}
+
 
     .options-header {
         color: var(--reborn-text-primary);
@@ -1533,9 +1534,9 @@ def inject_custom_css():
     
     /* Enhanced Process Documents button */
     .stButton > button[kind="primary"] {
-        background-color: #0E4DE3 !important; /* Dark blue theme color */
-        color: white !important;
-        border: 1px solid #1C5CF5 !important; /* Slightly lighter blue border */
+        background-color: #FFFFFF !important;
+        color: #79b8f3 !important;
+        border: 1px solid #79b8f3 !important;
         font-size: 1.1rem !important;
         font-weight: 500 !important;
         padding: 0.75rem 1.5rem !important;
@@ -1548,8 +1549,9 @@ def inject_custom_css():
     }
     
     .stButton > button[kind="primary"]:hover {
-        background-color: #1C5CF5 !important; /* Hover dark blue */
-        border-color: #0E4DE3 !important;
+        background-color: #f0f6ff !important;
+        border-color: #79b8f3 !important;
+        color: #79b8f3 !important;
         box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
         transform: translateY(-2px) !important;
     }
@@ -1559,9 +1561,9 @@ def inject_custom_css():
     div[data-testid="stButton"] > button[data-testid="baseButton-primary"],
     .stApp div[data-testid="stButton"] > button[kind="primary"],
     .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {
-        background-color: #0E4DE3 !important;
-        color: white !important;
-        border: 1px solid #1C5CF5 !important;
+        background-color: #FFFFFF !important;
+        color: #79b8f3 !important;
+        border: 1px solid #79b8f3 !important;
         font-size: 1.1rem !important;
         font-weight: 500 !important;
         padding: 0.75rem 1.5rem !important;
@@ -1577,17 +1579,18 @@ def inject_custom_css():
     div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover,
     .stApp div[data-testid="stButton"] > button[kind="primary"]:hover,
     .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"]:hover {
-        background-color: #1C5CF5 !important;
-        border-color: #0E4DE3 !important;
+        background-color: #f0f6ff !important;
+        border-color: #79b8f3 !important;
+        color: #79b8f3 !important;
         box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
         transform: translateY(-2px) !important;
     }
 
     /* Target specific button by key if needed */
     button[data-testid="baseButton-primary"][aria-label*="main_process_button"] {
-        background-color: #0E4DE3 !important;
-        color: white !important;
-        border: 1px solid #1C5CF5 !important;
+        background-color: #FFFFFF !important;
+        color: #79b8f3 !important;
+        border: 1px solid #79b8f3 !important;
     }
     /* Hide dark/light theme toggle button */
     .theme-toggle { display: none !important; }
@@ -1690,9 +1693,12 @@ def inject_custom_css():
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
     [data-testid="stCheckbox"] label,
-    [data-testid="stCheckbox"] label *,
-    .stCheckbox label,
-    .stCheckbox label * {
+[data-testid="stCheckbox"] label * {
+    color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
+}
+
+[data-testid="stCheckbox"] label span {
+
         color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
     /* Dark text for input values on white backgrounds */
@@ -3976,9 +3982,9 @@ def main():
             /* Enhanced Process Documents button - increased specificity */
             .stApp .stButton > button[kind="primary"],
             .stApp .stButton > button[data-testid="baseButton-primary"] {
-                background-color: #0E4DE3 !important; /* Dark blue theme color */
-                color: white !important;
-                border: 1px solid #1C5CF5 !important; /* Slightly lighter blue border */
+                background-color: #FFFFFF !important;
+                color: #79b8f3 !important;
+                border: 1px solid #79b8f3 !important;
                 font-size: 1.1rem !important;
                 font-weight: 500 !important;
                 padding: 0.75rem 1.5rem !important;
@@ -3989,11 +3995,12 @@ def main():
                 margin-bottom: 1.5rem !important;
                 width: 100% !important;
             }
-            
+
             .stApp .stButton > button[kind="primary"]:hover,
             .stApp .stButton > button[data-testid="baseButton-primary"]:hover {
-                background-color: #1C5CF5 !important; /* Hover dark blue */
-                border-color: #0E4DE3 !important;
+                background-color: #f0f6ff !important;
+                border-color: #79b8f3 !important;
+                color: #79b8f3 !important;
                 box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
                 transform: translateY(-2px) !important;
             }
