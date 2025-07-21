@@ -3808,7 +3808,13 @@ def main():
         st.session_state.show_credit_success = False
     
     # Add header credit display for main page (centered)
-    if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
+    if (
+        st.session_state.get('user_email')
+        and CREDIT_SYSTEM_AVAILABLE
+        and not st.session_state.get('processing_completed', False)
+        and not st.session_state.get('template_viewed', False)
+        and not st.session_state.get('consolidated_data')
+    ):
         # Center the credit display
         display_credit_balance_header(st.session_state.user_email)
         
