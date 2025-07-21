@@ -1470,6 +1470,12 @@ def inject_custom_css():
         border-left: none;
     }
 
+    /* Ensure checkbox labels in options container are bright white */
+    .options-container [data-testid="stCheckbox"] label,
+    .options-container [data-testid="stCheckbox"] label * {
+        color: #FFFFFF !important;
+    }
+
     .options-header {
         color: var(--reborn-text-primary);
         font-size: 1.1rem;
@@ -1679,8 +1685,9 @@ def inject_custom_css():
     [data-testid="stSelectbox"] label,
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
-    [data-testid="stCheckbox"] label {
-        color: #FFFFFF !important;
+    [data-testid="stCheckbox"] label,
+    [data-testid="stCheckbox"] label * {
+        color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
     
     [data-testid="stCheckbox"] label span {
@@ -4686,7 +4693,7 @@ def main():
     st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
     
     # Legal links in footer
-    spacer_left, col_terms, col_privacy, spacer_right = st.columns([4, 1, 1, 4])
+    spacer_left, col_terms, col_privacy, spacer_right = st.columns([3, 2, 2, 3])
 
     # Inside the centred column, create two equal columns for the buttons
     with col_terms:
