@@ -4708,11 +4708,11 @@ def main():
 
     # Inside the centred column, create two equal columns for the buttons
     with col_terms:
-        if st.button("📄 Terms of Service", key="show_terms"):
+        if st.button("📄 Terms of Service", key="show_terms", use_container_width=True):
             st.session_state.display_terms = True
 
     with col_privacy:
-        if st.button("🔒 Privacy Policy", key="show_privacy"):
+        if st.button("🔒 Privacy Policy", key="show_privacy", use_container_width=True):
             st.session_state.display_privacy = True
 
     # Centered tagline and contact below buttons
