@@ -1679,7 +1679,10 @@ def inject_custom_css():
     [data-testid="stSelectbox"] label,
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
-    [data-testid="stCheckbox"] label,
+    [data-testid="stCheckbox"] label {
+        color: #FFFFFF !important;
+    }
+    
     [data-testid="stCheckbox"] label span {
         color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
@@ -1696,8 +1699,9 @@ def inject_custom_css():
 
 
     /* Consistent styling for footer legal buttons */
-    button[aria-label="show_terms"],
-    button[aria-label="show_privacy"] {
+    /* Style all secondary buttons (used for legal links) */
+    .stButton > button[kind="secondary"],
+    button[data-testid="baseButton-secondary"] {
         color: #FFFFFF !important;
         background-color: transparent !important;
         border: 1px solid #FFFFFF !important;
