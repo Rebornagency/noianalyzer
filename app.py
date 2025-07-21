@@ -741,7 +741,7 @@ def inject_custom_css():
         --reborn-bg-primary: #0A0F1E;
         --reborn-bg-secondary: #10172A;
         --reborn-bg-tertiary: #1E293B;
-        --reborn-text-primary: #F0F0F0;
+        --reborn-text-primary: #FFFFFF;  /* Use pure white for maximum readability */
         --reborn-text-secondary: #A0A0A0;
         --reborn-accent-blue: #3B82F6;
         --reborn-accent-green: #10B981;
@@ -1679,8 +1679,9 @@ def inject_custom_css():
     [data-testid="stSelectbox"] label,
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
-    [data-testid="stCheckbox"] label {
-        color: #FFFFFF !important;
+    [data-testid="stCheckbox"] label,
+    [data-testid="stCheckbox"] label * {
+        color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
     /* Dark text for input values on white backgrounds */
     [data-testid="stTextInput"] input,
@@ -1695,9 +1696,11 @@ def inject_custom_css():
 
 
     /* Consistent styling for footer legal buttons */
-    button[aria-label="show_terms"],
-    button[aria-label="show_privacy"] {
+    /* Style all secondary buttons (used for legal links) */
+    .stButton > button[kind="secondary"],
+    button[data-testid="baseButton-secondary"] {
         color: #FFFFFF !important;
+        background-color: transparent !important;
         border: 1px solid #FFFFFF !important;
     }
 
