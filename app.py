@@ -741,7 +741,7 @@ def inject_custom_css():
         --reborn-bg-primary: #0A0F1E;
         --reborn-bg-secondary: #10172A;
         --reborn-bg-tertiary: #1E293B;
-        --reborn-text-primary: #F0F0F0;
+        --reborn-text-primary: #FFFFFF;  /* Use pure white for maximum readability */
         --reborn-text-secondary: #A0A0A0;
         --reborn-accent-blue: #3B82F6;
         --reborn-accent-green: #10B981;
@@ -1345,16 +1345,20 @@ def inject_custom_css():
     
     /* File uploader styling */
     [data-testid="stFileUploader"] {
-        background-color: rgba(30, 41, 59, 0.6) !important;
-        border: 2px dashed rgba(148, 163, 184, 0.4) !important;
+        background-color: #000000 !important;
+        border: 2px dashed #000000 !important;
         border-radius: 8px !important;
         padding: 1rem !important;
         transition: all 0.3s ease !important;
     }
-    
+
     [data-testid="stFileUploader"]:hover {
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        border-color: rgba(148, 163, 184, 0.6) !important;
+        background-color: #000000 !important;
+        border-color: #000000 !important;
+    }
+
+    [data-testid="stFileUploader"] * {
+        color: #000000 !important;
     }
     
     /* Tabs styling */
@@ -1468,6 +1472,11 @@ def inject_custom_css():
         padding: 0.5rem 1rem 1rem 1rem; /* smaller top padding */
         margin: 0 0 1rem 0; /* remove top margin */
         border-left: none;
+    }
+
+    /* Ensure checkbox labels in options container are bright white */
+    .options-container [data-testid="stCheckbox"] label span {
+        color: #FFFFFF !important;
     }
 
     .options-header {
@@ -1679,8 +1688,8 @@ def inject_custom_css():
     [data-testid="stSelectbox"] label,
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
-    [data-testid="stCheckbox"] label {
-        color: #FFFFFF !important;
+    [data-testid="stCheckbox"] label span {
+        color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
     /* Dark text for input values on white backgrounds */
     [data-testid="stTextInput"] input,
@@ -1695,10 +1704,14 @@ def inject_custom_css():
 
 
     /* Consistent styling for footer legal buttons */
-    button[aria-label="show_terms"],
-    button[aria-label="show_privacy"] {
+    /* Style all secondary buttons (used for legal links) */
+    .stButton > button[kind="secondary"],
+    button[data-testid="baseButton-secondary"] {
         color: #FFFFFF !important;
+        background-color: transparent !important;
         border: 1px solid #FFFFFF !important;
+        padding: 0.25rem 1rem !important;
+        border-radius: 6px !important;
     }
 
     </style>
@@ -4680,7 +4693,7 @@ def main():
     st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
     
     # Legal links in footer
-    spacer_left, col_terms, col_privacy, spacer_right = st.columns([4, 1, 1, 4])
+    spacer_left, col_terms, col_privacy, spacer_right = st.columns([2, 3, 3, 2])
 
     # Inside the centred column, create two equal columns for the buttons
     with col_terms:
