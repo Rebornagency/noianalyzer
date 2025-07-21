@@ -111,6 +111,13 @@ p, div {
     color: #ffffff !important;
 }
 
+/* Ensure white text for success alerts (discount badges) */
+.stAlert-success,
+.stAlert-success p,
+.stAlert-success span {
+    color: #ffffff !important;
+}
+
 /* Section labels */
 .section-label {
     font-weight: 500;

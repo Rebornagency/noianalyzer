@@ -359,6 +359,7 @@ def display_credit_store():
         text-align: center !important;
         font-weight: 700 !important;
         font-size: 0.95rem !important;
+        color: #FFFFFF !important;
         background: linear-gradient(135deg, #22C55E, #16A34A) !important;
         border: 1px solid rgba(34, 197, 94, 0.3) !important;
         box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2) !important;
@@ -466,6 +467,7 @@ def display_credit_store():
         border: 1px solid #305f41 !important;
         box-shadow: none !important;
         opacity: 0.85 !important;
+        color: #FFFFFF !important;
     }
 
     /* Headline style */
