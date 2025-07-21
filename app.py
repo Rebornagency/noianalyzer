@@ -1679,8 +1679,11 @@ def inject_custom_css():
     [data-testid="stSelectbox"] label,
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
-    [data-testid="stCheckbox"] label,
-    [data-testid="stCheckbox"] label * {
+    [data-testid="stCheckbox"] label {
+        color: #FFFFFF !important;
+    }
+    
+    [data-testid="stCheckbox"] label span {
         color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
     /* Dark text for input values on white backgrounds */
