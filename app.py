@@ -1308,9 +1308,9 @@ def inject_custom_css():
     
     /* Info, warning, error messages styling */
     .stInfo, .element-container .alert-info {
-        background-color: rgba(56, 189, 248, 0.1) !important;
-        border-left: 4px solid #38BDF8 !important;
-        color: #E0E0E0 !important;
+        background-color: rgba(96, 165, 250, 0.25) !important;
+        border-left: 4px solid #60A5FA !important;
+        color: #FFFFFF !important;
         padding: 1rem !important;
         border-radius: 8px !important;
         margin: 1rem 0 !important;
@@ -1475,9 +1475,10 @@ def inject_custom_css():
     }
 
     /* Ensure checkbox labels in options container are bright white */
-    .options-container [data-testid="stCheckbox"] label span {
-        color: #FFFFFF !important;
-    }
+.options-container [data-testid="stCheckbox"] label,
+.options-container [data-testid="stCheckbox"] label * {
+    color: #FFFFFF !important;  /* Ensure checkbox labels and nested elements are bright white */
+}
 
     .options-header {
         color: var(--reborn-text-primary);
@@ -1688,6 +1689,11 @@ def inject_custom_css():
     [data-testid="stSelectbox"] label,
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
+    [data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] label * {
+    color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
+}
+
     [data-testid="stCheckbox"] label span {
         color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
