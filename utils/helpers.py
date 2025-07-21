@@ -57,7 +57,7 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         # Add OpEx breakdown components
         'property_taxes': 0.0,
         'insurance': 0.0,
-        'repairs_and_maintenance': 0.0,
+        'repairs_maintenance': 0.0,
         'utilities': 0.0,
         'management_fees': 0.0,
         # Add Other Income breakdown components
@@ -99,7 +99,7 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         'net_operating_income': 'noi',
         'property_taxes': 'property_taxes',
         'insurance': 'insurance',
-        'repairs_and_maintenance': 'repairs_and_maintenance',
+        'repairs_and_maintenance': 'repairs_maintenance',
         'utilities': 'utilities',
         'management_fees': 'management_fees',
         'parking': 'parking',
@@ -133,7 +133,7 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
                 logger.info(f"Using nested total_operating_expenses: {result['opex']}")
             
             # Extract OpEx breakdown components if available
-            for field in ['property_taxes', 'insurance', 'repairs_and_maintenance', 'utilities', 'management_fees']:
+            for field in ['property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees']:
                 if field in operating_expenses:
                     result[field] = safe_float(operating_expenses[field])
                     logger.info(f"Using nested {field}: {result[field]}")

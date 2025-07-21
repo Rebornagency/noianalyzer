@@ -128,7 +128,7 @@ def generate_mock_financial_data(document_type: str, base_value: float = 100000.
         # OpEx components
         "property_taxes": round(property_taxes, 2),
         "insurance": round(insurance, 2),
-        "repairs_and_maintenance": round(repairs_maintenance, 2),
+        "repairs_maintenance": round(repairs_maintenance, 2),
         "utilities": round(utilities, 2),
         "management_fees": round(management_fees, 2),
         "administrative": round(administrative, 2),

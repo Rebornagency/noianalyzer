@@ -252,7 +252,7 @@ def format_financial_data_for_prompt(comparison_results: Dict[str, Any]) -> str:
     opex_components = [
         ('property_taxes', 'Property Taxes'),
         ('insurance', 'Insurance'),
-        ('repairs_and_maintenance', 'Repairs & Maintenance'),
+        ('repairs_maintenance', 'Repairs & Maintenance'),
         ('utilities', 'Utilities'),
         ('management_fees', 'Management Fees')
     ]
