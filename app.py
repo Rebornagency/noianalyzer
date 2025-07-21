@@ -789,7 +789,7 @@ def inject_custom_css():
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif !important;
         font-size: 1rem !important; /* e.g., 16px base for content */
         line-height: 1.6 !important;
-        color: #D1D5DB !important; /* Light gray for readability */
+        color: #FFFFFF !important; /* Bright white for maximum readability */
     }
 
     .stMarkdown div { /* General divs in markdown, only font-family */
@@ -1671,11 +1671,28 @@ def inject_custom_css():
         cursor: pointer;
     }
 
-    /* Bright white labels for inputs and checkboxes */
+    /* Bright white labels for all input components */
     [data-testid="stTextInput"] label,
+    [data-testid="stNumberInput"] label,
+    [data-testid="stDateInput"] label,
+    [data-testid="stTimeInput"] label,
+    [data-testid="stSelectbox"] label,
+    [data-testid="stMultiselect"] label,
+    [data-testid="stSlider"] label,
     [data-testid="stCheckbox"] label {
         color: #FFFFFF !important;
     }
+    /* Dark text for input values on white backgrounds */
+    [data-testid="stTextInput"] input,
+    [data-testid="stNumberInput"] input,
+    [data-testid="stDateInput"] input,
+    [data-testid="stTimeInput"] input,
+    [data-testid="stSelectbox"] select,
+    [data-testid="stMultiselect"] input,
+    [data-testid="stSlider"] input {
+        color: #000000 !important;
+    }
+
 
     /* Consistent styling for footer legal buttons */
     button[aria-label="show_terms"],
