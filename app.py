@@ -1308,9 +1308,9 @@ def inject_custom_css():
     
     /* Info, warning, error messages styling */
     .stInfo, .element-container .alert-info {
-        background-color: rgba(56, 189, 248, 0.1) !important;
-        border-left: 4px solid #38BDF8 !important;
-        color: #E0E0E0 !important;
+        background-color: rgba(96, 165, 250, 0.25) !important;
+        border-left: 4px solid #60A5FA !important;
+        color: #FFFFFF !important;
         padding: 1rem !important;
         border-radius: 8px !important;
         margin: 1rem 0 !important;
