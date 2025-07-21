@@ -1345,16 +1345,20 @@ def inject_custom_css():
     
     /* File uploader styling */
     [data-testid="stFileUploader"] {
-        background-color: rgba(30, 41, 59, 0.6) !important;
-        border: 2px dashed rgba(148, 163, 184, 0.4) !important;
+        background-color: #000000 !important;
+        border: 2px dashed #000000 !important;
         border-radius: 8px !important;
         padding: 1rem !important;
         transition: all 0.3s ease !important;
     }
-    
+
     [data-testid="stFileUploader"]:hover {
-        background-color: rgba(30, 41, 59, 0.8) !important;
-        border-color: rgba(148, 163, 184, 0.6) !important;
+        background-color: #000000 !important;
+        border-color: #000000 !important;
+    }
+
+    [data-testid="stFileUploader"] * {
+        color: #000000 !important;
     }
     
     /* Tabs styling */
@@ -1471,10 +1475,10 @@ def inject_custom_css():
     }
 
     /* Ensure checkbox labels in options container are bright white */
-    .options-container [data-testid="stCheckbox"] label,
-    .options-container [data-testid="stCheckbox"] label * {
-        color: #FFFFFF !important;
-    }
+.options-container [data-testid="stCheckbox"] label,
+.options-container [data-testid="stCheckbox"] label * {
+    color: #FFFFFF !important;  /* Ensure checkbox labels and nested elements are bright white */
+}
 
     .options-header {
         color: var(--reborn-text-primary);
@@ -1686,10 +1690,10 @@ def inject_custom_css():
     [data-testid="stMultiselect"] label,
     [data-testid="stSlider"] label,
     [data-testid="stCheckbox"] label,
-    [data-testid="stCheckbox"] label * {
-        color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
-    }
-    
+[data-testid="stCheckbox"] label * {
+    color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
+}
+
     [data-testid="stCheckbox"] label span {
         color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
@@ -1712,6 +1716,8 @@ def inject_custom_css():
         color: #FFFFFF !important;
         background-color: transparent !important;
         border: 1px solid #FFFFFF !important;
+        padding: 0.25rem 1rem !important;
+        border-radius: 6px !important;
     }
 
     </style>
@@ -4693,7 +4699,7 @@ def main():
     st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
     
     # Legal links in footer
-    spacer_left, col_terms, col_privacy, spacer_right = st.columns([3, 2, 2, 3])
+    spacer_left, col_terms, col_privacy, spacer_right = st.columns([2, 3, 3, 2])
 
     # Inside the centred column, create two equal columns for the buttons
     with col_terms:
