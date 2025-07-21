@@ -28,3 +28,8 @@
   margin-top: 1rem;
   font-size: 1.1rem;
 }
+
+/* Improve readability of info alerts */
+.stAlert-info {
+  color: #93c5fd !important;
+}
