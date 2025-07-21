@@ -1480,6 +1480,7 @@ def inject_custom_css():
     color: #FFFFFF !important;  /* Ensure checkbox labels and nested elements are bright white */
 }
 
+
     .options-header {
         color: var(--reborn-text-primary);
         font-size: 1.1rem;
@@ -1696,7 +1697,8 @@ def inject_custom_css():
     color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
 }
 
-    [data-testid="stCheckbox"] label span {
+[data-testid="stCheckbox"] label span {
+
         color: #FFFFFF !important;  /* Ensure checkbox labels are bright white */
     }
     /* Dark text for input values on white backgrounds */
