@@ -1345,22 +1345,23 @@ def inject_custom_css():
     
     /* File uploader styling */
     [data-testid="stFileUploader"] {
-        background-color: #000000 !important;
-        border: 2px dashed #000000 !important;
+        background-color: rgba(30, 41, 59, 0.6) !important;
+        border: 2px dashed rgba(148, 163, 184, 0.4) !important;
         border-radius: 8px !important;
         padding: 1rem !important;
         transition: all 0.3s ease !important;
     }
 
     [data-testid="stFileUploader"]:hover {
-        background-color: #000000 !important;
-        border-color: #000000 !important;
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border-color: rgba(148, 163, 184, 0.6) !important;
     }
 
 [data-testid="stFileUploader"] label span,
 [data-testid="stFileUploader"] label div span {
+    background-color: #000000 !important;
+}
 
-        background-color: #000000 !important;
         color: #000000 !important;
     }
     
