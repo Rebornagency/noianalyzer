@@ -1357,7 +1357,9 @@ def inject_custom_css():
         border-color: #000000 !important;
     }
 
-    [data-testid="stFileUploader"] label span {
+[data-testid="stFileUploader"] label span,
+[data-testid="stFileUploader"] label div span {
+
         background-color: #000000 !important;
         color: #000000 !important;
     }
