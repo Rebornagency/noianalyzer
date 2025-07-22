@@ -1722,6 +1722,9 @@ def inject_custom_css():
         border: 1px solid #FFFFFF !important;
         padding: 0.25rem 1rem !important;
         border-radius: 6px !important;
+        width: 100% !important;
+        display: block !important;
+        margin: 0 auto !important;
     }
 
     </style>
@@ -4704,16 +4707,18 @@ def main():
     st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
     
     # Legal links in footer
-    spacer_left, col_terms, col_privacy, spacer_right = st.columns([2, 3, 3, 2])
+    spacer_left, mid_cols, spacer_right = st.columns([1, 6, 1])
 
-    # Inside the centred column, create two equal columns for the buttons
-    with col_terms:
-        if st.button("📄 Terms of Service", key="show_terms"):
-            st.session_state.display_terms = True
+    # Inside the centered middle column, create two columns for the buttons
+    with mid_cols:
+        col_terms, col_privacy = st.columns(2)
+        with col_terms:
+            if st.button("📄 Terms of Service", key="show_terms", use_container_width=True):
+                st.session_state.display_terms = True
 
-    with col_privacy:
-        if st.button("🔒 Privacy Policy", key="show_privacy"):
-            st.session_state.display_privacy = True
+        with col_privacy:
+            if st.button("🔒 Privacy Policy", key="show_privacy", use_container_width=True):
+                st.session_state.display_privacy = True
 
     # Centered tagline and contact below buttons
     st.markdown("""
