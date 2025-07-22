@@ -4706,7 +4706,6 @@ def main():
     # Legal links in footer
     spacer_left, col_terms, col_privacy, spacer_right = st.columns([2, 3, 3, 2])
 
-    # Inside the centred column, create two equal columns for the buttons
     with col_terms:
         if st.button("📄 Terms of Service", key="show_terms"):
             st.session_state.display_terms = True
