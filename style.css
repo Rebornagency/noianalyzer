@@ -122,7 +122,11 @@ p, div {
 .stAlert-info {
     background-color: rgba(59, 130, 246, 0.2) !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
-    color: #93c5fd !important; /* Lighter blue for readability */
+/* Ensure info alert text is light blue for readability */
+.stAlert-info,
+.stAlert-info p,
+.stAlert-info span {
+    color: #93c5fd !important;
 }
 
 /* Section labels */
