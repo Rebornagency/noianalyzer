@@ -28,3 +28,10 @@
   margin-top: 1rem;
   font-size: 1.1rem;
 }
+
+/* Improve readability of info alerts */
+.stAlert-info,
+.stAlert-info p,
+.stAlert-info span {
+  color: #93c5fd !important;
+}
