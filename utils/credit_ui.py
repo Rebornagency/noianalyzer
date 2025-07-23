@@ -368,6 +368,19 @@ def display_credit_store():
         align-items: center !important;
         justify-content: center !important;
     }
+
+    /* Force all text elements within success badges to be white */
+    div[data-testid="column"] div[data-testid="stAlert"] *,
+    div[data-testid="column"] div[data-testid="stAlert"] span,
+    div[data-testid="column"] div[data-testid="stAlert"] p,
+    div[data-testid="column"] div[data-testid="stAlert"] div,
+    .stAlert-success *,
+    .stAlert-success span,
+    .stAlert-success p {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
     
     /* Placeholder for consistent height */
     div[data-testid="column"] div[style*="height: 48px"] {
@@ -468,6 +481,15 @@ def display_credit_store():
         box-shadow: none !important;
         opacity: 0.85 !important;
         color: #FFFFFF !important;
+    }
+
+    /* Ensure all text within discount badges is white */
+    div[data-testid="column"] div[data-testid="stAlert"] *,
+    div[data-testid="column"] div[data-testid="stAlert"] span,
+    div[data-testid="column"] div[data-testid="stAlert"] p,
+    div[data-testid="column"] div[data-testid="stAlert"] div {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
     }
 
     /* Headline style */
