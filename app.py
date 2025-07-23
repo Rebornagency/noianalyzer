@@ -1354,16 +1354,52 @@ def inject_custom_css():
 
     [data-testid="stFileUploader"]:hover {
         background-color: rgba(30, 41, 59, 0.8) !important;
-        border-color: rgba(148, 163, 184, 0.6) !important;
-    }
-
 [data-testid="stFileUploader"] label span,
 [data-testid="stFileUploader"] label div span {
-    background-color: #000000 !important;
+    color: #000000 !important;
+    background-color: #FFFFFF !important;
+    border-radius: 4px !important;
+    padding: 0.25rem 0.75rem !important;
+    width: 100px !important; /* Small square width */
+    height: 30px !important; /* Small square height */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important; /* Position to the right */
+    margin-right: 0 !important;
 }
 
-        color: #000000 !important;
-    }
+[data-testid="stFileUploader"] > div > div > button {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    border-radius: 4px !important;
+    padding: 0.25rem 0.75rem !important;
+    width: 100px !important; /* Small square width */
+    height: 30px !important; /* Small square height */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important; /* Position to the right */
+    margin-right: 0 !important;
+}
+    justify-content: center !important;
+    margin-left: auto !important; /* Position to the right */
+    margin-right: 0 !important;
+}
+
+[data-testid="stFileUploader"] > div > div > button {
+    background-color: #000000 !important;
+    color: #FFFFFF !important;
+    border-radius: 4px !important;
+    padding: 0.25rem 0.75rem !important;
+    width: 100px !important; /* Small square width */
+    height: 30px !important; /* Small square height */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important; /* Position to the right */
+    margin-right: 0 !important;
+}
     
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {
@@ -1538,7 +1574,7 @@ def inject_custom_css():
     
     /* Enhanced Process Documents button */
     .stButton > button[kind="primary"] {
-        background-color: #FFFFFF !important;
+        background-color: #000000 !important;
         color: #79b8f3 !important;
         border: 1px solid #79b8f3 !important;
         font-size: 1.1rem !important;
@@ -1565,7 +1601,7 @@ def inject_custom_css():
     div[data-testid="stButton"] > button[data-testid="baseButton-primary"],
     .stApp div[data-testid="stButton"] > button[kind="primary"],
     .stApp div[data-testid="stButton"] > button[data-testid="baseButton-primary"] {
-        background-color: #FFFFFF !important;
+        background-color: #000000 !important;
         color: #79b8f3 !important;
         border: 1px solid #79b8f3 !important;
         font-size: 1.1rem !important;
@@ -1592,7 +1628,7 @@ def inject_custom_css():
 
     /* Target specific button by key if needed */
     button[data-testid="baseButton-primary"][aria-label*="main_process_button"] {
-        background-color: #FFFFFF !important;
+        background-color: #000000 !important;
         color: #79b8f3 !important;
         border: 1px solid #79b8f3 !important;
     }
@@ -1729,6 +1765,46 @@ def inject_custom_css():
         width: 100% !important;
         display: block !important;
         margin: 0 auto !important;
+    }
+
+    /* New styles for small, centered square buttons */
+    .stButton > button.legal-button {
+        width: 60px !important; /* Small square width */
+        height: 60px !important; /* Small square height */
+        border-radius: 8px !important; /* Slightly rounded corners for square */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important; /* Remove padding to make it a true square */
+        margin: 0 auto 0.5rem auto !important; /* Center horizontally, add margin below */
+        background-color: #000000 !important; /* Black background */
+        color: #FFFFFF !important; /* White text */
+        border: 1px solid #FFFFFF !important; /* White border */
+        font-size: 1.5rem !important; /* Adjust icon/text size */
+    }
+
+    .stButton > button.legal-button:hover {
+        background-color: #333333 !important; /* Darker on hover */
+        border-color: #AAAAAA !important;
+    }
+
+    /* Specific styling for the text within the legal buttons */
+    .stButton > button.legal-button .streamlit-button-helper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
+    }
+
+    .stButton > button.legal-button .streamlit-button-helper span {
+        font-size: 0.7rem; /* Smaller font for text */
+        margin-top: 0.2rem;
+    }
+
+    .stButton > button.legal-button .streamlit-button-helper img {
+        width: 24px; /* Adjust icon size */
+        height: 24px;
     }
 
     </style>
@@ -3989,7 +4065,7 @@ def main():
             /* Enhanced Process Documents button - increased specificity */
             .stApp .stButton > button[kind="primary"],
             .stApp .stButton > button[data-testid="baseButton-primary"] {
-                background-color: #FFFFFF !important;
+                background-color: #000000 !important;
                 color: #79b8f3 !important;
                 border: 1px solid #79b8f3 !important;
                 font-size: 1.1rem !important;
@@ -4705,37 +4781,82 @@ def main():
                     show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
 
     # Legal Footer - Terms of Service and Privacy Policy
-    st.markdown("---")
-    
-    # Privacy guarantee prominently displayed
-    st.info("🔒 **Privacy Guarantee**: Your documents are NEVER stored on our servers. All files are processed in memory only and immediately deleted after analysis.")
-    
-    # Legal links in footer
-spacer_left, mid_cols, spacer_right = st.columns([1, 6, 1])
-
-# Inside the centered middle column, create two columns for the buttons
-with mid_cols:
-    col_terms, col_privacy = st.columns(2)
-
-    with col_terms:
-        if st.button("📄 Terms of Service", key="show_terms", use_container_width=True):
-            st.session_state.display_terms = True
-
-    with col_privacy:
-        if st.button("🔒 Privacy Policy", key="show_privacy", use_container_width=True):
-            st.session_state.display_privacy = True
-
-
-    # Centered tagline and contact below buttons
     st.markdown("""
-    <div style='text-align:center; margin-top: 0.5rem; color: #ffffff;'>
-        <em>Complete privacy • Secure payments • Professional analysis</em><br/>
-        <strong>Contact:</strong> rebornenterprisellc@gmail.com
+    <style>
+    .footer-container {
+        text-align: center;
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .footer-text {
+        color: #ffffff;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    .footer-buttons-container {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .stButton > button.legal-button {
+        width: 60px !important; /* Small square width */
+        height: 60px !important; /* Small square height */
+        border-radius: 8px !important; /* Slightly rounded corners for square */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important; /* Remove padding to make it a true square */
+        margin: 0 auto 0.5rem auto !important; /* Center horizontally, add margin below */
+        background-color: #000000 !important; /* Black background */
+        color: #FFFFFF !important; /* White text */
+        border: 1px solid #FFFFFF !important; /* White border */
+        font-size: 1.5rem !important; /* Adjust icon/text size */
+    }
+
+    .stButton > button.legal-button:hover {
+        background-color: #333333 !important; /* Darker on hover */
+        border-color: #AAAAAA !important;
+    }
+
+    /* Specific styling for the text within the legal buttons */
+    .stButton > button.legal-button .streamlit-button-helper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
+    }
+
+    .stButton > button.legal-button .streamlit-button-helper span {
+        font-size: 0.7rem; /* Smaller font for text */
+        margin-top: 0.2rem;
+    }
+
+    .stButton > button.legal-button .streamlit-button-helper img {
+        width: 24px; /* Adjust icon size */
+        height: 24px;
+    }
+    </style>
+    <div class="footer-container">
+        <div class="footer-buttons-container">
+            <button class="stButton legal-button" onclick="window.parent.postMessage({streamlit: {command: 'SET_PAGE_STATE', args: ['display_terms', true]}}, '*')">
+                📄<br><span>Terms</span>
+            </button>
+            <button class="stButton legal-button" onclick="window.parent.postMessage({streamlit: {command: 'SET_PAGE_STATE', args: ['display_privacy', true]}}, '*')">
+                🔒<br><span>Privacy</span>
+            </button>
+        </div>
+        <div class="footer-text">
+            <em>Complete privacy • Secure payments • Professional analysis</em><br/>
+            <strong>Contact:</strong> rebornenterprisellc@gmail.com
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
     # Display Terms of Service when button is clicked
-    if st.session_state.get('display_terms', False):
+    if st.session_state.get("display_terms", False):
         with st.expander("📄 Terms of Service", expanded=True):
             st.markdown("""
             **Effective Date:** January 2024 | **Last Updated:** January 2024
@@ -4789,7 +4910,7 @@ with mid_cols:
                 st.rerun()
     
     # Display Privacy Policy when button is clicked
-    if st.session_state.get('display_privacy', False):
+    if st.session_state.get("display_privacy", False):
         with st.expander("🔒 Privacy Policy", expanded=True):
             st.markdown("""
             **Effective Date:** January 2024 | **Last Updated:** January 2024
