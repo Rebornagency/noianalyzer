@@ -1356,31 +1356,32 @@ def inject_custom_css():
         background-color: rgba(30, 41, 59, 0.8) !important;
     }
 
-    /* Style the Browse Files button */
+    /* Style the Browse Files button - Fixed styling for visibility and positioning */
     [data-testid="stFileUploader"] label span,
     [data-testid="stFileUploader"] label div span {
         background-color: #000000 !important;
         color: #FFFFFF !important;
         border: 1px solid #FFFFFF !important;
         border-radius: 6px !important;
-        padding: 0.5rem 1rem !important;
-        width: 120px !important;
-        height: 40px !important;
+        padding: 0.5rem !important;
+        width: 80px !important;
+        height: 35px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
         margin-right: 0 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.8rem !important;
         font-weight: 500 !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
+        position: relative !important;
     }
 
     [data-testid="stFileUploader"] label span:hover,
     [data-testid="stFileUploader"] label div span:hover {
         background-color: #333333 !important;
-        border-color: #AAAAAA !important;
+        border-color: #CCCCCC !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button {
@@ -1388,23 +1389,24 @@ def inject_custom_css():
         color: #FFFFFF !important;
         border: 1px solid #FFFFFF !important;
         border-radius: 6px !important;
-        padding: 0.5rem 1rem !important;
-        width: 120px !important;
-        height: 40px !important;
+        padding: 0.5rem !important;
+        width: 80px !important;
+        height: 35px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
         margin-right: 0 !important;
-        font-size: 0.9rem !important;
+        font-size: 0.8rem !important;
         font-weight: 500 !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
+        position: relative !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button:hover {
         background-color: #333333 !important;
-        border-color: #AAAAAA !important;
+        border-color: #CCCCCC !important;
     }
 
     /* Ensure the file uploader container has proper layout */
@@ -1418,25 +1420,25 @@ def inject_custom_css():
         display: flex !important;
         justify-content: flex-end !important;
         align-items: center !important;
+        padding: 0.5rem !important;
     }
-    justify-content: center !important;
-    margin-left: auto !important; /* Position to the right */
-    margin-right: 0 !important;
-}
 
-[data-testid="stFileUploader"] > div > div > button {
-    background-color: #000000 !important;
-    color: #FFFFFF !important;
-    border-radius: 4px !important;
-    padding: 0.25rem 0.75rem !important;
-    width: 100px !important; /* Small square width */
-    height: 30px !important; /* Small square height */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin-left: auto !important; /* Position to the right */
-    margin-right: 0 !important;
-}
+    /* Additional targeting for better button visibility */
+    [data-testid="stFileUploader"] button[kind="secondary"] {
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #FFFFFF !important;
+        border-radius: 6px !important;
+        width: 80px !important;
+        height: 35px !important;
+        font-size: 0.8rem !important;
+        margin-left: auto !important;
+    }
+
+    [data-testid="stFileUploader"] button[kind="secondary"]:hover {
+        background-color: #333333 !important;
+        border-color: #CCCCCC !important;
+    }
     
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {
