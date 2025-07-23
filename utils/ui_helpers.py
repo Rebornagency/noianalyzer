@@ -259,6 +259,70 @@ def inject_custom_css():
         border-color: var(--reborn-accent-blue) !important;
     }
 
+    /* Style the Browse Files button */
+    [data-testid="stFileUploader"] label span,
+    [data-testid="stFileUploader"] label div span {
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #FFFFFF !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 1rem !important;
+        width: 120px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+
+    [data-testid="stFileUploader"] label span:hover,
+    [data-testid="stFileUploader"] label div span:hover {
+        background-color: #333333 !important;
+        border-color: #AAAAAA !important;
+    }
+
+    [data-testid="stFileUploader"] > div > div > button {
+        background-color: #000000 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #FFFFFF !important;
+        border-radius: 6px !important;
+        padding: 0.5rem 1rem !important;
+        width: 120px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+
+    [data-testid="stFileUploader"] > div > div > button:hover {
+        background-color: #333333 !important;
+        border-color: #AAAAAA !important;
+    }
+
+    /* Ensure the file uploader container has proper layout */
+    [data-testid="stFileUploader"] > div {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    [data-testid="stFileUploader"] > div > div {
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+    }
+
     /* Custom Card Styling */
     .custom-card {
         background-color: var(--reborn-bg-secondary) !important;
