@@ -4816,86 +4816,37 @@ def main():
                         show_processing_status("PDF report generated successfully!", status_type="success")
                     else:
                         # Show error message
-                        show_processing_status("Failed to generate PDF report. Please check the logs for details.", status_type="error")
-                except Exception as e:
-                    logger.error(f"Error in PDF generation process: {str(e)}", exc_info=True)
-                    # Show error message
-                    show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
+                         show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
 
     # Legal Footer - Terms of Service and Privacy Policy
+    st.markdown("---")
     st.markdown("""
-    <style>
-    .footer-container {
-        text-align: center;
-        margin-top: 3rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .footer-text {
-        color: #ffffff;
-        font-size: 0.9rem;
-        margin-bottom: 1rem;
-    }
-    .footer-buttons-container {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-    .stButton > button.legal-button {
-        width: 60px !important; /* Small square width */
-        height: 60px !important; /* Small square height */
-        border-radius: 8px !important; /* Slightly rounded corners for square */
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0 !important; /* Remove padding to make it a true square */
-        margin: 0 auto 0.5rem auto !important; /* Center horizontally, add margin below */
-        background-color: #000000 !important; /* Black background */
-        color: #FFFFFF !important; /* White text */
-        border: 1px solid #FFFFFF !important; /* White border */
-        font-size: 1.5rem !important; /* Adjust icon/text size */
-    }
-
-    .stButton > button.legal-button:hover {
-        background-color: #333333 !important; /* Darker on hover */
-        border-color: #AAAAAA !important;
-    }
-
-    /* Specific styling for the text within the legal buttons */
-    .stButton > button.legal-button .streamlit-button-helper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        line-height: 1.2;
-    }
-
-    .stButton > button.legal-button .streamlit-button-helper span {
-        font-size: 0.7rem; /* Smaller font for text */
-        margin-top: 0.2rem;
-    }
-
-    .stButton > button.legal-button .streamlit-button-helper img {
-        width: 24px; /* Adjust icon size */
-        height: 24px;
-    }
-    </style>
-    <div class="footer-container">
-        <div class="footer-buttons-container">
-            <button class="stButton legal-button" onclick="window.parent.postMessage({streamlit: {command: 'SET_PAGE_STATE', args: ['display_terms', true]}}, '*')">
-                📄<br><span>Terms</span>
-            </button>
-            <button class="stButton legal-button" onclick="window.parent.postMessage({streamlit: {command: 'SET_PAGE_STATE', args: ['display_privacy', true]}}, '*')">
-                🔒<br><span>Privacy</span>
-            </button>
-        </div>
-        <div class="footer-text">
+    <div style="text-align: center; margin-top: 2rem; padding-top: 1.5rem;">
+        <div style="color: #ffffff; font-size: 0.9rem; margin-bottom: 1rem;">
             <em>Complete privacy • Secure payments • Professional analysis</em><br/>
             <strong>Contact:</strong> rebornenterprisellc@gmail.com
         </div>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Legal buttons using proper Streamlit buttons
+    col1, col2, col3 = st.columns([2, 1, 2])
+    
+    with col1:
+        if st.button("📄 Terms of Service", key="terms_button", help="View Terms of Service"):
+            st.session_state.display_terms = True
+            st.rerun()
+    
+    with col2:
+        st.markdown("")  # Spacer
+    
+    with col3:
+        if st.button("🔒 Privacy Policy", key="privacy_button", help="View Privacy Policy"):
+            st.session_state.display_privacy = True
+            st.rerun()
+
+    # Display Terms of Service when button is clicked
+    if st.session_state.get("display_terms", False):
 
     # Display Terms of Service when button is clicked
     if st.session_state.get("display_terms", False):
