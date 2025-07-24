@@ -4859,7 +4859,7 @@ def main():
 
     # Display Terms of Service when button is clicked
     if st.session_state.get("display_terms", False):
-        with st.expander("\ud83d\udcc4 Terms of Service", expanded=True):
+        with st.expander("�� Terms of Service", expanded=True):
             st.markdown("""
             **Effective Date:** January 2024 | **Last Updated:** January 2024
 
