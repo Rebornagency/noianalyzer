@@ -257,6 +257,8 @@ div[data-baseweb="input"] {
     margin-left: auto !important;
     margin-right: 0 !important;
     white-space: nowrap !important;
+    width: 180px !important;
+    max-width: 100% !important;
 }
 
 /* Dark mode specific adjustments */
