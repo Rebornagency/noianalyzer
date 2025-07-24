@@ -1356,63 +1356,60 @@ def inject_custom_css():
         background-color: rgba(30, 41, 59, 0.8) !important;
     }
 
-    /* Style the Browse Files button - Small black square positioned to the right */
+    /* Style the Browse Files button - Make it larger and fully right-aligned */
     [data-testid="stFileUploader"] label span,
     [data-testid="stFileUploader"] label div span {
         background-color: #000000 !important;
         color: #FFFFFF !important;
         border: 1px solid #FFFFFF !important;
-        border-radius: 8px !important;
-        padding: 0 !important;
-        width: 60px !important;
-        height: 60px !important;
+        border-radius: 10px !important;
+        padding: 0.5rem 2.2rem !important;
+        min-width: 160px !important;
+        min-height: 48px !important;
+        font-size: 1.08rem !important;
+        font-weight: 600 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
         margin-right: 0 !important;
-        font-size: 0.7rem !important;
-        font-weight: 500 !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
-        position: relative !important;
-        text-align: center !important;
-        line-height: 1.2 !important;
         white-space: nowrap !important;
     }
 
     [data-testid="stFileUploader"] label span:hover,
     [data-testid="stFileUploader"] label div span:hover {
         background-color: #333333 !important;
-        border-color: #CCCCCC !important;
+        border-color: #AAAAAA !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button {
         background-color: #000000 !important;
         color: #FFFFFF !important;
         border: 1px solid #FFFFFF !important;
-        border-radius: 6px !important;
-        padding: 0.5rem !important;
-        width: 80px !important;
-        height: 35px !important;
+        border-radius: 10px !important;
+        padding: 0.5rem 2.2rem !important;
+        min-width: 160px !important;
+        min-height: 48px !important;
+        font-size: 1.08rem !important;
+        font-weight: 600 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
         margin-right: 0 !important;
-        font-size: 0.8rem !important;
-        font-weight: 500 !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
-        position: relative !important;
+        white-space: nowrap !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button:hover {
         background-color: #333333 !important;
-        border-color: #CCCCCC !important;
+        border-color: #AAAAAA !important;
     }
 
-    /* Ensure the file uploader container has proper layout */
+    /* Ensure the file uploader container has proper layout and is fully right-aligned */
     [data-testid="stFileUploader"] > div {
         display: flex !important;
         flex-direction: column !important;
