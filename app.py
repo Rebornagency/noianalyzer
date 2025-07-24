@@ -4841,19 +4841,18 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # Centered legal buttons side by side
-    st.markdown('<div style="display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 1.5rem;">'
-                '<form action="#"><button type="submit" name="terms_button" style="font-size: 1.1rem; padding: 0.5rem 1.5rem; border-radius: 8px; border: none; background: #3B82F6; color: white; cursor: pointer;">📄 Terms of Service</button></form>'
-                '<form action="#"><button type="submit" name="privacy_button" style="font-size: 1.1rem; padding: 0.5rem 1.5rem; border-radius: 8px; border: none; background: #3B82F6; color: white; cursor: pointer;">🔒 Privacy Policy</button></form>'
-                '</div>', unsafe_allow_html=True)
-
-    # Streamlit button logic for state
-    if st.session_state.get("terms_button") or st.session_state.get("display_terms", False):
-        st.session_state.display_terms = True
-        st.session_state.display_privacy = False
-    if st.session_state.get("privacy_button") or st.session_state.get("display_privacy", False):
-        st.session_state.display_privacy = True
-        st.session_state.display_terms = False
+    # Centered legal buttons side by side (now using Streamlit buttons for correct behavior)
+    col1, col2, col3 = st.columns([2, 1, 2])
+    with col2:
+        button1, button2 = st.columns(2)
+        with button1:
+            if st.button("📄 Terms of Service", key="terms_button", help="View Terms of Service"):
+                st.session_state.display_terms = not st.session_state.get("display_terms", False)
+                st.session_state.display_privacy = False
+        with button2:
+            if st.button("🔒 Privacy Policy", key="privacy_button", help="View Privacy Policy"):
+                st.session_state.display_privacy = not st.session_state.get("display_privacy", False)
+                st.session_state.display_terms = False
 
     # Display Terms of Service when button is clicked
     if st.session_state.get("display_terms", False):

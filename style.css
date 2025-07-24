@@ -122,6 +122,8 @@ p, div {
 .stAlert-info {
     background-color: rgba(59, 130, 246, 0.2) !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
 /* Ensure info alert text is light blue for readability */
 .stAlert-info,
 .stAlert-info p,
@@ -238,6 +240,23 @@ div[data-baseweb="input"] {
     border-left: 4px solid #4DB6AC !important;
     margin-bottom: 10px !important;
     text-align: center !important;
+}
+
+/* Remove or override any constraints for Browse Files button */
+[data-testid="stFileUploader"] label span,
+[data-testid="stFileUploader"] label div span,
+[data-testid="stFileUploader"] > div > div > button {
+    min-width: 160px !important;
+    min-height: 48px !important;
+    padding: 0.5rem 2.2rem !important;
+    font-size: 1.08rem !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    white-space: nowrap !important;
 }
 
 /* Dark mode specific adjustments */
