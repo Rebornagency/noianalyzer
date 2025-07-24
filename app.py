@@ -482,7 +482,7 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
     edited_doc_data = copy.deepcopy(doc_data)
     
     # Display document metadata
-    st.markdown("### Document Information")
+    st.markdown("<h3 style='color: #FFFFFF !important;'>Document Information</h3>", unsafe_allow_html=True)
     with st.expander("Document Metadata", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
@@ -494,14 +494,14 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
     auto_calculate = st.checkbox("Auto-calculate dependent values", value=True, key=f"auto_calc_{doc_type}")
     
     # Display main financial metrics
-    st.markdown("### Key Financial Metrics")
+    st.markdown("<h3 style='color: #FFFFFF !important;'>Key Financial Metrics</h3>", unsafe_allow_html=True)
     
     # Create a form for the main metrics
     with st.form(key=f"main_metrics_form_{doc_type}"):
         # GPR
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Gross Potential Rent (GPR)**")
+            st.markdown("<span style='color: #FFFFFF !important; font-weight: bold;'>Gross Potential Rent (GPR)</span>", unsafe_allow_html=True)
         with col2:
             gpr = st.number_input(
                 "GPR Value",
@@ -512,10 +512,10 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
             )
             edited_doc_data["gpr"] = gpr
         
-        # Vacancy Loss
+         # Vacancy Loss
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Vacancy Loss**")
+            st.markdown("<span style='color: #FFFFFF !important; font-weight: bold;'>Vacancy Loss</span>", unsafe_allow_html=True)
         with col2:
             vacancy_loss = st.number_input(
                 "Vacancy Loss Value",
@@ -529,7 +529,7 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
         # Other Income
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Other Income**")
+            st.markdown("<span style='color: #FFFFFF !important; font-weight: bold;'>Other Income</span>", unsafe_allow_html=True)
         with col2:
             other_income = st.number_input(
                 "Other Income Value",
@@ -540,10 +540,10 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
             )
             edited_doc_data["other_income"] = other_income
         
-        # EGI
+       # EGI
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Effective Gross Income (EGI)**")
+            st.markdown("<span style='color: #FFFFFF !important; font-weight: bold;'>Effective Gross Income (EGI)</span>", unsafe_allow_html=True)
         with col2:
             if auto_calculate:
                 calculated_egi = edited_doc_data["gpr"] - edited_doc_data["vacancy_loss"] + edited_doc_data["other_income"]
@@ -569,7 +569,7 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
         # OpEx
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Operating Expenses (OpEx)**")
+            st.markdown("<span style='color: #FFFFFF !important; font-weight: bold;'>Operating Expenses (OpEx)</span>", unsafe_allow_html=True)
         with col2:
             opex = st.number_input(
                 "OpEx Value",
@@ -580,10 +580,10 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
             )
             edited_doc_data["opex"] = opex
         
-        # NOI
+         # NOI
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("**Net Operating Income (NOI)**")
+            st.markdown("<span style='color: #FFFFFF !important; font-weight: bold;'>Net Operating Income (NOI)</span>", unsafe_allow_html=True)
         with col2:
             if auto_calculate:
                 calculated_noi = edited_doc_data["egi"] - edited_doc_data["opex"]
@@ -610,7 +610,7 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
         st.form_submit_button("Update Main Metrics")
     
     # Display Operating Expenses breakdown
-    st.markdown("### Operating Expenses Breakdown")
+    st.markdown("<h3 style='color: #FFFFFF !important;'>Operating Expenses Breakdown</h3>", unsafe_allow_html=True)
     
     # Create a form for OpEx breakdown
     with st.form(key=f"opex_form_{doc_type}"):
@@ -645,7 +645,7 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
         st.form_submit_button("Update OpEx Breakdown")
     
     # Display Other Income breakdown
-    st.markdown("### Other Income Breakdown")
+    st.markdown("<h3 style='color: #FFFFFF !important;'>Other Income Breakdown</h3>", unsafe_allow_html=True)
     
     # Create a form for Other Income breakdown
     with st.form(key=f"other_income_form_{doc_type}"):
@@ -4181,9 +4181,12 @@ def main():
                         if has_credits:
                             # User has credits - proceed with processing
                             st.session_state.user_initiated_processing = True
-                            # Reset states for a fresh processing cycle
+                              # Reset states for a fresh processing cycle
                             st.session_state.template_viewed = False
                             st.session_state.processing_completed = False
+                            # Reset header display flags
+                            if 'template_header_displayed' in st.session_state: del st.session_state.template_header_displayed
+                            if 'results_header_displayed' in st.session_state: del st.session_state.results_header_displayed
                             if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
                             if 'comparison_results' in st.session_state: del st.session_state.comparison_results
                             if 'insights' in st.session_state: del st.session_state.insights
@@ -4418,11 +4421,13 @@ def main():
     # This block executes if consolidated_data exists but template hasn't been viewed/confirmed
     if 'consolidated_data' in st.session_state and \
        st.session_state.consolidated_data and \
-       not st.session_state.get('template_viewed', False) and \
+      not st.session_state.get('template_viewed', False) and \
        not st.session_state.get('processing_completed', False): # Ensure analysis hasn't already run
         
-        # Add header credit display for template review page (centered)
-        if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
+        # Add header credit display for template review page (centered) - only if not already shown
+        if (st.session_state.get('user_email') and 
+            CREDIT_SYSTEM_AVAILABLE and 
+            not st.session_state.get('template_header_displayed', False)):
             # Center the credit display
             display_credit_balance_header(st.session_state.user_email)
             
@@ -4436,6 +4441,9 @@ def main():
                     if 'show_credit_success' in st.session_state:
                         del st.session_state.show_credit_success
                     st.rerun()
+            
+            # Mark that template header has been displayed
+            st.session_state.template_header_displayed = True
         
         logger.info("Displaying data template for user review.")
         show_processing_status("Documents processed. Please review the extracted data.", status_type="info")
@@ -4552,8 +4560,10 @@ def main():
 
     # --- Stage 4: Display Results or Welcome Page ---
     if st.session_state.get('processing_completed', False):
-        # Add header credit display for results page (centered)
-        if st.session_state.get('user_email') and CREDIT_SYSTEM_AVAILABLE:
+        # Add header credit display for results page (centered) - only if not already shown
+        if (st.session_state.get('user_email') and 
+            CREDIT_SYSTEM_AVAILABLE and 
+            not st.session_state.get('results_header_displayed', False)):
             # Center the credit display
             display_credit_balance_header(st.session_state.user_email)
             
@@ -4564,9 +4574,12 @@ def main():
                     logger.info("🛒 Results Buy More Credits button clicked - showing credit store")
                     st.session_state.show_credit_store = True
                     # Clear any conflicting flags
-                    if 'show_credit_success' in st.session_state:
+                   if 'show_credit_success' in st.session_state:
                         del st.session_state.show_credit_success
                     st.rerun()
+            
+            # Mark that results header has been displayed
+            st.session_state.results_header_displayed = True
         
         # Show results after processing is fully completed
         # Modern styled title
