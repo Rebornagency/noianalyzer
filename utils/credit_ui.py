@@ -416,7 +416,8 @@ def display_credit_store():
         border-radius: 10px !important;
         border: none !important;
         background: linear-gradient(135deg, #0E4DE3 0%, #1C5CF5 100%) !important;
-        color: white !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 4px 12px rgba(14, 77, 227, 0.4) !important;
         text-transform: none !important;

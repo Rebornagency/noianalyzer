@@ -246,3 +246,19 @@ div[data-baseweb="input"] {
         background-color: #0d1117;
     }
 }
+
+/* Make the Browse Files button larger and fully right-aligned */
+[data-testid="stFileUploader"] label span,
+[data-testid="stFileUploader"] label div span,
+[data-testid="stFileUploader"] > div > div > button {
+    min-width: 160px !important;
+    min-height: 48px !important;
+    font-size: 1.1rem !important;
+    padding: 0.75rem 2rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    white-space: nowrap !important;
+}
