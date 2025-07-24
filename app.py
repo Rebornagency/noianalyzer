@@ -4897,6 +4897,15 @@ def main():
             For any questions, contact: rebornenterprisellc@gmail.com
             """)
 
+    # Add always-visible privacy disclaimer at the very bottom
+    st.markdown("""
+    <div style='width: 100%; text-align: center; margin-top: 2.5rem; margin-bottom: 0.5rem;'>
+        <div style='display: inline-block; background: rgba(30,41,59,0.95); color: #fff; border-radius: 8px; padding: 0.85rem 2.2rem; font-size: 1.08rem; font-weight: 600; box-shadow: 0 2px 8px rgba(30,41,59,0.10); border: 1px solid #3B82F6;'>
+            Privacy Guarantee: Your uploaded documents are never stored. All files are permanently deleted after every analysis.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 def display_features_section():
     """Display the features section using pure Streamlit components without HTML"""
     st.markdown("## Features")
