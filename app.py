@@ -5434,4 +5434,3 @@ def summarize_data_for_log(data_dict, max_items=3):
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
     main()
-
