@@ -266,18 +266,19 @@ def inject_custom_css():
         color: #FFFFFF !important;
         border: 1px solid #FFFFFF !important;
         border-radius: 6px !important;
-        padding: 0.5rem 1rem !important;
-        width: 120px !important;
-        height: 40px !important;
+        padding: 0.5rem 2.2rem !important;
+        min-width: 160px !important;
+        min-height: 48px !important;
+        font-size: 1.08rem !important;
+        font-weight: 600 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
         margin-right: 0 !important;
-        font-size: 0.9rem !important;
-        font-weight: 500 !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
+        white-space: nowrap !important;
     }
 
     [data-testid="stFileUploader"] label span:hover,
@@ -291,18 +292,19 @@ def inject_custom_css():
         color: #FFFFFF !important;
         border: 1px solid #FFFFFF !important;
         border-radius: 6px !important;
-        padding: 0.5rem 1rem !important;
-        width: 120px !important;
-        height: 40px !important;
+        padding: 0.5rem 2.2rem !important;
+        min-width: 160px !important;
+        min-height: 48px !important;
+        font-size: 1.08rem !important;
+        font-weight: 600 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
         margin-right: 0 !important;
-        font-size: 0.9rem !important;
-        font-weight: 500 !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
+        white-space: nowrap !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button:hover {
