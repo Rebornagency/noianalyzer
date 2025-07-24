@@ -4570,11 +4570,11 @@ def main():
             # Add buy more credits button centered below
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
-                    logger.info("🛒 Results Buy More Credits button clicked - showing credit store")
+                if st.button("\ud83d\uded2 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
+                    logger.info("\ud83d\uded2 Results Buy More Credits button clicked - showing credit store")
                     st.session_state.show_credit_store = True
                     # Clear any conflicting flags
-                   if 'show_credit_success' in st.session_state:
+                    if 'show_credit_success' in st.session_state:
                         del st.session_state.show_credit_success
                     st.rerun()
             
@@ -4810,13 +4810,11 @@ def main():
                 show_processing_status("Generating comprehensive PDF report...", is_running=True)
                 try:
                     pdf_bytes = generate_comprehensive_pdf() 
-                    
                     if pdf_bytes:
                         # Create a unique filename with timestamp
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
                         pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
-                        
                         # Display download button
                         st.download_button(
                             label="Download Complete PDF Report",
@@ -4828,8 +4826,9 @@ def main():
                         # Show success message
                         show_processing_status("PDF report generated successfully!", status_type="success")
                     else:
-                        # Show error message
-                         show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
+                        show_processing_status("Error generating PDF report: PDF generation returned no data.", status_type="error")
+                except Exception as e:
+                    show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
 
     # Legal Footer - Terms of Service and Privacy Policy
     st.markdown("---")
@@ -4860,21 +4859,18 @@ def main():
 
     # Display Terms of Service when button is clicked
     if st.session_state.get("display_terms", False):
-
-    # Display Terms of Service when button is clicked
-    if st.session_state.get("display_terms", False):
-        with st.expander("📄 Terms of Service", expanded=True):
+        with st.expander("\ud83d\udcc4 Terms of Service", expanded=True):
             st.markdown("""
             **Effective Date:** January 2024 | **Last Updated:** January 2024
 
-            ## 🔒 **ZERO DOCUMENT STORAGE POLICY**
+            ## \ud83d\udd12 **ZERO DOCUMENT STORAGE POLICY**
 
             **We do NOT store your documents.** This is our commitment to your privacy:
 
-            - ✅ **Documents are processed immediately** upon upload
-            - ✅ **All documents are permanently deleted** after analysis
-            - ✅ **No copies are retained** on our servers
-            - ✅ **Processing happens in temporary memory** only
+            - \u2705 **Documents are processed immediately** upon upload
+            - \u2705 **All documents are permanently deleted** after analysis
+            - \u2705 **No copies are retained** on our servers
+            - \u2705 **Processing happens in temporary memory** only
 
             ## Credit System & Fair Use
 
@@ -4887,34 +4883,18 @@ def main():
             ## Acceptable Use
 
             **You May:**
-            - ✅ Upload legitimate financial documents for analysis
-            - ✅ Use the service for real estate investment analysis
-            - ✅ Share generated reports with authorized parties
+            - \u2705 Upload legitimate financial documents for analysis
+            - \u2705 Use the service for real estate investment analysis
+            - \u2705 Share generated reports with authorized parties
 
             **You May NOT:**
-            - ❌ Upload documents you don't have permission to analyze
-            - ❌ Create multiple accounts to bypass credit limits
-            - ❌ Use automated tools to abuse the service
+            - \u274c Upload documents you don't have permission to analyze
+            - \u274c Create multiple accounts to bypass credit limits
+            - \u274c Use automated tools to abuse the service
 
             ## Limitation of Liability
-
-            - Analysis results are for informational purposes only
-            - We do not provide financial or investment advice
-            - Our total liability is limited to the amount you paid for credits
-
-                         ## Contact Information
-
-             For questions about these Terms of Service, please contact us at: rebornenterprisellc@gmail.com
-
-             ---
-
-             By using NOI Analyzer, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
             """)
-            
-            if st.button("Close Terms", key="close_terms"):
-                st.session_state.display_terms = False
-                st.rerun()
-    
+
     # Display Privacy Policy when button is clicked
     if st.session_state.get("display_privacy", False):
         with st.expander("🔒 Privacy Policy", expanded=True):
