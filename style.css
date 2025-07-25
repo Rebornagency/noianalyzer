@@ -243,6 +243,7 @@ div[data-baseweb="input"] {
 }
 
 /* Remove or override any constraints for Browse Files button */
+/*
 [data-testid="stFileUploader"] label span,
 [data-testid="stFileUploader"] label div span,
 [data-testid="stFileUploader"] > div > div > button {
@@ -260,6 +261,7 @@ div[data-baseweb="input"] {
     width: 180px !important;
     max-width: 100% !important;
 }
+*/
 
 /* Dark mode specific adjustments */
 @media (prefers-color-scheme: dark) {
