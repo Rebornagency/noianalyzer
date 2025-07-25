@@ -254,7 +254,14 @@ def inject_custom_css():
     .stFileUploader > div > div { 
         border: 2px dashed var(--reborn-border-color) !important;
         background-color: var(--reborn-bg-secondary) !important;
-        border-radius: 8px !important;
+        border-radius: 12px !important;
+        min-height: 120px !important;
+        min-width: 340px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 2.5rem 1.5rem !important;
+        margin-bottom: 1.5rem !important;
     }
     .stFileUploader > div > div:hover {
         border-color: var(--reborn-accent-blue) !important;
@@ -264,21 +271,24 @@ def inject_custom_css():
     [data-testid="stFileUploader"] label div span {
         background-color: #000000 !important;
         color: #FFFFFF !important;
-        border: 1px solid #FFFFFF !important;
-        border-radius: 6px !important;
-        padding: 0.5rem 2.2rem !important;
-        min-width: 160px !important;
-        min-height: 48px !important;
-        font-size: 1.08rem !important;
-        font-weight: 600 !important;
+        border: 1.5px solid #FFFFFF !important;
+        border-radius: 8px !important;
+        padding: 0.9rem 2.8rem !important;
+        min-width: 220px !important;
+        min-height: 60px !important;
+        font-size: 1.18rem !important;
+        font-weight: 700 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        margin-left: auto !important;
-        margin-right: 0 !important;
+        margin: 0 auto !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
     }
 
     [data-testid="stFileUploader"] label span:hover,
@@ -290,21 +300,24 @@ def inject_custom_css():
     [data-testid="stFileUploader"] > div > div > button {
         background-color: #000000 !important;
         color: #FFFFFF !important;
-        border: 1px solid #FFFFFF !important;
-        border-radius: 6px !important;
-        padding: 0.5rem 2.2rem !important;
-        min-width: 160px !important;
-        min-height: 48px !important;
-        font-size: 1.08rem !important;
-        font-weight: 600 !important;
+        border: 1.5px solid #FFFFFF !important;
+        border-radius: 8px !important;
+        padding: 0.9rem 2.8rem !important;
+        min-width: 220px !important;
+        min-height: 60px !important;
+        font-size: 1.18rem !important;
+        font-weight: 700 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        margin-left: auto !important;
-        margin-right: 0 !important;
+        margin: 0 auto !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        overflow-wrap: break-word !important;
+        word-break: break-word !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button:hover {
@@ -320,7 +333,7 @@ def inject_custom_css():
 
     [data-testid="stFileUploader"] > div > div {
         display: flex !important;
-        justify-content: flex-end !important;
+        justify-content: center !important; /* Center the Browse Files button */
         align-items: center !important;
     }
     */
