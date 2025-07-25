@@ -246,11 +246,12 @@ def inject_custom_css():
     }
 
     /* File Uploader Styling */
+    /*
     .stFileUploader label {
         font-weight: 500 !important;
         color: var(--reborn-text-primary) !important;
     }
-    .stFileUploader > div > div { /* The drop zone */
+    .stFileUploader > div > div { 
         border: 2px dashed var(--reborn-border-color) !important;
         background-color: var(--reborn-bg-secondary) !important;
         border-radius: 8px !important;
@@ -259,7 +260,6 @@ def inject_custom_css():
         border-color: var(--reborn-accent-blue) !important;
     }
 
-    /* Style the Browse Files button */
     [data-testid="stFileUploader"] label span,
     [data-testid="stFileUploader"] label div span {
         background-color: #000000 !important;
@@ -312,7 +312,6 @@ def inject_custom_css():
         border-color: #AAAAAA !important;
     }
 
-    /* Ensure the file uploader container has proper layout */
     [data-testid="stFileUploader"] > div {
         display: flex !important;
         flex-direction: column !important;
@@ -324,6 +323,7 @@ def inject_custom_css():
         justify-content: flex-end !important;
         align-items: center !important;
     }
+    */
 
     /* Custom Card Styling */
     .custom-card {
