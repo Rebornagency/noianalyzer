@@ -246,37 +246,16 @@ def inject_custom_css():
     }
 
     /* File Uploader Styling */
-    /*
-    .stFileUploader label {
-        font-weight: 500 !important;
-        color: var(--reborn-text-primary) !important;
-    }
-    .stFileUploader > div > div { 
-        border: 2px dashed var(--reborn-border-color) !important;
-        background-color: var(--reborn-bg-secondary) !important;
-        border-radius: 12px !important;
-        min-height: 120px !important;
-        min-width: 340px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 2.5rem 1.5rem !important;
-        margin-bottom: 1.5rem !important;
-    }
-    .stFileUploader > div > div:hover {
-        border-color: var(--reborn-accent-blue) !important;
-    }
-
     [data-testid="stFileUploader"] label span,
     [data-testid="stFileUploader"] label div span {
         background-color: #000000 !important;
         color: #FFFFFF !important;
         border: 1.5px solid #FFFFFF !important;
         border-radius: 8px !important;
-        padding: 0.9rem 2.8rem !important;
-        min-width: 220px !important;
-        min-height: 60px !important;
-        font-size: 1.18rem !important;
+        padding: 1.1rem 3.2rem !important;
+        min-width: 260px !important;
+        min-height: 64px !important;
+        font-size: 1.22rem !important;
         font-weight: 700 !important;
         display: flex !important;
         align-items: center !important;
@@ -302,10 +281,10 @@ def inject_custom_css():
         color: #FFFFFF !important;
         border: 1.5px solid #FFFFFF !important;
         border-radius: 8px !important;
-        padding: 0.9rem 2.8rem !important;
-        min-width: 220px !important;
-        min-height: 60px !important;
-        font-size: 1.18rem !important;
+        padding: 1.1rem 3.2rem !important;
+        min-width: 260px !important;
+        min-height: 64px !important;
+        font-size: 1.22rem !important;
         font-weight: 700 !important;
         display: flex !important;
         align-items: center !important;
@@ -336,7 +315,6 @@ def inject_custom_css():
         justify-content: center !important; /* Center the Browse Files button */
         align-items: center !important;
     }
-    */
 
     /* Custom Card Styling */
     .custom-card {
