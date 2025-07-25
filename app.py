@@ -1356,7 +1356,7 @@ def inject_custom_css():
         background-color: rgba(30, 41, 59, 0.8) !important;
     }
 
-    /* Style the Browse Files button - Make it larger and fully right-aligned */
+    /* Style the Browse Files button - Make it larger and fully centered */
     [data-testid="stFileUploader"] label span,
     [data-testid="stFileUploader"] label div span {
         background-color: #000000 !important;
@@ -1372,10 +1372,10 @@ def inject_custom_css():
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
-        margin-right: 0 !important;
+        margin-right: auto !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
     }
 
     [data-testid="stFileUploader"] label span:hover,
@@ -1398,10 +1398,10 @@ def inject_custom_css():
         align-items: center !important;
         justify-content: center !important;
         margin-left: auto !important;
-        margin-right: 0 !important;
+        margin-right: auto !important;
         cursor: pointer !important;
         transition: all 0.2s ease !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button:hover {
@@ -1409,16 +1409,16 @@ def inject_custom_css():
         border-color: #AAAAAA !important;
     }
 
-    /* Ensure the file uploader container has proper layout and is fully right-aligned */
+    /* Ensure the file uploader container has proper layout and is fully centered */
     [data-testid="stFileUploader"] > div {
         display: flex !important;
         flex-direction: column !important;
-        align-items: stretch !important;
+        align-items: center !important;
     }
 
     [data-testid="stFileUploader"] > div > div {
         display: flex !important;
-        justify-content: flex-end !important;
+        justify-content: center !important;
         align-items: center !important;
         padding: 0.5rem !important;
     }
