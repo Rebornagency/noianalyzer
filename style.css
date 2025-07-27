@@ -35,10 +35,10 @@ input[type="text"] {
 
 /* File uploader styling */
 .st-c7 {
-    background-color: #1a1f29 !important;
-    border: 2px dashed #3B82F6 !important;
-    border-radius: 8px !important;
-    padding: 20px !important;
+    background-color: #1a1f29;
+    border: 1px dashed #30363d;
+    border-radius: 8px;
+    padding: 20px;
 }
 
 /* Fix for Budget file uploader spacing */
@@ -140,25 +140,11 @@ p, div {
 
 /* File upload area */
 .upload-area {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
-    border: 2px dashed #3B82F6 !important;
-    border-radius: 8px !important;
-    padding: 20px !important;
-    text-align: center !important;
-    margin: 16px 0 !important;
-}
-
-.upload-area .upload-text,
-.upload-area .upload-subtext {
-    color: #000000 !important;
-    background-color: #ffffff !important;
-    border: 1px solid #dee2e6 !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    font-weight: 600 !important;
-    display: inline-block !important;
-    padding: 8px 16px !important;
-    border-radius: 6px !important;
-    margin: 4px !important;
+    background-color: #1a1f29;
+    border: 1px dashed #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
 }
 
 /* Primary action button */
