@@ -967,30 +967,167 @@ def inject_custom_css():
     }
     
     .upload-area {
-        background-color: rgba(13, 13, 13, 0.8);
-        border: 1px solid #222;
-        border-radius: 8px;
-        padding: 32px;
-        text-align: center;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+        background-color: #1a1f29 !important;
+        border: 2px dashed #3B82F6 !important;
+        border-radius: 8px !important;
+        padding: 32px !important;
+        text-align: center !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+        margin: 16px 0 !important;
     }
     
     .upload-icon {
-        font-size: 32px;
-        color: #ffffff;
-        margin-bottom: 8px;
+        font-size: 32px !important;
+        color: #3B82F6 !important;
+        margin-bottom: 8px !important;
+        background-color: #ffffff !important;
+        border-radius: 50% !important;
+        width: 64px !important;
+        height: 64px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 auto 16px auto !important;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+        border: 2px solid #3B82F6 !important;
     }
 
     .upload-text {
-        color: #ffffff;
-        font-size: 14px;
-        margin-bottom: 4px;
+        color: #000000 !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        margin-bottom: 8px !important;
+        background-color: #ffffff !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        display: inline-block !important;
     }
 
     .upload-subtext {
-        color: #ffffff;
-        font-size: 12px;
-        margin-bottom: 16px;
+        color: #000000 !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin-bottom: 16px !important;
+        background-color: #f8f9fa !important;
+        padding: 6px 12px !important;
+        border-radius: 4px !important;
+        display: inline-block !important;
+        border: 1px solid #e9ecef !important;
+    }
+    
+    /* Additional styling to ensure upload area visibility */
+    .upload-area * {
+        color: inherit !important;
+    }
+    
+    /* Override any potential white text on white background issues */
+    .upload-area .upload-text,
+    .upload-area .upload-subtext {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Ensure the upload area container has proper contrast */
+    .upload-area {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+        border: 2px dashed #3B82F6 !important;
+    }
+    
+    /* Force override any Streamlit default styles that might interfere */
+    [data-testid="stFileUploader"] + div .upload-area,
+    [data-testid="stFileUploader"] ~ div .upload-area {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+        border: 2px dashed #3B82F6 !important;
+    }
+    
+    /* Ensure all text in upload areas is black and visible */
+    .upload-area .upload-text,
+    .upload-area .upload-subtext,
+    .upload-area div[class*="upload"] {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Additional specificity to override any conflicting styles */
+    div.upload-area .upload-text,
+    div.upload-area .upload-subtext {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        font-weight: 600 !important;
+        display: inline-block !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        margin: 4px !important;
+    }
+    
+    /* Maximum specificity to ensure upload area text is always visible */
+    .stApp .upload-area .upload-text,
+    .stApp .upload-area .upload-subtext,
+    .stApp div.upload-area .upload-text,
+    .stApp div.upload-area .upload-subtext {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        font-weight: 600 !important;
+        display: inline-block !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        margin: 4px !important;
+        text-shadow: none !important;
+        -webkit-text-fill-color: #000000 !important;
+    }
+    
+    /* Ensure upload area container is properly styled */
+    .stApp .upload-area {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+        border: 2px dashed #3B82F6 !important;
+        border-radius: 8px !important;
+        padding: 32px !important;
+        text-align: center !important;
+        margin: 16px 0 !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    /* Additional styling for upload icon */
+    .stApp .upload-area .upload-icon {
+        font-size: 32px !important;
+        color: #3B82F6 !important;
+        background-color: #ffffff !important;
+        border-radius: 50% !important;
+        width: 64px !important;
+        height: 64px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 auto 16px auto !important;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+        border: 2px solid #3B82F6 !important;
+    }
+    
+    /* Final override to ensure upload area text is always visible */
+    .stApp .upload-area .upload-text,
+    .stApp .upload-area .upload-subtext {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        font-weight: 600 !important;
+        display: inline-block !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        margin: 4px !important;
+        text-shadow: none !important;
+        -webkit-text-fill-color: #000000 !important;
+        text-rendering: optimizeLegibility !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     }
     
     /* Enhanced Instructions Card */
@@ -3692,8 +3829,7 @@ def main():
                     st.rerun()
                 return
         
-        # Load custom CSS
-        inject_custom_css()
+        # Custom CSS already injected above
         
         # JavaScript function for theme toggling
         st.markdown("""

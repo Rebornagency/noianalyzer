@@ -248,9 +248,9 @@ def inject_custom_css():
     /* File Uploader Styling */
     [data-testid="stFileUploader"] label span,
     [data-testid="stFileUploader"] label div span {
-        background-color: #000000 !important;
+        background-color: #3B82F6 !important;
         color: #FFFFFF !important;
-        border: 1.5px solid #FFFFFF !important;
+        border: 2px solid #3B82F6 !important;
         border-radius: 8px !important;
         padding: 1.1rem 3.2rem !important;
         min-width: 260px !important;
@@ -268,18 +268,21 @@ def inject_custom_css():
         box-sizing: border-box !important;
         overflow-wrap: break-word !important;
         word-break: break-word !important;
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3) !important;
     }
 
     [data-testid="stFileUploader"] label span:hover,
     [data-testid="stFileUploader"] label div span:hover {
-        background-color: #333333 !important;
-        border-color: #AAAAAA !important;
+        background-color: #2563EB !important;
+        border-color: #2563EB !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4) !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button {
-        background-color: #000000 !important;
+        background-color: #3B82F6 !important;
         color: #FFFFFF !important;
-        border: 1.5px solid #FFFFFF !important;
+        border: 2px solid #3B82F6 !important;
         border-radius: 8px !important;
         padding: 1.1rem 3.2rem !important;
         min-width: 260px !important;
@@ -297,11 +300,14 @@ def inject_custom_css():
         box-sizing: border-box !important;
         overflow-wrap: break-word !important;
         word-break: break-word !important;
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3) !important;
     }
 
     [data-testid="stFileUploader"] > div > div > button:hover {
-        background-color: #333333 !important;
-        border-color: #AAAAAA !important;
+        background-color: #2563EB !important;
+        border-color: #2563EB !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4) !important;
     }
 
     [data-testid="stFileUploader"] > div {
