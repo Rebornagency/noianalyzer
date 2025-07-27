@@ -966,33 +966,7 @@ def inject_custom_css():
         margin-left: 8px;
     }
     
-    .upload-area {
-        background-color: #e5e7eb !important;
-        border: 2px dashed #9ca3af !important;
-        border-radius: 8px;
-        padding: 32px;
-        text-align: center;
-        box-shadow: none !important;
-    }
-    
-    .upload-icon {
-        font-size: 32px;
-        color: #000000 !important;
-        margin-bottom: 8px;
-    }
-
-    .upload-text {
-        color: #000000 !important;
-        font-size: 14px;
-        font-weight: 500;
-        margin-bottom: 4px;
-    }
-
-    .upload-subtext {
-        color: #666666 !important;
-        font-size: 12px;
-        margin-bottom: 16px;
-    }
+    /* Upload area styling removed - using custom implementation now */
     
     /* Enhanced Instructions Card */
     .instructions-card {
@@ -5143,7 +5117,12 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
         
-        # 2. Add the file uploader - not wrapped in HTML
+        # 2. Custom file uploader with completely rebuilt interface
+        
+        # Create unique ID for this uploader instance
+        uploader_id = f"custom_uploader_{key}_{hash(title)}"
+        
+        # Add hidden Streamlit file uploader
         uploaded_file = st.file_uploader(
             f"Upload {title}",
             type=file_types,
@@ -5152,14 +5131,110 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             help=help_text or f"Upload your {title.lower()} file"
         )
         
-        # 3. Display upload area styling or file info
+        # 3. Display completely custom upload interface
         if not uploaded_file:
-            st.markdown("""
-            <div class="upload-area">
-                <div class="upload-icon">📤</div>
-                <div class="upload-text">Drag and drop file here</div>
-                <div class="upload-subtext">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
+            st.markdown(f"""
+            <style>
+            /* Hide the default Streamlit file uploader completely */
+            div[data-testid="stFileUploader"][data-key="{key}"] {{
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                overflow: hidden !important;
+            }}
+            
+            /* Custom upload container styling */
+            .custom-upload-container-{uploader_id} {{
+                background-color: #f8f9fa;
+                border: 2px dashed #6c757d;
+                border-radius: 8px;
+                padding: 40px 20px;
+                text-align: center;
+                margin: 10px 0;
+                position: relative;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }}
+            
+            .custom-upload-container-{uploader_id}:hover {{
+                background-color: #e9ecef;
+                border-color: #495057;
+            }}
+            
+            .custom-upload-icon-{uploader_id} {{
+                font-size: 32px;
+                color: #495057;
+                margin-bottom: 8px;
+            }}
+            
+            .custom-upload-text-{uploader_id} {{
+                color: #212529;
+                font-size: 16px;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }}
+            
+            .custom-upload-subtext-{uploader_id} {{
+                color: #6c757d;
+                font-size: 12px;
+                margin-bottom: 16px;
+            }}
+            
+            .custom-browse-button-{uploader_id} {{
+                background-color: #ffffff;
+                color: #000000;
+                border: 2px solid #000000;
+                border-radius: 6px;
+                padding: 12px 24px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: inline-block;
+                text-decoration: none;
+                margin-top: 8px;
+            }}
+            
+            .custom-browse-button-{uploader_id}:hover {{
+                background-color: #f8f9fa;
+                border-color: #333333;
+                transform: translateY(-1px);
+            }}
+            </style>
+            
+            <div class="custom-upload-container-{uploader_id}" onclick="document.querySelector('div[data-testid=\\"stFileUploader\\"][data-key=\\"{key}\\"] input[type=\\"file\\"]').click()">
+                <div class="custom-upload-icon-{uploader_id}">📤</div>
+                <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
+                <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
+                <div class="custom-browse-button-{uploader_id}">Browse Files</div>
             </div>
+            
+            <script>
+            // Ensure the file uploader is properly hidden and our custom interface works
+            setTimeout(function() {{
+                // Hide all Streamlit file uploader elements for this specific instance
+                const uploaders = document.querySelectorAll('div[data-testid="stFileUploader"]');
+                uploaders.forEach(function(uploader) {{
+                    if (uploader.querySelector('input[type="file"]') && uploader.querySelector('input[type="file"]').getAttribute('id').includes('{key}')) {{
+                        uploader.style.display = 'none';
+                        uploader.style.visibility = 'hidden';
+                        uploader.style.height = '0';
+                        uploader.style.overflow = 'hidden';
+                    }}
+                }});
+                
+                // Make sure our custom container triggers the file dialog
+                const customContainer = document.querySelector('.custom-upload-container-{uploader_id}');
+                if (customContainer) {{
+                    customContainer.addEventListener('click', function() {{
+                        const fileInput = document.querySelector('input[type="file"][id*="{key}"]');
+                        if (fileInput) {{
+                            fileInput.click();
+                        }}
+                    }});
+                }}
+            }}, 100);
+            </script>
             """, unsafe_allow_html=True)
         else:
             # Display file info

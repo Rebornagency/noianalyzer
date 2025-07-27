@@ -78,19 +78,10 @@ p, div {
     color: #ffffff;
 }
 
-/* Ensure white text for key UI elements - EXCEPT file uploader buttons */
-.stButton>button:not([data-testid*="stFileUploader"]),
-.stButton>button div:not([data-testid*="stFileUploader"]) {
+/* Ensure white text for key UI elements */
+.stButton>button,
+.stButton>button div {
     color: #ffffff !important;
-}
-
-/* OVERRIDE: Force file uploader buttons to be black text */
-[data-testid="stFileUploader"] .stButton>button,
-[data-testid="stFileUploader"] button {
-    color: #000000 !important;
-    background-color: #FFFFFF !important;
-    border: 2px solid #000000 !important;
-    -webkit-text-fill-color: #000000 !important;
 }
 
 .stCheckbox label,
@@ -103,15 +94,10 @@ p, div {
     color: #ffffff !important;
 }
 
-/* Additional file uploader button overrides for maximum compatibility */
-[data-testid="stFileUploader"] .stButton>button,
-[data-testid="stFileUploader"] .stButton>button div,
-[data-testid="stFileUploader"] button,
-[data-testid="stFileUploader"] button div {
-    color: #000000 !important;
-    background-color: #FFFFFF !important;
-    border: 2px solid #000000 !important;
-    -webkit-text-fill-color: #000000 !important;
+/* Restore original white text for buttons */
+.stButton>button,
+.stButton>button div {
+    color: #ffffff !important;
 }
 
 .stCheckbox label,
@@ -152,33 +138,13 @@ p, div {
     margin-bottom: 8px;
 }
 
-/* File upload area */
+/* Original file upload area (kept for compatibility) */
 .upload-area {
-    background-color: #e5e7eb !important;
-    border: 2px dashed #9ca3af !important;
+    background-color: #1a1f29;
+    border: 1px dashed #30363d;
     border-radius: 8px;
     padding: 20px;
     text-align: center;
-}
-
-/* Upload area text elements */
-.upload-icon {
-    font-size: 32px;
-    color: #000000 !important;
-    margin-bottom: 8px;
-}
-
-.upload-text {
-    color: #000000 !important;
-    font-size: 14px;
-    font-weight: 500;
-    margin-bottom: 4px;
-}
-
-.upload-subtext {
-    color: #666666 !important;
-    font-size: 12px;
-    margin-bottom: 16px;
 }
 
 /* Primary action button */
