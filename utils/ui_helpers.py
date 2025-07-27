@@ -245,18 +245,7 @@ def inject_custom_css():
         border-bottom: none !important;
     }
 
-    /* GLOBAL RULE: Hide ALL Streamlit file uploaders - we use custom implementation */
-    [data-testid="stFileUploader"],
-    div[data-testid="stFileUploader"],
-    section[data-testid="stFileUploader"] {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0 !important;
-        overflow: hidden !important;
-        position: absolute !important;
-        left: -9999px !important;
-        top: -9999px !important;
-    }
+    /* File uploaders now use targeted hiding per container */
 
     /* Custom Card Styling */
     .custom-card {

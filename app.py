@@ -950,7 +950,7 @@ def inject_custom_css():
     }
     
     .upload-card-header h3 {
-        font-size: 20px;
+        font-size: 28px;
         font-weight: 600;
         color: #EAEAEA;
         margin: 0;
@@ -3973,7 +3973,7 @@ def main():
             
             .upload-card-header h3 {
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-size: 1.1rem;
+                font-size: 1.75rem;
                 font-weight: 600;
                 color: #e6edf3;
                 margin: 0;
@@ -5117,40 +5117,37 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
         
-        # 2. Create unique container ID and place Streamlit uploader in hidden container
+        # 2. Create unique container ID and properly hidden Streamlit uploader
         uploader_id = f"uploader_{key}_{abs(hash(title))}"
         
-        # Create a hidden container for the Streamlit file uploader
-        with st.container():
-            st.markdown(f"""
-            <div id="hidden-uploader-{uploader_id}" style="display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important;">
-            """, unsafe_allow_html=True)
-            
-            uploaded_file = st.file_uploader(
-                f"Upload {title}",
-                type=file_types,
-                key=key,
-                label_visibility="collapsed",
-                help=help_text or f"Upload your {title.lower()} file"
-            )
-            
-            st.markdown("</div>", unsafe_allow_html=True)
+        # Create a properly hidden but accessible Streamlit file uploader
+        st.markdown(f"""
+        <div id="streamlit-uploader-{uploader_id}" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none;">
+        """, unsafe_allow_html=True)
+        
+        uploaded_file = st.file_uploader(
+            f"Upload {title}",
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            help=help_text or f"Upload your {title.lower()} file"
+        )
+        
+        st.markdown("</div>", unsafe_allow_html=True)
         
         # 3. Display custom upload interface (always show, regardless of upload state)
         if not uploaded_file:
             st.markdown(f"""
             <style>
-            /* Ensure ALL Streamlit file uploaders are completely hidden */
-            #{uploader_id}_uploader_container,
-            [data-testid="stFileUploader"],
-            div[data-testid="stFileUploader"] {{
-                display: none !important;
-                visibility: hidden !important;
-                height: 0 !important;
-                overflow: hidden !important;
+            /* Hide the specific Streamlit uploader container */
+            #streamlit-uploader-{uploader_id} [data-testid="stFileUploader"] {{
                 position: absolute !important;
                 left: -9999px !important;
                 top: -9999px !important;
+                width: 1px !important;
+                height: 1px !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
             }}
             
             /* Custom upload container styling */
@@ -5212,74 +5209,65 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             }}
             </style>
             
-            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}">
+            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}" 
+                 onmouseenter="document.getElementById('browse-btn-{uploader_id}').style.cursor='pointer'" 
+                 data-key="{key}">
                 <div class="custom-upload-icon-{uploader_id}">📤</div>
                 <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
                 <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-                <div class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">Browse Files</div>
+                <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}"
+                        onclick="triggerFileUpload_{uploader_id}()" 
+                        style="background: none; border: 2px solid #000000; cursor: pointer;">
+                    Browse Files
+                </button>
             </div>
             
             <script>
-            (function() {{
-                // Wait for DOM to be ready and hide all Streamlit uploaders
-                function initializeUploader() {{
-                    // Aggressively hide ALL file uploaders on the page
-                    const allUploaders = document.querySelectorAll('[data-testid="stFileUploader"]');
-                    allUploaders.forEach(function(uploader) {{
-                        uploader.style.display = 'none';
-                        uploader.style.visibility = 'hidden';
-                        uploader.style.height = '0';
-                        uploader.style.overflow = 'hidden';
-                        uploader.style.position = 'absolute';
-                        uploader.style.left = '-9999px';
-                        uploader.style.top = '-9999px';
-                    }});
-                    
-                    // Find the specific file input for this uploader
-                    function findFileInput() {{
-                        const inputs = document.querySelectorAll('input[type="file"]');
-                        for (let input of inputs) {{
-                            if (input.id && input.id.includes('{key}')) {{
-                                return input;
-                            }}
-                        }}
-                        return null;
-                    }}
-                    
-                    // Set up click handler for our custom container
-                    const container = document.getElementById('container-{uploader_id}');
-                    const browseBtn = document.getElementById('browse-btn-{uploader_id}');
-                    
-                    function triggerFileDialog(event) {{
-                        event.preventDefault();
-                        event.stopPropagation();
-                        
-                        const fileInput = findFileInput();
-                        if (fileInput) {{
-                            fileInput.click();
-                        }} else {{
-                            console.log('File input not found for key: {key}');
-                        }}
-                    }}
-                    
-                    if (container) {{
-                        container.addEventListener('click', triggerFileDialog);
-                    }}
-                    
-                    if (browseBtn) {{
-                        browseBtn.addEventListener('click', function(event) {{
-                            event.stopPropagation();
-                            triggerFileDialog(event);
-                        }});
+            function triggerFileUpload_{uploader_id}() {{
+                // Method 1: Find by key in the hidden container
+                const hiddenContainer = document.getElementById('streamlit-uploader-{uploader_id}');
+                if (hiddenContainer) {{
+                    const fileInput = hiddenContainer.querySelector('input[type="file"]');
+                    if (fileInput) {{
+                        fileInput.click();
+                        return;
                     }}
                 }}
                 
-                // Initialize immediately and also after a delay
-                initializeUploader();
-                setTimeout(initializeUploader, 100);
-                setTimeout(initializeUploader, 500);
-                setTimeout(initializeUploader, 1000);
-            }})();
+                // Method 2: Find by data-testid
+                const uploaders = document.querySelectorAll('[data-testid="stFileUploader"]');
+                for (let uploader of uploaders) {{
+                    const fileInput = uploader.querySelector('input[type="file"]');
+                    if (fileInput && fileInput.getAttribute('data-baseweb') === 'file-uploader') {{
+                        fileInput.click();
+                        return;
+                    }}
+                }}
+                
+                // Method 3: Find all file inputs and try each one
+                const allInputs = document.querySelectorAll('input[type="file"]');
+                for (let input of allInputs) {{
+                    if (input.accept && input.accept.includes('xlsx')) {{
+                        input.click();
+                        return;
+                    }}
+                }}
+                
+                console.log('Could not find file input for {key}');
+            }}
+            
+            // Also make the entire container clickable
+            document.getElementById('container-{uploader_id}').addEventListener('click', function(e) {{
+                if (e.target.id !== 'browse-btn-{uploader_id}') {{
+                    triggerFileUpload_{uploader_id}();
+                }}
+            }});
+            
+            // Initialize after a delay to ensure DOM is ready
+            setTimeout(function() {{
+                // Make sure our function is available globally
+                window['triggerFileUpload_{uploader_id}'] = triggerFileUpload_{uploader_id};
+            }}, 100);
             </script>
             """, unsafe_allow_html=True)
         else:
