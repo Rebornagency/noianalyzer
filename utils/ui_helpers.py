@@ -245,12 +245,15 @@ def inject_custom_css():
         border-bottom: none !important;
     }
 
-    /* File Uploader Styling - Higher specificity to override global button styles */
-    .stApp [data-testid="stFileUploader"] label span,
-    .stApp [data-testid="stFileUploader"] label div span {
+    /* File Uploader Styling - ULTRA-HIGH specificity to override ALL global button styles */
+    html .stApp .stApp [data-testid="stFileUploader"] label span,
+    html .stApp .stApp [data-testid="stFileUploader"] label div span,
+    html .stApp [data-testid="stFileUploader"] .stButton > button,
+    html .stApp [data-testid="stFileUploader"] > div > div > .stButton > button {
         background-color: #FFFFFF !important;
         color: #000000 !important;
-        border: 1.5px solid #000000 !important;
+        border: 2px solid #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
         border-radius: 8px !important;
         padding: 1.1rem 3.2rem !important;
         min-width: 260px !important;
@@ -270,16 +273,22 @@ def inject_custom_css():
         word-break: break-word !important;
     }
 
-    .stApp [data-testid="stFileUploader"] label span:hover,
-    .stApp [data-testid="stFileUploader"] label div span:hover {
+    html .stApp .stApp [data-testid="stFileUploader"] label span:hover,
+    html .stApp .stApp [data-testid="stFileUploader"] label div span:hover,
+    html .stApp [data-testid="stFileUploader"] .stButton > button:hover,
+    html .stApp [data-testid="stFileUploader"] > div > div > .stButton > button:hover {
         background-color: #f0f0f0 !important;
         border-color: #333333 !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
     }
 
-    .stApp [data-testid="stFileUploader"] > div > div > button {
+    html .stApp .stApp [data-testid="stFileUploader"] > div > div > button,
+    html .stApp [data-testid="stFileUploader"] button {
         background-color: #FFFFFF !important;
         color: #000000 !important;
-        border: 1.5px solid #000000 !important;
+        border: 2px solid #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
         border-radius: 8px !important;
         padding: 1.1rem 3.2rem !important;
         min-width: 260px !important;
@@ -299,9 +308,12 @@ def inject_custom_css():
         word-break: break-word !important;
     }
 
-    .stApp [data-testid="stFileUploader"] > div > div > button:hover {
+    html .stApp .stApp [data-testid="stFileUploader"] > div > div > button:hover,
+    html .stApp [data-testid="stFileUploader"] button:hover {
         background-color: #f0f0f0 !important;
         border-color: #333333 !important;
+        color: #000000 !important;
+        -webkit-text-fill-color: #000000 !important;
     }
 
     .stApp [data-testid="stFileUploader"] > div {

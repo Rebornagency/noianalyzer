@@ -78,10 +78,19 @@ p, div {
     color: #ffffff;
 }
 
-/* Ensure white text for key UI elements */
-.stButton>button,
-.stButton>button div {
+/* Ensure white text for key UI elements - EXCEPT file uploader buttons */
+.stButton>button:not([data-testid*="stFileUploader"]),
+.stButton>button div:not([data-testid*="stFileUploader"]) {
     color: #ffffff !important;
+}
+
+/* OVERRIDE: Force file uploader buttons to be black text */
+[data-testid="stFileUploader"] .stButton>button,
+[data-testid="stFileUploader"] button {
+    color: #000000 !important;
+    background-color: #FFFFFF !important;
+    border: 2px solid #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
 }
 
 .stCheckbox label,
@@ -94,10 +103,15 @@ p, div {
     color: #ffffff !important;
 }
 
-/* Ensure white text for key UI elements */
-.stButton>button,
-.stButton>button div {
-    color: #ffffff !important;
+/* Additional file uploader button overrides for maximum compatibility */
+[data-testid="stFileUploader"] .stButton>button,
+[data-testid="stFileUploader"] .stButton>button div,
+[data-testid="stFileUploader"] button,
+[data-testid="stFileUploader"] button div {
+    color: #000000 !important;
+    background-color: #FFFFFF !important;
+    border: 2px solid #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
 }
 
 .stCheckbox label,
