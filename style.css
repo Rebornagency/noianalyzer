@@ -140,11 +140,31 @@ p, div {
 
 /* File upload area */
 .upload-area {
-    background-color: #1a1f29;
-    border: 1px dashed #30363d;
+    background-color: #e5e7eb !important;
+    border: 2px dashed #9ca3af !important;
     border-radius: 8px;
     padding: 20px;
     text-align: center;
+}
+
+/* Upload area text elements */
+.upload-icon {
+    font-size: 32px;
+    color: #000000 !important;
+    margin-bottom: 8px;
+}
+
+.upload-text {
+    color: #000000 !important;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.upload-subtext {
+    color: #666666 !important;
+    font-size: 12px;
+    margin-bottom: 16px;
 }
 
 /* Primary action button */

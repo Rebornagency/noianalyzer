@@ -967,28 +967,29 @@ def inject_custom_css():
     }
     
     .upload-area {
-        background-color: rgba(13, 13, 13, 0.8);
-        border: 1px solid #222;
+        background-color: #e5e7eb !important;
+        border: 2px dashed #9ca3af !important;
         border-radius: 8px;
         padding: 32px;
         text-align: center;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+        box-shadow: none !important;
     }
     
     .upload-icon {
         font-size: 32px;
-        color: #ffffff;
+        color: #000000 !important;
         margin-bottom: 8px;
     }
 
     .upload-text {
-        color: #ffffff;
+        color: #000000 !important;
         font-size: 14px;
+        font-weight: 500;
         margin-bottom: 4px;
     }
 
     .upload-subtext {
-        color: #ffffff;
+        color: #666666 !important;
         font-size: 12px;
         margin-bottom: 16px;
     }

@@ -35,3 +35,22 @@
 .stAlert-info span {
   color: #93c5fd !important;
 }
+
+/* Ensure upload area visibility with high specificity */
+.stApp .upload-area {
+  background-color: #e5e7eb !important;
+  border: 2px dashed #9ca3af !important;
+}
+
+.stApp .upload-icon {
+  color: #000000 !important;
+}
+
+.stApp .upload-text {
+  color: #000000 !important;
+  font-weight: 500 !important;
+}
+
+.stApp .upload-subtext {
+  color: #666666 !important;
+}
