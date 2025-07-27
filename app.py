@@ -5117,219 +5117,246 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
         
-        # 2. Create unique container ID and properly hidden Streamlit uploader
+        # 2. Create unique container ID and completely hidden Streamlit uploader
         uploader_id = f"uploader_{key}_{abs(hash(title))}"
         
-        # Create a properly hidden but accessible Streamlit file uploader
+        # 3. Create the ONLY visible container - our custom one
+        # The Streamlit uploader will be created in a completely separate, invisible context
         st.markdown(f"""
-        <div id="streamlit-uploader-{uploader_id}" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none;">
+        <style>
+        /* Completely hide any Streamlit file uploaders with specific targeting */
+        [data-testid="stFileUploader"]:has(input[data-testid*="{key}"]),
+        div[data-testid="stFileUploader"]:has(input[id*="{key}"]) {{
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            left: -10000px !important;
+            top: -10000px !important;
+        }}
+        
+        /* Custom upload container styling */
+        .custom-upload-container-{uploader_id} {{
+            background-color: #f8f9fa;
+            border: 2px dashed #6c757d;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 10px 0;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }}
+        
+        .custom-upload-container-{uploader_id}:hover {{
+            background-color: #e9ecef;
+            border-color: #495057;
+        }}
+        
+        .custom-upload-icon-{uploader_id} {{
+            font-size: 32px;
+            color: #495057;
+            margin-bottom: 8px;
+        }}
+        
+        .custom-upload-text-{uploader_id} {{
+            color: #212529;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }}
+        
+        .custom-upload-subtext-{uploader_id} {{
+            color: #6c757d;
+            font-size: 12px;
+            margin-bottom: 16px;
+        }}
+        
+        .custom-browse-button-{uploader_id} {{
+            background-color: #ffffff;
+            color: #000000;
+            border: 2px solid #000000;
+            border-radius: 6px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+            text-decoration: none;
+            margin-top: 8px;
+        }}
+        
+        .custom-browse-button-{uploader_id}:hover {{
+            background-color: #f8f9fa;
+            border-color: #333333;
+            transform: translateY(-1px);
+        }}
+        
+        /* File uploaded state styling */
+        .file-uploaded-{uploader_id} {{
+            background-color: #d4edda;
+            border: 2px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }}
+        
+        .file-uploaded-{uploader_id} .file-icon {{
+            font-size: 24px;
+            color: #155724;
+        }}
+        
+        .file-uploaded-{uploader_id} .file-details {{
+            flex-grow: 1;
+            text-align: left;
+        }}
+        
+        .file-uploaded-{uploader_id} .file-details .file-name {{
+            color: #155724;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }}
+        
+        .file-uploaded-{uploader_id} .file-details .file-meta {{
+            color: #6c757d;
+            font-size: 12px;
+        }}
+        
+        .file-uploaded-{uploader_id} .file-status {{
+            background-color: #28a745;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }}
+        </style>
         """, unsafe_allow_html=True)
         
-        uploaded_file = st.file_uploader(
-            f"Upload {title}",
-            type=file_types,
-            key=key,
-            label_visibility="collapsed",
-            help=help_text or f"Upload your {title.lower()} file"
-        )
+        # Create the invisible Streamlit uploader - this must be after the CSS
+        with st.empty():
+            uploaded_file = st.file_uploader(
+                f"Upload {title}",
+                type=file_types,
+                key=key,
+                label_visibility="hidden",
+                help=help_text or f"Upload your {title.lower()} file"
+            )
         
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        # 3. Display custom upload interface (always show, regardless of upload state)
-        if not uploaded_file:
+        # Display the appropriate interface based on upload state
+        if uploaded_file:
+            # Show success state in our custom styling
+            file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
+            file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
+            
             st.markdown(f"""
-            <style>
-            /* Hide the specific Streamlit uploader container */
-            #streamlit-uploader-{uploader_id} [data-testid="stFileUploader"] {{
-                position: absolute !important;
-                left: -9999px !important;
-                top: -9999px !important;
-                width: 1px !important;
-                height: 1px !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
-            }}
-            
-            /* Custom upload container styling */
-            .custom-upload-container-{uploader_id} {{
-                background-color: #f8f9fa;
-                border: 2px dashed #6c757d;
-                border-radius: 8px;
-                padding: 40px 20px;
-                text-align: center;
-                margin: 10px 0;
-                position: relative;
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }}
-            
-            .custom-upload-container-{uploader_id}:hover {{
-                background-color: #e9ecef;
-                border-color: #495057;
-            }}
-            
-            .custom-upload-icon-{uploader_id} {{
-                font-size: 32px;
-                color: #495057;
-                margin-bottom: 8px;
-            }}
-            
-            .custom-upload-text-{uploader_id} {{
-                color: #212529;
-                font-size: 16px;
-                font-weight: 600;
-                margin-bottom: 8px;
-            }}
-            
-            .custom-upload-subtext-{uploader_id} {{
-                color: #6c757d;
-                font-size: 12px;
-                margin-bottom: 16px;
-            }}
-            
-            .custom-browse-button-{uploader_id} {{
-                background-color: #ffffff;
-                color: #000000;
-                border: 2px solid #000000;
-                border-radius: 6px;
-                padding: 12px 24px;
-                font-size: 14px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                display: inline-block;
-                text-decoration: none;
-                margin-top: 8px;
-            }}
-            
-            .custom-browse-button-{uploader_id}:hover {{
-                background-color: #f8f9fa;
-                border-color: #333333;
-                transform: translateY(-1px);
-            }}
-            </style>
-            
-            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}" 
-                 onmouseenter="document.getElementById('browse-btn-{uploader_id}').style.cursor='pointer'" 
-                 data-key="{key}">
+            <div class="file-uploaded-{uploader_id}">
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                    <div class="file-name">{uploaded_file.name}</div>
+                    <div class="file-meta">{file_size} • {file_type}</div>
+                </div>
+                <div class="file-status">Uploaded</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Show the custom upload interface
+            st.markdown(f"""
+            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}" data-key="{key}">
                 <div class="custom-upload-icon-{uploader_id}">📤</div>
                 <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
                 <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-                <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}"
-                        onclick="triggerFileUpload_{uploader_id}()" 
-                        style="background: none; border: 2px solid #000000; cursor: pointer;">
+                <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">
                     Browse Files
                 </button>
             </div>
             
             <script>
-            function triggerFileUpload_{uploader_id}() {{
-                // Method 1: Find by key in the hidden container
-                const hiddenContainer = document.getElementById('streamlit-uploader-{uploader_id}');
-                if (hiddenContainer) {{
-                    const fileInput = hiddenContainer.querySelector('input[type="file"]');
-                    if (fileInput) {{
-                        fileInput.click();
-                        return;
+            (function() {{
+                // Immediately hide any visible Streamlit uploaders
+                function hideStreamlitUploaders() {{
+                    const uploaders = document.querySelectorAll('[data-testid="stFileUploader"]');
+                    uploaders.forEach(function(uploader) {{
+                        uploader.style.display = 'none';
+                        uploader.style.visibility = 'hidden';
+                        uploader.style.height = '0';
+                        uploader.style.position = 'absolute';
+                        uploader.style.left = '-10000px';
+                        uploader.style.top = '-10000px';
+                    }});
+                }}
+                
+                // Hide uploaders immediately and repeatedly
+                hideStreamlitUploaders();
+                setInterval(hideStreamlitUploaders, 100);
+                
+                // Find the file input and make browse button functional
+                function connectBrowseButton() {{
+                    const browseBtn = document.getElementById('browse-btn-{uploader_id}');
+                    const container = document.getElementById('container-{uploader_id}');
+                    
+                    function triggerFileDialog() {{
+                        // Find the file input by multiple methods
+                        let fileInput = null;
+                        
+                        // Method 1: Find by key
+                        const allInputs = document.querySelectorAll('input[type="file"]');
+                        for (let input of allInputs) {{
+                            if (input.id && input.id.includes('{key}')) {{
+                                fileInput = input;
+                                break;
+                            }}
+                        }}
+                        
+                        // Method 2: Find by accept attribute
+                        if (!fileInput) {{
+                            for (let input of allInputs) {{
+                                if (input.accept && (input.accept.includes('xlsx') || input.accept.includes('.csv'))) {{
+                                    fileInput = input;
+                                    break;
+                                }}
+                            }}
+                        }}
+                        
+                        // Method 3: Just take the first file input
+                        if (!fileInput && allInputs.length > 0) {{
+                            fileInput = allInputs[0];
+                        }}
+                        
+                        if (fileInput) {{
+                            fileInput.click();
+                        }} else {{
+                            console.warn('Could not find file input for key: {key}');
+                        }}
+                    }}
+                    
+                    if (browseBtn) {{
+                        browseBtn.onclick = triggerFileDialog;
+                    }}
+                    
+                    if (container) {{
+                        container.onclick = function(e) {{
+                            if (e.target !== browseBtn) {{
+                                triggerFileDialog();
+                            }}
+                        }};
                     }}
                 }}
                 
-                // Method 2: Find by data-testid
-                const uploaders = document.querySelectorAll('[data-testid="stFileUploader"]');
-                for (let uploader of uploaders) {{
-                    const fileInput = uploader.querySelector('input[type="file"]');
-                    if (fileInput && fileInput.getAttribute('data-baseweb') === 'file-uploader') {{
-                        fileInput.click();
-                        return;
-                    }}
-                }}
-                
-                // Method 3: Find all file inputs and try each one
-                const allInputs = document.querySelectorAll('input[type="file"]');
-                for (let input of allInputs) {{
-                    if (input.accept && input.accept.includes('xlsx')) {{
-                        input.click();
-                        return;
-                    }}
-                }}
-                
-                console.log('Could not find file input for {key}');
-            }}
-            
-            // Also make the entire container clickable
-            document.getElementById('container-{uploader_id}').addEventListener('click', function(e) {{
-                if (e.target.id !== 'browse-btn-{uploader_id}') {{
-                    triggerFileUpload_{uploader_id}();
-                }}
-            }});
-            
-            // Initialize after a delay to ensure DOM is ready
-            setTimeout(function() {{
-                // Make sure our function is available globally
-                window['triggerFileUpload_{uploader_id}'] = triggerFileUpload_{uploader_id};
-            }}, 100);
+                // Connect browse button functionality
+                connectBrowseButton();
+                setTimeout(connectBrowseButton, 100);
+                setTimeout(connectBrowseButton, 500);
+            }})();
             </script>
-            """, unsafe_allow_html=True)
-        else:
-            # Display file info with proper styling
-            file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
-            file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
-            
-            st.markdown(f"""
-            <style>
-            .file-info-{uploader_id} {{
-                background-color: #d4edda;
-                border: 2px solid #c3e6cb;
-                border-radius: 8px;
-                padding: 20px;
-                text-align: center;
-                margin: 10px 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-            }}
-            
-            .file-icon-{uploader_id} {{
-                font-size: 24px;
-                color: #155724;
-            }}
-            
-            .file-details-{uploader_id} {{
-                flex-grow: 1;
-                text-align: left;
-            }}
-            
-            .file-name-{uploader_id} {{
-                color: #155724;
-                font-size: 16px;
-                font-weight: 600;
-                margin-bottom: 4px;
-            }}
-            
-            .file-meta-{uploader_id} {{
-                color: #6c757d;
-                font-size: 12px;
-            }}
-            
-            .file-status-{uploader_id} {{
-                background-color: #28a745;
-                color: white;
-                padding: 6px 12px;
-                border-radius: 4px;
-                font-size: 12px;
-                font-weight: 600;
-            }}
-            </style>
-            
-            <div class="file-info-{uploader_id}">
-                <div class="file-icon-{uploader_id}">📄</div>
-                <div class="file-details-{uploader_id}">
-                    <div class="file-name-{uploader_id}">{uploaded_file.name}</div>
-                    <div class="file-meta-{uploader_id}">{file_size} • {file_type}</div>
-                </div>
-                <div class="file-status-{uploader_id}">Uploaded</div>
-            </div>
             """, unsafe_allow_html=True)
     
     return uploaded_file
