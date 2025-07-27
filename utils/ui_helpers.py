@@ -245,7 +245,18 @@ def inject_custom_css():
         border-bottom: none !important;
     }
 
-    /* File Uploader - Custom implementation handles styling now */
+    /* GLOBAL RULE: Hide ALL Streamlit file uploaders - we use custom implementation */
+    [data-testid="stFileUploader"],
+    div[data-testid="stFileUploader"],
+    section[data-testid="stFileUploader"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+    }
 
     /* Custom Card Styling */
     .custom-card {

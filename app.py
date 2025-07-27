@@ -5117,30 +5117,40 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
         
-        # 2. Custom file uploader with completely rebuilt interface
+        # 2. Create unique container ID and place Streamlit uploader in hidden container
+        uploader_id = f"uploader_{key}_{abs(hash(title))}"
         
-        # Create unique ID for this uploader instance
-        uploader_id = f"custom_uploader_{key}_{hash(title)}"
+        # Create a hidden container for the Streamlit file uploader
+        with st.container():
+            st.markdown(f"""
+            <div id="hidden-uploader-{uploader_id}" style="display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; position: absolute !important; left: -9999px !important;">
+            """, unsafe_allow_html=True)
+            
+            uploaded_file = st.file_uploader(
+                f"Upload {title}",
+                type=file_types,
+                key=key,
+                label_visibility="collapsed",
+                help=help_text or f"Upload your {title.lower()} file"
+            )
+            
+            st.markdown("</div>", unsafe_allow_html=True)
         
-        # Add hidden Streamlit file uploader
-        uploaded_file = st.file_uploader(
-            f"Upload {title}",
-            type=file_types,
-            key=key,
-            label_visibility="collapsed",
-            help=help_text or f"Upload your {title.lower()} file"
-        )
-        
-        # 3. Display completely custom upload interface
+        # 3. Display custom upload interface (always show, regardless of upload state)
         if not uploaded_file:
             st.markdown(f"""
             <style>
-            /* Hide the default Streamlit file uploader completely */
-            div[data-testid="stFileUploader"][data-key="{key}"] {{
+            /* Ensure ALL Streamlit file uploaders are completely hidden */
+            #{uploader_id}_uploader_container,
+            [data-testid="stFileUploader"],
+            div[data-testid="stFileUploader"] {{
                 display: none !important;
                 visibility: hidden !important;
                 height: 0 !important;
                 overflow: hidden !important;
+                position: absolute !important;
+                left: -9999px !important;
+                top: -9999px !important;
             }}
             
             /* Custom upload container styling */
@@ -5202,53 +5212,135 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             }}
             </style>
             
-            <div class="custom-upload-container-{uploader_id}" onclick="document.querySelector('div[data-testid=\\"stFileUploader\\"][data-key=\\"{key}\\"] input[type=\\"file\\"]').click()">
+            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}">
                 <div class="custom-upload-icon-{uploader_id}">📤</div>
                 <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
                 <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-                <div class="custom-browse-button-{uploader_id}">Browse Files</div>
+                <div class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">Browse Files</div>
             </div>
             
             <script>
-            // Ensure the file uploader is properly hidden and our custom interface works
-            setTimeout(function() {{
-                // Hide all Streamlit file uploader elements for this specific instance
-                const uploaders = document.querySelectorAll('div[data-testid="stFileUploader"]');
-                uploaders.forEach(function(uploader) {{
-                    if (uploader.querySelector('input[type="file"]') && uploader.querySelector('input[type="file"]').getAttribute('id').includes('{key}')) {{
+            (function() {{
+                // Wait for DOM to be ready and hide all Streamlit uploaders
+                function initializeUploader() {{
+                    // Aggressively hide ALL file uploaders on the page
+                    const allUploaders = document.querySelectorAll('[data-testid="stFileUploader"]');
+                    allUploaders.forEach(function(uploader) {{
                         uploader.style.display = 'none';
                         uploader.style.visibility = 'hidden';
                         uploader.style.height = '0';
                         uploader.style.overflow = 'hidden';
+                        uploader.style.position = 'absolute';
+                        uploader.style.left = '-9999px';
+                        uploader.style.top = '-9999px';
+                    }});
+                    
+                    // Find the specific file input for this uploader
+                    function findFileInput() {{
+                        const inputs = document.querySelectorAll('input[type="file"]');
+                        for (let input of inputs) {{
+                            if (input.id && input.id.includes('{key}')) {{
+                                return input;
+                            }}
+                        }}
+                        return null;
                     }}
-                }});
-                
-                // Make sure our custom container triggers the file dialog
-                const customContainer = document.querySelector('.custom-upload-container-{uploader_id}');
-                if (customContainer) {{
-                    customContainer.addEventListener('click', function() {{
-                        const fileInput = document.querySelector('input[type="file"][id*="{key}"]');
+                    
+                    // Set up click handler for our custom container
+                    const container = document.getElementById('container-{uploader_id}');
+                    const browseBtn = document.getElementById('browse-btn-{uploader_id}');
+                    
+                    function triggerFileDialog(event) {{
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        const fileInput = findFileInput();
                         if (fileInput) {{
                             fileInput.click();
+                        }} else {{
+                            console.log('File input not found for key: {key}');
                         }}
-                    }});
+                    }}
+                    
+                    if (container) {{
+                        container.addEventListener('click', triggerFileDialog);
+                    }}
+                    
+                    if (browseBtn) {{
+                        browseBtn.addEventListener('click', function(event) {{
+                            event.stopPropagation();
+                            triggerFileDialog(event);
+                        }});
+                    }}
                 }}
-            }}, 100);
+                
+                // Initialize immediately and also after a delay
+                initializeUploader();
+                setTimeout(initializeUploader, 100);
+                setTimeout(initializeUploader, 500);
+                setTimeout(initializeUploader, 1000);
+            }})();
             </script>
             """, unsafe_allow_html=True)
         else:
-            # Display file info
+            # Display file info with proper styling
             file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
             file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
             
             st.markdown(f"""
-            <div class="file-info">
-                <div class="file-icon">📄</div>
-                <div class="file-details">
-                    <div class="file-name">{uploaded_file.name}</div>
-                    <div class="file-meta">{file_size} • {file_type}</div>
+            <style>
+            .file-info-{uploader_id} {{
+                background-color: #d4edda;
+                border: 2px solid #c3e6cb;
+                border-radius: 8px;
+                padding: 20px;
+                text-align: center;
+                margin: 10px 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 15px;
+            }}
+            
+            .file-icon-{uploader_id} {{
+                font-size: 24px;
+                color: #155724;
+            }}
+            
+            .file-details-{uploader_id} {{
+                flex-grow: 1;
+                text-align: left;
+            }}
+            
+            .file-name-{uploader_id} {{
+                color: #155724;
+                font-size: 16px;
+                font-weight: 600;
+                margin-bottom: 4px;
+            }}
+            
+            .file-meta-{uploader_id} {{
+                color: #6c757d;
+                font-size: 12px;
+            }}
+            
+            .file-status-{uploader_id} {{
+                background-color: #28a745;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: 600;
+            }}
+            </style>
+            
+            <div class="file-info-{uploader_id}">
+                <div class="file-icon-{uploader_id}">📄</div>
+                <div class="file-details-{uploader_id}">
+                    <div class="file-name-{uploader_id}">{uploaded_file.name}</div>
+                    <div class="file-meta-{uploader_id}">{file_size} • {file_type}</div>
                 </div>
-                <div class="file-status">Uploaded</div>
+                <div class="file-status-{uploader_id}">Uploaded</div>
             </div>
             """, unsafe_allow_html=True)
     
