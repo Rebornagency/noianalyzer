@@ -54,3 +54,20 @@
 .stApp .upload-subtext {
   color: #666666 !important;
 }
+
+/* High specificity file uploader button styling to override global button styles */
+.stApp [data-testid="stFileUploader"] label span,
+.stApp [data-testid="stFileUploader"] label div span,
+.stApp [data-testid="stFileUploader"] > div > div > button {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 1.5px solid #000000 !important;
+}
+
+.stApp [data-testid="stFileUploader"] label span:hover,
+.stApp [data-testid="stFileUploader"] label div span:hover,
+.stApp [data-testid="stFileUploader"] > div > div > button:hover {
+  background-color: #f0f0f0 !important;
+  border-color: #333333 !important;
+  color: #000000 !important;
+}

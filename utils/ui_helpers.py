@@ -245,9 +245,9 @@ def inject_custom_css():
         border-bottom: none !important;
     }
 
-    /* File Uploader Styling */
-    [data-testid="stFileUploader"] label span,
-    [data-testid="stFileUploader"] label div span {
+    /* File Uploader Styling - Higher specificity to override global button styles */
+    .stApp [data-testid="stFileUploader"] label span,
+    .stApp [data-testid="stFileUploader"] label div span {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 1.5px solid #000000 !important;
@@ -270,13 +270,13 @@ def inject_custom_css():
         word-break: break-word !important;
     }
 
-    [data-testid="stFileUploader"] label span:hover,
-    [data-testid="stFileUploader"] label div span:hover {
+    .stApp [data-testid="stFileUploader"] label span:hover,
+    .stApp [data-testid="stFileUploader"] label div span:hover {
         background-color: #f0f0f0 !important;
         border-color: #333333 !important;
     }
 
-    [data-testid="stFileUploader"] > div > div > button {
+    .stApp [data-testid="stFileUploader"] > div > div > button {
         background-color: #FFFFFF !important;
         color: #000000 !important;
         border: 1.5px solid #000000 !important;
@@ -299,18 +299,18 @@ def inject_custom_css():
         word-break: break-word !important;
     }
 
-    [data-testid="stFileUploader"] > div > div > button:hover {
+    .stApp [data-testid="stFileUploader"] > div > div > button:hover {
         background-color: #f0f0f0 !important;
         border-color: #333333 !important;
     }
 
-    [data-testid="stFileUploader"] > div {
+    .stApp [data-testid="stFileUploader"] > div {
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
     }
 
-    [data-testid="stFileUploader"] > div > div {
+    .stApp [data-testid="stFileUploader"] > div > div {
         display: flex !important;
         justify-content: center !important; /* Center the Browse Files button */
         align-items: center !important;
