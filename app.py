@@ -5124,18 +5124,6 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         # The Streamlit uploader will be created in a completely separate, invisible context
         st.markdown(f"""
         <style>
-        /* Completely hide any Streamlit file uploaders with specific targeting */
-        [data-testid="stFileUploader"]:has(input[data-testid*="{key}"]),
-        div[data-testid="stFileUploader"]:has(input[id*="{key}"]) {{
-            display: none !important;
-            visibility: hidden !important;
-            height: 0 !important;
-            overflow: hidden !important;
-            position: absolute !important;
-            left: -10000px !important;
-            top: -10000px !important;
-        }}
-        
         /* Custom upload container styling */
         .custom-upload-container-{uploader_id} {{
             background-color: #f8f9fa;
@@ -5241,15 +5229,18 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </style>
         """, unsafe_allow_html=True)
         
-        # Create the invisible Streamlit uploader - this must be after the CSS
-        with st.empty():
-            uploaded_file = st.file_uploader(
-                f"Upload {title}",
-                type=file_types,
-                key=key,
-                label_visibility="hidden",
-                help=help_text or f"Upload your {title.lower()} file"
-            )
+        # Create the invisible Streamlit uploader in sidebar (completely hidden from main view)
+        with st.sidebar:
+            with st.container():
+                st.markdown(f'<div style="display: none; visibility: hidden; height: 0; overflow: hidden;">', unsafe_allow_html=True)
+                uploaded_file = st.file_uploader(
+                    f"Upload {title}",
+                    type=file_types,
+                    key=key,
+                    label_visibility="hidden",
+                    help=help_text or f"Upload your {title.lower()} file"
+                )
+                st.markdown('</div>', unsafe_allow_html=True)
         
         # Display the appropriate interface based on upload state
         if uploaded_file:
@@ -5281,60 +5272,59 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             
             <script>
             (function() {{
-                // Immediately hide any visible Streamlit uploaders
-                function hideStreamlitUploaders() {{
-                    const uploaders = document.querySelectorAll('[data-testid="stFileUploader"]');
-                    uploaders.forEach(function(uploader) {{
-                        uploader.style.display = 'none';
-                        uploader.style.visibility = 'hidden';
-                        uploader.style.height = '0';
-                        uploader.style.position = 'absolute';
-                        uploader.style.left = '-10000px';
-                        uploader.style.top = '-10000px';
-                    }});
-                }}
-                
-                // Hide uploaders immediately and repeatedly
-                hideStreamlitUploaders();
-                setInterval(hideStreamlitUploaders, 100);
-                
-                // Find the file input and make browse button functional
+                // Find the hidden file input and make browse button functional
                 function connectBrowseButton() {{
                     const browseBtn = document.getElementById('browse-btn-{uploader_id}');
                     const container = document.getElementById('container-{uploader_id}');
                     
                     function triggerFileDialog() {{
-                        // Find the file input by multiple methods
+                        // Find the file input by key - now in sidebar
                         let fileInput = null;
                         
-                        // Method 1: Find by key
+                        // Method 1: Find by exact key match (most reliable)
                         const allInputs = document.querySelectorAll('input[type="file"]');
                         for (let input of allInputs) {{
-                            if (input.id && input.id.includes('{key}')) {{
+                            // Check if the input has an ID or name containing our key
+                            if ((input.id && input.id.includes('{key}')) || 
+                                (input.name && input.name.includes('{key}'))) {{
                                 fileInput = input;
                                 break;
                             }}
                         }}
                         
-                        // Method 2: Find by accept attribute
+                        // Method 2: Find by data attributes
                         if (!fileInput) {{
                             for (let input of allInputs) {{
-                                if (input.accept && (input.accept.includes('xlsx') || input.accept.includes('.csv'))) {{
+                                const testId = input.getAttribute('data-testid');
+                                if (testId && testId.includes('{key}')) {{
                                     fileInput = input;
                                     break;
                                 }}
                             }}
                         }}
                         
-                        // Method 3: Just take the first file input
-                        if (!fileInput && allInputs.length > 0) {{
-                            fileInput = allInputs[0];
+                        // Method 3: Find by accept attribute and position (fallback)
+                        if (!fileInput) {{
+                            for (let input of allInputs) {{
+                                if (input.accept && input.accept.includes('.xlsx')) {{
+                                    // Additional check to ensure it's in the sidebar (hidden area)
+                                    const rect = input.getBoundingClientRect();
+                                    if (rect.width <= 1 || rect.height <= 1 || 
+                                        input.style.display === 'none' || 
+                                        input.style.visibility === 'hidden') {{
+                                        fileInput = input;
+                                        break;
+                                    }}
+                                }}
+                            }}
                         }}
                         
                         if (fileInput) {{
+                            console.log('Found file input for key {key}:', fileInput);
                             fileInput.click();
                         }} else {{
                             console.warn('Could not find file input for key: {key}');
+                            console.log('Available file inputs:', allInputs);
                         }}
                     }}
                     
@@ -5351,10 +5341,11 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
                     }}
                 }}
                 
-                // Connect browse button functionality
+                // Connect browse button functionality with multiple attempts
                 connectBrowseButton();
                 setTimeout(connectBrowseButton, 100);
                 setTimeout(connectBrowseButton, 500);
+                setTimeout(connectBrowseButton, 1000);
             }})();
             </script>
             """, unsafe_allow_html=True)
