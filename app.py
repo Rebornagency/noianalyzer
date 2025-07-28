@@ -5117,11 +5117,10 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </div>
         """, unsafe_allow_html=True)
         
-        # 2. Create unique container ID and completely hidden Streamlit uploader
+        # 2. Create unique container ID
         uploader_id = f"uploader_{key}_{abs(hash(title))}"
         
-        # 3. Create the ONLY visible container - our custom one
-        # The Streamlit uploader will be created in a completely separate, invisible context
+        # 3. Create the styling for custom upload container
         st.markdown(f"""
         <style>
         /* Custom upload container styling */
@@ -5182,6 +5181,14 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             transform: translateY(-1px);
         }}
         
+        /* Hidden file input styling */
+        .hidden-file-input-{uploader_id} {{
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+            pointer-events: none;
+        }}
+        
         /* File uploaded state styling */
         .file-uploaded-{uploader_id} {{
             background-color: #d4edda;
@@ -5229,9 +5236,17 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </style>
         """, unsafe_allow_html=True)
         
+        # Create the Streamlit file uploader (this must be called to register the widget)
+        uploaded_file = st.file_uploader(
+            f"Upload {title}",
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            help=help_text or f"Upload your {title.lower()} file"
+        )
+        
         # Display the appropriate interface based on upload state
-        if st.session_state.get(key):
-            uploaded_file = st.session_state[key]
+        if uploaded_file:
             # Show success state in our custom styling
             file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
             file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
@@ -5247,72 +5262,125 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             </div>
             """, unsafe_allow_html=True)
         else:
-            # Create a container with the custom UI and invisible Streamlit uploader overlay
-            with st.container():
-                # Add CSS to position the Streamlit uploader invisibly over our custom container
-                st.markdown(f"""
-                                 <style>
-                 /* Hide the Streamlit uploader completely but keep it functional */
-                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"],
-                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] > div,
-                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] section,
-                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] label,
-                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] button {{
-                     position: absolute !important;
-                     top: 0 !important;
-                     left: 0 !important;
-                     width: 100% !important;
-                     height: 100% !important;
-                     opacity: 0 !important;
-                     z-index: 2 !important;
-                     cursor: pointer !important;
-                     border: none !important;
-                     background: transparent !important;
-                     margin: 0 !important;
-                     padding: 0 !important;
-                 }}
+            # Show the custom upload interface
+            st.markdown(f"""
+            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}" data-key="{key}">
+                <div class="custom-upload-icon-{uploader_id}">📤</div>
+                <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
+                <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
+                <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">
+                    Browse Files
+                </button>
+            </div>
+            
+            <script>
+            (function() {{
+                // Simple and reliable file input connection
+                function connectBrowseButton() {{
+                    const browseBtn = document.getElementById('browse-btn-{uploader_id}');
+                    const container = document.getElementById('container-{uploader_id}');
+                    
+                    if (!browseBtn) {{
+                        console.warn('Browse button not found for {uploader_id}');
+                        return false;
+                    }}
+                    
+                    function triggerFileDialog() {{
+                        // Find the file input by key - use multiple strategies
+                        let fileInput = null;
+                        
+                        // Strategy 1: Find by data-testid containing the key
+                        const allInputs = document.querySelectorAll('input[type="file"]');
+                        for (let input of allInputs) {{
+                            const testId = input.getAttribute('data-testid');
+                            if (testId && testId.includes('{key}')) {{
+                                fileInput = input;
+                                break;
+                            }}
+                        }}
+                        
+                        // Strategy 2: Find by key in id or name attributes
+                        if (!fileInput) {{
+                            for (let input of allInputs) {{
+                                if ((input.id && input.id.includes('{key}')) || 
+                                    (input.name && input.name.includes('{key}'))) {{
+                                    fileInput = input;
+                                    break;
+                                }}
+                            }}
+                        }}
+                        
+                        // Strategy 3: Find by aria-label containing the title
+                        if (!fileInput) {{
+                            for (let input of allInputs) {{
+                                const ariaLabel = input.getAttribute('aria-label');
+                                if (ariaLabel && ariaLabel.includes('{title}')) {{
+                                    fileInput = input;
+                                    break;
+                                }}
+                            }}
+                        }}
+                        
+                        // Strategy 4: Find the closest file input (last resort)
+                        if (!fileInput && allInputs.length > 0) {{
+                            // Find the most recently added file input that accepts our file types
+                            for (let i = allInputs.length - 1; i >= 0; i--) {{
+                                const input = allInputs[i];
+                                const accept = input.getAttribute('accept');
+                                if (accept && (accept.includes('.xlsx') || accept.includes('.xls') || accept.includes('.csv') || accept.includes('.pdf'))) {{
+                                    fileInput = input;
+                                    break;
+                                }}
+                            }}
+                        }}
+                        
+                        if (fileInput) {{
+                            console.log('Found file input for {key}:', fileInput);
+                            // Ensure the input is not disabled
+                            if (!fileInput.disabled) {{
+                                fileInput.click();
+                                return true;
+                            }} else {{
+                                console.warn('File input is disabled for {key}');
+                            }}
+                        }} else {{
+                            console.warn('Could not find file input for key: {key}');
+                            console.log('Available file inputs:', allInputs);
+                        }}
+                        return false;
+                    }}
+                    
+                    // Attach click handler to browse button
+                    browseBtn.onclick = function(e) {{
+                        e.preventDefault();
+                        e.stopPropagation();
+                        triggerFileDialog();
+                    }};
+                    
+                    // Attach click handler to container (excluding button clicks)
+                    if (container) {{
+                        container.onclick = function(e) {{
+                            if (e.target !== browseBtn && !browseBtn.contains(e.target)) {{
+                                e.preventDefault();
+                                e.stopPropagation();
+                                triggerFileDialog();
+                            }}
+                        }};
+                    }}
+                    
+                    return true;
+                }}
                 
-                                 /* Ensure the container is positioned relatively to contain the absolute uploader */
-                 .upload-container-wrapper-{uploader_id} {{
-                     position: relative !important;
-                     display: block !important;
-                     width: 100% !important;
-                     overflow: hidden !important;
-                 }}
-                 
-                 /* Make sure file uploader inputs and labels are clickable across the entire area */
-                 .upload-container-wrapper-{uploader_id} input[type="file"] {{
-                     position: absolute !important;
-                     top: 0 !important;
-                     left: 0 !important;
-                     width: 100% !important;
-                     height: 100% !important;
-                     opacity: 0 !important;
-                     z-index: 3 !important;
-                     cursor: pointer !important;
-                 }}
-                </style>
-                
-                <div class="upload-container-wrapper-{uploader_id}">
-                    <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}">
-                        <div class="custom-upload-icon-{uploader_id}">📤</div>
-                        <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
-                        <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-                        <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">
-                            Browse Files
-                        </button>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Create the Streamlit uploader - it will be positioned over the custom container
-                uploaded_file = st.file_uploader(
-                    f"Upload {title}",
-                    type=file_types,
-                    key=key,
-                    label_visibility="hidden",
-                    help=help_text or f"Upload your {title.lower()} file"
-                )
+                // Try to connect immediately and with delays for reliability
+                let connected = connectBrowseButton();
+                if (!connected) {{
+                    setTimeout(() => connectBrowseButton(), 100);
+                    setTimeout(() => connectBrowseButton(), 500);
+                    setTimeout(() => connectBrowseButton(), 1000);
+                }}
+            }})();
+            </script>
+            """, unsafe_allow_html=True)
     
     return uploaded_file
 
