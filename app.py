@@ -5229,21 +5229,9 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </style>
         """, unsafe_allow_html=True)
         
-        # Create the invisible Streamlit uploader in sidebar (completely hidden from main view)
-        with st.sidebar:
-            with st.container():
-                st.markdown(f'<div style="display: none; visibility: hidden; height: 0; overflow: hidden;">', unsafe_allow_html=True)
-                uploaded_file = st.file_uploader(
-                    f"Upload {title}",
-                    type=file_types,
-                    key=key,
-                    label_visibility="hidden",
-                    help=help_text or f"Upload your {title.lower()} file"
-                )
-                st.markdown('</div>', unsafe_allow_html=True)
-        
         # Display the appropriate interface based on upload state
-        if uploaded_file:
+        if st.session_state.get(key):
+            uploaded_file = st.session_state[key]
             # Show success state in our custom styling
             file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
             file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
@@ -5259,96 +5247,72 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             </div>
             """, unsafe_allow_html=True)
         else:
-            # Show the custom upload interface
-            st.markdown(f"""
-            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}" data-key="{key}">
-                <div class="custom-upload-icon-{uploader_id}">📤</div>
-                <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
-                <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-                <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">
-                    Browse Files
-                </button>
-            </div>
-            
-            <script>
-            (function() {{
-                // Find the hidden file input and make browse button functional
-                function connectBrowseButton() {{
-                    const browseBtn = document.getElementById('browse-btn-{uploader_id}');
-                    const container = document.getElementById('container-{uploader_id}');
-                    
-                    function triggerFileDialog() {{
-                        // Find the file input by key - now in sidebar
-                        let fileInput = null;
-                        
-                        // Method 1: Find by exact key match (most reliable)
-                        const allInputs = document.querySelectorAll('input[type="file"]');
-                        for (let input of allInputs) {{
-                            // Check if the input has an ID or name containing our key
-                            if ((input.id && input.id.includes('{key}')) || 
-                                (input.name && input.name.includes('{key}'))) {{
-                                fileInput = input;
-                                break;
-                            }}
-                        }}
-                        
-                        // Method 2: Find by data attributes
-                        if (!fileInput) {{
-                            for (let input of allInputs) {{
-                                const testId = input.getAttribute('data-testid');
-                                if (testId && testId.includes('{key}')) {{
-                                    fileInput = input;
-                                    break;
-                                }}
-                            }}
-                        }}
-                        
-                        // Method 3: Find by accept attribute and position (fallback)
-                        if (!fileInput) {{
-                            for (let input of allInputs) {{
-                                if (input.accept && input.accept.includes('.xlsx')) {{
-                                    // Additional check to ensure it's in the sidebar (hidden area)
-                                    const rect = input.getBoundingClientRect();
-                                    if (rect.width <= 1 || rect.height <= 1 || 
-                                        input.style.display === 'none' || 
-                                        input.style.visibility === 'hidden') {{
-                                        fileInput = input;
-                                        break;
-                                    }}
-                                }}
-                            }}
-                        }}
-                        
-                        if (fileInput) {{
-                            console.log('Found file input for key {key}:', fileInput);
-                            fileInput.click();
-                        }} else {{
-                            console.warn('Could not find file input for key: {key}');
-                            console.log('Available file inputs:', allInputs);
-                        }}
-                    }}
-                    
-                    if (browseBtn) {{
-                        browseBtn.onclick = triggerFileDialog;
-                    }}
-                    
-                    if (container) {{
-                        container.onclick = function(e) {{
-                            if (e.target !== browseBtn) {{
-                                triggerFileDialog();
-                            }}
-                        }};
-                    }}
-                }}
+            # Create a container with the custom UI and invisible Streamlit uploader overlay
+            with st.container():
+                # Add CSS to position the Streamlit uploader invisibly over our custom container
+                st.markdown(f"""
+                                 <style>
+                 /* Hide the Streamlit uploader completely but keep it functional */
+                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"],
+                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] > div,
+                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] section,
+                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] label,
+                 .upload-container-wrapper-{uploader_id} div[data-testid="stFileUploader"] button {{
+                     position: absolute !important;
+                     top: 0 !important;
+                     left: 0 !important;
+                     width: 100% !important;
+                     height: 100% !important;
+                     opacity: 0 !important;
+                     z-index: 2 !important;
+                     cursor: pointer !important;
+                     border: none !important;
+                     background: transparent !important;
+                     margin: 0 !important;
+                     padding: 0 !important;
+                 }}
                 
-                // Connect browse button functionality with multiple attempts
-                connectBrowseButton();
-                setTimeout(connectBrowseButton, 100);
-                setTimeout(connectBrowseButton, 500);
-                setTimeout(connectBrowseButton, 1000);
-            }})();
-            </script>
-            """, unsafe_allow_html=True)
+                                 /* Ensure the container is positioned relatively to contain the absolute uploader */
+                 .upload-container-wrapper-{uploader_id} {{
+                     position: relative !important;
+                     display: block !important;
+                     width: 100% !important;
+                     overflow: hidden !important;
+                 }}
+                 
+                 /* Make sure file uploader inputs and labels are clickable across the entire area */
+                 .upload-container-wrapper-{uploader_id} input[type="file"] {{
+                     position: absolute !important;
+                     top: 0 !important;
+                     left: 0 !important;
+                     width: 100% !important;
+                     height: 100% !important;
+                     opacity: 0 !important;
+                     z-index: 3 !important;
+                     cursor: pointer !important;
+                 }}
+                </style>
+                
+                <div class="upload-container-wrapper-{uploader_id}">
+                    <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}">
+                        <div class="custom-upload-icon-{uploader_id}">📤</div>
+                        <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
+                        <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
+                        <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">
+                            Browse Files
+                        </button>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Create the Streamlit uploader - it will be positioned over the custom container
+                uploaded_file = st.file_uploader(
+                    f"Upload {title}",
+                    type=file_types,
+                    key=key,
+                    label_visibility="hidden",
+                    help=help_text or f"Upload your {title.lower()} file"
+                )
     
     return uploaded_file
 
