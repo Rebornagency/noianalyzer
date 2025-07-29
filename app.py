@@ -5120,76 +5120,31 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         # 2. Create unique container ID
         uploader_id = f"uploader_{key}_{abs(hash(title))}"
         
-        # 3. Create the styling for custom upload container
+        # 3. Inject styling to refine the default Streamlit uploader (no extra container)
         st.markdown(f"""
         <style>
-        /* Custom upload container styling */
-        .custom-upload-container-{uploader_id} {{
-            background-color: #f8f9fa;
-            border: 2px dashed #6c757d;
-            border-radius: 8px;
-            padding: 40px 20px;
-            text-align: center;
-            margin: 10px 0;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        /* Center content inside the default Streamlit drop-zone */
+        [data-testid="stFileUploadDropzone"] {{
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }}
-        
-        .custom-upload-container-{uploader_id}:hover {{
-            background-color: #e9ecef;
-            border-color: #495057;
+
+        /* Make the built-in Browse files button smaller & cleaner */
+        [data-testid="stFileUploadDropzone"] button {{
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 2px solid #000000 !important;
+            border-radius: 6px !important;
+            padding: 8px 24px !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            width: auto !important;
+            margin-top: 12px !important;
         }}
-        
-        .custom-upload-icon-{uploader_id} {{
-            font-size: 32px;
-            color: #495057;
-            margin-bottom: 8px;
-        }}
-        
-        .custom-upload-text-{uploader_id} {{
-            color: #212529;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }}
-        
-        .custom-upload-subtext-{uploader_id} {{
-            color: #6c757d;
-            font-size: 12px;
-            margin-bottom: 16px;
-        }}
-        
-        .custom-browse-button-{uploader_id} {{
-            background-color: #ffffff;
-            color: #000000;
-            border: 2px solid #000000;
-            border-radius: 6px;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-block;
-            text-decoration: none;
-            margin-top: 8px;
-        }}
-        
-        .custom-browse-button-{uploader_id}:hover {{
-            background-color: #f8f9fa;
-            border-color: #333333;
-            transform: translateY(-1px);
-        }}
-        
-        /* Hidden file input styling */
-        .hidden-file-input-{uploader_id} {{
-            position: absolute;
-            left: -9999px;
-            opacity: 0;
-            pointer-events: none;
-        }}
-        
-        /* File uploaded state styling */
+
+        /* File uploaded state styling remains */
         .file-uploaded-{uploader_id} {{
             background-color: #d4edda;
             border: 2px solid #c3e6cb;
@@ -5202,37 +5157,11 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             justify-content: center;
             gap: 15px;
         }}
-        
-        .file-uploaded-{uploader_id} .file-icon {{
-            font-size: 24px;
-            color: #155724;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-details {{
-            flex-grow: 1;
-            text-align: left;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-details .file-name {{
-            color: #155724;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-details .file-meta {{
-            color: #6c757d;
-            font-size: 12px;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-status {{
-            background-color: #28a745;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }}
+        .file-uploaded-{uploader_id} .file-icon {{ font-size: 24px; color: #155724; }}
+        .file-uploaded-{uploader_id} .file-details {{ flex-grow: 1; text-align: left; }}
+        .file-uploaded-{uploader_id} .file-details .file-name {{ color: #155724; font-size: 16px; font-weight: 600; margin-bottom: 4px; }}
+        .file-uploaded-{uploader_id} .file-details .file-meta {{ color: #6c757d; font-size: 12px; }}
+        .file-uploaded-{uploader_id} .file-status {{ background-color: #28a745; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; }}
         </style>
         """, unsafe_allow_html=True)
         
