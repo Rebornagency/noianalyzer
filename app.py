@@ -3889,7 +3889,7 @@ def main():
             st.markdown('<h2 class="section-header">Upload Documents</h2>', unsafe_allow_html=True)
             
             # Enhanced upload cards using component functions
-            current_month_file_main = upload_card(
+            current_month_file_main = file_upload_component(
                 title="Current Month Actuals",
                 required=True,
                 key="main_current_month_upload_functional",
@@ -3898,7 +3898,7 @@ def main():
             if current_month_file_main is not None:
                 st.session_state.current_month_actuals = current_month_file_main
             
-            prior_month_file_main = upload_card(
+            prior_month_file_main = file_upload_component(
                 title="Prior Month Actuals",
                 key="main_prior_month_upload_functional",
                 help_text="Upload your prior month's financial data here or in the sidebar"
@@ -3906,7 +3906,7 @@ def main():
             if prior_month_file_main is not None:
                 st.session_state.prior_month_actuals = prior_month_file_main
             
-            budget_file_main = upload_card(
+            budget_file_main = file_upload_component(
                 title="Current Month Budget",
                 key="main_budget_upload_functional",
                 help_text="Upload your budget data here or in the sidebar"
@@ -3914,7 +3914,7 @@ def main():
             if budget_file_main is not None:
                 st.session_state.current_month_budget = budget_file_main
             
-            prior_year_file_main = upload_card(
+            prior_year_file_main = file_upload_component(
                 title="Prior Year Same Month",
                 key="main_prior_year_upload_functional",
                 help_text="Upload the same month from prior year here or in the sidebar"
@@ -5089,305 +5089,7 @@ def display_card_container(title, content):
         # then putting the actual content below it in a Streamlit container
         content()
 
-# Enhanced UI Component Functions
-def upload_card(title, required=False, key=None, file_types=None, help_text=None):
-    """
-    Display an enhanced upload card component using Streamlit-native containers.
-    
-    Args:
-        title: Title of the upload card
-        required: Whether this upload is required
-        key: Unique key for the file uploader
-        file_types: List of accepted file types
-        help_text: Help text for the uploader
-        
-    Returns:
-        The uploaded file object
-    """
-    if file_types is None:
-        file_types = ["xlsx", "xls", "csv", "pdf"]
-    
-    # Use Streamlit container instead of HTML div
-    with st.container():
-        # 1. Header section - only use markdown for the header, not to wrap widgets
-        st.markdown(f"""
-        <div class="upload-card-header">
-            <h3>{title}</h3>
-            {' <span class="required-badge">Required</span>' if required else ''}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # 2. Create unique container ID
-        uploader_id = f"uploader_{key}_{abs(hash(title))}"
-        
-        # 3. Create the styling for custom upload container
-        st.markdown(f"""
-        <style>
-        /* Custom upload container styling */
-        .custom-upload-container-{uploader_id} {{
-            background-color: #f8f9fa;
-            border: 2px dashed #6c757d;
-            border-radius: 8px;
-            padding: 35px 20px;
-            text-align: center;
-            margin: 10px 0;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }}
-        
-        .custom-upload-container-{uploader_id}:hover {{
-            background-color: #e9ecef;
-            border-color: #495057;
-        }}
-        
-        .custom-upload-icon-{uploader_id} {{
-            font-size: 32px;
-            color: #495057;
-            margin-bottom: 8px;
-        }}
-        
-        .custom-upload-text-{uploader_id} {{
-            color: #212529;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }}
-        
-        .custom-upload-subtext-{uploader_id} {{
-            color: #6c757d;
-            font-size: 12px;
-            margin-bottom: 16px;
-        }}
-        
-        .custom-browse-button-{uploader_id} {{
-            background-color: #ffffff;
-            color: #000000;
-            border: 2px solid #000000;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-block;
-            text-decoration: none;
-            margin-top: 8px;
-            min-width: 120px;
-            max-width: 160px;
-        }}
-        
-        .custom-browse-button-{uploader_id}:hover {{
-            background-color: #f8f9fa;
-            border-color: #333333;
-            transform: translateY(-1px);
-        }}
-        
-        /* Hidden file input styling */
-        .hidden-file-input-{uploader_id} {{
-            position: absolute;
-            left: -9999px;
-            opacity: 0;
-            pointer-events: none;
-        }}
-        
-        /* File uploaded state styling */
-        .file-uploaded-{uploader_id} {{
-            background-color: #d4edda;
-            border: 2px solid #c3e6cb;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-icon {{
-            font-size: 24px;
-            color: #155724;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-details {{
-            flex-grow: 1;
-            text-align: left;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-details .file-name {{
-            color: #155724;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-details .file-meta {{
-            color: #6c757d;
-            font-size: 12px;
-        }}
-        
-        .file-uploaded-{uploader_id} .file-status {{
-            background-color: #28a745;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }}
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # Create the Streamlit file uploader (completely hidden but functional)
-        # We need to hide this properly to prevent the white container from showing
-        st.markdown(f'<div style="display: none; visibility: hidden; height: 0; overflow: hidden; position: absolute; left: -9999px;">', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader(
-            f"Upload {title}",
-            type=file_types,
-            key=key,
-            label_visibility="hidden",
-            help=help_text or f"Upload your {title.lower()} file"
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Display the appropriate interface based on upload state
-        if uploaded_file:
-            # Show success state in our custom styling
-            file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
-            file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
-            
-            st.markdown(f"""
-            <div class="file-uploaded-{uploader_id}">
-                <div class="file-icon">📄</div>
-                <div class="file-details">
-                    <div class="file-name">{uploaded_file.name}</div>
-                    <div class="file-meta">{file_size} • {file_type}</div>
-                </div>
-                <div class="file-status">Uploaded</div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            # Show the custom upload interface
-            st.markdown(f"""
-            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}" data-key="{key}">
-                <div class="custom-upload-icon-{uploader_id}">📤</div>
-                <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
-                <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-                <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">
-                    Browse Files
-                </button>
-            </div>
-            
-            <script>
-            (function() {{
-                // Simple and reliable file input connection
-                function connectBrowseButton() {{
-                    const browseBtn = document.getElementById('browse-btn-{uploader_id}');
-                    const container = document.getElementById('container-{uploader_id}');
-                    
-                    if (!browseBtn) {{
-                        console.warn('Browse button not found for {uploader_id}');
-                        return false;
-                    }}
-                    
-                    function triggerFileDialog() {{
-                        // Find the file input by key - use multiple strategies
-                        let fileInput = null;
-                        
-                        // Strategy 1: Find by data-testid containing the key
-                        const allInputs = document.querySelectorAll('input[type="file"]');
-                        for (let input of allInputs) {{
-                            const testId = input.getAttribute('data-testid');
-                            if (testId && testId.includes('{key}')) {{
-                                fileInput = input;
-                                break;
-                            }}
-                        }}
-                        
-                        // Strategy 2: Find by key in id or name attributes
-                        if (!fileInput) {{
-                            for (let input of allInputs) {{
-                                if ((input.id && input.id.includes('{key}')) || 
-                                    (input.name && input.name.includes('{key}'))) {{
-                                    fileInput = input;
-                                    break;
-                                }}
-                            }}
-                        }}
-                        
-                        // Strategy 3: Find by aria-label containing the title
-                        if (!fileInput) {{
-                            for (let input of allInputs) {{
-                                const ariaLabel = input.getAttribute('aria-label');
-                                if (ariaLabel && ariaLabel.includes('{title}')) {{
-                                    fileInput = input;
-                                    break;
-                                }}
-                            }}
-                        }}
-                        
-                        // Strategy 4: Find the closest file input (last resort)
-                        if (!fileInput && allInputs.length > 0) {{
-                            // Find the most recently added file input that accepts our file types
-                            for (let i = allInputs.length - 1; i >= 0; i--) {{
-                                const input = allInputs[i];
-                                const accept = input.getAttribute('accept');
-                                if (accept && (accept.includes('.xlsx') || accept.includes('.xls') || accept.includes('.csv') || accept.includes('.pdf'))) {{
-                                    fileInput = input;
-                                    break;
-                                }}
-                            }}
-                        }}
-                        
-                        if (fileInput) {{
-                            console.log('Found file input for {key}:', fileInput);
-                            // Ensure the input is not disabled
-                            if (!fileInput.disabled) {{
-                                fileInput.click();
-                                return true;
-                            }} else {{
-                                console.warn('File input is disabled for {key}');
-                            }}
-                        }} else {{
-                            console.warn('Could not find file input for key: {key}');
-                            console.log('Available file inputs:', allInputs);
-                        }}
-                        return false;
-                    }}
-                    
-                    // Attach click handler to browse button
-                    browseBtn.onclick = function(e) {{
-                        e.preventDefault();
-                        e.stopPropagation();
-                        triggerFileDialog();
-                    }};
-                    
-                    // Attach click handler to container (excluding button clicks)
-                    if (container) {{
-                        container.onclick = function(e) {{
-                            if (e.target !== browseBtn && !browseBtn.contains(e.target)) {{
-                                e.preventDefault();
-                                e.stopPropagation();
-                                triggerFileDialog();
-                            }}
-                        }};
-                    }}
-                    
-                    return true;
-                }}
-                
-                // Try to connect immediately and with delays for reliability
-                let connected = connectBrowseButton();
-                if (!connected) {{
-                    setTimeout(() => connectBrowseButton(), 100);
-                    setTimeout(() => connectBrowseButton(), 500);
-                    setTimeout(() => connectBrowseButton(), 1000);
-                }}
-            }})();
-            </script>
-            """, unsafe_allow_html=True)
-    
-    return uploaded_file
+# REMOVED: Old upload_card function completely deleted
 
 def instructions_card(items):
     """
@@ -5459,6 +5161,175 @@ def summarize_data_for_log(data_dict, max_items=3):
     if len(keys) > max_items:
         summary[f"...and {len(keys) - max_items} more keys"] = "..."
     return summary
+
+def file_upload_component(title, required=False, key=None, file_types=None, help_text=None):
+    """Clean, modern file upload component built from scratch."""
+    if file_types is None:
+        file_types = ["xlsx", "xls", "csv", "pdf"]
+    
+    component_id = f"upload_{key}_{abs(hash(title))}"
+    
+    # Modern dark theme styling
+    st.markdown(f"""
+    <style>
+    .upload-container-{component_id} {{
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border: 2px dashed #64748b;
+        border-radius: 12px;
+        padding: 48px 24px;
+        text-align: center;
+        margin: 16px 0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }}
+    .upload-container-{component_id}:hover {{
+        border-color: #94a3b8;
+        background: linear-gradient(135deg, #334155 0%, #475569 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }}
+    .upload-icon-{component_id} {{
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 16px;
+        display: block;
+    }}
+    .upload-text-{component_id} {{
+        color: #f1f5f9;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-family: 'Inter', sans-serif;
+    }}
+    .upload-subtext-{component_id} {{
+        color: #94a3b8;
+        font-size: 0.875rem;
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }}
+    .upload-button-{component_id} {{
+        background-color: #3b82f6;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Inter', sans-serif;
+    }}
+    .upload-button-{component_id}:hover {{
+        background-color: #2563eb;
+        transform: translateY(-1px);
+    }}
+    .upload-title-{component_id} {{
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #FFFFFF;
+        text-align: center;
+        margin-bottom: 24px;
+        font-family: 'Inter', sans-serif;
+    }}
+    .upload-required-{component_id} {{
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #3B82F6;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-left: 8px;
+        display: inline-block;
+    }}
+    .file-success-{component_id} {{
+        background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+        border: 2px solid #34d399;
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+        margin: 16px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+    }}
+    .file-success-icon-{component_id} {{
+        font-size: 2rem;
+        color: #ffffff;
+    }}
+    .file-success-details-{component_id} {{
+        flex-grow: 1;
+        text-align: left;
+    }}
+    .file-success-name-{component_id} {{
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        font-family: 'Inter', sans-serif;
+    }}
+    .file-success-meta-{component_id} {{
+        color: #d1fae5;
+        font-size: 0.875rem;
+    }}
+    .file-success-status-{component_id} {{
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Header
+    st.markdown(f"""
+    <h3 class="upload-title-{component_id}">
+        {title}
+        {f'<span class="upload-required-{component_id}">Required</span>' if required else ''}
+    </h3>
+    """, unsafe_allow_html=True)
+    
+    # File uploader (Streamlit native)
+    uploaded_file = st.file_uploader(
+        f"Upload {title}",
+        type=file_types,
+        key=key,
+        label_visibility="collapsed",
+        help=help_text or f"Upload your {title.lower()} file"
+    )
+    
+    # Display interface based on upload state
+    if uploaded_file:
+        # Success state
+        file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
+        file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
+        
+        st.markdown(f"""
+        <div class="file-success-{component_id}">
+            <div class="file-success-icon-{component_id}">✅</div>
+            <div class="file-success-details-{component_id}">
+                <div class="file-success-name-{component_id}">{uploaded_file.name}</div>
+                <div class="file-success-meta-{component_id}">{file_size} • {file_type}</div>
+            </div>
+            <div class="file-success-status-{component_id}">Uploaded</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Upload interface
+        st.markdown(f"""
+        <div class="upload-container-{component_id}" onclick="document.querySelector('[data-testid*=\"{key}\"] input').click()">
+            <div class="upload-icon-{component_id}">☁️</div>
+            <div class="upload-text-{component_id}">Drag and drop file here</div>
+            <div class="upload-subtext-{component_id}">Limit 200MB per file • .xlsx, .xls, .csv, .pdf</div>
+            <button type="button" class="upload-button-{component_id}" onclick="event.stopPropagation(); document.querySelector('[data-testid*=\"{key}\"] input').click()">
+                Browse Files
+            </button>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    return uploaded_file
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
