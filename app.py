@@ -5128,7 +5128,7 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             background-color: #f8f9fa;
             border: 2px dashed #6c757d;
             border-radius: 8px;
-            padding: 40px 20px;
+            padding: 35px 20px;
             text-align: center;
             margin: 10px 0;
             position: relative;
@@ -5165,14 +5165,16 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             color: #000000;
             border: 2px solid #000000;
             border-radius: 6px;
-            padding: 12px 24px;
-            font-size: 14px;
-            font-weight: 600;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             display: inline-block;
             text-decoration: none;
             margin-top: 8px;
+            min-width: 120px;
+            max-width: 160px;
         }}
         
         .custom-browse-button-{uploader_id}:hover {{
@@ -5236,14 +5238,17 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         </style>
         """, unsafe_allow_html=True)
         
-        # Create the Streamlit file uploader (this must be called to register the widget)
+        # Create the Streamlit file uploader (completely hidden but functional)
+        # We need to hide this properly to prevent the white container from showing
+        st.markdown(f'<div style="display: none; visibility: hidden; height: 0; overflow: hidden; position: absolute; left: -9999px;">', unsafe_allow_html=True)
         uploaded_file = st.file_uploader(
             f"Upload {title}",
             type=file_types,
             key=key,
-            label_visibility="collapsed",
+            label_visibility="hidden",
             help=help_text or f"Upload your {title.lower()} file"
         )
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Display the appropriate interface based on upload state
         if uploaded_file:
