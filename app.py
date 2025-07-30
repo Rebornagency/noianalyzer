@@ -1724,6 +1724,74 @@ def inject_custom_css():
         height: 24px;
     }
 
+    /* Custom upload container styling */
+    .custom-upload-container-{uploader_id} {{
+        background-color: var(--reborn-bg-secondary, #10172A); /* Dark background */
+        border: 2px dashed var(--reborn-border, rgba(255, 255, 255, 0.2)); /* Lighter dashed border */
+        border-radius: 8px;
+        padding: 35px 20px;
+        text-align: center;
+        margin: 10px 0;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }}
+
+    .custom-upload-container-{uploader_id}:hover {{
+        background-color: var(--reborn-bg-tertiary, #1E293B);
+        border-color: var(--reborn-accent-blue, #3B82F6);
+    }}
+
+    .custom-upload-icon-{uploader_id} {{
+        font-size: 32px;
+        color: var(--reborn-accent-blue, #3B82F6); /* Accent color for icon */
+        margin-bottom: 8px;
+    }}
+
+    .custom-upload-text-{uploader_id} {{
+        color: var(--reborn-text-primary, #FFFFFF); /* White text */
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }}
+
+    .custom-upload-subtext-{uploader_id} {{
+        color: var(--reborn-text-secondary, #A0A0A0); /* Lighter gray text */
+        font-size: 12px;
+        margin-bottom: 16px;
+    }}
+
+    .custom-browse-button-{uploader_id} {{
+        background-color: #ffffff; /* White button */
+        color: #000000; /* Black text */
+        border: 1px solid #000000; /* Thinner border */
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-block;
+        text-decoration: none;
+        margin-top: 8px;
+        min-width: 120px;
+        max-width: 160px;
+    }}
+
+    .custom-browse-button-{uploader_id}:hover {{
+        background-color: #f0f0f0; /* Lighter hover for white button */
+        border-color: #333333;
+        transform: translateY(-1px);
+    }}
+
+    /* Hidden file input styling */
+    .hidden-file-input-{uploader_id} {{
+        position: absolute;
+        left: -9999px;
+        opacity: 0;
+        pointer-events: none;
+    }}
+
     </style>
     """, unsafe_allow_html=True)
 
