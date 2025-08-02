@@ -5179,121 +5179,50 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
     with st.container():
         # 1. Header section - only use markdown for the header, not to wrap widgets
         st.markdown(f"""
-        <div class="upload-card-header">
-            <h3>{title}</h3>
-            {' <span class="required-badge">Required</span>' if required else ''}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # 2. Create unique container ID
-        uploader_id = f"uploader_{key}_{abs(hash(title))}"
-        
-        # 3. Create the styling for custom upload container
         st.markdown(f"""
         <style>
-        /* Custom upload container styling */
-        .custom-upload-container-{uploader_id} {{
-            background-color: #f8f9fa;
-            border: 2px dashed #6c757d;
-            border-radius: 8px;
-            padding: 35px 20px;
-            text-align: center;
-            margin: 10px 0;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }}
-        
-        .custom-upload-container-{uploader_id}:hover {{
-            background-color: #e9ecef;
-            border-color: #495057;
-        }}
-        
-        .custom-upload-icon-{uploader_id} {{
-            font-size: 32px;
-            color: #495057;
-            margin-bottom: 8px;
-        }}
-        
-        .custom-upload-text-{uploader_id} {{
-            color: #212529;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }}
-        
-        .custom-upload-subtext-{uploader_id} {{
-            color: #6c757d;
-            font-size: 12px;
-            margin-bottom: 16px;
-        }}
-        
-        .custom-browse-button-{uploader_id} {{
-            background-color: #ffffff;
-            color: #000000;
-            border: 2px solid #000000;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-block;
-            text-decoration: none;
-            margin-top: 8px;
-            min-width: 120px;
-            max-width: 160px;
-        }}
-        
-        .custom-browse-button-{uploader_id}:hover {{
-            background-color: #f8f9fa;
-            border-color: #333333;
-            transform: translateY(-1px);
-        }}
-        
-        /* Hidden file input styling */
-        .hidden-file-input-{uploader_id} {{
-            position: absolute;
-            left: -9999px;
-            opacity: 0;
-            pointer-events: none;
-        }}
-        
-        /* File uploaded state styling */
+        /* File uploaded state styling - always black background, white text */
         .file-uploaded-{uploader_id} {{
-            background-color: #d4edda;
-            border: 2px solid #c3e6cb;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
+            background-color: #000 !important;
+            border: 2px solid #222 !important;
+            border-radius: 8px !important;
+            padding: 20px !important;
+            text-align: center !important;
+            margin: 10px 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 15px !important;
+            color: #fff !important;
         }}
-        
         .file-uploaded-{uploader_id} .file-icon {{
-            font-size: 24px;
-            color: #155724;
+            font-size: 24px !important;
+            color: #fff !important;
         }}
-        
         .file-uploaded-{uploader_id} .file-details {{
-            flex-grow: 1;
-            text-align: left;
+            flex-grow: 1 !important;
+            text-align: left !important;
         }}
-        
         .file-uploaded-{uploader_id} .file-details .file-name {{
-            color: #155724;
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 4px;
+            color: #fff !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            margin-bottom: 4px !important;
         }}
-        
         .file-uploaded-{uploader_id} .file-details .file-meta {{
-            color: #6c757d;
-            font-size: 12px;
+            color: #fff !important;
+            font-size: 12px !important;
         }}
+        .file-uploaded-{uploader_id} .file-status {{
+            background-color: #111 !important;
+            color: #fff !important;
+            padding: 6px 12px !important;
+            border-radius: 4px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+        }}
+        </style>
+        """, unsafe_allow_html=True)
         
         .file-uploaded-{uploader_id} .file-status {{
             background-color: #28a745;
