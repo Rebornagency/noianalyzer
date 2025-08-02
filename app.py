@@ -5323,7 +5323,6 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             # Show success state in our custom styling
             file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
             file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
-            
             st.markdown(f"""
             <div class="file-uploaded-{uploader_id}">
                 <div class="file-icon">📄</div>
@@ -5334,127 +5333,7 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
                 <div class="file-status">Uploaded</div>
             </div>
             """, unsafe_allow_html=True)
-        else:
-            # Show the custom upload interface
-            st.markdown(f"""
-            <div class="custom-upload-container-{uploader_id}" id="container-{uploader_id}" data-key="{key}">
-                <div class="custom-upload-icon-{uploader_id}">📤</div>
-                <div class="custom-upload-text-{uploader_id}">Drag and drop file here</div>
-                <div class="custom-upload-subtext-{uploader_id}">Limit 200 MB per file • .xlsx, .xls, .csv, .pdf</div>
-                <button type="button" class="custom-browse-button-{uploader_id}" id="browse-btn-{uploader_id}">
-                    Browse Files
-                </button>
-            </div>
-            
-            <script>
-            (function() {{
-                // Simple and reliable file input connection
-                function connectBrowseButton() {{
-                    const browseBtn = document.getElementById('browse-btn-{uploader_id}');
-                    const container = document.getElementById('container-{uploader_id}');
-                    
-                    if (!browseBtn) {{
-                        console.warn('Browse button not found for {uploader_id}');
-                        return false;
-                    }}
-                    
-                    function triggerFileDialog() {{
-                        // Find the file input by key - use multiple strategies
-                        let fileInput = null;
-                        
-                        // Strategy 1: Find by data-testid containing the key
-                        const allInputs = document.querySelectorAll('input[type="file"]');
-                        for (let input of allInputs) {{
-                            const testId = input.getAttribute('data-testid');
-                            if (testId && testId.includes('{key}')) {{
-                                fileInput = input;
-                                break;
-                            }}
-                        }}
-                        
-                        // Strategy 2: Find by key in id or name attributes
-                        if (!fileInput) {{
-                            for (let input of allInputs) {{
-                                if ((input.id && input.id.includes('{key}')) || 
-                                    (input.name && input.name.includes('{key}'))) {{
-                                    fileInput = input;
-                                    break;
-                                }}
-                            }}
-                        }}
-                        
-                        // Strategy 3: Find by aria-label containing the title
-                        if (!fileInput) {{
-                            for (let input of allInputs) {{
-                                const ariaLabel = input.getAttribute('aria-label');
-                                if (ariaLabel && ariaLabel.includes('{title}')) {{
-                                    fileInput = input;
-                                    break;
-                                }}
-                            }}
-                        }}
-                        
-                        // Strategy 4: Find the closest file input (last resort)
-                        if (!fileInput && allInputs.length > 0) {{
-                            // Find the most recently added file input that accepts our file types
-                            for (let i = allInputs.length - 1; i >= 0; i--) {{
-                                const input = allInputs[i];
-                                const accept = input.getAttribute('accept');
-                                if (accept && (accept.includes('.xlsx') || accept.includes('.xls') || accept.includes('.csv') || accept.includes('.pdf'))) {{
-                                    fileInput = input;
-                                    break;
-                                }}
-                            }}
-                        }}
-                        
-                        if (fileInput) {{
-                            console.log('Found file input for {key}:', fileInput);
-                            // Ensure the input is not disabled
-                            if (!fileInput.disabled) {{
-                                fileInput.click();
-                                return true;
-                            }} else {{
-                                console.warn('File input is disabled for {key}');
-                            }}
-                        }} else {{
-                            console.warn('Could not find file input for key: {key}');
-                            console.log('Available file inputs:', allInputs);
-                        }}
-                        return false;
-                    }}
-                    
-                    // Attach click handler to browse button
-                    browseBtn.onclick = function(e) {{
-                        e.preventDefault();
-                        e.stopPropagation();
-                        triggerFileDialog();
-                    }};
-                    
-                    // Attach click handler to container (excluding button clicks)
-                    if (container) {{
-                        container.onclick = function(e) {{
-                            if (e.target !== browseBtn && !browseBtn.contains(e.target)) {{
-                                e.preventDefault();
-                                e.stopPropagation();
-                                triggerFileDialog();
-                            }}
-                        }};
-                    }}
-                    
-                    return true;
-                }}
-                
-                // Try to connect immediately and with delays for reliability
-                let connected = connectBrowseButton();
-                if (!connected) {{
-                    setTimeout(() => connectBrowseButton(), 100);
-                    setTimeout(() => connectBrowseButton(), 500);
-                    setTimeout(() => connectBrowseButton(), 1000);
-                }}
-            }})();
-            </script>
-            """, unsafe_allow_html=True)
-    
+        # No else: do not show the custom upload interface
     return uploaded_file
 
 def instructions_card(items):
