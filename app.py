@@ -5180,11 +5180,38 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
 
     # Use Streamlit container instead of HTML div
     with st.container():
-         # 1. Header section - only use markdown for the header, not to wrap widgets
-        # (Removed stray st.markdown(f""" line that caused syntax error)
         st.markdown(
 f"""
 <style>
+/* Section title styling */
+.upload-section-title-{uploader_id} {{
+    color: #FFFFFF !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.5rem !important;
+    padding: 0.25rem 0 !important;
+}}
+.upload-section-required-{uploader_id} {{
+    color: #FF4B4B !important;
+    font-size: 0.8rem !important;
+    margin-left: 0.5rem !important;
+}}
+/* Streamlit native uploader override */
+[data-testid="stFileUploader"] {{
+    background-color: #000000 !important;
+    border-color: #333333 !important;
+}}
+[data-testid="stFileUploader"] p {{
+    color: #FFFFFF !important;
+}}
+[data-testid="stFileUploader"] small {{
+    color: #CCCCCC !important;
+}}
+[data-testid="stFileUploader"] button {{
+    background-color: #333333 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #444444 !important;
+}}
 /* File uploaded state styling - always black background, white text */
 .file-uploaded-{uploader_id} {{
     background-color: #000 !important;
@@ -5230,6 +5257,17 @@ f"""
 unsafe_allow_html=True
         )
        
+        # Display section title with required indicator if needed
+        st.markdown(
+            f"""
+            <div class="upload-section-title-{uploader_id}">
+                {title}
+                {' <span class="upload-section-required-{uploader_id}">Required</span>' if required else ''}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         # Create the Streamlit file uploader (completely hidden but functional)
         # We need to hide this properly to prevent the white container from showing
         st.markdown(f'<div style="display: none; visibility: hidden; height: 0; overflow: hidden; position: absolute; left: -9999px;">', unsafe_allow_html=True)
