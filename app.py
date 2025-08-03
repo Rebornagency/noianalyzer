@@ -5157,10 +5157,10 @@ def display_card_container(title, content):
         # then putting the actual content below it in a Streamlit container
         content()
 
-# Enhanced UI Component Functions
+## Enhanced UI Component Functions
 def upload_card(title, required=False, key=None, file_types=None, help_text=None):
     """
-    Display an enhanced upload card component using Streamlit-native containers.
+  Display an enhanced upload card component using Streamlit-native containers.
     
     Args:
         title: Title of the upload card
@@ -5174,13 +5174,16 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
     """
     if file_types is None:
         file_types = ["xlsx", "xls", "csv", "pdf"]
-    
+
+    # Generate a unique uploader_id for CSS class names
+    uploader_id = str(key) if key else str(abs(hash(title)))
+
     # Use Streamlit container instead of HTML div
     with st.container():
-        # 1. Header section - only use markdown for the header, not to wrap widgets
-        st.markdown(f"""
+         # 1. Header section - only use markdown for the header, not to wrap widgets
+        # (Removed stray st.markdown(f""" line that caused syntax error)
         st.markdown(
-            f"""
+f"""
 <style>
 /* File uploaded state styling - always black background, white text */
 .file-uploaded-{uploader_id} {{
@@ -5223,21 +5226,10 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
     font-weight: 600 !important;
 }}
 </style>
-            """,
-            unsafe_allow_html=True
+""",
+unsafe_allow_html=True
         )
-        
-        .file-uploaded-{uploader_id} .file-status {{
-            background-color: #28a745;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }}
-        </style>
-        """, unsafe_allow_html=True)
-        
+       
         # Create the Streamlit file uploader (completely hidden but functional)
         # We need to hide this properly to prevent the white container from showing
         st.markdown(f'<div style="display: none; visibility: hidden; height: 0; overflow: hidden; position: absolute; left: -9999px;">', unsafe_allow_html=True)
@@ -5266,7 +5258,6 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
             </div>
             """, unsafe_allow_html=True)
         # No else: do not show the custom upload interface
-    return uploaded_file
 
 def instructions_card(items):
     """
