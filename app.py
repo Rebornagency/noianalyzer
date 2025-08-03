@@ -5180,48 +5180,48 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         # 1. Header section - only use markdown for the header, not to wrap widgets
         st.markdown(f"""
         st.markdown(f"""
-        <style>
-        /* File uploaded state styling - always black background, white text */
-        .file-uploaded-{uploader_id} {{
-            background-color: #000 !important;
-            border: 2px solid #222 !important;
-            border-radius: 8px !important;
-            padding: 20px !important;
-            text-align: center !important;
-            margin: 10px 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 15px !important;
-            color: #fff !important;
-        }}
-        .file-uploaded-{uploader_id} .file-icon {{
-            font-size: 24px !important;
-            color: #fff !important;
-        }}
-        .file-uploaded-{uploader_id} .file-details {{
-            flex-grow: 1 !important;
-            text-align: left !important;
-        }}
-        .file-uploaded-{uploader_id} .file-details .file-name {{
-            color: #fff !important;
-            font-size: 16px !important;
-            font-weight: 600 !important;
-            margin-bottom: 4px !important;
-        }}
-        .file-uploaded-{uploader_id} .file-details .file-meta {{
-            color: #fff !important;
-            font-size: 12px !important;
-        }}
-        .file-uploaded-{uploader_id} .file-status {{
-            background-color: #111 !important;
-            color: #fff !important;
-            padding: 6px 12px !important;
-            border-radius: 4px !important;
-            font-size: 12px !important;
-            font-weight: 600 !important;
-        }}
-        </style>
+<style>
+/* File uploaded state styling - always black background, white text */
+.file-uploaded-{uploader_id} {{
+    background-color: #000 !important;
+    border: 2px solid #222 !important;
+    border-radius: 8px !important;
+    padding: 20px !important;
+    text-align: center !important;
+    margin: 10px 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 15px !important;
+    color: #fff !important;
+}}
+.file-uploaded-{uploader_id} .file-icon {{
+    font-size: 24px !important;
+    color: #fff !important;
+}}
+.file-uploaded-{uploader_id} .file-details {{
+    flex-grow: 1 !important;
+    text-align: left !important;
+}}
+.file-uploaded-{uploader_id} .file-details .file-name {{
+    color: #fff !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    margin-bottom: 4px !important;
+}}
+.file-uploaded-{uploader_id} .file-details .file-meta {{
+    color: #fff !important;
+    font-size: 12px !important;
+}}
+.file-uploaded-{uploader_id} .file-status {{
+    background-color: #111 !important;
+    color: #fff !important;
+    padding: 6px 12px !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}}
+</style>
         """, unsafe_allow_html=True)
         
         .file-uploaded-{uploader_id} .file-status {{
