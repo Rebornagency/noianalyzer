@@ -5179,7 +5179,8 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
     with st.container():
         # 1. Header section - only use markdown for the header, not to wrap widgets
         st.markdown(f"""
-        st.markdown(f"""
+        st.markdown(
+            f"""
 <style>
 /* File uploaded state styling - always black background, white text */
 .file-uploaded-{uploader_id} {{
@@ -5222,7 +5223,9 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
     font-weight: 600 !important;
 }}
 </style>
-        """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
         
         .file-uploaded-{uploader_id} .file-status {{
             background-color: #28a745;
