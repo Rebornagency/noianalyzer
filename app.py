@@ -5183,18 +5183,24 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         st.markdown(
 f"""
 <style>
-/* Section title styling */
+/* Section title styling - no background, just text styling */
 .upload-section-title-{uploader_id} {{
-    color: #FFFFFF !important;
+    font-family: "Source Sans Pro", sans-serif !important;
+    color: rgba(250, 250, 250, 0.95) !important;
     font-size: 1.1rem !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
     margin-bottom: 0.5rem !important;
-    padding: 0.25rem 0 !important;
+    padding: 0 !important;
+    background: none !important;
+    display: flex !important;
+    align-items: center !important;
 }}
 .upload-section-required-{uploader_id} {{
     color: #FF4B4B !important;
-    font-size: 0.8rem !important;
+    font-size: 0.9rem !important;
+    font-weight: 400 !important;
     margin-left: 0.5rem !important;
+    opacity: 0.9 !important;
 }}
 /* Streamlit native uploader override */
 [data-testid="stFileUploader"] {{
