@@ -3963,32 +3963,32 @@ def main():
                 key="main_current_month_upload_functional",
                 help_text="Upload your current month's financial data here or in the sidebar"
             )
-            if current_month_file_main is not None:
-                st.session_state.current_month_actuals = current_month_file_main
+            # Update session state whether file is present or not
+            st.session_state.current_month_actuals = current_month_file_main
             
             prior_month_file_main = upload_card(
                 title="Prior Month Actuals",
                 key="main_prior_month_upload_functional",
                 help_text="Upload your prior month's financial data here or in the sidebar"
             )
-            if prior_month_file_main is not None:
-                st.session_state.prior_month_actuals = prior_month_file_main
+            # Update session state whether file is present or not
+            st.session_state.prior_month_actuals = prior_month_file_main
             
             budget_file_main = upload_card(
                 title="Current Month Budget",
                 key="main_budget_upload_functional",
                 help_text="Upload your budget data here or in the sidebar"
             )
-            if budget_file_main is not None:
-                st.session_state.current_month_budget = budget_file_main
+            # Update session state whether file is present or not
+            st.session_state.current_month_budget = budget_file_main
             
             prior_year_file_main = upload_card(
                 title="Prior Year Same Month",
                 key="main_prior_year_upload_functional",
                 help_text="Upload the same month from prior year here or in the sidebar"
             )
-            if prior_year_file_main is not None:
-                st.session_state.prior_year_actuals = prior_year_file_main
+            # Update session state whether file is present or not
+            st.session_state.prior_year_actuals = prior_year_file_main
             
             # Enhanced property input using component function
             main_page_property_name_input = property_input(value=st.session_state.property_name)
@@ -4085,6 +4085,11 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
+                # Validate required files first
+                if not st.session_state.get('current_month_actuals'):
+                    st.error("Please upload at least the Current Month Actuals document to proceed.")
+                    st.stop()
+                    
                 if is_testing_mode_active():
                     # Keep testing mode functionality unchanged
                     st.session_state.user_initiated_processing = True
@@ -4150,25 +4155,35 @@ def main():
                             st.stop()
                     else:
                         # Fallback to legacy payment system if credit system not available
+                        # Reset old processing states
+                        st.session_state.template_viewed = False
+                        st.session_state.processing_completed = False
+                        st.session_state.user_initiated_processing = True
+                        
+                        # Clear any previous results
+                        for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                            if key in st.session_state:
+                                del st.session_state[key]
+                        
                         # Collect uploaded files
                         files_to_upload = []
                         doc_types = []
                         
-                        if st.session_state.current_month_actuals:
-                            files_to_upload.append(st.session_state.current_month_actuals)
-                            doc_types.append("current_month_actuals")
+                        file_mapping = {
+                            'current_month_actuals': ('current_month_actuals', True),  # True means required
+                            'prior_month_actuals': ('prior_month_actuals', False),
+                            'current_month_budget': ('current_month_budget', False),
+                            'prior_year_actuals': ('prior_year_actuals', False)
+                        }
                         
-                        if st.session_state.prior_month_actuals:
-                            files_to_upload.append(st.session_state.prior_month_actuals)
-                            doc_types.append("prior_month_actuals")
-                        
-                        if st.session_state.current_month_budget:
-                            files_to_upload.append(st.session_state.current_month_budget)
-                            doc_types.append("current_month_budget")
-                        
-                        if st.session_state.prior_year_actuals:
-                            files_to_upload.append(st.session_state.prior_year_actuals)
-                            doc_types.append("prior_year_actuals")
+                        for state_key, (doc_type, required) in file_mapping.items():
+                            file = st.session_state.get(state_key)
+                            if file is not None:  # Include only if file object exists
+                                files_to_upload.append(file)
+                                doc_types.append(doc_type)
+                            elif required:
+                                st.error(f"Please upload the required {doc_type.replace('_', ' ').title()} document.")
+                                st.stop()
                         
                         # Import and call the payment redirect function
                         from pay_per_use.stripe_redirect import create_stripe_job_and_redirect
