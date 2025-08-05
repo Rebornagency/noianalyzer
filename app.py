@@ -29,23 +29,6 @@ from sentry_config import (
 # Initialize Sentry as early as possible
 sentry_initialized = init_sentry()
 
-# Initialize session state variables if they don't exist
-if "initialized" not in st.session_state:
-    st.session_state.initialized = True
-    st.session_state.user_initiated_processing = False
-    st.session_state.template_viewed = False
-    st.session_state.processing_completed = False
-    st.session_state.consolidated_data = None
-    st.session_state.current_month_actuals = None
-    st.session_state.prior_month_actuals = None
-    st.session_state.current_month_budget = None
-    st.session_state.prior_year_actuals = None
-    st.session_state.property_name = ""
-    st.session_state.comparison_results = None
-    st.session_state.insights = None
-    st.session_state.generated_narrative = None
-    st.session_state.edited_narrative = None
-
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
@@ -3980,32 +3963,21 @@ def main():
                 key="main_current_month_upload_functional",
                 help_text="Upload your current month's financial data here or in the sidebar"
             )
-            # Update session state whether file is present or not
-            st.session_state.current_month_actuals = current_month_file_main
-            
             prior_month_file_main = upload_card(
                 title="Prior Month Actuals",
                 key="main_prior_month_upload_functional",
                 help_text="Upload your prior month's financial data here or in the sidebar"
             )
-            # Update session state whether file is present or not
-            st.session_state.prior_month_actuals = prior_month_file_main
-            
             budget_file_main = upload_card(
                 title="Current Month Budget",
                 key="main_budget_upload_functional",
                 help_text="Upload your budget data here or in the sidebar"
             )
-            # Update session state whether file is present or not
-            st.session_state.current_month_budget = budget_file_main
-            
             prior_year_file_main = upload_card(
                 title="Prior Year Same Month",
                 key="main_prior_year_upload_functional",
                 help_text="Upload the same month from prior year here or in the sidebar"
             )
-            # Update session state whether file is present or not
-            st.session_state.prior_year_actuals = prior_year_file_main
             
             # Enhanced property input using component function
             main_page_property_name_input = property_input(value=st.session_state.property_name)
@@ -4102,29 +4074,19 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
-                logger.info("Process Documents button clicked - validating files...")
-                
-                # Reset processing state
-                st.session_state.user_initiated_processing = True
-                st.session_state.template_viewed = False
-                st.session_state.processing_completed = False
-                
-                # Clear previous results
-                for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                
-                # Validate required files
-                current_month_file = st.session_state.get('current_month_actuals')
-                if current_month_file is None:
-                    logger.warning("Required file missing: current_month_actuals")
+                # Validate required files first
+                if not current_month_file_main:
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
-                    st.session_state.user_initiated_processing = False
                     st.stop()
-                    
-                # Log validation success
-                logger.info(f"File validation passed - current_month_actuals: {current_month_file.name}")
-                
+                # Prepare files for processing
+                files_to_upload = {
+                    "current_month_actuals": current_month_file_main,
+                    "prior_month_actuals": prior_month_file_main,
+                    "current_month_budget": budget_file_main,
+                    "prior_year_actuals": prior_year_file_main
+                }
+                # Remove None values
+                files_to_upload = {k: v for k, v in files_to_upload.items() if v is not None}
                 if is_testing_mode_active():
                     # Keep testing mode functionality unchanged
                     st.session_state.user_initiated_processing = True
@@ -4152,22 +4114,13 @@ def main():
                     if not user_email:
                         st.error("Please enter your email address to proceed.")
                         st.stop()
-                    
-                    if not st.session_state.current_month_actuals:
-                        st.error("Please upload at least the Current Month Actuals file to proceed.")
-                        st.stop()
-                    
                     # Check if user has enough credits
                     if CREDIT_SYSTEM_AVAILABLE:
                         has_credits, message = check_credits_for_analysis(user_email)
-                        
                         if has_credits:
-                            # User has credits - proceed with processing
                             st.session_state.user_initiated_processing = True
-                              # Reset states for a fresh processing cycle
                             st.session_state.template_viewed = False
                             st.session_state.processing_completed = False
-                            # Reset header display flags
                             if 'template_header_displayed' in st.session_state: del st.session_state.template_header_displayed
                             if 'results_header_displayed' in st.session_state: del st.session_state.results_header_displayed
                             if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
@@ -4175,54 +4128,37 @@ def main():
                             if 'insights' in st.session_state: del st.session_state.insights
                             if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
                             if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
-                            
                             logger.info(f"Main page 'Process Documents' clicked for {user_email} with sufficient credits.")
                             add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info",
                                            {"email": user_email,
                                             "property_name": st.session_state.get('property_name', 'Unknown')})
-                            
                             st.success(message + " - Starting analysis...")
+                            # Call the document processing function directly with files
+                            # You may need to adapt process_all_documents to accept files_to_upload as argument
+                            st.session_state.processing_completed = False
+                            from noi_tool_batch_integration import process_all_documents
+                            # Monkey-patch: temporarily set session state for process_all_documents
+                            st.session_state.current_month_actuals = files_to_upload.get("current_month_actuals")
+                            st.session_state.prior_month_actuals = files_to_upload.get("prior_month_actuals")
+                            st.session_state.current_month_budget = files_to_upload.get("current_month_budget")
+                            st.session_state.prior_year_actuals = files_to_upload.get("prior_year_actuals")
+                            process_all_documents()
+                            st.session_state.processing_completed = True
                             st.rerun()
                         else:
-                            # Insufficient credits
                             logger.info(f"User {user_email} has insufficient credits")
                             display_insufficient_credits()
                             st.stop()
                     else:
                         # Fallback to legacy payment system if credit system not available
-                        logger.info("Collecting files for processing in production mode...")
-                        
-                        # Collect uploaded files
-                        files_to_upload = []
-                        doc_types = []
-                        
-                        # Define the document types we accept
-                        doc_mapping = [
-                            ('current_month_actuals', True),   # (session_state_key, required)
-                            ('prior_month_actuals', False),
-                            ('current_month_budget', False),
-                            ('prior_year_actuals', False)
-                        ]
-                        
-                        # Collect files that exist in session state
-                        for state_key, required in doc_mapping:
-                            file = st.session_state.get(state_key)
-                            if file is not None and hasattr(file, 'name'):  # Verify it's a valid file object
-                                logger.info(f"Adding file for processing: {state_key} - {file.name}")
-                                files_to_upload.append(file)
-                                doc_types.append(state_key)
-                            elif required:
-                                logger.warning(f"Required file missing: {state_key}")
-                                st.error(f"Please upload the required {state_key.replace('_', ' ').title()} document.")
-                                st.stop()
-                            else:
-                                logger.info(f"Optional file not present: {state_key}")
-                                
-                        logger.info(f"Collected {len(files_to_upload)} files for processing: {doc_types}")
-                        
+                        st.session_state.template_viewed = False
+                        st.session_state.processing_completed = False
+                        st.session_state.user_initiated_processing = True
+                        for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                            if key in st.session_state:
+                                del st.session_state[key]
                         # Import and call the payment redirect function
                         from pay_per_use.stripe_redirect import create_stripe_job_and_redirect
-                        
                         logger.info(f"Credit system unavailable - redirecting to payment for {len(files_to_upload)} files")
                         add_breadcrumb(
                             "Redirecting to Stripe payment (fallback)", 
@@ -4234,8 +4170,7 @@ def main():
                                 "property_name": st.session_state.get('property_name', 'Unknown')
                             }
                         )
-                        
-                        create_stripe_job_and_redirect(user_email, files_to_upload, doc_types)
+                        create_stripe_job_and_redirect(user_email, list(files_to_upload.values()), list(files_to_upload.keys()))
 
         with col2:
             # Enhanced Instructions section using component function
@@ -5210,7 +5145,7 @@ def display_card_container(title, content):
 ## Enhanced UI Component Functions
 def upload_card(title, required=False, key=None, file_types=None, help_text=None):
     """
-    Display an enhanced upload card component using Streamlit-native containers.
+  Display an enhanced upload card component using Streamlit-native containers.
     
     Args:
         title: Title of the upload card
@@ -5220,13 +5155,10 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         help_text: Help text for the uploader
         
     Returns:
-        The uploaded file object or None if no file is uploaded
+        The uploaded file object
     """
     if file_types is None:
         file_types = ["xlsx", "xls", "csv", "pdf"]
-        
-    # Generate unique session state key for this uploader
-    state_key = f"upload_card_{key}_previous"
 
     # Generate a unique uploader_id for CSS class names
     uploader_id = str(key) if key else str(abs(hash(title)))
@@ -5338,19 +5270,6 @@ unsafe_allow_html=True
             help=help_text or f"Upload your {title.lower()} file"
         )
         st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Track changes in upload state
-        previous_file = st.session_state.get(state_key)
-        current_file = uploaded_file
-        
-        # Update session state with current file
-        st.session_state[state_key] = current_file
-        
-        # Log file state changes
-        if previous_file is not None and current_file is None:
-            logger.info(f"File removed from {key}")
-        elif previous_file is None and current_file is not None:
-            logger.info(f"New file uploaded to {key}: {current_file.name}")
         
         # Display the appropriate interface based on upload state
         if uploaded_file:
