@@ -29,6 +29,23 @@ from sentry_config import (
 # Initialize Sentry as early as possible
 sentry_initialized = init_sentry()
 
+# Initialize session state variables if they don't exist
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+    st.session_state.user_initiated_processing = False
+    st.session_state.template_viewed = False
+    st.session_state.processing_completed = False
+    st.session_state.consolidated_data = None
+    st.session_state.current_month_actuals = None
+    st.session_state.prior_month_actuals = None
+    st.session_state.current_month_budget = None
+    st.session_state.prior_year_actuals = None
+    st.session_state.property_name = ""
+    st.session_state.comparison_results = None
+    st.session_state.insights = None
+    st.session_state.generated_narrative = None
+    st.session_state.edited_narrative = None
+
 from utils.helpers import format_for_noi_comparison
 from noi_calculations import calculate_noi_comparisons
 from noi_tool_batch_integration import process_all_documents
@@ -4085,11 +4102,29 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
-                # Validate required files first
-                if not st.session_state.get('current_month_actuals'):
+                logger.info("Process Documents button clicked - validating files...")
+                
+                # Reset processing state
+                st.session_state.user_initiated_processing = True
+                st.session_state.template_viewed = False
+                st.session_state.processing_completed = False
+                
+                # Clear previous results
+                for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                
+                # Validate required files
+                current_month_file = st.session_state.get('current_month_actuals')
+                if current_month_file is None:
+                    logger.warning("Required file missing: current_month_actuals")
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
+                    st.session_state.user_initiated_processing = False
                     st.stop()
                     
+                # Log validation success
+                logger.info(f"File validation passed - current_month_actuals: {current_month_file.name}")
+                
                 if is_testing_mode_active():
                     # Keep testing mode functionality unchanged
                     st.session_state.user_initiated_processing = True
@@ -4155,35 +4190,35 @@ def main():
                             st.stop()
                     else:
                         # Fallback to legacy payment system if credit system not available
-                        # Reset old processing states
-                        st.session_state.template_viewed = False
-                        st.session_state.processing_completed = False
-                        st.session_state.user_initiated_processing = True
-                        
-                        # Clear any previous results
-                        for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
-                            if key in st.session_state:
-                                del st.session_state[key]
+                        logger.info("Collecting files for processing in production mode...")
                         
                         # Collect uploaded files
                         files_to_upload = []
                         doc_types = []
                         
-                        file_mapping = {
-                            'current_month_actuals': ('current_month_actuals', True),  # True means required
-                            'prior_month_actuals': ('prior_month_actuals', False),
-                            'current_month_budget': ('current_month_budget', False),
-                            'prior_year_actuals': ('prior_year_actuals', False)
-                        }
+                        # Define the document types we accept
+                        doc_mapping = [
+                            ('current_month_actuals', True),   # (session_state_key, required)
+                            ('prior_month_actuals', False),
+                            ('current_month_budget', False),
+                            ('prior_year_actuals', False)
+                        ]
                         
-                        for state_key, (doc_type, required) in file_mapping.items():
+                        # Collect files that exist in session state
+                        for state_key, required in doc_mapping:
                             file = st.session_state.get(state_key)
-                            if file is not None:  # Include only if file object exists
+                            if file is not None and hasattr(file, 'name'):  # Verify it's a valid file object
+                                logger.info(f"Adding file for processing: {state_key} - {file.name}")
                                 files_to_upload.append(file)
-                                doc_types.append(doc_type)
+                                doc_types.append(state_key)
                             elif required:
-                                st.error(f"Please upload the required {doc_type.replace('_', ' ').title()} document.")
+                                logger.warning(f"Required file missing: {state_key}")
+                                st.error(f"Please upload the required {state_key.replace('_', ' ').title()} document.")
                                 st.stop()
+                            else:
+                                logger.info(f"Optional file not present: {state_key}")
+                                
+                        logger.info(f"Collected {len(files_to_upload)} files for processing: {doc_types}")
                         
                         # Import and call the payment redirect function
                         from pay_per_use.stripe_redirect import create_stripe_job_and_redirect
@@ -5175,7 +5210,7 @@ def display_card_container(title, content):
 ## Enhanced UI Component Functions
 def upload_card(title, required=False, key=None, file_types=None, help_text=None):
     """
-  Display an enhanced upload card component using Streamlit-native containers.
+    Display an enhanced upload card component using Streamlit-native containers.
     
     Args:
         title: Title of the upload card
@@ -5185,10 +5220,13 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
         help_text: Help text for the uploader
         
     Returns:
-        The uploaded file object
+        The uploaded file object or None if no file is uploaded
     """
     if file_types is None:
         file_types = ["xlsx", "xls", "csv", "pdf"]
+        
+    # Generate unique session state key for this uploader
+    state_key = f"upload_card_{key}_previous"
 
     # Generate a unique uploader_id for CSS class names
     uploader_id = str(key) if key else str(abs(hash(title)))
@@ -5300,6 +5338,19 @@ unsafe_allow_html=True
             help=help_text or f"Upload your {title.lower()} file"
         )
         st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Track changes in upload state
+        previous_file = st.session_state.get(state_key)
+        current_file = uploaded_file
+        
+        # Update session state with current file
+        st.session_state[state_key] = current_file
+        
+        # Log file state changes
+        if previous_file is not None and current_file is None:
+            logger.info(f"File removed from {key}")
+        elif previous_file is None and current_file is not None:
+            logger.info(f"New file uploaded to {key}: {current_file.name}")
         
         # Display the appropriate interface based on upload state
         if uploaded_file:
