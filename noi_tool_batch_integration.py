@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import streamlit as st
 import logging
 import json
 from typing import Dict, Any, Optional, List
@@ -37,22 +38,33 @@ def collect_all_files() -> Dict[str, Any]:
     files = {}
     
     # Check for current month actuals (required)
+    logger.info(f"DEBUG: Checking session state for current_month_actuals: {'current_month_actuals' in st.session_state}")
+    if 'current_month_actuals' in st.session_state:
+        logger.info(f"DEBUG: current_month_actuals value: {st.session_state.current_month_actuals}")
+        logger.info(f"DEBUG: current_month_actuals is not None: {st.session_state.current_month_actuals is not None}")
+        if hasattr(st.session_state.current_month_actuals, 'name'):
+            logger.info(f"DEBUG: current_month_actuals filename: {st.session_state.current_month_actuals.name}")
     if 'current_month_actuals' in st.session_state and st.session_state.current_month_actuals is not None:
         files["current_month_actuals"] = st.session_state.current_month_actuals
+        logger.info(f"DEBUG: Added current_month_actuals to files collection")
     
     # Check for prior month actuals (optional)
     if 'prior_month_actuals' in st.session_state and st.session_state.prior_month_actuals is not None:
         files["prior_month_actuals"] = st.session_state.prior_month_actuals
+        logger.info(f"DEBUG: Added prior_month_actuals to files collection")
     
     # Check for budget (optional)
     if 'current_month_budget' in st.session_state and st.session_state.current_month_budget is not None:
         files["current_month_budget"] = st.session_state.current_month_budget
+        logger.info(f"DEBUG: Added current_month_budget to files collection")
     
     # Check for prior year actuals (optional)
     if 'prior_year_actuals' in st.session_state and st.session_state.prior_year_actuals is not None:
         files["prior_year_actuals"] = st.session_state.prior_year_actuals
+        logger.info(f"DEBUG: Added prior_year_actuals to files collection")
     
     logger.info(f"Collected {len(files)} files: {list(files.keys())}")
+    logger.info(f"DEBUG: Files collection summary: {[(k, bool(v), getattr(v, 'name', 'NO_NAME')) for k, v in files.items()]}")
     return files
 
 def process_all_documents() -> Dict[str, Any]:

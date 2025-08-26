@@ -4074,8 +4074,16 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
-                # Validate required files first
+                # Validate required files first - add debug logging
+                logger.info(f"DEBUG: Process Documents clicked - current_month_file_main: {current_month_file_main}")
+                logger.info(f"DEBUG: Type of current_month_file_main: {type(current_month_file_main)}")
+                if hasattr(current_month_file_main, 'name'):
+                    logger.info(f"DEBUG: current_month_file_main.name: {current_month_file_main.name}")
+                if hasattr(current_month_file_main, 'size'):
+                    logger.info(f"DEBUG: current_month_file_main.size: {current_month_file_main.size}")
+                
                 if not current_month_file_main:
+                    logger.warning("DEBUG: current_month_file_main is None or falsy")
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
                     st.stop()
                 # Prepare files for processing
@@ -4085,8 +4093,10 @@ def main():
                     "current_month_budget": budget_file_main,
                     "prior_year_actuals": prior_year_file_main
                 }
+                logger.info(f"DEBUG: files_to_upload before filtering: {[(k, bool(v)) for k, v in files_to_upload.items()]}")
                 # Remove None values
                 files_to_upload = {k: v for k, v in files_to_upload.items() if v is not None}
+                logger.info(f"DEBUG: files_to_upload after filtering: {[(k, bool(v), getattr(v, 'name', 'NO_NAME')) for k, v in files_to_upload.items()]}")
                 if is_testing_mode_active():
                     # Keep testing mode functionality unchanged
                     st.session_state.user_initiated_processing = True
@@ -4138,10 +4148,13 @@ def main():
                             st.session_state.processing_completed = False
                             from noi_tool_batch_integration import process_all_documents
                             # Monkey-patch: temporarily set session state for process_all_documents
+                            logger.info(f"DEBUG: Setting session state files for processing...")
                             st.session_state.current_month_actuals = files_to_upload.get("current_month_actuals")
                             st.session_state.prior_month_actuals = files_to_upload.get("prior_month_actuals")
                             st.session_state.current_month_budget = files_to_upload.get("current_month_budget")
                             st.session_state.prior_year_actuals = files_to_upload.get("prior_year_actuals")
+                            logger.info(f"DEBUG: Session state set. current_month_actuals: {bool(st.session_state.current_month_actuals)}")
+                            logger.info(f"DEBUG: Session state file names: {[(k, getattr(getattr(st.session_state, k, None), 'name', 'None')) for k in ['current_month_actuals', 'prior_month_actuals', 'current_month_budget', 'prior_year_actuals']]}")
                             process_all_documents()
                             st.session_state.processing_completed = True
                             st.rerun()
@@ -5271,6 +5284,11 @@ unsafe_allow_html=True
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
+        # Debug logging for upload_card
+        logger.info(f"DEBUG: upload_card '{title}' (key: {key}) - uploaded_file: {uploaded_file}")
+        if uploaded_file:
+            logger.info(f"DEBUG: upload_card '{title}' - File details: name={uploaded_file.name}, size={uploaded_file.size}, type={uploaded_file.type}")
+        
         # Display the appropriate interface based on upload state
         if uploaded_file:
             # Show success state in our custom styling
@@ -5287,6 +5305,10 @@ unsafe_allow_html=True
             </div>
             """, unsafe_allow_html=True)
         # No else: do not show the custom upload interface
+        
+        # Debug logging for return value
+        logger.info(f"DEBUG: upload_card '{title}' returning: {uploaded_file}")
+        return uploaded_file
 
 def instructions_card(items):
     """
