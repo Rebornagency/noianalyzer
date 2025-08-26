@@ -4314,9 +4314,9 @@ def main():
 
                     if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
                         st.session_state.consolidated_data = raw_consolidated_data
-                        st.session_state.template_viewed = False # Ensure template is shown
+                        st.session_state.template_viewed = True  # AUTO-APPROVE: Skip template step and proceed to comparison calculation
                         add_breadcrumb("Document extraction successful", "processing", "info")
-                        logger.info("Document extraction successful. Data stored. Proceeding to template display.")
+                        logger.info("Document extraction successful. Data stored. Auto-approving template to proceed to comparison calculation.")
                         
                         # Deduct credits after successful document processing (if using credit system)
                         if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
@@ -4465,12 +4465,13 @@ def main():
         return # Stop further execution in this run
 
     # --- Stage 3: Financial Analysis (if data confirmed and not yet processed) ---
+    logger.info(f"STAGE 3 CHECK: template_viewed={st.session_state.get('template_viewed', False)}, processing_completed={st.session_state.get('processing_completed', False)}, consolidated_data_exists={'consolidated_data' in st.session_state}")
     if st.session_state.get('template_viewed', False) and \
        not st.session_state.get('processing_completed', False) and \
        'consolidated_data' in st.session_state and \
        st.session_state.consolidated_data:
 
-        logger.info("APP.PY: --- Financial Analysis START ---")
+        logger.info("APP.PY: --- Financial Analysis START (Stage 3) ---")
         show_processing_status("Processing verified data for analysis...", is_running=True)
         try:
             # Ensure consolidated_data is valid before analysis
