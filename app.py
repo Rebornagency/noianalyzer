@@ -5265,7 +5265,7 @@ unsafe_allow_html=True
         st.markdown(
             f"""
             <div class="upload-section-title-{uploader_id}">
-                {title}
+                {title} 
                 {' <span class="upload-section-required-{uploader_id}">Required</span>' if required else ''}
             </div>
             """,
