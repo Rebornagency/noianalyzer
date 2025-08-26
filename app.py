@@ -4206,7 +4206,8 @@ def main():
                             logger.info(f"  - prior_year_actuals: {bool(st.session_state.get('prior_year_actuals'))} ({getattr(st.session_state.get('prior_year_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_year_actuals') else 'None'})")
                             
                             process_all_documents()
-                            st.session_state.processing_completed = True
+                            # DON'T set processing_completed=True here - let Stage 3 handle it
+                            # st.session_state.processing_completed = True
                             st.rerun()
                         else:
                             logger.info(f"User {user_email} has insufficient credits")
@@ -4315,6 +4316,8 @@ def main():
                     if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
                         st.session_state.consolidated_data = raw_consolidated_data
                         st.session_state.template_viewed = True  # AUTO-APPROVE: Skip template step and proceed to comparison calculation
+                        logger.info("DEBUG: Document processing complete - consolidated_data populated and template_viewed=True")
+                        logger.info("DEBUG: Will proceed to Stage 3 for comparison calculation on next rerun")
                         add_breadcrumb("Document extraction successful", "processing", "info")
                         logger.info("Document extraction successful. Data stored. Auto-approving template to proceed to comparison calculation.")
                         
@@ -4521,7 +4524,9 @@ def main():
             
             logger.info("STAGE 2 DEBUG: About to call calculate_noi_comparisons")
             st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
-            logger.info(f"STAGE 2 DEBUG: calculate_noi_comparisons completed, result type: {type(st.session_state.comparison_results)}")
+            logger.info(f"STAGE 2 DEBUG: calculate_noi_comparisons completed successfully")
+            logger.info(f"STAGE 2 DEBUG: comparison_results type: {type(st.session_state.comparison_results)}")
+            logger.info(f"STAGE 2 DEBUG: comparison_results keys: {list(st.session_state.comparison_results.keys()) if isinstance(st.session_state.comparison_results, dict) else 'Not a dict'}")
             
             if st.session_state.comparison_results and not st.session_state.comparison_results.get("error"):
                 insights = generate_insights_with_gpt(st.session_state.comparison_results, get_openai_api_key())
@@ -4536,6 +4541,7 @@ def main():
 
                 st.session_state.processing_completed = True
                 st.session_state.user_initiated_processing = False # Processing is done
+                logger.info("DEBUG: Stage 3 completed successfully - processing_completed=True, ready for results display")
                 show_processing_status("Analysis complete!", status_type="success")
                 logger.info("Financial analysis, insights, and narrative generated successfully.")
             else:
