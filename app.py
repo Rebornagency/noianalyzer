@@ -3994,6 +3994,24 @@ def main():
                 help_text="Upload the same month from prior year here or in the sidebar"
             )
             
+            # AUTO-STORE FILES IN SESSION STATE immediately upon upload
+            # This prevents race conditions where files might be lost during rerun
+            if current_month_file_main:
+                st.session_state.current_month_actuals = current_month_file_main
+                logger.info(f"DEBUG: Auto-stored current_month_actuals: {current_month_file_main.name}")
+            
+            if prior_month_file_main:
+                st.session_state.prior_month_actuals = prior_month_file_main
+                logger.info(f"DEBUG: Auto-stored prior_month_actuals: {prior_month_file_main.name}")
+            
+            if budget_file_main:
+                st.session_state.current_month_budget = budget_file_main
+                logger.info(f"DEBUG: Auto-stored current_month_budget: {budget_file_main.name}")
+            
+            if prior_year_file_main:
+                st.session_state.prior_year_actuals = prior_year_file_main
+                logger.info(f"DEBUG: Auto-stored prior_year_actuals: {prior_year_file_main.name}")
+            
             # Enhanced property input using component function
             main_page_property_name_input = property_input(value=st.session_state.property_name)
             if main_page_property_name_input != st.session_state.property_name:
@@ -4089,26 +4107,38 @@ def main():
                 help="Process the uploaded documents to generate NOI analysis",
                 key="main_process_button"
             ):
-                # Validate required files first - add debug logging
-                logger.info(f"DEBUG: Process Documents clicked - current_month_file_main: {current_month_file_main}")
-                logger.info(f"DEBUG: Type of current_month_file_main: {type(current_month_file_main)}")
-                if hasattr(current_month_file_main, 'name'):
-                    logger.info(f"DEBUG: current_month_file_main.name: {current_month_file_main.name}")
-                if hasattr(current_month_file_main, 'size'):
-                    logger.info(f"DEBUG: current_month_file_main.size: {current_month_file_main.size}")
+                # COMPREHENSIVE DEBUG LOGGING FOR FILE STATES
+                logger.info("=== PROCESS DOCUMENTS BUTTON CLICKED ===")
+                logger.info(f"DEBUG: Local variables from upload_card:")
+                logger.info(f"  - current_month_file_main: {current_month_file_main is not None} ({getattr(current_month_file_main, 'name', 'NO_NAME') if current_month_file_main else 'None'})")
+                logger.info(f"  - prior_month_file_main: {prior_month_file_main is not None} ({getattr(prior_month_file_main, 'name', 'NO_NAME') if prior_month_file_main else 'None'})")
+                logger.info(f"  - budget_file_main: {budget_file_main is not None} ({getattr(budget_file_main, 'name', 'NO_NAME') if budget_file_main else 'None'})")
+                logger.info(f"  - prior_year_file_main: {prior_year_file_main is not None} ({getattr(prior_year_file_main, 'name', 'NO_NAME') if prior_year_file_main else 'None'})")
                 
-                if not current_month_file_main:
-                    logger.warning("DEBUG: current_month_file_main is None or falsy")
+                logger.info(f"DEBUG: Session state files:")
+                logger.info(f"  - st.session_state.current_month_actuals: {'current_month_actuals' in st.session_state and st.session_state.current_month_actuals is not None} ({getattr(st.session_state.get('current_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('current_month_actuals') else 'None'})")
+                logger.info(f"  - st.session_state.prior_month_actuals: {'prior_month_actuals' in st.session_state and st.session_state.prior_month_actuals is not None} ({getattr(st.session_state.get('prior_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_month_actuals') else 'None'})")
+                logger.info(f"  - st.session_state.current_month_budget: {'current_month_budget' in st.session_state and st.session_state.current_month_budget is not None} ({getattr(st.session_state.get('current_month_budget'), 'name', 'NO_NAME') if st.session_state.get('current_month_budget') else 'None'})")
+                logger.info(f"  - st.session_state.prior_year_actuals: {'prior_year_actuals' in st.session_state and st.session_state.prior_year_actuals is not None} ({getattr(st.session_state.get('prior_year_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_year_actuals') else 'None'})")
+                
+                # Validate required files using BOTH local variables AND session state
+                # Prioritize session state (auto-stored) over local variables
+                effective_current_month = st.session_state.get('current_month_actuals') or current_month_file_main
+                logger.info(f"DEBUG: Effective current_month file: {effective_current_month is not None} ({getattr(effective_current_month, 'name', 'NO_NAME') if effective_current_month else 'None'})")
+                
+                if not effective_current_month:
+                    logger.warning("DEBUG: No current month file available in either session state or local variables")
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
                     st.stop()
-                # Prepare files for processing
+                # Prepare files for processing - prioritize session state (auto-stored) files
                 files_to_upload = {
-                    "current_month_actuals": current_month_file_main,
-                    "prior_month_actuals": prior_month_file_main,
-                    "current_month_budget": budget_file_main,
-                    "prior_year_actuals": prior_year_file_main
+                    "current_month_actuals": st.session_state.get('current_month_actuals') or current_month_file_main,
+                    "prior_month_actuals": st.session_state.get('prior_month_actuals') or prior_month_file_main,
+                    "current_month_budget": st.session_state.get('current_month_budget') or budget_file_main,
+                    "prior_year_actuals": st.session_state.get('prior_year_actuals') or prior_year_file_main
                 }
-                logger.info(f"DEBUG: files_to_upload before filtering: {[(k, bool(v)) for k, v in files_to_upload.items()]}")
+                logger.info(f"DEBUG: files_to_upload before filtering: {[(k, bool(v), getattr(v, 'name', 'NO_NAME')) for k, v in files_to_upload.items()]}")
+                
                 # Remove None values
                 files_to_upload = {k: v for k, v in files_to_upload.items() if v is not None}
                 logger.info(f"DEBUG: files_to_upload after filtering: {[(k, bool(v), getattr(v, 'name', 'NO_NAME')) for k, v in files_to_upload.items()]}")
@@ -4159,17 +4189,22 @@ def main():
                                             "property_name": st.session_state.get('property_name', 'Unknown')})
                             st.success(message + " - Starting analysis...")
                             # Call the document processing function directly with files
-                            # You may need to adapt process_all_documents to accept files_to_upload as argument
                             st.session_state.processing_completed = False
                             from noi_tool_batch_integration import process_all_documents
-                            # Monkey-patch: temporarily set session state for process_all_documents
+                            
+                            # Ensure all files are properly set in session state for process_all_documents
                             logger.info(f"DEBUG: Setting session state files for processing...")
-                            st.session_state.current_month_actuals = files_to_upload.get("current_month_actuals")
-                            st.session_state.prior_month_actuals = files_to_upload.get("prior_month_actuals")
-                            st.session_state.current_month_budget = files_to_upload.get("current_month_budget")
-                            st.session_state.prior_year_actuals = files_to_upload.get("prior_year_actuals")
-                            logger.info(f"DEBUG: Session state set. current_month_actuals: {bool(st.session_state.current_month_actuals)}")
-                            logger.info(f"DEBUG: Session state file names: {[(k, getattr(getattr(st.session_state, k, None), 'name', 'None')) for k in ['current_month_actuals', 'prior_month_actuals', 'current_month_budget', 'prior_year_actuals']]}")
+                            for key, file_obj in files_to_upload.items():
+                                session_key = key  # The keys already match session state keys
+                                setattr(st.session_state, session_key, file_obj)
+                                logger.info(f"DEBUG: Set st.session_state.{session_key} = {getattr(file_obj, 'name', 'NO_NAME')}")
+                            
+                            logger.info(f"DEBUG: Session state verification after setting:")
+                            logger.info(f"  - current_month_actuals: {bool(st.session_state.get('current_month_actuals'))} ({getattr(st.session_state.get('current_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('current_month_actuals') else 'None'})")
+                            logger.info(f"  - prior_month_actuals: {bool(st.session_state.get('prior_month_actuals'))} ({getattr(st.session_state.get('prior_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_month_actuals') else 'None'})")
+                            logger.info(f"  - current_month_budget: {bool(st.session_state.get('current_month_budget'))} ({getattr(st.session_state.get('current_month_budget'), 'name', 'NO_NAME') if st.session_state.get('current_month_budget') else 'None'})")
+                            logger.info(f"  - prior_year_actuals: {bool(st.session_state.get('prior_year_actuals'))} ({getattr(st.session_state.get('prior_year_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_year_actuals') else 'None'})")
+                            
                             process_all_documents()
                             st.session_state.processing_completed = True
                             st.rerun()
@@ -5250,7 +5285,7 @@ def display_card_container(title, content):
 ## Enhanced UI Component Functions
 def upload_card(title, required=False, key=None, file_types=None, help_text=None):
     """
-  Display an enhanced upload card component using Streamlit-native containers.
+    Display a functional upload card component with visible file uploader.
     
     Args:
         title: Title of the upload card
@@ -5268,138 +5303,179 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
     # Generate a unique uploader_id for CSS class names
     uploader_id = str(key) if key else str(abs(hash(title)))
 
-    # Use Streamlit container instead of HTML div
+    # Use Streamlit container with proper styling
     with st.container():
+        # Add enhanced styling for the upload area
         st.markdown(
 f"""
 <style>
-/* Section title styling - no background, just text styling */
-.upload-section-title-{uploader_id} {{
-    font-family: "Source Sans Pro", sans-serif !important;
-    color: rgba(250, 250, 250, 0.95) !important;
+/* Enhanced upload card styling */
+.upload-card-{uploader_id} {{
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(31, 41, 55, 0.9)) !important;
+    border: 2px solid rgba(79, 109, 245, 0.3) !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    margin-bottom: 1rem !important;
+    transition: all 0.3s ease !important;
+}}
+
+.upload-card-{uploader_id}:hover {{
+    border-color: rgba(79, 109, 245, 0.6) !important;
+    box-shadow: 0 8px 25px rgba(79, 109, 245, 0.15) !important;
+    transform: translateY(-2px) !important;
+}}
+
+.upload-title-{uploader_id} {{
+    color: #ffffff !important;
     font-size: 1.1rem !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     margin-bottom: 0.5rem !important;
-    padding: 0 !important;
-    background: none !important;
     display: flex !important;
     align-items: center !important;
+    gap: 0.5rem !important;
 }}
-.upload-section-required-{uploader_id} {{
-    color: #FF4B4B !important;
-    font-size: 0.9rem !important;
-    font-weight: 400 !important;
-    margin-left: 0.5rem !important;
-    opacity: 0.9 !important;
+
+.required-badge-{uploader_id} {{
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: white !important;
+    padding: 0.2rem 0.6rem !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
 }}
-/* Streamlit native uploader override */
-[data-testid="stFileUploader"] {{
-    background-color: #000000 !important;
-    border-color: #333333 !important;
-}}
-[data-testid="stFileUploader"] p {{
-    color: #FFFFFF !important;
-}}
-[data-testid="stFileUploader"] small {{
-    color: #CCCCCC !important;
-}}
-[data-testid="stFileUploader"] button {{
-    background-color: #333333 !important;
-    color: #FFFFFF !important;
-    border: 1px solid #444444 !important;
-}}
-/* File uploaded state styling - always black background, white text */
-.file-uploaded-{uploader_id} {{
-    background-color: #000 !important;
-    border: 2px solid #222 !important;
+
+/* Style the Streamlit file uploader */
+.upload-card-{uploader_id} [data-testid="stFileUploader"] {{
+    background: rgba(17, 24, 39, 0.8) !important;
+    border: 2px dashed rgba(156, 163, 175, 0.5) !important;
     border-radius: 8px !important;
-    padding: 20px !important;
-    text-align: center !important;
-    margin: 10px 0 !important;
+    padding: 1rem !important;
+}}
+
+.upload-card-{uploader_id} [data-testid="stFileUploader"] > div {{
+    background: transparent !important;
+}}
+
+.upload-card-{uploader_id} [data-testid="stFileUploader"] label {{
+    color: #ffffff !important;
+    font-weight: 500 !important;
+}}
+
+.upload-card-{uploader_id} [data-testid="stFileUploader"] small {{
+    color: #9ca3af !important;
+}}
+
+.upload-card-{uploader_id} [data-testid="stFileUploader"] button {{
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}}
+
+.upload-card-{uploader_id} [data-testid="stFileUploader"] button:hover {{
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    transform: translateY(-1px) !important;
+}}
+
+/* File success state */
+.file-success-{uploader_id} {{
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1)) !important;
+    border: 2px solid rgba(34, 197, 94, 0.3) !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
-    gap: 15px !important;
-    color: #fff !important;
+    gap: 0.75rem !important;
+    margin-top: 0.5rem !important;
 }}
-.file-uploaded-{uploader_id} .file-icon {{
-    font-size: 24px !important;
-    color: #fff !important;
+
+.file-success-{uploader_id} .file-icon {{
+    font-size: 1.5rem !important;
 }}
-.file-uploaded-{uploader_id} .file-details {{
-    flex-grow: 1 !important;
-    text-align: left !important;
+
+.file-success-{uploader_id} .file-details {{
+    flex: 1 !important;
 }}
-.file-uploaded-{uploader_id} .file-details .file-name {{
-    color: #fff !important;
-    font-size: 16px !important;
+
+.file-success-{uploader_id} .file-name {{
+    color: #ffffff !important;
     font-weight: 600 !important;
-    margin-bottom: 4px !important;
+    font-size: 0.95rem !important;
+    margin-bottom: 0.25rem !important;
 }}
-.file-uploaded-{uploader_id} .file-details .file-meta {{
-    color: #fff !important;
-    font-size: 12px !important;
+
+.file-success-{uploader_id} .file-meta {{
+    color: #9ca3af !important;
+    font-size: 0.8rem !important;
 }}
-.file-uploaded-{uploader_id} .file-status {{
-    background-color: #111 !important;
-    color: #fff !important;
-    padding: 6px 12px !important;
-    border-radius: 4px !important;
-    font-size: 12px !important;
+
+.file-success-{uploader_id} .file-status {{
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+    color: white !important;
+    padding: 0.3rem 0.8rem !important;
+    border-radius: 6px !important;
+    font-size: 0.75rem !important;
     font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
 }}
 </style>
 """,
 unsafe_allow_html=True
         )
        
+        # Create the upload card container
+        st.markdown(f'<div class="upload-card-{uploader_id}">', unsafe_allow_html=True)
+        
         # Display section title with required indicator if needed
-        st.markdown(
-            f"""
-            <div class="upload-section-title-{uploader_id}">
-                {title} 
-                {' <span class="upload-section-required-{uploader_id}">Required</span>' if required else ''}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        title_html = f"""
+        <div class="upload-title-{uploader_id}">
+            📄 {title}
+            {f'<span class="required-badge-{uploader_id}">Required</span>' if required else ''}
+        </div>
+        """
+        st.markdown(title_html, unsafe_allow_html=True)
 
-        # Create the Streamlit file uploader (completely hidden but functional)
-        # We need to hide this properly to prevent the white container from showing
-        st.markdown(f'<div style="display: none; visibility: hidden; height: 0; overflow: hidden; position: absolute; left: -9999px;">', unsafe_allow_html=True)
+        # Create the Streamlit file uploader (VISIBLE and functional)
         uploaded_file = st.file_uploader(
-            f"Upload {title}",
+            f"Choose {title} file",
             type=file_types,
             key=key,
-            label_visibility="hidden",
-            help=help_text or f"Upload your {title.lower()} file"
+            help=help_text or f"Upload your {title.lower()} file (.xlsx, .xls, .csv, .pdf)",
+            label_visibility="collapsed"  # Hide the default label since we have custom title
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         
         # Debug logging for upload_card
-        logger.info(f"DEBUG: upload_card '{title}' (key: {key}) - uploaded_file: {uploaded_file}")
+        logger.info(f"DEBUG: upload_card '{title}' (key: {key}) - uploaded_file: {uploaded_file is not None}")
         if uploaded_file:
             logger.info(f"DEBUG: upload_card '{title}' - File details: name={uploaded_file.name}, size={uploaded_file.size}, type={uploaded_file.type}")
         
-        # Display the appropriate interface based on upload state
+        # Display success state if file is uploaded
         if uploaded_file:
-            # Show success state in our custom styling
             file_size = f"{uploaded_file.size / 1024:.1f} KB" if uploaded_file.size else "Unknown size"
-            file_type = uploaded_file.type if uploaded_file.type else "Unknown type"
-            st.markdown(f"""
-            <div class="file-uploaded-{uploader_id}">
-                <div class="file-icon">📄</div>
+            file_type = uploaded_file.type.split('/')[-1].upper() if uploaded_file.type else "Unknown type"
+            
+            success_html = f"""
+            <div class="file-success-{uploader_id}">
+                <div class="file-icon">✅</div>
                 <div class="file-details">
                     <div class="file-name">{uploaded_file.name}</div>
                     <div class="file-meta">{file_size} • {file_type}</div>
                 </div>
-                <div class="file-status">Uploaded</div>
+                <div class="file-status">Ready</div>
             </div>
-            """, unsafe_allow_html=True)
-        # No else: do not show the custom upload interface
+            """
+            st.markdown(success_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # Close upload card
         
         # Debug logging for return value
-        logger.info(f"DEBUG: upload_card '{title}' returning: {uploaded_file}")
+        logger.info(f"DEBUG: upload_card '{title}' returning: {uploaded_file is not None}")
         return uploaded_file
 
 def instructions_card(items):
