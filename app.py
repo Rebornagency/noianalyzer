@@ -690,7 +690,7 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
     # Return the edited document data
     return edited_doc_data
 
-def display_data_template(consolidated_data: Dict[str, Any]) -> Dict[str, Any]:
+def display_data_template(consolidated_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Display extracted financial data in an editable template format.
     
@@ -706,6 +706,21 @@ def display_data_template(consolidated_data: Dict[str, Any]) -> Dict[str, Any]:
     # Create a deep copy of the data to avoid modifying the original
     edited_data = copy.deepcopy(consolidated_data)
     
+    # Add auto-confirmation option
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        auto_confirm = st.checkbox(
+            "Auto-confirm extracted data and proceed immediately",
+            value=True,
+            help="Check this to automatically proceed with analysis using the extracted data. Uncheck to review and edit the data first."
+        )
+    
+    # If auto-confirm is enabled, return the data immediately
+    if auto_confirm:
+        st.success("✅ Data auto-confirmed. Proceeding with analysis...")
+        return edited_data
+    
+    # Otherwise, show the manual review interface
     # Create tabs for each document type
     doc_tabs = st.tabs(["Current Month", "Prior Month", "Budget", "Prior Year"])
     
@@ -4387,7 +4402,7 @@ def main():
             st.session_state.template_header_displayed = True
         
         logger.info("Displaying data template for user review.")
-        show_processing_status("Documents processed. Please review the extracted data.", status_type="info")
+        show_processing_status("✅ Documents processed successfully! Review the extracted data below, or enable auto-confirm to proceed immediately.", status_type="success")
         
         # Ensure consolidated_data is not an error message from a previous step
         if isinstance(st.session_state.consolidated_data, dict) and "error" not in st.session_state.consolidated_data:
