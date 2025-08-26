@@ -4511,8 +4511,8 @@ def main():
             # Add buy more credits button centered below
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("\ud83d\uded2 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
-                    logger.info("\ud83d\uded2 Results Buy More Credits button clicked - showing credit store")
+                if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
+                    logger.info("🛒 Results Buy More Credits button clicked - showing credit store")
                     st.session_state.show_credit_store = True
                     # Clear any conflicting flags
                     if 'show_credit_success' in st.session_state:
