@@ -4454,8 +4454,9 @@ def main():
             
             # Check that we have at least some valid financial data
             required_keys = ['current_month', 'prior_month', 'budget', 'prior_year']
-            available_keys = [key for key in required_keys if key in consolidated_data_for_analysis and consolidated_data_for_analysis[key]]
+            available_keys = [key for key in required_keys if key in consolidated_data_for_analysis and isinstance(consolidated_data_for_analysis[key], dict)]
             logger.info(f"Available data types for analysis: {available_keys}")
+            logger.info(f"STAGE 2 DEBUG: Validation passed, proceeding to calculate_noi_comparisons with {len(available_keys)} available periods")
             
             if not available_keys:
                 # If 'current_month_actuals' (or similar raw key) exists and is non-empty, it implies a formatting or key mapping issue.
@@ -4467,7 +4468,9 @@ def main():
                 st.error("Error: No valid financial data found for key periods (current_month, prior_month, etc.). Please ensure your documents contain the required financial information.")
                 return
             
+            logger.info("STAGE 2 DEBUG: About to call calculate_noi_comparisons")
             st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
+            logger.info(f"STAGE 2 DEBUG: calculate_noi_comparisons completed, result type: {type(st.session_state.comparison_results)}")
             
             if st.session_state.comparison_results and not st.session_state.comparison_results.get("error"):
                 insights = generate_insights_with_gpt(st.session_state.comparison_results, get_openai_api_key())
@@ -4549,6 +4552,80 @@ def main():
         if not hasattr(st.session_state, 'comparison_results') or not st.session_state.comparison_results:
             st.error("Error: Comparison results are not available. Please try processing the documents again.")
             logger.error("st.session_state.comparison_results is missing or empty when trying to display tabs.")
+            return
+        
+        # Check if we have current data but missing comparison data (single document scenario)
+        comparison_data_for_tabs = st.session_state.comparison_results
+        current_data = comparison_data_for_tabs.get('current', {})
+        has_comparison_data = any(comparison_data_for_tabs.get(key, {}) for key in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year'])
+        
+        # If we have current data but no comparison data, show single-document interface
+        if current_data and not has_comparison_data:
+            logger.info("Single document scenario detected: showing current period summary with guidance for additional uploads")
+            st.info("📄 **Single Document Analysis** - You've uploaded one document. Upload additional documents (Prior Month, Budget, or Prior Year) to enable comparison analysis.")
+            
+            # Display current period summary
+            st.markdown("### Current Period Financial Summary")
+            
+            # Create a formatted display of current period data
+            summary_data = []
+            metrics_order = [
+                ("gpr", "Gross Potential Rent"), ("vacancy_loss", "Vacancy Loss"), 
+                ("other_income", "Other Income"), ("egi", "Effective Gross Income"),
+                ("opex", "Total Operating Expenses"), ("noi", "Net Operating Income")
+            ]
+            
+            for key, name in metrics_order:
+                value = current_data.get(key, 0.0)
+                if value is not None:
+                    summary_data.append({
+                        "Metric": name,
+                        "Amount": f"${float(value):,.2f}"
+                    })
+            
+            if summary_data:
+                summary_df = pd.DataFrame(summary_data)
+                st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                
+                # Add guidance for next steps
+                st.markdown("### 📈 Enable Comparison Analysis")
+                st.markdown("""
+                To unlock the full power of NOI Analyzer, upload additional documents:
+                
+                **For Month-over-Month Analysis:**
+                - Upload your Prior Month Actuals document
+                
+                **For Budget Variance Analysis:**
+                - Upload your Budget document
+                
+                **For Year-over-Year Analysis:**
+                - Upload your Prior Year document
+                
+                Once you upload additional documents, you'll see detailed comparison tabs with:
+                - ✅ Visual charts and graphs
+                - ✅ Variance analysis
+                - ✅ Professional insights and recommendations
+                - ✅ Detailed breakdowns by expense and income categories
+                """)
+                
+                # Show upload options
+                st.markdown("### Upload Additional Documents")
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("📄 Upload Prior Month", use_container_width=True):
+                        st.info("Use the file upload section above to add your Prior Month Actuals document.")
+                
+                with col2:
+                    if st.button("📊 Upload Budget", use_container_width=True):
+                        st.info("Use the file upload section above to add your Budget document.")
+                
+                with col3:
+                    if st.button("📅 Upload Prior Year", use_container_width=True):
+                        st.info("Use the file upload section above to add your Prior Year document.")
+            else:
+                st.warning("Current period data appears to be empty. Please check your uploaded document.")
+            
             return
 
         comparison_data_for_tabs = st.session_state.comparison_results
