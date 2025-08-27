@@ -711,7 +711,7 @@ def display_data_template(consolidated_data: Dict[str, Any]) -> Optional[Dict[st
     with col2:
         auto_confirm = st.checkbox(
             "Auto-confirm extracted data and proceed immediately",
-            value=True,
+            value=False,
             help="Check this to automatically proceed with analysis using the extracted data. Uncheck to review and edit the data first."
         )
     
@@ -4315,11 +4315,11 @@ def main():
 
                     if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
                         st.session_state.consolidated_data = raw_consolidated_data
-                        st.session_state.template_viewed = True  # AUTO-APPROVE: Skip template step and proceed to comparison calculation
-                        logger.info("DEBUG: Document processing complete - consolidated_data populated and template_viewed=True")
-                        logger.info("DEBUG: Will proceed to Stage 3 for comparison calculation on next rerun")
+                        # REMOVED AUTO-APPROVAL: Let user review template before proceeding
+                        logger.info("DEBUG: Document processing complete - consolidated_data populated, ready for template review")
+                        logger.info("DEBUG: Will proceed to Stage 2 for template display on next rerun")
                         add_breadcrumb("Document extraction successful", "processing", "info")
-                        logger.info("Document extraction successful. Data stored. Auto-approving template to proceed to comparison calculation.")
+                        logger.info("Document extraction successful. Data stored. Ready for template review.")
                         
                         # Deduct credits after successful document processing (if using credit system)
                         if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
