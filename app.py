@@ -6,6 +6,7 @@ import logging
 import os
 import json
 import copy
+import time
 from typing import Dict, Any, List, Optional, Tuple
 import base64
 from datetime import datetime
@@ -94,6 +95,11 @@ except ImportError:
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
 from insights_display import display_insights
 from reborn_logo import get_reborn_logo_base64
+from utils.ui_helpers import (
+    show_processing_status, display_loading_spinner, display_progress_bar,
+    display_inline_loading, LoadingContext, get_loading_message_for_action,
+    create_loading_button, show_button_loading, restore_button
+)
 
 # Constants for testing mode
 TESTING_MODE_ENV_VAR = "NOI_ANALYZER_TESTING_MODE"
@@ -606,8 +612,15 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
                 )
                 edited_doc_data["noi"] = noi
         
-        # Submit button for the form
-        st.form_submit_button("Update Main Metrics")
+        # Submit button for the form with loading state
+        main_metrics_submitted = st.form_submit_button("Update Main Metrics")
+        
+        # Handle form submission with loading feedback
+        if main_metrics_submitted:
+            # Show brief loading feedback
+            with st.spinner("Updating main metrics..."):
+                time.sleep(0.3)  # Brief feedback for user
+            st.success("✅ Main metrics updated successfully!")
     
     # Display Operating Expenses breakdown
     st.markdown("<h3 style='color: #FFFFFF !important;'>Operating Expenses Breakdown</h3>", unsafe_allow_html=True)
@@ -641,8 +654,15 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
                 )
                 edited_doc_data[key] = value
         
-        # Submit button for the form
-        st.form_submit_button("Update OpEx Breakdown")
+        # Submit button for the form with loading state
+        opex_submitted = st.form_submit_button("Update OpEx Breakdown")
+        
+        # Handle form submission with loading feedback
+        if opex_submitted:
+            # Show brief loading feedback
+            with st.spinner("Updating OpEx breakdown..."):
+                time.sleep(0.3)  # Brief feedback for user
+            st.success("✅ OpEx breakdown updated successfully!")
     
     # Display Other Income breakdown
     st.markdown("<h3 style='color: #FFFFFF !important;'>Other Income Breakdown</h3>", unsafe_allow_html=True)
@@ -678,8 +698,15 @@ def display_document_data(doc_type: str, doc_data: Dict[str, Any]) -> Dict[str, 
                 )
                 edited_doc_data[key] = value
         
-        # Submit button for the form
-        st.form_submit_button("Update Other Income Breakdown")
+        # Submit button for the form with loading state
+        income_submitted = st.form_submit_button("Update Other Income Breakdown")
+        
+        # Handle form submission with loading feedback
+        if income_submitted:
+            # Show brief loading feedback
+            with st.spinner("Updating other income breakdown..."):
+                time.sleep(0.3)  # Brief feedback for user
+            st.success("✅ Other income breakdown updated successfully!")
     
     # Validate data and show warnings if needed
     is_valid, error_message = validate_financial_data(edited_doc_data)
@@ -715,8 +742,17 @@ def display_data_template(consolidated_data: Dict[str, Any]) -> Optional[Dict[st
             help="Check this to automatically proceed with analysis using the extracted data. Uncheck to review and edit the data first."
         )
     
-    # If auto-confirm is enabled, return the data immediately
+    # If auto-confirm is enabled, return the data immediately with loading state
     if auto_confirm:
+        # Show brief loading for auto-confirm
+        loading_container = st.empty()
+        with loading_container.container():
+            display_inline_loading("Auto-confirming data...", "✅")
+        
+        import time
+        time.sleep(0.5)  # Brief visual feedback
+        
+        loading_container.empty()
         st.success("✅ Data auto-confirmed. Proceeding with analysis...")
         return edited_data
     
@@ -732,10 +768,36 @@ def display_data_template(consolidated_data: Dict[str, Any]) -> Optional[Dict[st
             else:
                 st.info(f"No {doc_type.replace('_', ' ')} data available.")
     
-    # Add confirmation button
+    # Add confirmation button with loading state
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("Confirm Data and Proceed with Analysis", type="primary", use_container_width=True):
+        confirm_clicked, confirm_button_placeholder = create_loading_button(
+            "Confirm Data and Proceed with Analysis",
+            key="confirm_data_button",
+            type="primary",
+            use_container_width=True
+        )
+        
+        if confirm_clicked:
+            # Show loading state immediately
+            show_button_loading(confirm_button_placeholder, "Confirming Data...")
+            
+            # Get loading message for data confirmation
+            loading_msg, loading_subtitle = get_loading_message_for_action("confirm_data")
+            
+            # Show loading indicator
+            loading_container = st.empty()
+            with loading_container.container():
+                display_loading_spinner(loading_msg, loading_subtitle)
+            
+            # Simulate brief processing time for data validation/confirmation
+            import time
+            time.sleep(1)  # Brief pause to show loading state
+            
+            # Clear loading states
+            loading_container.empty()
+            restore_button(confirm_button_placeholder, "Confirm Data and Proceed with Analysis", key="confirm_data_button", type="primary", use_container_width=True)
+            
             return edited_data
     
     # Return None if not confirmed
@@ -3460,6 +3522,14 @@ def display_noi_coach():
     
     if submit_button and user_question:
         logger.info(f"NOI Coach (app.py) question: {user_question} with context: {st.session_state.noi_coach_selected_context}")
+        
+        # Show loading feedback for NOI Coach processing
+        loading_msg, loading_subtitle = get_loading_message_for_action("noi_coach")
+        loading_container = st.empty()
+        with loading_container.container():
+            display_loading_spinner(loading_msg, loading_subtitle)
+        
+        # Add user message to history
         st.session_state.noi_coach_history.append({"role": "user", "content": user_question})
         
         if 'comparison_results' not in st.session_state or not st.session_state.comparison_results:
@@ -3475,6 +3545,9 @@ def display_noi_coach():
             except Exception as e:
                 logger.error(f"Error generating NOI Coach response in app.py: {str(e)}", exc_info=True)
                 response = f"I'm sorry, I encountered an error: {str(e)}"
+        
+        # Clear loading state
+        loading_container.empty()
         
         st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
         st.rerun()
@@ -4100,13 +4173,35 @@ def main():
             
             # Email input is now handled at the top level
             
-            if st.button(
-                "Process Documents", 
-                type="primary",
-                use_container_width=True,
+            # Enhanced Process Documents button with loading state
+            process_clicked, process_button_placeholder = create_loading_button(
+                "Process Documents",
+                key="main_process_button",
                 help="Process the uploaded documents to generate NOI analysis",
-                key="main_process_button"
-            ):
+                type="primary",
+                use_container_width=True
+            )
+            
+            if process_clicked:
+                # Count files for better time estimation
+                temp_files = {
+                    "current_month_actuals": st.session_state.get('current_month_actuals') or current_month_file_main,
+                    "prior_month_actuals": st.session_state.get('prior_month_actuals') or prior_month_file_main,
+                    "current_month_budget": st.session_state.get('current_month_budget') or budget_file_main,
+                    "prior_year_actuals": st.session_state.get('prior_year_actuals') or prior_year_file_main
+                }
+                file_count = len([f for f in temp_files.values() if f is not None])
+                
+                # Show loading state immediately
+                show_button_loading(process_button_placeholder, "Processing Documents...")
+                
+                # Get appropriate loading message
+                loading_msg, loading_subtitle = get_loading_message_for_action("process_documents", file_count)
+                
+                # Show main loading indicator
+                loading_container = st.empty()
+                with loading_container.container():
+                    display_loading_spinner(loading_msg, loading_subtitle)
                 # COMPREHENSIVE DEBUG LOGGING FOR FILE STATES
                 logger.info("=== PROCESS DOCUMENTS BUTTON CLICKED ===")
                 logger.info(f"DEBUG: Local variables from upload_card:")
@@ -4128,6 +4223,9 @@ def main():
                 
                 if not effective_current_month:
                     logger.warning("DEBUG: No current month file available in either session state or local variables")
+                    # Clear loading states before showing error
+                    loading_container.empty()
+                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
                     st.stop()
                 # Prepare files for processing - prioritize session state (auto-stored) files
@@ -4158,17 +4256,33 @@ def main():
                     add_breadcrumb("Process Documents button clicked (Testing Mode)", "user_action", "info",
                                    {"property_name": st.session_state.mock_property_name,
                                     "scenario": st.session_state.mock_scenario})
+                    
+                    # Update loading message for testing mode
+                    with loading_container.container():
+                        display_loading_spinner("🧪 Generating test data...", "This will complete quickly in testing mode")
+                    
                     # Call the existing testing mode processing function
                     # This function should handle setting processing_completed = True
                     process_documents_testing_mode() 
                     save_testing_config() # Save current testing config
+                    
+                    # Clear loading and restore button
+                    loading_container.empty()
+                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     st.rerun()
                 else:
                     # Production mode - check credits
                     user_email = st.session_state.get('user_email', '')
                     if not user_email:
+                        # Clear loading states before showing error
+                        loading_container.empty()
+                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                         st.error("Please enter your email address to proceed.")
                         st.stop()
+                        
+                    # Update loading message for credit checking
+                    with loading_container.container():
+                        display_loading_spinner("💳 Checking credits...", "Verifying your account status")
                     # Check if user has enough credits
                     if CREDIT_SYSTEM_AVAILABLE:
                         has_credits, message = check_credits_for_analysis(user_email)
@@ -4187,7 +4301,10 @@ def main():
                             add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info",
                                            {"email": user_email,
                                             "property_name": st.session_state.get('property_name', 'Unknown')})
-                            st.success(message + " - Starting analysis...")
+                            
+                            # Update to document processing phase
+                            with loading_container.container():
+                                display_loading_spinner(loading_msg, f"{loading_subtitle} {message}")
                             # Call the document processing function directly with files
                             st.session_state.processing_completed = False
                             from noi_tool_batch_integration import process_all_documents
@@ -4208,9 +4325,16 @@ def main():
                             process_all_documents()
                             # DON'T set processing_completed=True here - let Stage 3 handle it
                             # st.session_state.processing_completed = True
+                            
+                            # Clear loading states after processing
+                            loading_container.empty()
+                            restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                             st.rerun()
                         else:
                             logger.info(f"User {user_email} has insufficient credits")
+                            # Clear loading states before showing credit UI
+                            loading_container.empty()
+                            restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                             display_insufficient_credits()
                             st.stop()
                     else:
@@ -4221,6 +4345,11 @@ def main():
                         for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
                             if key in st.session_state:
                                 del st.session_state[key]
+                        
+                        # Update loading message for payment redirect
+                        with loading_container.container():
+                            display_loading_spinner("💳 Redirecting to payment...", "Setting up secure payment processing")
+                            
                         # Import and call the payment redirect function
                         from pay_per_use.stripe_redirect import create_stripe_job_and_redirect
                         logger.info(f"Credit system unavailable - redirecting to payment for {len(files_to_upload)} files")
@@ -4879,10 +5008,25 @@ def main():
         col_pdf, col_spacer = st.columns([1,7])
         
         with col_pdf:
-            # PDF Export button
-            if st.button("Generate Complete PDF Report", key="global_pdf_export"):
-                # Use our custom status indicator instead of spinner
-                show_processing_status("Generating comprehensive PDF report...", is_running=True)
+            # PDF Export button with loading state
+            pdf_clicked, pdf_button_placeholder = create_loading_button(
+                "Generate Complete PDF Report",
+                key="global_pdf_export",
+                help="Generate a comprehensive PDF report of your analysis"
+            )
+            
+            if pdf_clicked:
+                # Show loading state immediately
+                show_button_loading(pdf_button_placeholder, "Generating PDF...")
+                
+                # Get loading message for PDF generation
+                loading_msg, loading_subtitle = get_loading_message_for_action("generate_pdf")
+                
+                # Show loading indicator
+                loading_container = st.empty()
+                with loading_container.container():
+                    display_loading_spinner(loading_msg, loading_subtitle)
+                
                 try:
                     pdf_bytes = generate_comprehensive_pdf() 
                     if pdf_bytes:
@@ -4890,6 +5034,11 @@ def main():
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
                         pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
+                        
+                        # Clear loading states
+                        loading_container.empty()
+                        restore_button(pdf_button_placeholder, "Generate Complete PDF Report", key="global_pdf_export")
+                        
                         # Display download button
                         st.download_button(
                             label="Download Complete PDF Report",
@@ -4901,9 +5050,16 @@ def main():
                         # Show success message
                         show_processing_status("PDF report generated successfully!", status_type="success")
                     else:
-                        show_processing_status("Error generating PDF report: PDF generation returned no data.", status_type="error")
+                        # Clear loading states on failure
+                        loading_container.empty()
+                        restore_button(pdf_button_placeholder, "Generate Complete PDF Report", key="global_pdf_export")
+                        st.error("Failed to generate PDF report. Please try again.")
                 except Exception as e:
-                    show_processing_status(f"Error generating PDF report: {str(e)}", status_type="error")
+                    # Clear loading states on error
+                    loading_container.empty()
+                    restore_button(pdf_button_placeholder, "Generate Complete PDF Report", key="global_pdf_export")
+                    st.error(f"Error generating PDF: {str(e)}")
+                    logger.error(f"PDF generation error: {str(e)}")
 
     # Legal Footer - Terms of Service and Privacy Policy
     st.markdown("---")

@@ -5,6 +5,28 @@ from typing import Dict, Any, Optional
 import logging
 import time
 
+# Import loading functions
+try:
+    from .ui_helpers import (
+        display_loading_spinner, display_inline_loading, 
+        get_loading_message_for_action, LoadingContext,
+        create_loading_button, show_button_loading, restore_button
+    )
+except ImportError:
+    # Fallback functions if ui_helpers is not available
+    def display_loading_spinner(message, subtitle=None):
+        st.info(f"{message} {subtitle or ''}")
+    def display_inline_loading(message, icon="⏳"):
+        st.info(f"{icon} {message}")
+    def get_loading_message_for_action(action, file_count=1):
+        return "Processing...", "Please wait..."
+    def create_loading_button(label, key=None, **kwargs):
+        return st.button(label, key=key, **kwargs), st.empty()
+    def show_button_loading(placeholder, label):
+        placeholder.button(label, disabled=True)
+    def restore_button(placeholder, label, key=None, **kwargs):
+        placeholder.button(label, key=key, **kwargs)
+
 logger = logging.getLogger(__name__)
 
 def get_backend_url():
@@ -223,14 +245,28 @@ def display_credit_balance(email: str):
     else:
         st.sidebar.error("❌ No credits remaining")
         
-    # Buy more credits button
-    if st.sidebar.button("🛒 Buy More Credits", use_container_width=True):
-        logger.info("🛒 Sidebar Buy More Credits button clicked - showing credit store")
-        st.session_state.show_credit_store = True
-        # Clear any conflicting flags
-        if 'show_credit_success' in st.session_state:
-            del st.session_state.show_credit_success
-        st.rerun()
+    # Buy more credits button with loading state
+    with st.sidebar:
+        buy_clicked, buy_button_placeholder = create_loading_button(
+            "🛒 Buy More Credits", 
+            key="sidebar_buy_credits", 
+            use_container_width=True
+        )
+        
+        if buy_clicked:
+            logger.info("🛒 Sidebar Buy More Credits button clicked - showing credit store")
+            
+            # Show loading state
+            show_button_loading(buy_button_placeholder, "Loading Store...")
+            
+            # Brief loading to show feedback
+            time.sleep(0.5)
+            
+            st.session_state.show_credit_store = True
+            # Clear any conflicting flags
+            if 'show_credit_success' in st.session_state:
+                del st.session_state.show_credit_success
+            st.rerun()
     
     # Transaction history in expander
     with st.sidebar.expander("📊 Recent Activity"):
@@ -625,21 +661,55 @@ def display_credit_store():
                 # Description
                 st.caption(package.get('description', f"Top up {package['credits']} credits"))
                 
-                # Purchase button
+                # Purchase button with loading state
                 email = st.session_state.get('user_email', '')
                 button_key = f"buy_{package['package_id']}"
                 
                 if not email:
                     st.warning("Please enter your email in the main app to purchase credits.")
                 else:
-                    if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary"):
+                    # Create loading button for package purchase
+                    purchase_clicked, purchase_button_placeholder = create_loading_button(
+                        f"Buy {package['name']}",
+                        key=button_key,
+                        use_container_width=True,
+                        type="primary"
+                    )
+                    
+                    if purchase_clicked:
+                        logger.info(f"Purchase button clicked for package {package['name']}")
+                        
+                        # Show button loading state
+                        show_button_loading(purchase_button_placeholder, "Processing...")
+                        
+                        # Call purchase function
                         purchase_credits(email, package['package_id'], package['name'])
+                        
+                        # Restore button state (in case of error)
+                        restore_button(
+                            purchase_button_placeholder, 
+                            f"Buy {package['name']}", 
+                            key=f"{button_key}_restored",
+                            use_container_width=True,
+                            type="primary"
+                        )
     
     # Add proper spacing after all cards are displayed
     st.markdown("<br><br>", unsafe_allow_html=True)
 
 def purchase_credits(email: str, package_id: str, package_name: str):
-    """Handle credit purchase"""
+    """Handle credit purchase with loading states"""
+    # Get loading message for credit purchase
+    loading_msg, loading_subtitle = get_loading_message_for_action("credit_purchase")
+    
+    # Show loading indicator with payment-specific messaging
+    loading_container = st.empty()
+    with loading_container.container():
+        display_loading_spinner(
+            f"Setting up secure payment for {package_name}...",
+            "You'll be redirected to Stripe to complete your purchase safely."
+        )
+    
     try:
         # Add debug logging
         logger.info(f"Attempting to purchase credits: email={email}, package_id={package_id}, package_name={package_name}")
@@ -647,6 +717,7 @@ def purchase_credits(email: str, package_id: str, package_name: str):
         
         # Test backend connection first
         if not test_backend_connection():
+            loading_container.empty()
             st.error("❌ **Backend API Unavailable**")
             st.info(f"""
             **Debug Information:**
@@ -688,23 +759,35 @@ def purchase_credits(email: str, package_id: str, package_name: str):
             checkout_url = result.get('checkout_url')
             
             if checkout_url:
-                # Use Streamlit's built-in redirect or direct browser navigation
-                st.success("🔄 **Redirecting to Stripe checkout...**")
+                # Clear loading spinner first
+                loading_container.empty()
                 
-                # Immediate redirect via meta refresh and JS fallback
-                st.markdown(f"""
-                <meta http-equiv='refresh' content='0; url={checkout_url}' />
-                <script>
-                    window.location.href = '{checkout_url}';
-                </script>
-                """, unsafe_allow_html=True)
-                
-                # Provide manual link only if redirect fails (rare)
-                st.markdown(f"<small>If you are not redirected, <a href='{checkout_url}' target='_blank'>click here to continue to Stripe.</a></small>", unsafe_allow_html=True)
+                # Show payment redirect with inline loading
+                with st.container():
+                    display_inline_loading(
+                        "🔄 Redirecting to secure Stripe checkout...",
+                        "💳"
+                    )
+                    
+                    # Brief delay to show the redirect message
+                    time.sleep(1)
+                    
+                    # Immediate redirect via meta refresh and JS fallback
+                    st.markdown(f"""
+                    <meta http-equiv='refresh' content='0; url={checkout_url}' />
+                    <script>
+                        window.location.href = '{checkout_url}';
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
+                    # Provide manual link only if redirect fails (rare)
+                    st.markdown(f"<small>If you are not redirected, <a href='{checkout_url}' target='_blank'>click here to continue to Stripe.</a></small>", unsafe_allow_html=True)
             else:
+                loading_container.empty()
                 st.error("❌ Failed to create checkout session.")
                 st.info(f"Server response: {result}")
         else:
+            loading_container.empty()
             error_msg = f"Failed to initiate purchase: {response.text}"
             st.error(f"❌ {error_msg}")
             
@@ -727,6 +810,7 @@ Response: {response.text}
                 """)
             
     except requests.exceptions.ConnectionError as e:
+        loading_container.empty()
         st.error("❌ **Connection Error**")
         st.error("Cannot connect to the backend API server.")
         with st.expander("🔧 Technical Details"):
@@ -742,11 +826,13 @@ Error: {str(e)}
             """)
         
     except requests.exceptions.Timeout as e:
+        loading_container.empty()
         st.error("❌ **Request Timeout**")
         st.error("The request took too long to complete.")
         st.info("Please try again. If the problem persists, contact support.")
         
     except Exception as e:
+        loading_container.empty()
         logger.error(f"Unexpected error during purchase: {str(e)}", exc_info=True)
         st.error(f"❌ **Unexpected Error**")
         st.error(f"An unexpected error occurred: {str(e)}")
@@ -781,7 +867,7 @@ def check_credits_for_analysis(email: str) -> tuple[bool, str]:
         return False, f"You need {credits_needed} credit(s) but only have {credits}"
 
 def display_insufficient_credits():
-    """Display message when user has insufficient credits"""
+    """Display message when user has insufficient credits with loading states"""
     st.error("🔴 **Insufficient Credits**")
     st.markdown("""
     You don't have enough credits to run this analysis. Each analysis requires **1 credit**.
@@ -790,13 +876,44 @@ def display_insufficient_credits():
     """)
     
     col1, col2 = st.columns(2)
+    
     with col1:
-        if st.button("🛒 Buy Credits", use_container_width=True, key="insufficient_buy_credits"):
+        # Enhanced buy credits button with loading state
+        buy_clicked, buy_button_placeholder = create_loading_button(
+            "🛒 Buy Credits", 
+            key="insufficient_buy_credits",
+            use_container_width=True
+        )
+        
+        if buy_clicked:
+            logger.info("Insufficient credits - Buy Credits button clicked")
+            
+            # Show loading state
+            show_button_loading(buy_button_placeholder, "Loading Store...")
+            
+            # Brief loading feedback
+            time.sleep(0.3)
+            
             st.session_state.show_credit_store = True
             st.rerun()
     
     with col2:
-        if st.button("📊 View Pricing", use_container_width=True, key="insufficient_view_pricing"):
+        # Enhanced view pricing button with loading state
+        pricing_clicked, pricing_button_placeholder = create_loading_button(
+            "📊 View Pricing", 
+            key="insufficient_view_pricing",
+            use_container_width=True
+        )
+        
+        if pricing_clicked:
+            logger.info("Insufficient credits - View Pricing button clicked")
+            
+            # Show loading state
+            show_button_loading(pricing_button_placeholder, "Loading Pricing...")
+            
+            # Brief loading feedback
+            time.sleep(0.3)
+            
             st.session_state.show_credit_store = True  # Use the same store interface
             st.rerun()
 

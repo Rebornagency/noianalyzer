@@ -349,6 +349,247 @@ def inject_custom_css():
         animation: pulse 1.5s infinite ease-in-out;
     }
     
+    /* Enhanced Loading Indicators CSS */
+    
+    /* Main Loading Spinner */
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(31, 41, 55, 0.9));
+        border: 2px solid rgba(59, 130, 246, 0.3);
+        border-radius: 16px;
+        margin: 2rem 0;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(59, 130, 246, 0.2);
+        border-left: 4px solid var(--reborn-accent-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1.5rem;
+    }
+    
+    .loading-message {
+        color: var(--reborn-text-primary);
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .loading-subtitle {
+        color: var(--reborn-text-secondary);
+        font-size: 0.95rem;
+        text-align: center;
+        line-height: 1.4;
+        max-width: 400px;
+    }
+    
+    /* Progress Bar */
+    .progress-container {
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: rgba(31, 41, 55, 0.8);
+        border-radius: 12px;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    
+    .progress-message {
+        color: var(--reborn-text-primary);
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    
+    .progress-bar-track {
+        width: 100%;
+        height: 8px;
+        background-color: rgba(75, 85, 99, 0.5);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--reborn-accent-blue), #60a5fa);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .progress-bar-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: shimmer 2s infinite;
+    }
+    
+    /* Inline Loading */
+    .inline-loading {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 6px;
+        color: var(--reborn-text-primary);
+        font-size: 0.9rem;
+        margin: 0.5rem 0;
+    }
+    
+    .inline-loading-icon {
+        font-size: 1rem;
+    }
+    
+    .inline-loading-text {
+        font-weight: 500;
+    }
+    
+    /* Overlay Loading */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        backdrop-filter: blur(4px);
+    }
+    
+    .loading-overlay-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+        background: linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.95));
+        border: 2px solid rgba(59, 130, 246, 0.4);
+        border-radius: 20px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        text-align: center;
+    }
+    
+    .overlay-spinner {
+        width: 60px;
+        height: 60px;
+        border: 5px solid rgba(59, 130, 246, 0.2);
+        border-left: 5px solid var(--reborn-accent-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 2rem;
+    }
+    
+    .overlay-message {
+        color: var(--reborn-text-primary);
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+    
+    .overlay-subtitle {
+        color: var(--reborn-text-secondary);
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    
+    /* Button Loading States */
+    .button-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+    
+    .button-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 16px;
+        height: 16px;
+        margin: -8px 0 0 -8px;
+        border: 2px solid transparent;
+        border-left: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    /* Animations */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .pulse-animation {
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+    
+    /* Mobile Responsive Loading */
+    @media (max-width: 768px) {
+        .loading-container {
+            padding: 2rem 1rem;
+            margin: 1rem 0;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .loading-message {
+            font-size: 1rem;
+        }
+        
+        .loading-overlay-content {
+            padding: 2rem;
+            margin: 1rem;
+            max-width: 90vw;
+        }
+        
+        .overlay-spinner {
+            width: 50px;
+            height: 50px;
+        }
+        
+        .overlay-message {
+            font-size: 1.1rem;
+        }
+    }
+    
+    /* Loading Clear Helper */
+    .loading-clear {
+        display: none;
+    }
+    
     </style>
     """, unsafe_allow_html=True)
     logger.info("Custom CSS injected for Reborn theme.")
@@ -480,6 +721,265 @@ def show_processing_status(message: str, is_running: bool = False, status_type: 
     """
     st.markdown(status_html, unsafe_allow_html=True)
     logger.info(f"Displayed processing status: {message} (type: {status_type}, running: {is_running})")
+
+# Enhanced loading indicator functions
+def display_loading_spinner(message: str = "Processing...", subtitle: str = None):
+    """
+    Display a prominent loading spinner with message.
+    
+    Args:
+        message (str): Main loading message
+        subtitle (str): Optional subtitle with additional context
+    """
+    subtitle_html = f"<div class='loading-subtitle'>{subtitle}</div>" if subtitle else ""
+    
+    loading_html = f"""
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <div class="loading-message">{message}</div>
+        {subtitle_html}
+    </div>
+    """
+    st.markdown(loading_html, unsafe_allow_html=True)
+    logger.info(f"Displayed loading spinner: {message}")
+
+def display_progress_bar(progress: float, message: str = "Processing...", show_percentage: bool = True):
+    """
+    Display a progress bar with customizable message.
+    
+    Args:
+        progress (float): Progress value between 0.0 and 1.0
+        message (str): Message to display above the progress bar
+        show_percentage (bool): Whether to show percentage text
+    """
+    progress_percent = min(max(progress * 100, 0), 100)
+    percentage_text = f"({progress_percent:.0f}%)" if show_percentage else ""
+    
+    progress_html = f"""
+    <div class="progress-container">
+        <div class="progress-message">{message} {percentage_text}</div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width: {progress_percent}%"></div>
+        </div>
+    </div>
+    """
+    st.markdown(progress_html, unsafe_allow_html=True)
+    logger.debug(f"Displayed progress bar: {progress_percent:.1f}% - {message}")
+
+def display_inline_loading(message: str = "Loading...", icon: str = "⏳"):
+    """
+    Display a compact inline loading indicator.
+    
+    Args:
+        message (str): Loading message
+        icon (str): Icon to display (emoji or text)
+    """
+    inline_html = f"""
+    <div class="inline-loading">
+        <span class="inline-loading-icon pulse-animation">{icon}</span>
+        <span class="inline-loading-text">{message}</span>
+    </div>
+    """
+    st.markdown(inline_html, unsafe_allow_html=True)
+    logger.debug(f"Displayed inline loading: {message}")
+
+def display_overlay_loading(message: str = "Processing your request...", subtitle: str = None):
+    """
+    Display a full-screen overlay loading indicator (use sparingly).
+    
+    Args:
+        message (str): Main loading message
+        subtitle (str): Optional subtitle
+    """
+    subtitle_html = f"<div class='overlay-subtitle'>{subtitle}</div>" if subtitle else ""
+    
+    overlay_html = f"""
+    <div class="loading-overlay">
+        <div class="loading-overlay-content">
+            <div class="overlay-spinner"></div>
+            <div class="overlay-message">{message}</div>
+            {subtitle_html}
+        </div>
+    </div>
+    """
+    st.markdown(overlay_html, unsafe_allow_html=True)
+    logger.info(f"Displayed overlay loading: {message}")
+
+def clear_loading_indicators():
+    """
+    Clear all loading indicators by rendering empty content.
+    Call this when loading is complete.
+    """
+    st.markdown("<div class='loading-clear'></div>", unsafe_allow_html=True)
+    logger.debug("Cleared loading indicators")
+
+# Context manager for loading states
+class LoadingContext:
+    """
+    Context manager for handling loading states automatically.
+    
+    Usage:
+        with LoadingContext("Processing documents...", "This may take 1-2 minutes"):
+            # Your processing code here
+            result = some_long_running_function()
+    """
+    def __init__(self, message: str, subtitle: str = None, loading_type: str = "spinner"):
+        self.message = message
+        self.subtitle = subtitle
+        self.loading_type = loading_type
+        self.container = None
+        
+    def __enter__(self):
+        self.container = st.empty()
+        with self.container.container():
+            if self.loading_type == "spinner":
+                display_loading_spinner(self.message, self.subtitle)
+            elif self.loading_type == "inline":
+                display_inline_loading(self.message)
+            elif self.loading_type == "overlay":
+                display_overlay_loading(self.message, self.subtitle)
+        return self
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.container:
+            self.container.empty()
+        logger.debug(f"LoadingContext completed: {self.message}")
+    
+    def update_message(self, new_message: str, subtitle: str = None):
+        """Update the loading message while in context."""
+        if self.container:
+            with self.container.container():
+                if self.loading_type == "spinner":
+                    display_loading_spinner(new_message, subtitle)
+                elif self.loading_type == "inline":
+                    display_inline_loading(new_message)
+
+# Helper functions for button loading states
+def create_loading_button(label: str, key: str = None, help_text: str = None, **kwargs):
+    """
+    Create a button that shows loading state when clicked.
+    Returns a tuple of (clicked, button_placeholder) for manual loading management.
+    
+    Args:
+        label (str): Button label
+        key (str): Unique key for the button
+        help_text (str): Help text for the button
+        **kwargs: Additional button arguments
+        
+    Returns:
+        tuple: (clicked, button_placeholder)
+    """
+    button_placeholder = st.empty()
+    
+    with button_placeholder.container():
+        clicked = st.button(label, key=key, help=help_text, **kwargs)
+    
+    return clicked, button_placeholder
+
+def show_button_loading(button_placeholder, label: str = "Processing..."):
+    """
+    Show loading state for a button.
+    
+    Args:
+        button_placeholder: The button placeholder from create_loading_button
+        label (str): Loading label to display
+    """
+    with button_placeholder.container():
+        st.markdown(f"""
+        <div class="stButton">
+            <button class="button-loading" disabled>
+                {label}
+            </button>
+        </div>
+        """, unsafe_allow_html=True)
+
+def restore_button(button_placeholder, label: str, key: str = None, **kwargs):
+    """
+    Restore button to normal state after loading.
+    
+    Args:
+        button_placeholder: The button placeholder from create_loading_button
+        label (str): Original button label
+        key (str): Button key
+        **kwargs: Additional button arguments
+    """
+    with button_placeholder.container():
+        st.button(label, key=f"{key}_restored" if key else None, **kwargs)
+
+# Enhanced timing estimation helpers
+def get_loading_message_for_action(action: str, file_count: int = 1) -> tuple:
+    """
+    Get appropriate loading message and estimated time for different actions.
+    
+    Args:
+        action (str): Type of action ("process_documents", "generate_pdf", "generate_insights", etc.)
+        file_count (int): Number of files being processed
+        
+    Returns:
+        tuple: (message, subtitle_with_timing)
+    """
+    action_configs = {
+        "process_documents": {
+            "message": "Processing your documents...",
+            "base_time": 60,  # 1 minute base
+            "per_file": 30,   # 30 seconds per additional file
+            "icon": "📄"
+        },
+        "generate_insights": {
+            "message": "Generating AI insights...",
+            "base_time": 30,
+            "per_file": 10,
+            "icon": "🤖"
+        },
+        "generate_pdf": {
+            "message": "Creating PDF report...",
+            "base_time": 15,
+            "per_file": 5,
+            "icon": "📊"
+        },
+        "confirm_data": {
+            "message": "Confirming and processing data...",
+            "base_time": 10,
+            "per_file": 2,
+            "icon": "✅"
+        },
+        "credit_purchase": {
+            "message": "Redirecting to payment...",
+            "base_time": 5,
+            "per_file": 0,
+            "icon": "💳"
+        },
+        "noi_coach": {
+            "message": "Getting AI recommendations...",
+            "base_time": 15,
+            "per_file": 0,
+            "icon": "💡"
+        }
+    }
+    
+    config = action_configs.get(action, {
+        "message": "Processing...",
+        "base_time": 30,
+        "per_file": 5,
+        "icon": "⏳"
+    })
+    
+    estimated_seconds = config["base_time"] + (config["per_file"] * max(0, file_count - 1))
+    
+    if estimated_seconds < 60:
+        time_text = f"about {estimated_seconds} seconds"
+    else:
+        minutes = estimated_seconds // 60
+        remaining_seconds = estimated_seconds % 60
+        if remaining_seconds > 0:
+            time_text = f"about {minutes}:{remaining_seconds:02d} minutes"
+        else:
+            time_text = f"about {minutes} minute{'s' if minutes != 1 else ''}"
+    
+    message = f"{config['icon']} {config['message']}"
+    subtitle = f"This may take {time_text}. Please wait..."
+    
+    return message, subtitle
 
 # Function to display file information with enhanced styling
 def show_file_info(file_name: str, file_size: Optional[str] = None, file_type: Optional[str] = None, uploaded: bool = False):

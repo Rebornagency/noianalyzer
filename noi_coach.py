@@ -3,6 +3,21 @@ import logging
 import random
 from typing import List, Dict, Any, Optional
 
+# Import loading functions
+try:
+    from utils.ui_helpers import (
+        display_loading_spinner, display_inline_loading, 
+        get_loading_message_for_action, LoadingContext
+    )
+except ImportError:
+    # Fallback functions if ui_helpers is not available
+    def display_loading_spinner(message, subtitle=None):
+        st.info(f"{message} {subtitle or ''}")
+    def display_inline_loading(message, icon="⏳"):
+        st.info(f"{icon} {message}")
+    def get_loading_message_for_action(action, file_count=1):
+        return "Processing...", "Please wait..."
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -141,9 +156,25 @@ def display_noi_coach():
                 if st.button(prompt, key=f"example_prompt_{i}", use_container_width=True):
                     # Add the example prompt as a user message
                     add_message("user", prompt)
-                    # Generate and add the response
-                    response = generate_response(prompt, st.session_state.noi_coach_context)
-                    add_message("assistant", response)
+                    
+                    # Show inline loading for quick feedback
+                    loading_container = st.empty()
+                    with loading_container.container():
+                        display_inline_loading("Generating advice...", "💭")
+                    
+                    try:
+                        # Generate and add the response
+                        response = generate_response(prompt, st.session_state.noi_coach_context)
+                        add_message("assistant", response)
+                        
+                        # Clear loading
+                        loading_container.empty()
+                    except Exception as e:
+                        loading_container.empty()
+                        st.error(f"Error: {str(e)}")
+                    
+                    # Rerun to update display
+                    st.rerun()
         
         # Display chat history
         st.markdown("### Conversation")
@@ -207,10 +238,37 @@ def display_noi_coach():
             # Add the user message to the chat history
             add_message("user", user_input)
             
-            # Generate and add the response
-            with st.spinner("Generating advice..."):
+            # Get loading message for NOI Coach
+            loading_msg, loading_subtitle = get_loading_message_for_action("noi_coach")
+            
+            # Show loading indicator
+            loading_container = st.empty()
+            with loading_container.container():
+                display_loading_spinner(loading_msg, loading_subtitle)
+            
+            try:
+                # Generate the response
                 response = generate_response(user_input, st.session_state.noi_coach_context)
                 add_message("assistant", response)
+                
+                # Clear loading indicator
+                loading_container.empty()
+                
+                # Show brief success message
+                success_container = st.empty()
+                with success_container.container():
+                    display_inline_loading("Response generated!", "✅")
+                
+                # Clear success message after short delay
+                import time
+                time.sleep(1)
+                success_container.empty()
+                
+            except Exception as e:
+                # Clear loading on error
+                loading_container.empty()
+                st.error(f"Error generating response: {str(e)}")
+                logger.error(f"NOI Coach error: {str(e)}")
             
             # Force a rerun to update the chat display
             st.rerun() 
