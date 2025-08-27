@@ -871,8 +871,12 @@ def create_loading_button(label: str, key: str = None, help_text: str = None, **
     """
     button_placeholder = st.empty()
     
+    # Handle help parameter conflicts - prefer explicit help_text over kwargs help
+    if help_text is not None:
+        kwargs['help'] = help_text
+    
     with button_placeholder.container():
-        clicked = st.button(label, key=key, help=help_text, **kwargs)
+        clicked = st.button(label, key=key, **kwargs)
     
     return clicked, button_placeholder
 
