@@ -189,8 +189,29 @@ class DatabaseService:
         finally:
             conn.close()
     
+    def is_stripe_session_processed(self, stripe_session_id: str) -> bool:
+        """Check if Stripe session has already been processed (prevents duplicate payments)"""
+        if not stripe_session_id:
+            return False
+            
+        conn = self.get_connection()
+        try:
+            cursor = conn.execute('SELECT COUNT(*) FROM credit_transactions WHERE stripe_session_id = ?', (stripe_session_id,))
+            count = cursor.fetchone()[0]
+            return count > 0
+        except Exception as e:
+            logger.error(f"Error checking stripe session: {e}")
+            return False
+        finally:
+            conn.close()
+    
     def update_user_credits(self, user_id: str, credits_change: int, transaction_type: TransactionType, description: str, stripe_session_id: Optional[str] = None) -> bool:
         """Update user credits and record transaction"""
+        # WEBHOOK PROTECTION: Check if Stripe session already processed
+        if stripe_session_id and self.is_stripe_session_processed(stripe_session_id):
+            logger.warning(f"Stripe session {stripe_session_id} already processed - preventing duplicate")
+            return True  # Return True because payment was already successful
+        
         conn = self.get_connection()
         try:
             # Get current user
