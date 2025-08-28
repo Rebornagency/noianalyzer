@@ -24,6 +24,14 @@ ENV/
 # Streamlit specific
 .streamlit/secrets.toml
 
+# Database files (contain user data - should not be in Git)
+*.db
+noi_analyzer.db
+
+# Backup files (contain user data - should not be in Git) 
+backups/
+*.backup
+
 # Keep templates directory
 # Ensure template files are included
 !templates/
