@@ -866,6 +866,54 @@ def check_credits_for_analysis(email: str) -> tuple[bool, str]:
     else:
         return False, f"You need {credits_needed} credit(s) but only have {credits}"
 
+def deduct_credits_for_analysis(email: str) -> tuple[bool, str, dict]:
+    """Actually deduct credits for analysis via backend API
+    
+    Returns:
+        (success, message, user_data)
+    """
+    if not email:
+        return False, "Please enter your email address", {}
+    
+    try:
+        from uuid import uuid4
+        analysis_id = str(uuid4())
+        
+        # Make actual API call to deduct credits
+        response = requests.post(
+            f"{BACKEND_URL}/pay-per-use/use-credits",
+            data={
+                "email": email,
+                "analysis_id": analysis_id
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            # Credits successfully deducted
+            result = response.json()
+            
+            # Get updated user data
+            credit_data = get_user_credits(email)
+            if credit_data:
+                remaining_credits = credit_data.get("credits", 0)
+                success_msg = f"Analysis started! 1 credit deducted. {remaining_credits} credits remaining."
+                return True, success_msg, credit_data
+            else:
+                return True, "Analysis started! 1 credit deducted.", {}
+        else:
+            # Credit deduction failed
+            error_msg = f"Credit deduction failed: {response.text}"
+            logger.error(f"Credit deduction failed for {email}: {response.status_code} - {response.text}")
+            return False, error_msg, {}
+            
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"Cannot connect to credit service for {email}: {e}")
+        return False, "Cannot connect to credit service", {}
+    except Exception as e:
+        logger.error(f"Unexpected error during credit deduction for {email}: {e}")
+        return False, f"Credit system error: {str(e)}", {}
+
 def display_insufficient_credits():
     """Display message when user has insufficient credits with loading states"""
     st.error("🔴 **Insufficient Credits**")

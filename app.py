@@ -3923,6 +3923,55 @@ def main():
         </script>
         """, unsafe_allow_html=True)
         
+        # Add CSS to maintain scroll position and prevent auto-scroll to bottom
+        st.markdown(
+            """
+            <style>
+            /* Prevent auto-scroll on rerun and maintain smooth scrolling */
+            html {
+                scroll-behavior: smooth;
+            }
+            
+            /* Maintain scroll position during Streamlit reruns */
+            .main .block-container {
+                scroll-behavior: smooth;
+            }
+            
+            /* Ensure file upload areas stay in view */
+            [data-testid="stFileUploader"] {
+                scroll-margin-top: 100px;
+            }
+            
+            /* Smooth transitions for upload cards */
+            .upload-card {
+                transition: all 0.3s ease;
+            }
+            </style>
+            
+            <script>
+            // Maintain scroll position across Streamlit reruns
+            window.addEventListener('DOMContentLoaded', function() {
+                // Store scroll position before rerun
+                if (window.sessionStorage) {
+                    const savedPosition = sessionStorage.getItem('scrollPosition');
+                    if (savedPosition) {
+                        window.scrollTo(0, parseInt(savedPosition));
+                        sessionStorage.removeItem('scrollPosition');
+                    }
+                }
+                
+                // Save scroll position before page unload/rerun
+                window.addEventListener('beforeunload', function() {
+                    if (window.sessionStorage) {
+                        sessionStorage.setItem('scrollPosition', window.scrollY.toString());
+                    }
+                });
+            });
+            </script>
+            """,
+            unsafe_allow_html=True
+        )
+        
         # Display logo at the very top of the app
         display_logo()
         
@@ -4135,21 +4184,46 @@ def main():
             
             # AUTO-STORE FILES IN SESSION STATE immediately upon upload
             # This prevents race conditions where files might be lost during rerun
-            if current_month_file_main:
+            # We store files but avoid triggering immediate reruns to keep smooth UX
+            files_changed = False
+            
+            if current_month_file_main and not st.session_state.get('current_month_actuals'):
                 st.session_state.current_month_actuals = current_month_file_main
                 logger.info(f"DEBUG: Auto-stored current_month_actuals: {current_month_file_main.name}")
+                files_changed = True
             
-            if prior_month_file_main:
+            if prior_month_file_main and not st.session_state.get('prior_month_actuals'):
                 st.session_state.prior_month_actuals = prior_month_file_main
                 logger.info(f"DEBUG: Auto-stored prior_month_actuals: {prior_month_file_main.name}")
+                files_changed = True
             
-            if budget_file_main:
+            if budget_file_main and not st.session_state.get('current_month_budget'):
                 st.session_state.current_month_budget = budget_file_main
                 logger.info(f"DEBUG: Auto-stored current_month_budget: {budget_file_main.name}")
+                files_changed = True
             
-            if prior_year_file_main:
+            if prior_year_file_main and not st.session_state.get('prior_year_actuals'):
                 st.session_state.prior_year_actuals = prior_year_file_main
                 logger.info(f"DEBUG: Auto-stored prior_year_actuals: {prior_year_file_main.name}")
+                files_changed = True
+            
+            # Show a subtle success message when files are uploaded (without rerun)
+            if files_changed:
+                st.success("📄 File uploaded successfully! You can continue uploading more files or click 'Process Documents' when ready.")
+            
+            # Show current file status without triggering rerun
+            uploaded_files_status = []
+            if st.session_state.get('current_month_actuals'):
+                uploaded_files_status.append("✅ Current Month Actuals")
+            if st.session_state.get('prior_month_actuals'):
+                uploaded_files_status.append("✅ Prior Month Actuals")
+            if st.session_state.get('current_month_budget'):
+                uploaded_files_status.append("✅ Budget")
+            if st.session_state.get('prior_year_actuals'):
+                uploaded_files_status.append("✅ Prior Year")
+            
+            if uploaded_files_status:
+                st.info(f"📁 **Uploaded files:** {', '.join(uploaded_files_status)}")
             
             # Enhanced property input using component function
             main_page_property_name_input = property_input(value=st.session_state.property_name)
@@ -4167,9 +4241,10 @@ def main():
                 help="Show metrics with zero values in the comparison tables"
             )
             
+            # Update session state without triggering immediate rerun
             if show_zero_values != st.session_state.show_zero_values:
                 st.session_state.show_zero_values = show_zero_values
-                st.rerun()
+                # Note: We don't need st.rerun() here as the change will take effect on next interaction
 
             st.markdown('</div>', unsafe_allow_html=True)
             
@@ -4520,36 +4595,44 @@ def main():
                         if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
                             email = st.session_state.get('user_email', '')
                             if email and not st.session_state.get('credits_deducted', False):
-                                try:
-                                    import requests
-                                    import os
-                                    
-                                    # Mark credits as deducted to prevent double deduction
+                                from utils.credit_ui import deduct_credits_for_analysis
+                                
+                                # CRITICAL: Actually deduct credits via API call
+                                success, message, credit_data = deduct_credits_for_analysis(email)
+                                
+                                if success:
+                                    # Credits successfully deducted
                                     st.session_state.credits_deducted = True
-                                    logger.info(f"Credit deduction confirmed for user {email}")
-                                    st.success("✅ 1 credit used for this analysis")
+                                    logger.info(f"Credit deduction successful for user {email}")
+                                    st.success(f"✅ {message}")
                                     
-                                    # Verify current credit balance
-                                    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-                                    response = requests.get(
-                                        f"{backend_url}/pay-per-use/credits/{email}",
-                                        timeout=10
-                                    )
+                                    # Show warning if user now has 0 credits
+                                    remaining_credits = credit_data.get("credits", 0)
+                                    if remaining_credits == 0:
+                                        logger.warning(f"User {email} has exhausted all credits")
+                                        st.info("💡 You've used all your credits. Consider buying more for future analyses.")
+                                else:
+                                    # Credit deduction failed - this is a critical error
+                                    logger.error(f"Credit deduction failed for user {email}: {message}")
+                                    st.error("❌ **Credit deduction failed!** Analysis cannot proceed.")
+                                    st.error(f"Error: {message}")
                                     
-                                    if response.status_code == 200:
-                                        credit_data = response.json()
-                                        remaining_credits = credit_data.get("credits", 0)
-                                        logger.info(f"User {email} has {remaining_credits} credits remaining")
-                                        if remaining_credits == 0:
-                                            logger.warning(f"User {email} no longer has sufficient credits")
-                                            st.info("💡 Consider buying more credits for future analyses")
-                                    else:
-                                        logger.warning(f"Could not verify credits for {email}")
+                                    # Reset states to prevent analysis from proceeding
+                                    st.session_state.user_initiated_processing = False
+                                    if 'consolidated_data' in st.session_state:
+                                        del st.session_state.consolidated_data
+                                    if 'template_viewed' in st.session_state:
+                                        del st.session_state.template_viewed
+                                    if 'processing_completed' in st.session_state:
+                                        del st.session_state.processing_completed
                                         
-                                except Exception as e:
-                                    logger.warning(f"Could not verify credit deduction: {e}")
-                                    # Continue with processing even if verification fails
-                                    pass
+                                    # Show purchase option
+                                    st.info("💳 You may need to purchase more credits to continue.")
+                                    if st.button("🛍️ Buy Credits", key="buy_credits_after_failed_deduction"):
+                                        st.session_state.show_credit_store = True
+                                        st.rerun()
+                                        
+                                    st.stop()  # Stop processing immediately
                     elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
                         error_message = raw_consolidated_data["error"]
                         add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
@@ -4670,6 +4753,26 @@ def main():
        st.session_state.consolidated_data:
 
         logger.info("APP.PY: --- Financial Analysis START (Stage 3) ---")
+        
+        # CRITICAL SECURITY CHECK: Verify credits again before analysis to prevent bypass
+        if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
+            email = st.session_state.get('user_email', '')
+            if email and not st.session_state.get('credits_deducted', False):
+                logger.error(f"SECURITY: User {email} reached Stage 3 without credit deduction!")
+                st.error("🚨 **Security Error**: Credits not properly deducted. Please restart the process.")
+                
+                # Reset all states and prevent further processing
+                st.session_state.user_initiated_processing = False
+                st.session_state.template_viewed = False
+                st.session_state.processing_completed = False
+                if 'consolidated_data' in st.session_state:
+                    del st.session_state.consolidated_data
+                if 'credits_deducted' in st.session_state:
+                    del st.session_state.credits_deducted
+                    
+                st.info("Please restart the document processing from the beginning.")
+                st.stop()
+        
         show_processing_status("Processing verified data for analysis...", is_running=True)
         try:
             # Ensure consolidated_data is valid before analysis
