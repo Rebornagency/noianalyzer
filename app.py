@@ -4820,6 +4820,31 @@ def main():
                 st.error("Error: No valid financial data found for key periods (current_month, prior_month, etc.). Please ensure your documents contain the required financial information.")
                 return
             
+            # Additional validation: Check if current month data has meaningful values
+            if 'current_month' in consolidated_data_for_analysis:
+                current_month_data = consolidated_data_for_analysis['current_month']
+                key_metrics = ['gpr', 'egi', 'opex', 'noi']
+                has_meaningful_values = any(
+                    current_month_data.get(metric, 0) != 0 
+                    for metric in key_metrics
+                )
+                
+                if not has_meaningful_values:
+                    logger.error("Current month data contains all zero values - likely extraction failure")
+                    st.error("😱 **Data Quality Issue**: The current month document appears to contain no meaningful financial data. This could indicate:")
+                    st.markdown("""
+                    - 📄 **Document Format Issue**: The document might not be in a supported format
+                    - 🔍 **Content Problem**: The document might be blank, corrupted, or contain unrecognizable data
+                    - 📝 **Wrong Document**: You might have uploaded a non-financial document
+                    
+                    **🔧 How to Fix:**
+                    1. Check that your document contains actual financial data (income, expenses, NOI)
+                    2. Ensure it's in a supported format (Excel, PDF, CSV)
+                    3. Try uploading a different version of your financial statement
+                    4. Contact support if the issue persists
+                    """)
+                    return
+            
             logger.info("STAGE 2 DEBUG: About to call calculate_noi_comparisons")
             st.session_state.comparison_results = calculate_noi_comparisons(consolidated_data_for_analysis)
             logger.info(f"STAGE 2 DEBUG: calculate_noi_comparisons completed successfully")
@@ -4931,7 +4956,47 @@ def main():
         # If we have current data but no comparison data, show single-document interface
         if current_data and not has_comparison_data:
             logger.info("Single document scenario detected: showing current period summary with guidance for additional uploads")
-            st.info("📄 **Single Document Analysis** - You've uploaded one document. Upload additional documents (Prior Month, Budget, or Prior Year) to enable comparison analysis.")
+            
+            # Enhanced guidance with specific benefits
+            st.info("📄 **Single Document Analysis** - You've uploaded one document. Upload additional documents to unlock powerful comparison features and deeper insights.")
+            
+            # Show comparison benefits clearly
+            with st.expander("🚀 **Why Add More Documents? See the Benefits**", expanded=True):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("""
+                    **📊 With Prior Month Document:**
+                    - Month-over-month trend analysis
+                    - Identify seasonal patterns
+                    - Track operational improvements
+                    - Variance explanations and insights
+                    """)
+                    
+                    st.markdown("""
+                    **💰 With Budget Document:**
+                    - Budget vs actual variance analysis
+                    - Performance against targets
+                    - Identify budget overruns
+                    - Financial control insights
+                    """)
+                
+                with col2:
+                    st.markdown("""
+                    **📈 With Prior Year Document:**
+                    - Year-over-year growth analysis
+                    - Long-term trend identification
+                    - Annual performance comparison
+                    - Strategic planning insights
+                    """)
+                    
+                    st.markdown("""
+                    **🤖 AI-Powered Enhancements:**
+                    - Detailed financial narratives
+                    - Automated insights and recommendations
+                    - Professional reporting features
+                    - Export capabilities for stakeholders
+                    """)
             
             # Display current period summary
             st.markdown("### Current Period Financial Summary")
@@ -4977,21 +5042,36 @@ def main():
                 - ✅ Detailed breakdowns by expense and income categories
                 """)
                 
-                # Show upload options
-                st.markdown("### Upload Additional Documents")
+                # Add actionable guidance
+                st.markdown("### 📈 Ready to Unlock Full Analysis?")
+                
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    if st.button("📄 Upload Prior Month", use_container_width=True):
-                        st.info("Use the file upload section above to add your Prior Month Actuals document.")
+                    if st.button("📄 Add Prior Month", use_container_width=True, type="secondary"):
+                        st.info("💡 **Quick Tip**: Use the file upload section above to add your Prior Month Actuals document. This enables month-over-month comparison and trend analysis.")
                 
                 with col2:
-                    if st.button("📊 Upload Budget", use_container_width=True):
-                        st.info("Use the file upload section above to add your Budget document.")
+                    if st.button("📊 Add Budget", use_container_width=True, type="secondary"):
+                        st.info("💡 **Quick Tip**: Upload your Budget document above to see actual vs budget variance analysis and identify areas where you're over or under budget.")
                 
                 with col3:
-                    if st.button("📅 Upload Prior Year", use_container_width=True):
-                        st.info("Use the file upload section above to add your Prior Year document.")
+                    if st.button("📅 Add Prior Year", use_container_width=True, type="secondary"):
+                        st.info("💡 **Quick Tip**: Add your Prior Year document to see year-over-year growth trends and annual performance insights.")
+                
+                # Show what they're missing
+                st.markdown("""
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1rem; border-radius: 8px; color: white; margin-top: 1rem;">
+                    <h4>🎯 What You're Missing:</h4>
+                    <ul>
+                        <li><strong>Comparative Charts</strong> - Visual trend analysis and performance graphs</li>
+                        <li><strong>AI Insights</strong> - Automated recommendations and performance drivers</li>
+                        <li><strong>Financial Narrative</strong> - Professional story explaining your numbers</li>
+                        <li><strong>Variance Analysis</strong> - Detailed breakdowns of changes and their causes</li>
+                        <li><strong>Export Features</strong> - PDF reports and Excel exports for stakeholders</li>
+                    </ul>
+                </div>
+                """, unsafe_allow_html=True)
             else:
                 st.warning("Current period data appears to be empty. Please check your uploaded document.")
             

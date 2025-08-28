@@ -90,6 +90,17 @@ def process_all_documents() -> Dict[str, Any]:
             'details': "Current Month Actuals is mandatory."
         }
     
+    # Additional validation: Check if we have at least minimum required files
+    file_count = len([f for f in files_to_process.values() if f is not None])
+    if file_count < 1:
+        logger.warning("No valid files found for processing.")
+        st.session_state.consolidated_data = {}
+        st.session_state.raw_data = {}
+        return {
+            'error': "No valid files found for processing.",
+            'details': "Please ensure at least one financial document is properly uploaded."
+        }
+    
     processed_data_for_consolidation = {}
     raw_extraction_results = {}
     overall_has_error = False
@@ -149,6 +160,15 @@ def process_all_documents() -> Dict[str, Any]:
             'details': final_error_details
         }
     
+    # Enhanced validation: Check if current month data has meaningful values
+    current_month_data = processed_data_for_consolidation["current_month"]
+    if not validate_meaningful_financial_data(current_month_data):
+        logger.error("Critical error: Current month data appears to be empty or corrupted.")
+        return {
+            'error': "Current month data appears to be empty or corrupted.",
+            'details': "The extracted financial data contains no meaningful values. Please check your document format and try again."
+        }
+    
     if overall_has_error:
         logger.warning(f"process_all_documents completed with some errors. First error: {first_error_message}")
         # Return the consolidated data but also indicate partial success / errors
@@ -161,6 +181,34 @@ def process_all_documents() -> Dict[str, Any]:
     
     logger.info("Successfully processed all documents. Consolidated data is ready.")
     return processed_data_for_consolidation # This is the dict like {"current_month": data, ...}
+
+def validate_meaningful_financial_data(data: Dict[str, Any]) -> bool:
+    """
+    Validate that financial data contains meaningful (non-zero) values.
+    
+    Args:
+        data: Formatted financial data
+        
+    Returns:
+        True if data contains meaningful values, False otherwise
+    """
+    if not data or not isinstance(data, dict):
+        return False
+    
+    # Check if any key financial metrics have meaningful values
+    key_metrics = ['gpr', 'egi', 'opex', 'noi']
+    has_meaningful_data = False
+    
+    for metric in key_metrics:
+        value = data.get(metric, 0)
+        try:
+            if float(value) != 0:
+                has_meaningful_data = True
+                break
+        except (ValueError, TypeError):
+            continue
+    
+    return has_meaningful_data
 
 def validate_formatted_data(data: Dict[str, Any], doc_type_label: str) -> Dict[str, Any]:
     """

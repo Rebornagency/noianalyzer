@@ -264,8 +264,14 @@ def format_financial_data_for_prompt(comparison_results: Dict[str, Any]) -> str:
     
     formatted_text += f"\nNET OPERATING INCOME (NOI): {format_currency(current.get('noi'))}\n\n"
     
-    # Add comparison data if available
-    formatted_text += _format_comparison_data(comparison_results)
+    # Add comparison data if available with better handling for empty data
+    comparison_data_text = _format_comparison_data(comparison_results)
+    if comparison_data_text.strip():
+        formatted_text += comparison_data_text
+    else:
+        formatted_text += "\nCOMPARISON DATA:\n"
+        formatted_text += "Note: No comparison data is available. This analysis is based on current period data only.\n"
+        formatted_text += "Consider uploading Prior Month, Budget, or Prior Year documents for comparative analysis.\n\n"
     
     logger.info(f"Formatted financial data ({len(formatted_text)} chars)")
     return formatted_text
@@ -274,7 +280,7 @@ def format_financial_data_for_prompt(comparison_results: Dict[str, Any]) -> str:
 @handle_errors(default_return="")
 def _format_comparison_data(comparison_results: Dict[str, Any]) -> str:
     """
-    Format comparison data sections for the prompt.
+    Format comparison data sections for the prompt with enhanced empty data handling.
     
     Args:
         comparison_results: Comparison results dictionary
@@ -283,63 +289,84 @@ def _format_comparison_data(comparison_results: Dict[str, Any]) -> str:
         Formatted comparison data string
     """
     formatted_text = ""
+    comparisons_found = 0
     
     # Actual vs Budget comparison
     if "actual_vs_budget" in comparison_results:
         avb = comparison_results["actual_vs_budget"]
-        formatted_text += "ACTUAL VS BUDGET COMPARISON:\n"
-        
-        for metric in MAIN_METRICS:
-            budget_key = f"{metric}_budget"
-            variance_key = f"{metric}_variance"
-            percent_key = f"{metric}_percent_variance"
+        if avb and any(avb.values()):  # Check if not empty and has meaningful data
+            formatted_text += "ACTUAL VS BUDGET COMPARISON:\n"
             
-            if budget_key in avb:
-                budget_val = format_currency(avb.get(budget_key))
-                variance_val = format_currency(avb.get(variance_key))
-                percent_val = format_percent(avb.get(percent_key, 0) / 100) if avb.get(percent_key) else "0.0%"
+            for metric in MAIN_METRICS:
+                budget_key = f"{metric}_budget"
+                variance_key = f"{metric}_variance"
+                percent_key = f"{metric}_percent_variance"
                 
-                formatted_text += f"- {metric.upper()}: Budget {budget_val}, Variance {variance_val} ({percent_val})\n"
-        
-        formatted_text += "\n"
+                if budget_key in avb:
+                    budget_val = format_currency(avb.get(budget_key))
+                    variance_val = format_currency(avb.get(variance_key))
+                    percent_val = format_percent(avb.get(percent_key, 0) / 100) if avb.get(percent_key) else "0.0%"
+                    
+                    formatted_text += f"- {metric.upper()}: Budget {budget_val}, Variance {variance_val} ({percent_val})\n"
+            
+            formatted_text += "\n"
+            comparisons_found += 1
     
     # Month vs Prior comparison
     if "month_vs_prior" in comparison_results:
         mvp = comparison_results["month_vs_prior"]
-        formatted_text += "MONTH VS PRIOR MONTH COMPARISON:\n"
-        
-        for metric in MAIN_METRICS:
-            prior_key = f"{metric}_prior"
-            change_key = f"{metric}_change"
-            percent_key = f"{metric}_percent_change"
+        if mvp and any(mvp.values()):  # Check if not empty and has meaningful data
+            formatted_text += "MONTH VS PRIOR MONTH COMPARISON:\n"
             
-            if prior_key in mvp:
-                prior_val = format_currency(mvp.get(prior_key))
-                change_val = format_currency(mvp.get(change_key))
-                percent_val = format_percent(mvp.get(percent_key, 0) / 100) if mvp.get(percent_key) else "0.0%"
+            for metric in MAIN_METRICS:
+                prior_key = f"{metric}_prior"
+                change_key = f"{metric}_change"
+                percent_key = f"{metric}_percent_change"
                 
-                formatted_text += f"- {metric.upper()}: Prior {prior_val}, Change {change_val} ({percent_val})\n"
-        
-        formatted_text += "\n"
+                if prior_key in mvp:
+                    prior_val = format_currency(mvp.get(prior_key))
+                    change_val = format_currency(mvp.get(change_key))
+                    percent_val = format_percent(mvp.get(percent_key, 0) / 100) if mvp.get(percent_key) else "0.0%"
+                    
+                    formatted_text += f"- {metric.upper()}: Prior {prior_val}, Change {change_val} ({percent_val})\n"
+            
+            formatted_text += "\n"
+            comparisons_found += 1
     
     # Year vs Year comparison  
     if "year_vs_year" in comparison_results:
         yoy = comparison_results["year_vs_year"]
-        formatted_text += "YEAR OVER YEAR COMPARISON:\n"
-        
-        for metric in MAIN_METRICS:
-            prior_key = f"{metric}_prior_year"
-            change_key = f"{metric}_change"
-            percent_key = f"{metric}_percent_change"
+        if yoy and any(yoy.values()):  # Check if not empty and has meaningful data
+            formatted_text += "YEAR OVER YEAR COMPARISON:\n"
             
-            if prior_key in yoy:
-                prior_val = format_currency(yoy.get(prior_key))
-                change_val = format_currency(yoy.get(change_key))
-                percent_val = format_percent(yoy.get(percent_key, 0) / 100) if yoy.get(percent_key) else "0.0%"
+            for metric in MAIN_METRICS:
+                prior_key = f"{metric}_prior_year"
+                change_key = f"{metric}_change"
+                percent_key = f"{metric}_percent_change"
                 
-                formatted_text += f"- {metric.upper()}: Prior Year {prior_val}, Change {change_val} ({percent_val})\n"
+                if prior_key in yoy:
+                    prior_val = format_currency(yoy.get(prior_key))
+                    change_val = format_currency(yoy.get(change_key))
+                    percent_val = format_percent(yoy.get(percent_key, 0) / 100) if yoy.get(percent_key) else "0.0%"
+                    
+                    formatted_text += f"- {metric.upper()}: Prior Year {prior_val}, Change {change_val} ({percent_val})\n"
+            
+            formatted_text += "\n"
+            comparisons_found += 1
+    
+    # Add note about limited comparison data if applicable
+    if comparisons_found > 0 and comparisons_found < 3:
+        available_types = []
+        if "actual_vs_budget" in comparison_results and comparison_results["actual_vs_budget"]:
+            available_types.append("Budget")
+        if "month_vs_prior" in comparison_results and comparison_results["month_vs_prior"]:
+            available_types.append("Prior Month")
+        if "year_vs_year" in comparison_results and comparison_results["year_vs_year"]:
+            available_types.append("Prior Year")
         
-        formatted_text += "\n"
+        if available_types:
+            formatted_text += f"Note: Comparison analysis is limited to available data ({', '.join(available_types)}).\n"
+            formatted_text += "Additional insights could be provided with more comparative documents.\n\n"
     
     return formatted_text
 
@@ -366,10 +393,21 @@ Please analyze the following financial data for {property_name_clean} and create
 
 **Analysis Requirements:**
 1. **Executive Summary**: Provide a brief overview of overall financial performance
-2. **Key Performance Drivers**: Identify and explain the main factors driving financial performance
-3. **Notable Variances**: Highlight significant variances from budget, prior month, or prior year
-4. **Trend Analysis**: Discuss any notable trends or patterns in the data
-5. **Operational Insights**: Provide insights into operational efficiency and areas for improvement
+2. **Key Performance Analysis**: 
+   - If comparison data is available, identify and explain the main factors driving performance changes
+   - If only current period data is available, focus on absolute performance metrics and operational efficiency
+3. **Notable Insights**: 
+   - Highlight significant variances if comparison data exists
+   - For single-period analysis, focus on income and expense composition
+4. **Operational Insights**: Provide insights into operational efficiency and areas for improvement
+5. **Recommendations**: 
+   - For comparative analysis, provide specific recommendations based on variances
+   - For single-period analysis, suggest areas for further investigation or benchmarking
+
+**Important Notes:**
+- If comparison data is limited or unavailable, focus on current period performance analysis
+- Do not speculate about trends without comparative data
+- Be explicit about data limitations when relevant
 
 **Style Guidelines:**
 - Write in a professional, analytical tone
@@ -377,7 +415,7 @@ Please analyze the following financial data for {property_name_clean} and create
 - Focus on actionable insights
 - Organize information logically with clear sections
 - Avoid technical jargon; write for property management stakeholders
-- Keep the narrative concise but comprehensive (aim for 800-1200 words)
+- Keep the narrative concise but comprehensive (aim for 600-1000 words)
 
 **Format:**
 Structure the narrative with clear sections and use bullet points where appropriate for readability.
