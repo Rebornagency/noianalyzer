@@ -77,67 +77,82 @@ def display_narrative_in_tabs():
     """
     logger.info("Displaying financial narrative in tabs")
     
-    # Check if narrative exists in session state
-    has_narrative = (
-        "generated_narrative" in st.session_state and 
-        st.session_state.generated_narrative and 
-        isinstance(st.session_state.generated_narrative, str)
-    )
-    
-    # Log narrative status
-    if has_narrative:
-        narrative_snippet = st.session_state.generated_narrative[:100] + "..." if len(st.session_state.generated_narrative) > 100 else st.session_state.generated_narrative
-        logger.info(f"Found narrative in session state (snippet): {narrative_snippet}")
-    else:
-        logger.info("No narrative found in session state or narrative is empty")
-    
-    # Display the narrative
-    st.markdown("""
-        <div class="reborn-section-title financial-narrative">Financial Performance Narrative</div>
-    """, unsafe_allow_html=True)
-    
-    if has_narrative:
-        # Process the narrative to ensure consistent styling
-        narrative_text = st.session_state.generated_narrative
-        # Remove any stray closing div tags that might appear in the raw narrative
-        narrative_clean = narrative_text.replace("</div>", "").replace("<div>", "")
-        # Escape HTML to ensure safe rendering
-        safe_narrative = narrative_clean.replace("<", "&lt;").replace(">", "&gt;")
+    try:
+        # Check if narrative exists in session state
+        has_narrative = (
+            "generated_narrative" in st.session_state and 
+            st.session_state.generated_narrative and 
+            isinstance(st.session_state.generated_narrative, str)
+        )
         
-        # Convert newlines to <br> for proper spacing
-        safe_narrative_html = safe_narrative.replace("\n", "<br>")
-        # Display narrative with consistent styling
-        st.markdown(f"""
-            <div class="narrative-container">
-                {safe_narrative_html}
-            </div>
+        # Log narrative status
+        if has_narrative:
+            narrative_snippet = st.session_state.generated_narrative[:100] + "..." if len(st.session_state.generated_narrative) > 100 else st.session_state.generated_narrative
+            logger.info(f"Found narrative in session state (snippet): {narrative_snippet}")
+        else:
+            logger.info("No narrative found in session state or narrative is empty")
+        
+        # Display the narrative
+        st.markdown("""
+            <div class="reborn-section-title financial-narrative">Financial Performance Narrative</div>
         """, unsafe_allow_html=True)
         
-        # Add edit button
-        if st.button("Edit Narrative", key="edit_narrative_in_tabs"):
-            st.session_state.show_narrative_editor = True
-        
-        # Show editor if requested
-        if "show_narrative_editor" in st.session_state and st.session_state.show_narrative_editor:
-            st.subheader("Edit Narrative")
-            edited_narrative = st.text_area(
-                "Edit the financial narrative below:",
-                value=st.session_state.generated_narrative,
-                height=300,
-                key="narrative_editor_tab"
-            )
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Save Changes", key="save_narrative_btn"):
-                    st.session_state.edited_narrative = edited_narrative
-                    st.session_state.generated_narrative = edited_narrative # Keep generated in sync if edited
-                    st.session_state.show_narrative_editor = False
-                    st.success("Narrative updated successfully!")
-                    st.rerun()
-            with col2:
-                if st.button("Cancel", key="cancel_narrative_btn"):
-                    st.session_state.show_narrative_editor = False
-                    st.rerun()
-    else:
-        st.info("No financial narrative has been generated yet. Process documents to generate a narrative.") 
+        if has_narrative:
+            try:
+                # Process the narrative to ensure consistent styling
+                narrative_text = st.session_state.generated_narrative
+                # Remove any stray closing div tags that might appear in the raw narrative
+                narrative_clean = narrative_text.replace("</div>", "").replace("<div>", "")
+                # Escape HTML to ensure safe rendering
+                safe_narrative = narrative_clean.replace("<", "&lt;").replace(">", "&gt;")
+                
+                # Convert newlines to <br> for proper spacing
+                safe_narrative_html = safe_narrative.replace("\n", "<br>")
+                # Display narrative with consistent styling
+                st.markdown(f"""
+                    <div class="narrative-container">
+                        {safe_narrative_html}
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # Add edit button
+                if st.button("Edit Narrative", key="edit_narrative_in_tabs"):
+                    st.session_state.show_narrative_editor = True
+                
+                # Show editor if requested
+                if "show_narrative_editor" in st.session_state and st.session_state.show_narrative_editor:
+                    try:
+                        st.subheader("Edit Narrative")
+                        edited_narrative = st.text_area(
+                            "Edit the financial narrative below:",
+                            value=st.session_state.generated_narrative,
+                            height=300,
+                            key="narrative_editor_tab"
+                        )
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("Save Changes", key="save_narrative_btn"):
+                                st.session_state.edited_narrative = edited_narrative
+                                st.session_state.generated_narrative = edited_narrative # Keep generated in sync if edited
+                                st.session_state.show_narrative_editor = False
+                                st.success("Narrative updated successfully!")
+                                st.rerun()
+                        with col2:
+                            if st.button("Cancel", key="cancel_narrative_btn"):
+                                st.session_state.show_narrative_editor = False
+                                st.rerun()
+                    except Exception as e:
+                        logger.error(f"Error in narrative editor: {str(e)}", exc_info=True)
+                        st.error("An error occurred with the narrative editor. Please try again.")
+                        st.session_state.show_narrative_editor = False
+            except Exception as e:
+                logger.error(f"Error processing narrative display: {str(e)}", exc_info=True)
+                st.error("An error occurred while displaying the narrative. The narrative content may be corrupted.")
+                # Still show a basic view
+                st.text(str(st.session_state.generated_narrative)[:500] + "..." if len(str(st.session_state.generated_narrative)) > 500 else str(st.session_state.generated_narrative))
+        else:
+            st.info("No financial narrative has been generated yet. Process documents to generate a narrative.")
+    except Exception as e:
+        logger.error(f"Critical error in display_narrative_in_tabs: {str(e)}", exc_info=True)
+        st.error("An error occurred while loading the narrative section. Please refresh the page.") 

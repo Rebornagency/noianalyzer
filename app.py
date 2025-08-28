@@ -2515,25 +2515,41 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
         # --- NEW: Main Comparison Bar Chart ---
         st.markdown(f"### Overview")
-        main_bar_fig = px.bar(
-            df,
-            x="Metric",
-            y=["Current", name_suffix],
-            barmode="group",
-            labels={"value": "Amount ($)", "variable": "Period", "Metric": ""},
-            color_discrete_map={"Current": "#3B82F6", name_suffix: "#10B981"}
-        )
-        main_bar_fig.update_layout(
-            title_text=f"Current vs {name_suffix}",
-            title_font_color="#FFFFFF",
-            title_font_size=20,
-            font_color="#FFFFFF",
-            legend_title_text="",
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(tickangle=-45)
-        )
-        st.plotly_chart(main_bar_fig, use_container_width=True)
+        
+        # Ensure DataFrame has proper column structure to avoid pandas FutureWarnings
+        chart_df = df.copy()
+        chart_df = chart_df.reset_index(drop=True)
+        
+        # Create the chart with explicit column handling
+        try:
+            # Suppress pandas FutureWarnings for plotly express
+            import warnings
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                
+                main_bar_fig = px.bar(
+                    chart_df,
+                    x="Metric",
+                    y=["Current", name_suffix],
+                    barmode="group",
+                    labels={"value": "Amount ($)", "variable": "Period", "Metric": ""},
+                    color_discrete_map={"Current": "#3B82F6", name_suffix: "#10B981"}
+                )
+                
+            main_bar_fig.update_layout(
+                title_text=f"Current vs {name_suffix}",
+                title_font_color="#FFFFFF",
+                title_font_size=20,
+                font_color="#FFFFFF",
+                legend_title_text="",
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                xaxis=dict(tickangle=-45)
+            )
+            st.plotly_chart(main_bar_fig, use_container_width=True)
+        except Exception as e:
+            logger.warning(f"Chart display warning (non-critical): {str(e)}")
+            st.info("Chart display temporarily unavailable. Data tables are still available below.")
         # --- END NEW CODE ---
 
         # Apply styling for changes
@@ -2640,14 +2656,19 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             # Create a custom color map based on our category colors
                             color_map = {row["Expense Category"]: row["Color"] for _, row in pie_data.iterrows()}
                             
-                            fig = px.pie(
-                                pie_data, 
-                                values="Current", 
-                                names="Expense Category",
-                                color="Expense Category",
-                                color_discrete_map=color_map,
-                                hole=0.4
-                            )
+                            # Suppress pandas FutureWarnings for plotly express
+                            import warnings
+                            with warnings.catch_warnings():
+                                warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                                
+                                fig = px.pie(
+                                    pie_data, 
+                                    values="Current", 
+                                    names="Expense Category",
+                                    color="Expense Category",
+                                    color_discrete_map=color_map,
+                                    hole=0.4
+                                )
                             fig.update_layout(
                                 template="plotly_dark",
                                 plot_bgcolor='rgba(13, 17, 23, 0)',
@@ -2699,20 +2720,25 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             bar_df = pd.DataFrame(bar_data)
                             
                             # Create the bar chart with improved styling
-                            comp_fig = px.bar(
-                                bar_df,
-                                x="Amount",
-                                y="Expense Category",
-                                color="Period",
-                                barmode="group",
-                                orientation="h",
-                                color_discrete_map={
-                                    "Current": "#1e88e5", # Blue for Current
-                                    name_suffix: "#4ecdc4"  # Teal for Prior/Budget (can be dynamic based on name_suffix if needed)
-                                },
-                                labels={"Amount": "Amount ($)", "Expense Category": ""},
-                                height=len(opex_df["Expense Category"].unique()) * 60 + 100 # Dynamic height
-                            )
+                            # Suppress pandas FutureWarnings for plotly express
+                            import warnings
+                            with warnings.catch_warnings():
+                                warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                                
+                                comp_fig = px.bar(
+                                    bar_df,
+                                    x="Amount",
+                                    y="Expense Category",
+                                    color="Period",
+                                    barmode="group",
+                                    orientation="h",
+                                    color_discrete_map={
+                                        "Current": "#1e88e5", # Blue for Current
+                                        name_suffix: "#4ecdc4"  # Teal for Prior/Budget (can be dynamic based on name_suffix if needed)
+                                    },
+                                    labels={"Amount": "Amount ($)", "Expense Category": ""},
+                                    height=len(opex_df["Expense Category"].unique()) * 60 + 100 # Dynamic height
+                                )
                             
                             # Update layout for modern appearance
                             comp_fig.update_layout(
@@ -2876,14 +2902,19 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             (income_df["Income Category"] != "Total Other Income")
                         ]
                         if not pie_data.empty:
-                            fig = px.pie(
-                                pie_data, 
-                                values="Current", 
-                                names="Income Category",
-                                title="Current Other Income Breakdown",
-                                color_discrete_sequence=px.colors.qualitative.Pastel,
-                                hole=0.4
-                            )
+                            # Suppress pandas FutureWarnings for plotly express
+                            import warnings
+                            with warnings.catch_warnings():
+                                warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                                
+                                fig = px.pie(
+                                    pie_data, 
+                                    values="Current", 
+                                    names="Income Category",
+                                    title="Current Other Income Breakdown",
+                                    color_discrete_sequence=px.colors.qualitative.Pastel,
+                                    hole=0.4
+                                )
                             fig.update_layout(
                                 template="plotly_dark",
                                 plot_bgcolor='rgba(30, 41, 59, 0.8)',
@@ -3559,42 +3590,77 @@ def display_unified_insights_no_html(insights_data):
     Args:
         insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
     """
-    if not insights_data or not isinstance(insights_data, dict):
-        st.warning("No insights data available to display.")
-        return
-    
-    # Display Executive Summary
-    if 'summary' in insights_data:
-        st.markdown("## Executive Summary")
+    try:
+        if not insights_data or not isinstance(insights_data, dict):
+            st.warning("No insights data available to display.")
+            return
         
-        summary_text = insights_data['summary']
-        # Remove redundant "Executive Summary:" prefix if it exists
-        if summary_text.startswith("Executive Summary:"):
-            summary_text = summary_text[len("Executive Summary:"):].strip()
+        logger.info(f"Displaying unified insights with keys: {list(insights_data.keys())}")
+        
+        # Display Executive Summary
+        if 'summary' in insights_data and insights_data['summary']:
+            try:
+                st.markdown("## Executive Summary")
+                
+                summary_text = insights_data['summary']
+                # Remove redundant "Executive Summary:" prefix if it exists
+                if summary_text.startswith("Executive Summary:"):
+                    summary_text = summary_text[len("Executive Summary:"):].strip()
+                    
+                import html as _html_mod  # local import within function
+                escaped = _html_mod.escape(summary_text).replace("\n", "<br>")
+                st.markdown(f"<div class='results-text'>{escaped}</div>", unsafe_allow_html=True)
+            except Exception as e:
+                logger.error(f"Error displaying executive summary: {str(e)}")
+                st.error("Error displaying executive summary.")
+        
+        # Display Key Performance Insights
+        if 'performance' in insights_data and insights_data['performance']:
+            try:
+                st.markdown("## Key Performance Insights")
+                
+                performance_markdown = ""
+                for insight in insights_data['performance']:
+                    if isinstance(insight, str):
+                        performance_markdown += f"- {insight}\n"
+                    else:
+                        performance_markdown += f"- {str(insight)}\n"
+                        
+                if performance_markdown:
+                    st.markdown(performance_markdown)
+                else:
+                    st.info("No performance insights available.")
+            except Exception as e:
+                logger.error(f"Error displaying performance insights: {str(e)}")
+                st.error("Error displaying performance insights.")
+        
+        # Display Recommendations
+        if 'recommendations' in insights_data and insights_data['recommendations']:
+            try:
+                st.markdown("## Recommendations")
+                
+                recommendations_markdown = ""
+                for recommendation in insights_data['recommendations']:
+                    if isinstance(recommendation, str):
+                        recommendations_markdown += f"- {recommendation}\n"
+                    else:
+                        recommendations_markdown += f"- {str(recommendation)}\n"
+                        
+                if recommendations_markdown:
+                    st.markdown(recommendations_markdown)
+                else:
+                    st.info("No recommendations available.")
+            except Exception as e:
+                logger.error(f"Error displaying recommendations: {str(e)}")
+                st.error("Error displaying recommendations.")
+        
+        # If no sections were displayed, show a message
+        if not any(key in insights_data and insights_data[key] for key in ['summary', 'performance', 'recommendations']):
+            st.info("Insights are being generated. Please check back in a moment.")
             
-        import html as _html_mod  # local import within function
-        escaped = _html_mod.escape(summary_text).replace("\n", "<br>")
-        st.markdown(f"<div class='results-text'>{escaped}</div>", unsafe_allow_html=True)
-    
-    # Display Key Performance Insights
-    if 'performance' in insights_data and insights_data['performance']:
-        st.markdown("## Key Performance Insights")
-        
-        performance_markdown = ""
-        for insight in insights_data['performance']:
-            performance_markdown += f"- {insight}\n"
-        if performance_markdown:
-            st.markdown(performance_markdown)
-    
-    # Display Recommendations
-    if 'recommendations' in insights_data and insights_data['recommendations']:
-        st.markdown("## Recommendations")
-        
-        recommendations_markdown = ""
-        for recommendation in insights_data['recommendations']:
-            recommendations_markdown += f"- {recommendation}\n"
-        if recommendations_markdown:
-            st.markdown(recommendations_markdown)
+    except Exception as e:
+        logger.error(f"Critical error in display_unified_insights_no_html: {str(e)}", exc_info=True)
+        st.error("An error occurred while displaying insights. Please refresh the page or try processing your documents again.")
 
 # Define the generate_comprehensive_pdf function before it's called in main()
 def generate_comprehensive_pdf():
@@ -4743,7 +4809,21 @@ def main():
         # Check if we have current data but missing comparison data (single document scenario)
         comparison_data_for_tabs = st.session_state.comparison_results
         current_data = comparison_data_for_tabs.get('current', {})
-        has_comparison_data = any(comparison_data_for_tabs.get(key, {}) for key in ['month_vs_prior', 'actual_vs_budget', 'year_vs_year'])
+        
+        # Check which comparison types are available
+        available_comparisons = {
+            'month_vs_prior': bool(comparison_data_for_tabs.get('month_vs_prior', {})),
+            'actual_vs_budget': bool(comparison_data_for_tabs.get('actual_vs_budget', {})),
+            'year_vs_year': bool(comparison_data_for_tabs.get('year_vs_year', {}))
+        }
+        
+        has_comparison_data = any(available_comparisons.values())
+        
+        # Log partial data scenario for debugging
+        if current_data and has_comparison_data:
+            missing_comparisons = [k for k, v in available_comparisons.items() if not v]
+            if missing_comparisons:
+                logger.info(f"Partial data scenario detected. Available: {[k for k, v in available_comparisons.items() if v]}, Missing: {missing_comparisons}")
         
         # If we have current data but no comparison data, show single-document interface
         if current_data and not has_comparison_data:
@@ -4887,19 +4967,14 @@ def main():
                 month_vs_prior_data["current"] = comparison_data_for_tabs.get("current", {})
                 month_vs_prior_data["prior"] = comparison_data_for_tabs.get("prior", {})
                 
-                display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
+                try:
+                    display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
+                except Exception as e:
+                    logger.error(f"Error displaying Prior Month tab: {str(e)}", exc_info=True)
+                    st.error("An error occurred while displaying the Prior Month comparison. This may be due to incomplete data.")
             else:
-                st.warning("Not enough data for Prior Month comparison.")
-                logger.warning("APP.PY: 'month_vs_prior' data is missing or empty in comparison_data_for_tabs.")
-                # Optionally, display current month summary if available
-                current_data_summary = comparison_data_for_tabs.get('current', {})
-                if current_data_summary:
-                    st.write("Current Month Data Summary:")
-                    current_summary_to_display = {k: v for k, v in current_data_summary.items() if v is not None and v != 0}
-                    if current_summary_to_display:
-                        st.json(current_summary_to_display)
-                    else:
-                        st.info("No current month data values to display.")
+                st.info("📄 **Prior Month Analysis Not Available** - Upload a Prior Month document to enable month-over-month comparison.")
+                logger.info("APP.PY: Prior Month tab displayed with graceful degradation for missing data.")
                 
         with tabs[1]:
             st.header("Actual vs. Budget")
@@ -4918,10 +4993,14 @@ def main():
                 actual_vs_budget_data["current"] = comparison_data_for_tabs.get("current", {})
                 actual_vs_budget_data["budget"] = comparison_data_for_tabs.get("budget", {})
                 
-                display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
+                try:
+                    display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
+                except Exception as e:
+                    logger.error(f"Error displaying Budget tab: {str(e)}", exc_info=True)
+                    st.error("An error occurred while displaying the Budget comparison. This may be due to incomplete data.")
             else:
-                st.warning("Not enough data for Budget comparison.")
-                logger.warning("APP.PY: 'actual_vs_budget' data is missing or empty in comparison_data_for_tabs.")
+                st.info("📄 **Budget Analysis Not Available** - Upload a Budget document to enable actual vs. budget comparison.")
+                logger.info("APP.PY: Budget tab displayed with graceful degradation for missing data.")
 
         with tabs[2]:
             st.header("Current Year vs. Prior Year")
@@ -4940,35 +5019,69 @@ def main():
                 year_vs_year_data["current"] = comparison_data_for_tabs.get("current", {})
                 year_vs_year_data["prior_year"] = comparison_data_for_tabs.get("prior_year", {})
                 
-                display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
+                try:
+                    display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
+                except Exception as e:
+                    logger.error(f"Error displaying Prior Year tab: {str(e)}", exc_info=True)
+                    st.error("An error occurred while displaying the Prior Year comparison. This may be due to incomplete data.")
             else:
-                st.warning("Not enough data for Prior Year comparison.")
-                logger.warning("APP.PY: 'year_vs_year' data is missing or empty in comparison_data_for_tabs.")
+                st.info("📄 **Prior Year Analysis Not Available** - Upload a Prior Year document to enable year-over-year comparison.")
+                
+                # Show current period summary for context
+                current_data_for_yoy = comparison_data_for_tabs.get('current', {})
+                if current_data_for_yoy:
+                    st.markdown("### Current Year Summary")
+                    
+                    # Create a simple summary table
+                    summary_data = []
+                    for key, name in [("egi", "Effective Gross Income"), ("opex", "Operating Expenses"), ("noi", "Net Operating Income")]:
+                        value = current_data_for_yoy.get(key, 0.0)
+                        if value is not None:
+                            summary_data.append({"Metric": name, "Current Year": f"${float(value):,.2f}"})
+                    
+                    if summary_data:
+                        summary_df = pd.DataFrame(summary_data)
+                        st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                    
+                    st.markdown("💡 **Upload your Prior Year document** above to unlock detailed year-over-year analysis with variance calculations and insights.")
+                else:
+                    st.warning("No current year data available for summary.")
+                
+                logger.info("APP.PY: Prior Year tab displayed with graceful degradation for missing data.")
         
         with tabs[3]: # Summary Tab (formerly Financial Narrative & Insights)
             st.header("Overall Summary & Insights")
             
-            # Display the narrative text and editor
-            display_narrative_in_tabs()
-            
-            # Display the consolidated insights (summary, performance, recommendations)
-            if "insights" in st.session_state and st.session_state.insights:
-                try:
-                    display_unified_insights_no_html(st.session_state.insights)
-                except Exception as e:
-                    logger.error(f"Error displaying insights: {e}")
-                    st.error("An error occurred while displaying insights. Please try processing documents again.")
-            else:
-                logger.info("No insights data found in session state for Financial Narrative & Insights tab.")
-                st.info("Insights (including summary and recommendations) will be displayed here once generated.")
+            try:
+                # Display the narrative text and editor
+                display_narrative_in_tabs()
+                
+                # Display the consolidated insights (summary, performance, recommendations)
+                if "insights" in st.session_state and st.session_state.insights:
+                    try:
+                        display_unified_insights_no_html(st.session_state.insights)
+                    except Exception as e:
+                        logger.error(f"Error displaying insights: {e}")
+                        st.error("An error occurred while displaying insights. Please try processing documents again.")
+                else:
+                    logger.info("No insights data found in session state for Financial Narrative & Insights tab.")
+                    st.info("Insights (including summary and recommendations) will be displayed here once generated.")
+            except Exception as e:
+                logger.error(f"Error in Summary tab: {str(e)}", exc_info=True)
+                st.error("An error occurred while displaying the summary. The analysis is still available in other tabs.")
 
         # Display NOI Coach section
         with tabs[4]: # NOI Coach tab
-            # if NOI_COACH_AVAILABLE:
-            #     display_noi_coach_enhanced()
-            # else:
-            #     display_noi_coach()
-            display_noi_coach() # Directly call the app.py internal version
+            try:
+                # if NOI_COACH_AVAILABLE:
+                #     display_noi_coach_enhanced()
+                # else:
+                #     display_noi_coach()
+                display_noi_coach() # Directly call the app.py internal version
+            except Exception as e:
+                logger.error(f"Error in NOI Coach tab: {str(e)}", exc_info=True)
+                st.error("An error occurred while loading the NOI Coach. The analysis is still available in other tabs.")
+                st.info("Try refreshing the page or contact support if the issue persists.")
     
     # Add this code in the main UI section after displaying all tabs
     # (after the st.tabs() section in the main function)
