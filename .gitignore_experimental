@@ -1,0 +1,8 @@
+# Experimental and development files - DO NOT PUSH YET
+pay_per_use/enhanced_database.py
+pay_per_use/enhanced_webhooks.py
+migrate_to_postgresql.py
+
+# These are safe for development
+# setup_credit_system.py
+# verify_credit_system.py
