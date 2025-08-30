@@ -15,7 +15,7 @@ st.set_page_config(page_title="NOI Analyzer Admin", page_icon="🛠️", layout=
 
 def get_db_connection():
     """Get database connection"""
-    db_path = os.getenv("DATABASE_PATH", "noi_analyzer.db")
+    db_path = os.getenv("DATABASE_PATH", "credits.db")
     if not os.path.exists(db_path):
         st.error(f"Database not found: {db_path}")
         return None
@@ -27,45 +27,52 @@ def load_users():
     if not conn:
         return pd.DataFrame()
     
-    query = """
-    SELECT user_id, email, credits, total_credits_purchased, total_credits_used, 
-           free_trial_used, created_at, last_active
-    FROM users 
-    ORDER BY last_active DESC
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
+    try:
+        query = """
+        SELECT email, credits, created_at
+        FROM users 
+        ORDER BY created_at DESC
+        """
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+        return df
+    except Exception as e:
+        st.error(f"Error loading users: {e}")
+        conn.close()
+        return pd.DataFrame()
 
-def load_transactions(user_id=None):
+def load_transactions(email=None):
     """Load transactions from database"""
     conn = get_db_connection()
     if not conn:
         return pd.DataFrame()
     
-    if user_id:
-        query = """
-        SELECT transaction_id, user_id, type, amount, description, 
-               stripe_session_id, created_at
-        FROM credit_transactions 
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-        """
-        df = pd.read_sql_query(query, conn, params=(user_id,))
-    else:
-        query = """
-        SELECT transaction_id, user_id, type, amount, description, 
-               stripe_session_id, created_at
-        FROM credit_transactions 
-        ORDER BY created_at DESC
-        LIMIT 100
-        """
-        df = pd.read_sql_query(query, conn)
-    
-    conn.close()
-    return df
+    try:
+        if email:
+            query = """
+            SELECT id, email, package_type, credits, amount, status, created_at
+            FROM transactions 
+            WHERE email = ?
+            ORDER BY created_at DESC
+            """
+            df = pd.read_sql_query(query, conn, params=(email,))
+        else:
+            query = """
+            SELECT id, email, package_type, credits, amount, status, created_at
+            FROM transactions 
+            ORDER BY created_at DESC
+            LIMIT 100
+            """
+            df = pd.read_sql_query(query, conn)
+        
+        conn.close()
+        return df
+    except Exception as e:
+        st.error(f"Error loading transactions: {e}")
+        conn.close()
+        return pd.DataFrame()
 
-def add_credits_manual(user_id, amount, reason):
+def add_credits_manual(email, amount, reason):
     """Manually add credits to user account"""
     conn = get_db_connection()
     if not conn:
@@ -74,30 +81,35 @@ def add_credits_manual(user_id, amount, reason):
     try:
         cursor = conn.cursor()
         
-        # Get current user credits
-        cursor.execute("SELECT credits FROM users WHERE user_id = ?", (user_id,))
+        # Check if user exists, create if not
+        cursor.execute("SELECT credits FROM users WHERE email = ?", (email,))
         result = cursor.fetchone()
-        if not result:
-            return False
         
-        new_credits = result[0] + amount
-        
-        # Update user credits
-        cursor.execute("""
-            UPDATE users 
-            SET credits = ?, total_credits_purchased = total_credits_purchased + ?
-            WHERE user_id = ?
-        """, (new_credits, max(0, amount), user_id))
+        if result:
+            current_credits = result[0]
+            new_credits = current_credits + amount
+            # Update existing user
+            cursor.execute("""
+                UPDATE users 
+                SET credits = ?
+                WHERE email = ?
+            """, (new_credits, email))
+        else:
+            # Create new user
+            new_credits = max(0, amount)
+            cursor.execute("""
+                INSERT INTO users (email, credits) 
+                VALUES (?, ?)
+            """, (email, new_credits))
         
         # Add transaction record
-        from uuid import uuid4
-        transaction_id = uuid4().hex
+        import uuid
+        transaction_id = str(uuid.uuid4())
         cursor.execute("""
-            INSERT INTO credit_transactions 
-            (transaction_id, user_id, type, amount, description, created_at)
+            INSERT INTO transactions 
+            (id, email, package_type, credits, amount, status)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (transaction_id, user_id, "bonus" if amount > 0 else "refund", 
-              amount, f"Manual adjustment: {reason}", datetime.now()))
+        """, (transaction_id, email, f"admin_adjustment", amount, amount * 100, "completed"))
         
         conn.commit()
         return True
@@ -144,19 +156,19 @@ def main():
         users_df = load_users()
         if users_df.empty:
             st.warning("No users found in database")
+            st.info("Users will appear here after they use the credit system for the first time.")
         else:
             st.dataframe(users_df, use_container_width=True)
             
             # User stats
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("Total Users", len(users_df))
             with col2:
                 st.metric("Total Credits Outstanding", users_df['credits'].sum())
             with col3:
-                st.metric("Total Credits Purchased", users_df['total_credits_purchased'].sum())
-            with col4:
-                st.metric("Total Credits Used", users_df['total_credits_used'].sum())
+                total_transactions = len(load_transactions())
+                st.metric("Total Transactions", total_transactions)
     
     with tab2:
         st.header("Transaction History")
@@ -170,13 +182,21 @@ def main():
             if selected_user == "All Users":
                 transactions_df = load_transactions()
             else:
-                user_id = users_df[users_df['email'] == selected_user]['user_id'].iloc[0]
-                transactions_df = load_transactions(user_id)
+                transactions_df = load_transactions(selected_user)
             
             if transactions_df.empty:
                 st.warning("No transactions found")
             else:
+                # Format the dataframe for better display
+                if not transactions_df.empty:
+                    # Convert amount from cents to dollars if it's a large number
+                    if 'amount' in transactions_df.columns:
+                        transactions_df['amount_display'] = transactions_df['amount'].apply(
+                            lambda x: f"${x/100:.2f}" if x > 100 else f"${x:.2f}"
+                        )
                 st.dataframe(transactions_df, use_container_width=True)
+        else:
+            st.info("No users found. Transactions will appear after users start using the system.")
     
     with tab3:
         st.header("Support Tools")
@@ -185,34 +205,55 @@ def main():
         st.subheader("🔧 Manual Credit Adjustment")
         st.warning("⚠️ Use this carefully! Only for customer support issues.")
         
-        users_df = load_users()
-        if not users_df.empty:
-            # User selection
-            user_emails = list(users_df['email'].values)
-            selected_email = st.selectbox("Select user:", user_emails, key="support_user")
+        # Allow manual email entry for new users
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Select Existing User:**")
+            users_df = load_users()
+            if not users_df.empty:
+                user_emails = ["Select user..."] + list(users_df['email'].values)
+                selected_existing = st.selectbox("Choose from existing users:", user_emails, key="existing_user")
+            else:
+                selected_existing = "Select user..."
+                st.info("No existing users found")
+        
+        with col2:
+            st.markdown("**Or Enter New User Email:**")
+            manual_email = st.text_input("Email address:", key="manual_email")
+        
+        # Determine which email to use
+        target_email = None
+        if selected_existing != "Select user..." and selected_existing:
+            target_email = selected_existing
+        elif manual_email:
+            target_email = manual_email
+        
+        if target_email:
+            # Show current credits if user exists
+            if not users_df.empty and target_email in users_df['email'].values:
+                current_credits = users_df[users_df['email'] == target_email]['credits'].iloc[0]
+                st.info(f"**Current Credits for {target_email}:** {current_credits}")
+            else:
+                st.info(f"**New User:** {target_email} (will be created with credits)")
             
-            if selected_email:
-                user_row = users_df[users_df['email'] == selected_email].iloc[0]
-                st.info(f"**Current Credits:** {user_row['credits']}")
-                
-                # Credit adjustment form
-                col1, col2 = st.columns(2)
-                with col1:
-                    amount = st.number_input("Credits to add/remove:", value=0, step=1)
-                with col2:
-                    reason = st.text_input("Reason for adjustment:", placeholder="e.g., Webhook failed, refund request")
-                
-                if st.button("Apply Credit Adjustment", type="primary"):
-                    if reason.strip():
-                        success = add_credits_manual(user_row['user_id'], amount, reason)
-                        if success:
-                            st.success(f"✅ Added {amount} credits to {selected_email}")
-                            st.balloons()
-                            st.rerun()
-                        else:
-                            st.error("❌ Failed to add credits")
+            # Credit adjustment form
+            col1, col2 = st.columns(2)
+            with col1:
+                amount = st.number_input("Credits to add/remove:", value=0, step=1, min_value=-1000, max_value=1000)
+            with col2:
+                reason = st.text_input("Reason for adjustment:", placeholder="e.g., Customer support refund")
+            
+            if st.button("💳 Apply Credit Adjustment", type="primary"):
+                if reason.strip():
+                    if add_credits_manual(target_email, amount, reason):
+                        st.success(f"✅ Successfully {'added' if amount > 0 else 'removed'} {abs(amount)} credits {'to' if amount > 0 else 'from'} {target_email}")
+                        st.rerun()
                     else:
-                        st.error("Please provide a reason for the adjustment")
+                        st.error("❌ Failed to adjust credits")
+                else:
+                    st.error("Please provide a reason for the adjustment")
+        else:
+            st.info("👆 Select a user or enter an email address to manage credits")
         
         # System health check
         st.subheader("🏥 System Health")
@@ -221,21 +262,28 @@ def main():
             if conn:
                 st.success("✅ Database connection working")
                 
-                # Check for recent webhook failures (would need webhook log table)
-                st.info("ℹ️ Webhook monitoring not implemented yet")
-                
-                # Check for users with suspicious activity
+                # Check database tables
                 cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT COUNT(*) FROM users 
-                    WHERE total_credits_purchased = 0 AND total_credits_used > 0
-                """)
-                suspicious_users = cursor.fetchone()[0]
-                
-                if suspicious_users > 0:
-                    st.warning(f"⚠️ {suspicious_users} users have used credits without purchasing")
-                else:
-                    st.success("✅ No suspicious user activity detected")
+                try:
+                    cursor.execute("SELECT COUNT(*) FROM users")
+                    user_count = cursor.fetchone()[0]
+                    
+                    cursor.execute("SELECT COUNT(*) FROM transactions")
+                    transaction_count = cursor.fetchone()[0]
+                    
+                    st.info(f"📊 Database contains {user_count} users and {transaction_count} transactions")
+                    
+                    # Check for users with negative credits (shouldn't happen)
+                    cursor.execute("SELECT COUNT(*) FROM users WHERE credits < 0")
+                    negative_credits = cursor.fetchone()[0]
+                    
+                    if negative_credits > 0:
+                        st.warning(f"⚠️ {negative_credits} users have negative credits")
+                    else:
+                        st.success("✅ No users with negative credits")
+                        
+                except Exception as e:
+                    st.error(f"❌ Database query failed: {e}")
                 
                 conn.close()
             else:
