@@ -1,0 +1,11 @@
+# Minimal requirements for Admin Dashboard
+# Only the essential packages needed for admin_dashboard.py
+
+# Core Streamlit application
+streamlit==1.28.0
+
+# Data processing (required by admin dashboard)
+pandas==2.0.3
+
+# Basic utilities
+python-dotenv==1.0.0
