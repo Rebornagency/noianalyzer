@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOI Analyzer - Cross-Browser Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { 
+            text-align: center; background: white; padding: 2rem; 
+            border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            margin-bottom: 2rem;
+        }
+        .test-section { 
+            background: white; margin: 2rem 0; padding: 2rem; 
+            border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); 
+        }
+        .test-grid { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 1rem; margin: 1rem 0; 
+        }
+        .test-card { 
+            background: #f8f9fa; border: 1px solid #e9ecef; 
+            border-radius: 10px; padding: 1.5rem; 
+        }
+        .btn { 
+            background: linear-gradient(135deg, #3498db, #2c3e50); color: white; 
+            padding: 0.75rem 1.5rem; border: none; border-radius: 8px; 
+            cursor: pointer; margin: 0.25rem;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .form-control { 
+            width: 100%; padding: 0.75rem; border: 2px solid #e9ecef; 
+            border-radius: 8px; margin-bottom: 1rem;
+        }
+        .result { 
+            margin-top: 1rem; padding: 1rem; border-radius: 8px; 
+            font-weight: 600; display: none;
+        }
+        .result.success { background: #d4edda; color: #155724; }
+        .result.error { background: #f8d7da; color: #721c24; }
+        .browser-info { 
+            background: #e8f4f8; padding: 1rem; border-radius: 8px; 
+            margin: 1rem 0; border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 NOI Analyzer - Cross-Browser Test</h1>
+            <p>Testing compatibility across Chrome, Firefox, and Safari</p>
+            <div class="browser-info" id="browserInfo">
+                <strong>Browser:</strong> <span id="browserName">Loading...</span><br>
+                <strong>Screen:</strong> <span id="screenRes">Loading...</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Core Feature Tests</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>File Upload Test</h3>
+                    <input type="file" id="fileInput" class="form-control" 
+                           accept=".pdf,.xlsx,.xls,.csv" multiple>
+                    <div id="fileResult" class="result"></div>
+                </div>
+
+                <div class="test-card">
+                    <h3>JavaScript Features</h3>
+                    <button class="btn" onclick="testJS()">Test JavaScript</button>
+                    <div id="jsResult" class="result"></div>
+                </div>
+
+                <div class="test-card">
+                    <h3>Local Storage</h3>
+                    <input type="text" id="storageInput" class="form-control" placeholder="Test data">
+                    <button class="btn" onclick="testStorage()">Test Storage</button>
+                    <div id="storageResult" class="result"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Chart Test</h2>
+            <div class="test-card">
+                <button class="btn" onclick="drawChart()">Test Chart Drawing</button>
+                <canvas id="testCanvas" width="400" height="200" style="border: 1px solid #ddd; max-width: 100%;"></canvas>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Manual Checks</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h4>Visual Check</h4>
+                    <label><input type="checkbox" id="layoutCheck"> Layout OK</label><br>
+                    <label><input type="checkbox" id="fontsCheck"> Fonts OK</label><br>
+                    <label><input type="checkbox" id="responsiveCheck"> Responsive OK</label>
+                </div>
+                <div class="test-card">
+                    <h4>Function Check</h4>
+                    <label><input type="checkbox" id="clickCheck"> Buttons work</label><br>
+                    <label><input type="checkbox" id="inputCheck"> Inputs work</label><br>
+                    <label><input type="checkbox" id="scrollCheck"> Scrolling smooth</label>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="generateReport()" style="margin-top: 1rem;">
+                📊 Generate Report
+            </button>
+            
+            <div id="finalReport" style="display:none; margin-top: 1rem;">
+                <h3>Compatibility Report</h3>
+                <div id="reportContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = {};
+
+        function detectBrowser() {
+            const userAgent = navigator.userAgent;
+            let browser = 'Unknown';
+            if (userAgent.includes('Chrome')) browser = 'Chrome';
+            else if (userAgent.includes('Firefox')) browser = 'Firefox';
+            else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+            else if (userAgent.includes('Edge')) browser = 'Edge';
+
+            document.getElementById('browserName').textContent = browser;
+            document.getElementById('screenRes').textContent = `${screen.width}x${screen.height}`;
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const result = document.getElementById('fileResult');
+            const files = e.target.files;
+            
+            if (files.length > 0) {
+                result.className = 'result success';
+                result.style.display = 'block';
+                result.innerHTML = `✅ Selected ${files.length} file(s)`;
+                testResults.fileUpload = true;
+            } else {
+                result.className = 'result error';
+                result.style.display = 'block';
+                result.textContent = '❌ No files selected';
+                testResults.fileUpload = false;
+            }
+        });
+
+        function testJS() {
+            const result = document.getElementById('jsResult');
+            try {
+                const test = [1,2,3].map(x => x * 2);
+                const [a, b] = test;
+                result.className = 'result success';
+                result.style.display = 'block';
+                result.textContent = '✅ Modern JavaScript works!';
+                testResults.javascript = true;
+            } catch (e) {
+                result.className = 'result error';
+                result.style.display = 'block';
+                result.textContent = '❌ JavaScript error: ' + e.message;
+                testResults.javascript = false;
+            }
+        }
+
+        function testStorage() {
+            const input = document.getElementById('storageInput');
+            const result = document.getElementById('storageResult');
+            
+            try {
+                localStorage.setItem('noiTest', input.value);
+                const stored = localStorage.getItem('noiTest');
+                result.className = 'result success';
+                result.style.display = 'block';
+                result.textContent = '✅ Storage works: ' + stored;
+                testResults.localStorage = true;
+            } catch (e) {
+                result.className = 'result error';
+                result.style.display = 'block';
+                result.textContent = '❌ Storage failed: ' + e.message;
+                testResults.localStorage = false;
+            }
+        }
+
+        function drawChart() {
+            const canvas = document.getElementById('testCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const data = [30, 50, 80, 60];
+            ctx.fillStyle = '#3498db';
+            
+            for (let i = 0; i < data.length; i++) {
+                const barHeight = data[i] * 2;
+                const x = i * 80 + 20;
+                const y = canvas.height - barHeight - 20;
+                
+                ctx.fillRect(x, y, 60, barHeight);
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillText(data[i], x + 20, y - 5);
+                ctx.fillStyle = '#3498db';
+            }
+            
+            testResults.canvas = true;
+        }
+
+        function generateReport() {
+            const report = document.getElementById('finalReport');
+            const content = document.getElementById('reportContent');
+            
+            const manualTests = {
+                layout: document.getElementById('layoutCheck').checked,
+                fonts: document.getElementById('fontsCheck').checked,
+                responsive: document.getElementById('responsiveCheck').checked,
+                clicks: document.getElementById('clickCheck').checked,
+                inputs: document.getElementById('inputCheck').checked,
+                scrolling: document.getElementById('scrollCheck').checked
+            };
+            
+            const autoPass = Object.values(testResults).filter(Boolean).length;
+            const autoTotal = Object.keys(testResults).length;
+            const manualPass = Object.values(manualTests).filter(Boolean).length;
+            const manualTotal = Object.keys(manualTests).length;
+            
+            const score = ((autoPass + manualPass) / (autoTotal + manualTotal) * 100).toFixed(1);
+            const browser = document.getElementById('browserName').textContent;
+            
+            let html = `
+                <div class="browser-info">
+                    <strong>Browser:</strong> ${browser}<br>
+                    <strong>Compatibility Score:</strong> ${score}%<br>
+                    <strong>Date:</strong> ${new Date().toLocaleString()}
+                </div>
+                <h4>Test Results:</h4>
+                <ul>
+            `;
+            
+            for (const [test, passed] of Object.entries(testResults)) {
+                html += `<li>${test}: ${passed ? '✅ PASS' : '❌ FAIL'}</li>`;
+            }
+            
+            for (const [test, passed] of Object.entries(manualTests)) {
+                html += `<li>${test}: ${passed ? '✅ PASS' : '❌ FAIL'}</li>`;
+            }
+            
+            html += '</ul>';
+            
+            if (score >= 80) {
+                html += '<div class="result success">🎉 Excellent compatibility!</div>';
+            } else if (score >= 60) {
+                html += '<div class="result" style="background:#fff3cd;color:#856404;display:block;">⚠️ Good compatibility with minor issues</div>';
+            } else {
+                html += '<div class="result error" style="display:block;">❌ Compatibility issues detected</div>';
+            }
+            
+            content.innerHTML = html;
+            report.style.display = 'block';
+        }
+
+        window.addEventListener('load', detectBrowser);
+    </script>
+</body>
+</html>
