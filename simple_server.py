@@ -182,6 +182,22 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 "recent_transactions": []
             })
             
+        elif path == "/pay-per-use/packages":
+            # Main website expects this endpoint for packages
+            packages_list = []
+            for package_id, info in CREDIT_PACKAGES.items():
+                per_credit = info['price'] / 100 / info['credits']
+                packages_list.append({
+                    "package_id": package_id,
+                    "name": info['name'],
+                    "credits": info['credits'],
+                    "price_cents": info['price'],
+                    "price_dollars": info['price'] / 100,
+                    "per_credit_cost": round(per_credit, 2),
+                    "description": f"Get {info['credits']} NOI analysis credits"
+                })
+            self._send_json_response(packages_list)
+            
         else:
             self._send_json_response({"error": "Endpoint not found", "available_endpoints": ["/health", "/packages", "/credits", "/pay-per-use/credits/{email}"]}, 404)
     
@@ -217,6 +233,75 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         "remaining_credits": 0
                     }, 402)
                     
+            except Exception as e:
+                self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
+                
+        elif path == "/pay-per-use/use-credits":
+            # Main website expects this endpoint
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length)
+                
+                # Handle both JSON and form data
+                if 'application/json' in self.headers.get('Content-Type', ''):
+                    data = json.loads(post_data.decode('utf-8'))
+                else:
+                    # Parse form data
+                    from urllib.parse import parse_qs
+                    parsed_data = parse_qs(post_data.decode('utf-8'))
+                    data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in parsed_data.items()}
+                
+                email = data.get('email')
+                if not email:
+                    self._send_json_response({"error": "Email required"}, 400)
+                    return
+                
+                success = self.db.deduct_credits(email, 1)
+                if success:
+                    remaining_credits = self.db.get_credits(email)
+                    self._send_json_response({
+                        "success": True,
+                        "message": "Credit deducted for NOI analysis",
+                        "credits_remaining": remaining_credits,
+                        "analysis_id": data.get('analysis_id', 'unknown')
+                    })
+                else:
+                    self._send_json_response({
+                        "success": False,
+                        "error": "Insufficient credits",
+                        "credits_remaining": 0
+                    }, 402)
+                    
+            except Exception as e:
+                self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
+                
+        elif path == "/pay-per-use/credits/purchase":
+            # Credit purchase endpoint (simplified for now)
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length)
+                data = json.loads(post_data.decode('utf-8'))
+                
+                email = data.get('email')
+                package_id = data.get('package_id')
+                
+                if not email or not package_id:
+                    self._send_json_response({"error": "Email and package_id required"}, 400)
+                    return
+                
+                if package_id not in CREDIT_PACKAGES:
+                    self._send_json_response({"error": "Invalid package_id"}, 400)
+                    return
+                
+                # For now, return a message about setting up Stripe
+                package_info = CREDIT_PACKAGES[package_id]
+                self._send_json_response({
+                    "message": "Credit purchase endpoint ready",
+                    "package": package_info,
+                    "next_step": "Set up Stripe integration for real payments",
+                    "checkout_url": None  # Will add Stripe integration later
+                })
+                
             except Exception as e:
                 self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
         else:
