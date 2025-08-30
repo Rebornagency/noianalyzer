@@ -2,12 +2,12 @@ services:
   - type: web
     name: noi-analyzer-api
     env: python
-    buildCommand: pip install -r requirements-ultra-minimal.txt
+    buildCommand: echo "No dependencies needed - using pure Python!"
     startCommand: python ultra_minimal_api.py
     plan: free
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.9
       - key: PORT
         value: 10000
     # Add your environment variables here:
