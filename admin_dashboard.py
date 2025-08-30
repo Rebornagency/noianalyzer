@@ -6,7 +6,6 @@ Helps you manually fix customer credit issues
 
 import streamlit as st
 import sqlite3
-import pandas as pd
 from datetime import datetime
 import os
 
@@ -25,7 +24,7 @@ def load_users():
     """Load all users from database"""
     conn = get_db_connection()
     if not conn:
-        return pd.DataFrame()
+        return []
     
     try:
         query = """
@@ -33,21 +32,33 @@ def load_users():
         FROM users 
         ORDER BY created_at DESC
         """
-        df = pd.read_sql_query(query, conn)
+        cursor = conn.cursor()
+        cursor.execute(query)
+        users = cursor.fetchall()
         conn.close()
-        return df
+        
+        # Convert to list of dictionaries for easier handling
+        users_list = []
+        for user in users:
+            users_list.append({
+                'email': user[0],
+                'credits': user[1],
+                'created_at': user[2]
+            })
+        return users_list
     except Exception as e:
         st.error(f"Error loading users: {e}")
         conn.close()
-        return pd.DataFrame()
+        return []
 
 def load_transactions(email=None):
     """Load transactions from database"""
     conn = get_db_connection()
     if not conn:
-        return pd.DataFrame()
+        return []
     
     try:
+        cursor = conn.cursor()
         if email:
             query = """
             SELECT id, email, package_type, credits, amount, status, created_at
@@ -55,7 +66,7 @@ def load_transactions(email=None):
             WHERE email = ?
             ORDER BY created_at DESC
             """
-            df = pd.read_sql_query(query, conn, params=(email,))
+            cursor.execute(query, (email,))
         else:
             query = """
             SELECT id, email, package_type, credits, amount, status, created_at
@@ -63,14 +74,28 @@ def load_transactions(email=None):
             ORDER BY created_at DESC
             LIMIT 100
             """
-            df = pd.read_sql_query(query, conn)
+            cursor.execute(query)
         
+        transactions = cursor.fetchall()
         conn.close()
-        return df
+        
+        # Convert to list of dictionaries
+        transactions_list = []
+        for transaction in transactions:
+            transactions_list.append({
+                'id': transaction[0],
+                'email': transaction[1],
+                'package_type': transaction[2],
+                'credits': transaction[3],
+                'amount': transaction[4],
+                'status': transaction[5],
+                'created_at': transaction[6]
+            })
+        return transactions_list
     except Exception as e:
         st.error(f"Error loading transactions: {e}")
         conn.close()
-        return pd.DataFrame()
+        return []
 
 def add_credits_manual(email, amount, reason):
     """Manually add credits to user account"""
@@ -153,19 +178,31 @@ def main():
         st.header("User Management")
         
         # Load and display users
-        users_df = load_users()
-        if users_df.empty:
+        users_list = load_users()
+        if not users_list:
             st.warning("No users found in database")
             st.info("Users will appear here after they use the credit system for the first time.")
         else:
-            st.dataframe(users_df, use_container_width=True)
+            # Create a simple table display
+            st.write("**Users Overview:**")
+            for user in users_list:
+                with st.container():
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.write(f"📧 {user['email']}")
+                    with col2:
+                        st.write(f"💳 {user['credits']} credits")
+                    with col3:
+                        st.write(f"📅 {user['created_at']}")
+                    st.divider()
             
             # User stats
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Total Users", len(users_df))
+                st.metric("Total Users", len(users_list))
             with col2:
-                st.metric("Total Credits Outstanding", users_df['credits'].sum())
+                total_credits = sum(user['credits'] for user in users_list)
+                st.metric("Total Credits Outstanding", total_credits)
             with col3:
                 total_transactions = len(load_transactions())
                 st.metric("Total Transactions", total_transactions)
@@ -174,27 +211,34 @@ def main():
         st.header("Transaction History")
         
         # Filter by user
-        users_df = load_users()
-        if not users_df.empty:
-            user_options = ["All Users"] + list(users_df['email'].values)
-            selected_user = st.selectbox("Filter by user:", user_options)
+        users_list = load_users()
+        if users_list:
+            user_emails = ["All Users"] + [user['email'] for user in users_list]
+            selected_user = st.selectbox("Filter by user:", user_emails)
             
             if selected_user == "All Users":
-                transactions_df = load_transactions()
+                transactions_list = load_transactions()
             else:
-                transactions_df = load_transactions(selected_user)
+                transactions_list = load_transactions(selected_user)
             
-            if transactions_df.empty:
+            if not transactions_list:
                 st.warning("No transactions found")
             else:
-                # Format the dataframe for better display
-                if not transactions_df.empty:
-                    # Convert amount from cents to dollars if it's a large number
-                    if 'amount' in transactions_df.columns:
-                        transactions_df['amount_display'] = transactions_df['amount'].apply(
-                            lambda x: f"${x/100:.2f}" if x > 100 else f"${x:.2f}"
-                        )
-                st.dataframe(transactions_df, use_container_width=True)
+                # Display transactions in a simple format
+                st.write("**Transaction History:**")
+                for transaction in transactions_list:
+                    with st.container():
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.write(f"📧 {transaction['email']}")
+                        with col2:
+                            st.write(f"💳 {transaction['credits']} credits")
+                        with col3:
+                            amount_display = f"${transaction['amount']/100:.2f}" if transaction['amount'] > 100 else f"${transaction['amount']:.2f}"
+                            st.write(f"💰 {amount_display}")
+                        with col4:
+                            st.write(f"📅 {transaction['created_at']}")
+                        st.divider()
         else:
             st.info("No users found. Transactions will appear after users start using the system.")
     
