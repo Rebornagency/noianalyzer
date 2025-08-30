@@ -2,7 +2,7 @@ services:
   - type: web
     name: noi-analyzer-api
     env: python
-    buildCommand: echo "No dependencies needed - using pure Python!"
+    buildCommand: "echo 'Using pure Python - no pip install needed' && python -c 'print(\"Build complete - pure Python API\")'"
     startCommand: python ultra_minimal_api.py
     plan: free
     envVars:
