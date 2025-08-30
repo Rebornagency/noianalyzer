@@ -1,1 +1,1 @@
-web: bash start_server.sh
+web: python simple_server.py

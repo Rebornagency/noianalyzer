@@ -2,22 +2,9 @@ services:
   - type: web
     name: noi-analyzer-api
     env: python
-    buildCommand: chmod +x debug_render.sh start_server.sh && bash debug_render.sh && pip install -r requirements.txt
-    startCommand: bash start_server.sh
+    buildCommand: echo "Build complete - no dependencies needed"
+    startCommand: python simple_server.py
     plan: free
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
       - key: PORT
-        value: 10000
-      - key: DISABLE_COLLECTSTATIC
-        value: 1
-      - key: UV_FORCE_DISABLE
-        value: 1
-      - key: POETRY_FORCE_DISABLE
-        value: 1
-    # Add your environment variables here:
-    # - key: STRIPE_SECRET_KEY
-    #   value: your_stripe_secret_key
-    # - key: RESEND_API_KEY  
-    #   value: your_resend_api_key 
+        value: 10000 
