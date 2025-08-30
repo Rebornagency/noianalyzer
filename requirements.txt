@@ -43,5 +43,5 @@ boto3==1.34.89
 resend==2.10.0
 redis==5.0.4
 
-# Document AI (if available)
-data-science-document-ai
+# Additional utilities
+typing-extensions>=4.0.0
