@@ -38,3 +38,6 @@ stripe==6.7.0
 typing-extensions==4.7.1
 email-validator==2.1.0
 python-multipart==0.0.6
+
+# Web framework dependencies (needed for some integrations)
+starlette==0.27.0

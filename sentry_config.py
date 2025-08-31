@@ -22,7 +22,8 @@ except ImportError:
 try:
     from sentry_sdk.integrations.starlette import StarletteIntegration
     HAS_STARLETTE_INTEGRATION = True
-except ImportError:
+except (ImportError, Exception) as e:
+    # Catch both ImportError and DidNotEnable exceptions
     HAS_STARLETTE_INTEGRATION = False
 
 try:
@@ -72,15 +73,12 @@ def init_sentry():
         # Build integrations list based on what's available
         integrations = []
         
-        # Use Streamlit integration if available, otherwise use Starlette as fallback
+        # Use Streamlit integration if available, otherwise don't use any web framework integration
         if HAS_STREAMLIT_INTEGRATION:
             integrations.append(StreamlitIntegration())
             logger.info("Using Streamlit integration for Sentry")
-        elif HAS_STARLETTE_INTEGRATION:
-            integrations.append(StarletteIntegration())
-            logger.info("Using Starlette integration as fallback for Sentry (Streamlit integration not available)")
         else:
-            logger.warning("Neither Streamlit nor Starlette integration available for Sentry")
+            logger.info("Streamlit integration not available for Sentry - proceeding without web framework integration")
         
         if HAS_LOGGING_INTEGRATION:
             integrations.append(LoggingIntegration(
@@ -199,99 +197,45 @@ def set_user_context(user_id=None, property_name=None, session_id=None):
     Set user context for better error tracking.
     
     Args:
-        user_id: Unique identifier for the user (optional)
-        property_name: Current property being analyzed (optional)
-        session_id: Session identifier (optional)
+        user_id (str, optional): Unique identifier for the user
+        property_name (str, optional): Name of the property being analyzed
+        session_id (str, optional): Session identifier
     """
-    
     with sentry_sdk.configure_scope() as scope:
-        scope.set_user({
-            "id": user_id or "anonymous",
-            "session_id": session_id,
-        })
-        
+        if user_id:
+            scope.user = {"id": user_id}
         if property_name:
-            scope.set_tag("property.name", property_name[:50])  # Limit length
-        
-        logger.debug(f"Updated Sentry user context: user_id={user_id}, property={property_name}")
+            scope.set_tag("property.name", property_name)
+        if session_id:
+            scope.set_tag("session.id", session_id)
 
 
-def add_breadcrumb(message, category="info", level="info", data=None):
-    """
-    Add a breadcrumb to track user actions and application flow.
-    
-    Args:
-        message: Description of the action
-        category: Category of the breadcrumb (navigation, file_upload, processing, etc.)
-        level: Severity level (debug, info, warning, error)
-        data: Additional data (optional)
-    """
-    
-    sentry_sdk.add_breadcrumb(
-        message=message,
-        category=category,
-        level=level,
-        data=data or {}
-    )
-
-
-def capture_exception_with_context(exception, context=None, tags=None):
+def capture_exception(error, message=None, **kwargs):
     """
     Capture an exception with additional context.
     
     Args:
-        exception: The exception to capture
-        context: Additional context dictionary
-        tags: Additional tags dictionary
+        error (Exception): The exception to capture
+        message (str, optional): Additional message to include
+        **kwargs: Additional context to include
     """
+    if message:
+        logger.error(f"{message}: {str(error)}")
+        sentry_sdk.set_context("custom", kwargs)
+        sentry_sdk.capture_message(message)
     
-    with sentry_sdk.configure_scope() as scope:
-        if context:
-            for key, value in context.items():
-                scope.set_extra(key, value)
-        
-        if tags:
-            for key, value in tags.items():
-                scope.set_tag(key, str(value))
-        
-        sentry_sdk.capture_exception(exception)
+    sentry_sdk.capture_exception(error)
 
 
-def capture_message_with_context(message, level="info", context=None, tags=None):
+def capture_message(message, level="info", **kwargs):
     """
-    Capture a message with additional context.
+    Capture a custom message with additional context.
     
     Args:
-        message: The message to capture
-        level: Severity level (debug, info, warning, error, fatal)
-        context: Additional context dictionary
-        tags: Additional tags dictionary
+        message (str): The message to capture
+        level (str): The level of the message (info, warning, error)
+        **kwargs: Additional context to include
     """
-    
-    with sentry_sdk.configure_scope() as scope:
-        if context:
-            for key, value in context.items():
-                scope.set_extra(key, value)
-        
-        if tags:
-            for key, value in tags.items():
-                scope.set_tag(key, str(value))
-        
-        sentry_sdk.capture_message(message, level)
-
-
-def monitor_performance(operation_name):
-    """
-    Context manager for monitoring performance of operations.
-    
-    Usage:
-        with monitor_performance("document_processing"):
-            # Your code here
-            process_documents()
-    """
-    
-    return sentry_sdk.start_transaction(
-        op="function",
-        name=operation_name,
-        sampled=True
-    ) 
+    logger.log(getattr(logging, level.upper()), message)
+    sentry_sdk.set_context("custom", kwargs)
+    sentry_sdk.capture_message(message, level=level)
