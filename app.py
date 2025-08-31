@@ -4121,36 +4121,7 @@ def main():
     # Pre-fill email if user returned from successful purchase - moved declaration up for use in both locations
     default_email = st.session_state.get('user_email', '')
     
-    # Custom email input with required indicator - move style definitions here so they're available globally
-    st.markdown(
-        """
-        <style>
-        .email-title {
-            color: #ffffff !important;
-            font-size: 1.1rem !important;
-            font-weight: 600 !important;
-            margin-bottom: 0.5rem !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 0.5rem !important;
-        }
-        
-        .required-badge-email {
-            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-            color: white !important;
-            padding: 0.2rem 0.6rem !important;
-            border-radius: 6px !important;
-            font-size: 0.75rem !important;
-            font-weight: 600 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # Function to handle email input changes - defined at the top level
+    # Function to handle email input changes
     def on_email_change():
         email_input = st.session_state.get('user_email_input', '')
         if email_input:
@@ -4163,14 +4134,6 @@ def main():
             else:
                 st.sidebar.error("💳 Credit System Unavailable")
                 st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
-    
-    def main():
-    """
-    Main function to run the Streamlit app.
-    """
-    # Add email input field at the top level - ALWAYS visible
-    # Pre-fill email if user returned from successful purchase
-    default_email = st.session_state.get('user_email', '')
     
     # Custom email input with required indicator - move style definitions here so they're available globally
     st.markdown(
@@ -4200,20 +4163,6 @@ def main():
         """,
         unsafe_allow_html=True
     )
-    
-    # Function to handle email input changes - defined at the top level
-    def on_email_change():
-        email_input = st.session_state.get('user_email_input', '')
-        if email_input:
-            st.session_state.user_email = email_input
-            
-            # Display credit balance and free trial welcome in sidebar
-            if CREDIT_SYSTEM_AVAILABLE:
-                display_free_trial_welcome(email_input)
-                display_credit_balance(email_input)
-            else:
-                st.sidebar.error("💳 Credit System Unavailable")
-                st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
     
     # Show success notification if user returned from successful purchase
     if st.session_state.get('show_credit_success', False):
@@ -6112,70 +6061,6 @@ def instructions_card(items):
     </div>
     """, unsafe_allow_html=True)
 
-def main():
-    """
-    Main function to run the Streamlit app.
-    """
-    # Add email input field at the top level - ALWAYS visible
-    # Pre-fill email if user returned from successful purchase
-    default_email = st.session_state.get('user_email', '')
-    
-    # Custom email input with required indicator - move style definitions here so they're available globally
-    st.markdown(
-        """
-        <style>
-        .email-title {
-            color: #ffffff !important;
-            font-size: 1.1rem !important;
-            font-weight: 600 !important;
-            margin-bottom: 0.5rem !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 0.5rem !important;
-        }
-        
-        .required-badge-email {
-            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-            color: white !important;
-            padding: 0.2rem 0.6rem !important;
-            border-radius: 6px !important;
-            font-size: 0.75rem !important;
-            font-weight: 600 !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # Show success notification if user returned from successful purchase
-    if st.session_state.get('show_credit_success', False):
-        st.success("🎉 **Credits Successfully Added!** Your credits have been added to your account and are ready to use.")
-        
-        # Clear the success flag after showing - this prevents the infinite loop
-        st.session_state.show_credit_success = False
-    
-    # Display email title with required indicator
-    st.markdown(
-        """
-        <div class="email-title">
-            📧 Email Address
-            <span class="required-badge-email">Required</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    email_input = st.text_input(
-        "Email Address",
-        value=default_email,
-        placeholder="Enter your email address",
-        help="We'll track your credits and send you the analysis report",
-        key="user_email_input",
-        label_visibility="collapsed"  # Hide the default label since we have custom title
-    )
-    
 def feature_list(features):
     """
     Display an enhanced feature list.
