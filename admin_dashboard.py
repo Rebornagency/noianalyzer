@@ -5,146 +5,68 @@ Helps you manually fix customer credit issues
 """
 
 import streamlit as st
-import sqlite3
+import requests
 from datetime import datetime
 import os
+import json
 
 # Set page config
 st.set_page_config(page_title="NOI Analyzer Admin", page_icon="🛠️", layout="wide")
 
-def get_db_connection():
-    """Get database connection"""
-    db_path = os.getenv("DATABASE_PATH", "credits.db")
-    if not os.path.exists(db_path):
-        st.error(f"Database not found: {db_path}")
+# Credit API URL
+CREDIT_API_URL = os.getenv("CREDIT_API_URL", "https://noianalyzer-1.onrender.com")
+
+def api_request(endpoint, method="GET", data=None):
+    """Make API request to credit service"""
+    try:
+        url = f"{CREDIT_API_URL}{endpoint}"
+        if method == "GET":
+            response = requests.get(url, timeout=10)
+        elif method == "POST":
+            response = requests.post(url, json=data, timeout=10)
+        else:
+            return None
+            
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"API Error: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        st.error(f"Connection error: {str(e)}")
         return None
-    return sqlite3.connect(db_path)
 
 def load_users():
-    """Load all users from database"""
-    conn = get_db_connection()
-    if not conn:
-        return []
-    
-    try:
-        query = """
-        SELECT email, credits, created_at
-        FROM users 
-        ORDER BY created_at DESC
-        """
-        cursor = conn.cursor()
-        cursor.execute(query)
-        users = cursor.fetchall()
-        conn.close()
+    """Load all users from credit API"""
+    # For now, we'll show a message that this feature needs API enhancement
+    st.info("📈 **User management via API coming soon!**\n\n"
+           "Currently, you can check individual user credits using the Support Tools tab.\n\n"
+           "To see all users, contact the system administrator.")
+    return []
+
+def get_user_credits(email):
+    """Get credits for a specific user"""
+    if not email:
+        return None
         
-        # Convert to list of dictionaries for easier handling
-        users_list = []
-        for user in users:
-            users_list.append({
-                'email': user[0],
-                'credits': user[1],
-                'created_at': user[2]
-            })
-        return users_list
-    except Exception as e:
-        st.error(f"Error loading users: {e}")
-        conn.close()
-        return []
+    result = api_request(f"/credits?email={email}")
+    if result:
+        return result.get('credits', 0)
+    return None
 
 def load_transactions(email=None):
-    """Load transactions from database"""
-    conn = get_db_connection()
-    if not conn:
-        return []
-    
-    try:
-        cursor = conn.cursor()
-        if email:
-            query = """
-            SELECT id, email, package_type, credits, amount, status, created_at
-            FROM transactions 
-            WHERE email = ?
-            ORDER BY created_at DESC
-            """
-            cursor.execute(query, (email,))
-        else:
-            query = """
-            SELECT id, email, package_type, credits, amount, status, created_at
-            FROM transactions 
-            ORDER BY created_at DESC
-            LIMIT 100
-            """
-            cursor.execute(query)
-        
-        transactions = cursor.fetchall()
-        conn.close()
-        
-        # Convert to list of dictionaries
-        transactions_list = []
-        for transaction in transactions:
-            transactions_list.append({
-                'id': transaction[0],
-                'email': transaction[1],
-                'package_type': transaction[2],
-                'credits': transaction[3],
-                'amount': transaction[4],
-                'status': transaction[5],
-                'created_at': transaction[6]
-            })
-        return transactions_list
-    except Exception as e:
-        st.error(f"Error loading transactions: {e}")
-        conn.close()
-        return []
+    """Load transactions - placeholder for now"""
+    st.info("📄 **Transaction history via API coming soon!**\n\n"
+           "Currently, transaction details are stored on the credit service.\n\n"
+           "For transaction inquiries, contact the system administrator.")
+    return []
 
 def add_credits_manual(email, amount, reason):
-    """Manually add credits to user account"""
-    conn = get_db_connection()
-    if not conn:
-        return False
-    
-    try:
-        cursor = conn.cursor()
-        
-        # Check if user exists, create if not
-        cursor.execute("SELECT credits FROM users WHERE email = ?", (email,))
-        result = cursor.fetchone()
-        
-        if result:
-            current_credits = result[0]
-            new_credits = current_credits + amount
-            # Update existing user
-            cursor.execute("""
-                UPDATE users 
-                SET credits = ?
-                WHERE email = ?
-            """, (new_credits, email))
-        else:
-            # Create new user
-            new_credits = max(0, amount)
-            cursor.execute("""
-                INSERT INTO users (email, credits) 
-                VALUES (?, ?)
-            """, (email, new_credits))
-        
-        # Add transaction record
-        import uuid
-        transaction_id = str(uuid.uuid4())
-        cursor.execute("""
-            INSERT INTO transactions 
-            (id, email, package_type, credits, amount, status)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (transaction_id, email, f"admin_adjustment", amount, amount * 100, "completed"))
-        
-        conn.commit()
-        return True
-        
-    except Exception as e:
-        st.error(f"Error adding credits: {e}")
-        conn.rollback()
-        return False
-    finally:
-        conn.close()
+    """Manually add credits - placeholder for now"""
+    st.warning("🔧 **Manual credit adjustment is currently disabled**\n\n"
+              "This feature requires additional API endpoints for security.\n\n"
+              "For urgent credit adjustments, contact the system administrator directly.")
+    return False
 
 def main():
     """Main admin dashboard"""
@@ -245,94 +167,53 @@ def main():
     with tab3:
         st.header("Support Tools")
         
-        # Manual credit adjustment
-        st.subheader("🔧 Manual Credit Adjustment")
-        st.warning("⚠️ Use this carefully! Only for customer support issues.")
+        # Credit lookup tool
+        st.subheader("🔍 Credit Lookup")
+        st.info("📱 **Check individual user credits using the credit API**")
         
-        # Allow manual email entry for new users
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**Select Existing User:**")
-            users_list = load_users()
-            if users_list:
-                user_emails = ["Select user..."] + [user['email'] for user in users_list]
-                selected_existing = st.selectbox("Choose from existing users:", user_emails, key="existing_user")
-            else:
-                selected_existing = "Select user..."
-                st.info("No existing users found")
+        lookup_email = st.text_input("Enter user email to check credits:", key="lookup_email")
         
-        with col2:
-            st.markdown("**Or Enter New User Email:**")
-            manual_email = st.text_input("Email address:", key="manual_email")
-        
-        # Determine which email to use
-        target_email = None
-        if selected_existing != "Select user..." and selected_existing:
-            target_email = selected_existing
-        elif manual_email:
-            target_email = manual_email
-        
-        if target_email:
-            # Show current credits if user exists
-            user_found = next((user for user in users_list if user['email'] == target_email), None)
-            if user_found:
-                current_credits = user_found['credits']
-                st.info(f"**Current Credits for {target_email}:** {current_credits}")
-            else:
-                st.info(f"**New User:** {target_email} (will be created with credits)")
-            
-            # Credit adjustment form
-            col1, col2 = st.columns(2)
-            with col1:
-                amount = st.number_input("Credits to add/remove:", value=0, step=1, min_value=-1000, max_value=1000)
-            with col2:
-                reason = st.text_input("Reason for adjustment:", placeholder="e.g., Customer support refund")
-            
-            if st.button("💳 Apply Credit Adjustment", type="primary"):
-                if reason.strip():
-                    if add_credits_manual(target_email, amount, reason):
-                        st.success(f"✅ Successfully {'added' if amount > 0 else 'removed'} {abs(amount)} credits {'to' if amount > 0 else 'from'} {target_email}")
-                        st.rerun()
+        if st.button("🔍 Check Credits", type="primary"):
+            if lookup_email:
+                with st.spinner("Checking credits..."):
+                    credits = get_user_credits(lookup_email)
+                    if credits is not None:
+                        st.success(f"✅ **{lookup_email}** has **{credits} credits**")
                     else:
-                        st.error("❌ Failed to adjust credits")
-                else:
-                    st.error("Please provide a reason for the adjustment")
-        else:
-            st.info("👆 Select a user or enter an email address to manage credits")
+                        st.warning(f"⚠️ Could not find credits for **{lookup_email}** or API error")
+            else:
+                st.error("Please enter an email address")
+        
+        st.divider()
+        
+        # Manual credit adjustment (disabled for security)
+        st.subheader("🔧 Manual Credit Adjustment")
+        st.warning("⚠️ **Currently disabled for security reasons**\n\n"
+                  "Manual credit adjustments require secure API endpoints.\n\n"
+                  "For urgent credit issues, contact the system administrator.")
+        
+        st.divider()
         
         # System health check
         st.subheader("🏥 System Health")
-        if st.button("Run Health Check"):
-            conn = get_db_connection()
-            if conn:
-                st.success("✅ Database connection working")
-                
-                # Check database tables
-                cursor = conn.cursor()
-                try:
-                    cursor.execute("SELECT COUNT(*) FROM users")
-                    user_count = cursor.fetchone()[0]
+        if st.button("Test Credit API Connection"):
+            with st.spinner("Testing API connection..."):
+                # Test the health endpoint
+                health_result = api_request("/health")
+                if health_result:
+                    st.success(f"✅ **Credit API is working!**\n\n"
+                             f"**Status:** {health_result.get('status', 'Unknown')}\n\n"
+                             f"**Message:** {health_result.get('message', 'No message')}")
                     
-                    cursor.execute("SELECT COUNT(*) FROM transactions")
-                    transaction_count = cursor.fetchone()[0]
-                    
-                    st.info(f"📊 Database contains {user_count} users and {transaction_count} transactions")
-                    
-                    # Check for users with negative credits (shouldn't happen)
-                    cursor.execute("SELECT COUNT(*) FROM users WHERE credits < 0")
-                    negative_credits = cursor.fetchone()[0]
-                    
-                    if negative_credits > 0:
-                        st.warning(f"⚠️ {negative_credits} users have negative credits")
+                    # Test packages endpoint
+                    packages_result = api_request("/packages")
+                    if packages_result:
+                        st.info(f"📆 **Available credit packages:** {len(packages_result)}")
                     else:
-                        st.success("✅ No users with negative credits")
-                        
-                except Exception as e:
-                    st.error(f"❌ Database query failed: {e}")
-                
-                conn.close()
-            else:
-                st.error("❌ Database connection failed")
+                        st.warning("⚠️ Packages endpoint not responding")
+                else:
+                    st.error("❌ **Credit API connection failed**\n\n"
+                           "Check if the credit service is running properly.")
 
 if __name__ == "__main__":
     main()
