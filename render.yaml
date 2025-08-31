@@ -2,9 +2,25 @@ services:
   - type: web
     name: noi-analyzer-api
     env: python
-    buildCommand: echo "Build complete - no dependencies needed"
-    startCommand: python simple_server.py
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: python start_credit_api.py
     plan: free
     envVars:
       - key: PORT
-        value: 10000 
+        value: 10000
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_STARTER_PRICE_ID
+        sync: false
+      - key: STRIPE_PROFESSIONAL_PRICE_ID
+        sync: false
+      - key: STRIPE_BUSINESS_PRICE_ID
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: CREDIT_SUCCESS_URL
+        value: https://noianalyzer-1.onrender.com/credit-success?session_id={CHECKOUT_SESSION_ID}&email={email}
+      - key: CREDIT_CANCEL_URL
+        value: https://noianalyzer-1.onrender.com/payment-cancel
+      - key: BACKEND_URL
+        value: https://noianalyzer-1.onrender.com
