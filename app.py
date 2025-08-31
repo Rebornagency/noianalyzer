@@ -4159,17 +4159,33 @@ def main():
         unsafe_allow_html=True
     )
     
+    # Function to handle email input changes
+    def on_email_change():
+        email_input = st.session_state.get('user_email_input', '')
+        if email_input:
+            st.session_state.user_email = email_input
+            
+            # Display credit balance and free trial welcome in sidebar
+            if CREDIT_SYSTEM_AVAILABLE:
+                display_free_trial_welcome(email_input)
+                display_credit_balance(email_input)
+            else:
+                st.sidebar.error("💳 Credit System Unavailable")
+                st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
+    
     email_input = st.text_input(
         "Email Address",
         value=default_email,
         placeholder="Enter your email address",
         help="We'll track your credits and send you the analysis report",
         key="user_email_input",
-        label_visibility="collapsed"  # Hide the default label since we have custom title
+        label_visibility="collapsed",  # Hide the default label since we have custom title
+        on_change=on_email_change  # Trigger when user moves away from the field
     )
     
-    # Store email in session state for credit tracking
-    if email_input:
+    # Store email in session state for credit tracking (backward compatibility)
+    # This will still work if user presses Enter, but the on_change callback is the primary method now
+    if email_input and email_input != default_email:
         st.session_state.user_email = email_input
         
         # Display credit balance and free trial welcome in sidebar
