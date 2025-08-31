@@ -172,4 +172,4 @@ class CreditService:
         }
 
 # Global credit service instance
-credit_service = CreditService() 
+credit_service = CreditService()

@@ -32,7 +32,7 @@ streamlit run app.py
 ### 3. How It Works
 
 1. **Email Input**: Enter your email at the top of the page
-2. **Free Credits**: New users get 3 free credits automatically  
+2. **Free Credits**: New users get 1 free credit automatically  
 3. **Credit Balance**: Shows in the sidebar after entering email
 4. **Purchase More**: Click "🛒 Buy Credits" when you run out
 
@@ -66,4 +66,4 @@ Streamlit App (port 8501)
 FastAPI Server (port 8000)
     ↓ 
 Database (SQLite)
-``` 
+```

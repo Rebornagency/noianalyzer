@@ -925,7 +925,7 @@ def display_insufficient_credits():
     st.markdown("""
     You don't have enough credits to run this analysis. Each analysis requires **1 credit**.
     
-    **New users get 3 free credits** to try our service!
+    **New users get 1 free credit** to try our service!
     """)
     
     col1, col2 = st.columns(2)
@@ -982,8 +982,9 @@ def display_free_trial_welcome(email: str):
         return
     
     # Check if this is a new user who just got free trial credits (never used any)
+    # Fixed logic: free_trial_used should be True for users who received free credits
     is_new_user = (credit_data.get("total_used", 0) == 0 and 
-                   credit_data.get("free_trial_used", False) and
+                   credit_data.get("free_trial_used", False) and  # This should be True for users with free trial
                    credit_data.get("credits", 0) > 0)
     
     # Check if this is a returning user
