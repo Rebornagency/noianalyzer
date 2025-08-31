@@ -44,6 +44,12 @@ try:
                     print(f"     {k}: {v[:20]}{'...' if len(v) > 20 else ''}")
         else:
             print("   No STRIPE-related environment variables found")
+            
+        # Additional debugging to help diagnose the issue
+        print("   🔍 Debugging STRIPE_SECRET_KEY:")
+        print(f"      os.getenv('STRIPE_SECRET_KEY'): {repr(os.getenv('STRIPE_SECRET_KEY'))}")
+        print(f"      os.environ.get('STRIPE_SECRET_KEY'): {repr(os.environ.get('STRIPE_SECRET_KEY'))}")
+        print(f"      'STRIPE_SECRET_KEY' in os.environ: {'STRIPE_SECRET_KEY' in os.environ}")
 except ImportError:
     STRIPE_AVAILABLE = False
     print("⚠️  Stripe library not available - Stripe integration disabled")
@@ -336,160 +342,29 @@ class DatabaseManager:
         return provided_key == admin_key
 
 class CreditAPIHandler(BaseHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        self.db = DatabaseManager()
-        super().__init__(*args, **kwargs)
-    
-    def _send_json_response(self, data, status=200):
-        """Send JSON response with CORS headers"""
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-        
-        response = json.dumps(data)
-        self.wfile.write(response.encode('utf-8'))
-    
-    def do_OPTIONS(self):
-        """Handle CORS preflight requests"""
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-    
     def do_GET(self):
-        """Handle GET requests"""
-        parsed_url = urlparse(self.path)
-        path = parsed_url.path
-        query_params = parse_qs(parsed_url.query)
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
         
-        if path == "/health":
-            self._send_json_response({
-                "status": "healthy", 
-                "message": "NOI Analyzer Credit API running successfully!",
-                "server": "credit_api",
-                "version": "1.0",
-                "endpoints": ["/health", "/packages", "/credits", "/pay-per-use/credits/{email}"],
-                "admin_endpoints": [
-                    "/pay-per-use/admin/users",
-                    "/pay-per-use/admin/transactions", 
-                    "/pay-per-use/admin/user/{email}",
-                    "/pay-per-use/admin/stats",
-                    "/pay-per-use/admin/adjust-credits",
-                    "/pay-per-use/admin/user-status"
-                ]
-            })
-            
-        elif path == "/packages":
-            # Convert packages for frontend consumption
-            packages_list = []
-            for package_id, info in CREDIT_PACKAGES.items():
-                per_credit = info['price'] / 100 / info['credits']
-                packages_list.append({
-                    "package_id": package_id,
-                    "name": info['name'],
-                    "credits": info['credits'],
-                    "price_cents": info['price'],
-                    "price_dollars": info['price'] / 100,
-                    "per_credit_cost": round(per_credit, 2),
-                    "description": f"Get {info['credits']} NOI analysis credits"
-                })
-            self._send_json_response(packages_list)
+        # Serve Terms of Service page
+        if path == '/terms-of-service':
+            self.serve_terms_of_service()
+            return
         
-        elif path == "/credits":
-            email = query_params.get('email', [None])[0]
-            if not email:
-                self._send_json_response({"error": "Email parameter required"}, 400)
-                return
+        # Serve Privacy Policy page
+        if path == '/privacy-policy':
+            self.serve_privacy_policy()
+            return
             
-            credits = self.db.get_credits(email)
-            self._send_json_response({
-                "email": email, 
-                "credits": credits,
-                "message": f"User has {credits} NOI analysis credits"
-            })
-            
-        elif path.startswith("/pay-per-use/credits/"):
-            # RESTful endpoint
-            email = path.split("/pay-per-use/credits/")[-1]
-            if not email:
-                self._send_json_response({"error": "Email required in URL"}, 400)
-                return
-                
-            credits = self.db.get_credits(email)
-            self._send_json_response({
-                "email": email, 
-                "credits": credits,
-                "recent_transactions": []
-            })
-            
-        elif path == "/pay-per-use/packages":
-            # Main website expects this endpoint for packages
-            packages_list = []
-            for package_id, info in CREDIT_PACKAGES.items():
-                per_credit = info['price'] / 100 / info['credits']
-                packages_list.append({
-                    "package_id": package_id,
-                    "name": info['name'],
-                    "credits": info['credits'],
-                    "price_cents": info['price'],
-                    "price_dollars": info['price'] / 100,
-                    "per_credit_cost": round(per_credit, 2),
-                    "description": f"Get {info['credits']} NOI analysis credits"
-                })
-            self._send_json_response(packages_list)
+        # Serve main API documentation
+        if path == '/' or path == '/docs':
+            self.serve_docs()
+            return
         
-        # ADMIN ENDPOINTS
-        elif path.startswith("/pay-per-use/admin/"):
-            # Check admin authentication
-            admin_key = query_params.get('admin_key', [None])[0]
-            if not self.db.verify_admin_key(admin_key):
-                self._send_json_response({"error": "Unauthorized"}, 403)
-                return
-            
-            if path == "/pay-per-use/admin/users":
-                users = self.db.get_all_users()
-                self._send_json_response({"users": users})
-            
-            elif path == "/pay-per-use/admin/transactions":
-                transactions = self.db.get_all_transactions()
-                self._send_json_response({"transactions": transactions})
-            
-            elif path.startswith("/pay-per-use/admin/user/"):
-                email = path.split("/pay-per-use/admin/user/")[-1]
-                if not email:
-                    self._send_json_response({"error": "Email required"}, 400)
-                    return
-                
-                user_details = self.db.get_user_details(email)
-                if user_details:
-                    self._send_json_response(user_details)
-                else:
-                    self._send_json_response({"error": "User not found"}, 404)
-            
-            elif path == "/pay-per-use/admin/stats":
-                stats = self.db.get_system_stats()
-                self._send_json_response({"stats": stats})
-            
-            else:
-                self._send_json_response({"error": "Admin endpoint not found"}, 404)
-            
-        else:
-            self._send_json_response({
-                "error": "Endpoint not found", 
-                "available_endpoints": ["/health", "/packages", "/credits", "/pay-per-use/credits/{email}"],
-                "admin_endpoints": [
-                    "/pay-per-use/admin/users",
-                    "/pay-per-use/admin/transactions",
-                    "/pay-per-use/admin/user/{email}",
-                    "/pay-per-use/admin/stats",
-                    "/pay-per-use/admin/adjust-credits",
-                    "/pay-per-use/admin/user-status"
-                ]
-            }, 404)
+        # Serve health check
+        if path == '/health':
+            self.serve_health()
+            return
     
     def do_POST(self):
         """Handle POST requests for credit operations"""
@@ -769,6 +644,147 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         
         else:
             self._send_json_response({"error": "Endpoint not found"}, 404)
+
+    def serve_health(self):
+        """Serve health check endpoint"""
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        
+        health_data = {
+            "status": "healthy",
+            "timestamp": time.time(),
+            "service": "NOI Analyzer Credit API"
+        }
+        self.wfile.write(json.dumps(health_data).encode())
+    
+    def serve_terms_of_service(self):
+        """Serve Terms of Service page"""
+        try:
+            with open('TERMS_OF_SERVICE.md', 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Convert markdown to HTML (basic conversion)
+            html_content = self.markdown_to_html(content)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            
+            html_page = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Terms of Service - NOI Analyzer</title>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                    h1, h2, h3 {{ color: #2c3e50; }}
+                    a {{ color: #3498db; text-decoration: none; }}
+                    a:hover {{ text-decoration: underline; }}
+                    .container {{ background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                    code {{ background: #f8f9fa; padding: 2px 4px; border-radius: 3px; }}
+                    pre {{ background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    {html_content}
+                </div>
+            </body>
+            </html>
+            """
+            self.wfile.write(html_page.encode('utf-8'))
+        except FileNotFoundError:
+            self.send_response(404)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b"<h1>Terms of Service Not Found</h1>")
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(f"<h1>Error loading Terms of Service</h1><p>{str(e)}</p>".encode())
+
+    def serve_privacy_policy(self):
+        """Serve Privacy Policy page"""
+        try:
+            with open('PRIVACY_POLICY.md', 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Convert markdown to HTML (basic conversion)
+            html_content = self.markdown_to_html(content)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.end_headers()
+            
+            html_page = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Privacy Policy - NOI Analyzer</title>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                    h1, h2, h3 {{ color: #2c3e50; }}
+                    a {{ color: #3498db; text-decoration: none; }}
+                    a:hover {{ text-decoration: underline; }}
+                    .container {{ background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                    code {{ background: #f8f9fa; padding: 2px 4px; border-radius: 3px; }}
+                    pre {{ background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    {html_content}
+                </div>
+            </body>
+            </html>
+            """
+            self.wfile.write(html_page.encode('utf-8'))
+        except FileNotFoundError:
+            self.send_response(404)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b"<h1>Privacy Policy Not Found</h1>")
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(f"<h1>Error loading Privacy Policy</h1><p>{str(e)}</p>".encode())
+    
+    def markdown_to_html(self, markdown_text):
+        """Convert basic markdown to HTML"""
+        import re
+        
+        # Convert headers
+        markdown_text = re.sub(r'^# (.*?)$', r'<h1>\1</h1>', markdown_text, flags=re.MULTILINE)
+        markdown_text = re.sub(r'^## (.*?)$', r'<h2>\1</h2>', markdown_text, flags=re.MULTILINE)
+        markdown_text = re.sub(r'^### (.*?)$', r'<h3>\1</h3>', markdown_text, flags=re.MULTILINE)
+        
+        # Convert bold and italic
+        markdown_text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', markdown_text)
+        markdown_text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', markdown_text)
+        
+        # Convert lists
+        markdown_text = re.sub(r'^- (.*?)$', r'<li>\1</li>', markdown_text, flags=re.MULTILINE)
+        markdown_text = re.sub(r'(<li>.*?</li>\n)+', r'<ul>\n\g<0></ul>\n', markdown_text)
+        
+        # Convert links
+        markdown_text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2" target="_blank">\1</a>', markdown_text)
+        
+        # Convert paragraphs
+        paragraphs = markdown_text.split('\n\n')
+        html_paragraphs = []
+        for p in paragraphs:
+            if not p.startswith('<'):
+                p = f'<p>{p}</p>'
+            html_paragraphs.append(p)
+        
+        return '\n'.join(html_paragraphs)
 
 def run_server():
     """Run the HTTP server"""

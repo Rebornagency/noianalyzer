@@ -3651,6 +3651,7 @@ def display_unified_insights_no_html(insights_data):
         if 'recommendations' in insights_data and insights_data['recommendations']:
             try:
                 st.markdown("## Recommendations")
+
                 
                 recommendations_markdown = ""
                 for recommendation in insights_data['recommendations']:
@@ -4509,8 +4510,50 @@ def main():
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     st.rerun()
                 else:
+                    # Check if Terms of Service have been accepted
+                    if not st.session_state.get('terms_accepted', False):
+                        st.session_state.show_tos_error = True
+                        # Clear loading states before showing error
+                        loading_container.empty()
+                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        st.rerun()
+                    
                     # Production mode - check credits
                     user_email = st.session_state.get('user_email', '')
+                    if not user_email:
+                        # Clear loading states before showing error
+                        loading_container.empty()
+                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        st.error("Please enter your email address to proceed.")
+                        st.stop()
+                        
+                    # Update loading message for credit checking
+                    with loading_container.container():
+                        display_loading_spinner("🧪 Generating test data...", "This will complete quickly in testing mode")
+                    
+                    # Call the existing testing mode processing function
+                    # This function should handle setting processing_completed = True
+                    process_documents_testing_mode() 
+                if is_testing_mode_active():
+                    # Check if Terms of Service have been accepted
+                    if not st.session_state.get('terms_accepted', False):
+                        st.session_state.show_tos_error = True
+                        # Clear loading states before showing error
+                        loading_container.empty()
+                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        st.rerun()
+                    
+                    # Keep testing mode functionality unchanged
+                    st.session_state.user_initiated_processing = True
+                    save_testing_config() # Save current testing config
+                    
+                    # Clear loading and restore button
+                    loading_container.empty()
+                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    st.rerun()
+                else:
+                    # Production mode - check credits
+                    user_email = st.session_state.get('user_email', '').strip()
                     if not user_email:
                         # Clear loading states before showing error
                         loading_container.empty()
@@ -5638,7 +5681,13 @@ def display_features_section_enhanced():
         with col2:
             st.markdown("### NOI Coach")
             st.markdown("Ask questions about your financial data and get AI-powered insights")
-    
+
+            # Add link to Terms of Service (opens in new tab)
+            st.markdown(
+                '<div class="tos-checkbox-label">View our <a href="/terms-of-service" target="_blank" class="tos-link">Terms of Service</a></div>',
+                unsafe_allow_html=True
+            )
+
     st.markdown("---")
     
     # Feature 4: Export Options
