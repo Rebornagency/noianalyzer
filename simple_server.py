@@ -510,7 +510,15 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
             try:
                 content_length = int(self.headers.get('Content-Length', 0))
                 post_data = self.rfile.read(content_length)
-                data = json.loads(post_data.decode('utf-8'))
+                
+                # Handle both JSON and form data (like the /pay-per-use/use-credits endpoint)
+                if 'application/json' in self.headers.get('Content-Type', ''):
+                    data = json.loads(post_data.decode('utf-8'))
+                else:
+                    # Parse form data
+                    from urllib.parse import parse_qs
+                    parsed_data = parse_qs(post_data.decode('utf-8'))
+                    data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in parsed_data.items()}
                 
                 email = data.get('email')
                 package_id = data.get('package_id')
