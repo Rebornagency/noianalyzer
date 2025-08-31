@@ -253,9 +253,9 @@ def main():
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("**Select Existing User:**")
-            users_df = load_users()
-            if not users_df.empty:
-                user_emails = ["Select user..."] + list(users_df['email'].values)
+            users_list = load_users()
+            if users_list:
+                user_emails = ["Select user..."] + [user['email'] for user in users_list]
                 selected_existing = st.selectbox("Choose from existing users:", user_emails, key="existing_user")
             else:
                 selected_existing = "Select user..."
@@ -274,8 +274,9 @@ def main():
         
         if target_email:
             # Show current credits if user exists
-            if not users_df.empty and target_email in users_df['email'].values:
-                current_credits = users_df[users_df['email'] == target_email]['credits'].iloc[0]
+            user_found = next((user for user in users_list if user['email'] == target_email), None)
+            if user_found:
+                current_credits = user_found['credits']
                 st.info(f"**Current Credits for {target_email}:** {current_credits}")
             else:
                 st.info(f"**New User:** {target_email} (will be created with credits)")
