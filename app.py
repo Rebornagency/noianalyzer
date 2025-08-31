@@ -4393,6 +4393,12 @@ def main():
             )
             
             if process_clicked:
+                # NEW: Check if email is provided before proceeding
+                user_email = st.session_state.get('user_email', '').strip()
+                if not user_email:
+                    st.error("📧 Email address is required. Please enter your email address before processing documents.")
+                    st.stop()
+                    
                 # Count files for better time estimation
                 temp_files = {
                     "current_month_actuals": st.session_state.get('current_month_actuals') or current_month_file_main,
