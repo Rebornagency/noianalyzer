@@ -244,6 +244,32 @@ div[data-baseweb="input"] {
     text-align: center !important;
 }
 
+/* Credit Store Specific Styles - Prevent conflicts with global styles */
+/* More specific selectors for credit package cards */
+div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+    background: #101922 !important;
+    border: 1px solid #1f2a36 !important;
+}
+
+/* More specific selectors for CTA buttons */
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"] {
+    background: linear-gradient(135deg, #0E4DE3 0%, #1C5CF5 100%) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+}
+
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #1C5CF5 0%, #2563EB 100%) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* More specific selectors for savings badges */
+div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] {
+    background: linear-gradient(135deg, #22C55E, #16A34A) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+}
+
 /* Remove or override any constraints for Browse Files button */
 /*
 [data-testid="stFileUploader"] label span,
