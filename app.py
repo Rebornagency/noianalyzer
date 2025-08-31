@@ -12,7 +12,20 @@ import base64
 from datetime import datetime
 import io
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
+
+# Try to import weasyprint for PDF generation
+try:
+    from weasyprint import HTML
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
+    # Create dummy HTML class for fallback
+    class HTML:
+        def __init__(self, *args, **kwargs):
+            pass
+        def write_pdf(self, *args, **kwargs):
+            raise ImportError("WeasyPrint not available - PDF generation disabled")
+
 import tempfile
 import jinja2
 import streamlit.components.v1 as components
@@ -3792,8 +3805,17 @@ def generate_comprehensive_pdf():
         html_content = html_content.replace('font-display: swap;', '/* font-display: swap; */')
         
         # Generate PDF from HTML
-        pdf_bytes = HTML(string=html_content).write_pdf()
-        logger.info("PDF EXPORT: Comprehensive PDF bytes generated successfully")
+        if WEASYPRINT_AVAILABLE:
+            try:
+                pdf_bytes = HTML(string=html_content).write_pdf()
+                logger.info("PDF EXPORT: Comprehensive PDF bytes generated successfully")
+            except Exception as pdf_error:
+                logger.error(f"PDF EXPORT: WeasyPrint PDF generation failed: {str(pdf_error)}")
+                return None
+        else:
+            logger.warning("PDF EXPORT: WeasyPrint not available - PDF generation disabled")
+            st.warning("📄 PDF export is temporarily unavailable. You can still export data as Excel or view the HTML report.")
+            return None
         
         # Clean up temporary file
         try:

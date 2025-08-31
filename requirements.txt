@@ -1,28 +1,40 @@
 # Requirements for main NOI Analyzer website
-# Core Streamlit application with essential dependencies
+# Render-optimized versions to ensure reliable deployment
 
 # Core Streamlit application
-streamlit==1.32.0
+streamlit==1.28.0
 
-# Data processing and manipulation
-pandas==2.2.3
-numpy==1.26.3
+# Data processing and manipulation  
+pandas==2.0.3
+numpy==1.24.3
 
 # API and web requests
 requests==2.31.0
 
-# AI and language models
-openai>=1.0.0
+# File processing (minimal set)
+pdfplumber==0.9.0
+chardet==5.2.0
 
-# Visualization
-plotly==5.18.0
+# AI and language models
+openai==1.3.0
+
+# Visualization (without kaleido to avoid Rust issues)
+plotly==5.15.0
 
 # Environment and configuration
 python-dotenv==1.0.0
 
-# Report generation
-jinja2==3.1.3
+# Report generation (minimal - no weasyprint to avoid Rust)
+jinja2==3.1.2
 xlsxwriter==3.1.2
 
+# Error tracking and monitoring (simple version)
+sentry-sdk==1.32.0
+
+# Payment processing (stable version)
+stripe==6.7.0
+
 # Essential utilities
-typing-extensions>=4.0.0
+typing-extensions==4.7.1
+email-validator==2.1.0
+python-multipart==0.0.6
