@@ -100,8 +100,21 @@ async def purchase_credits(
         if not package:
             raise HTTPException(status_code=404, detail="Package not found")
         
+        # Debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Purchase request - Email: {email}, Package: {package_id}")
+        logger.info(f"Package details: {package}")
+        
         # Ensure the package has a valid Stripe price ID
         if not package.stripe_price_id:
+            # Log environment variables for debugging
+            env_vars = {
+                "STRIPE_STARTER_PRICE_ID": os.getenv("STRIPE_STARTER_PRICE_ID", "NOT SET"),
+                "STRIPE_PROFESSIONAL_PRICE_ID": os.getenv("STRIPE_PROFESSIONAL_PRICE_ID", "NOT SET"),
+                "STRIPE_BUSINESS_PRICE_ID": os.getenv("STRIPE_BUSINESS_PRICE_ID", "NOT SET")
+            }
+            logger.error(f"Package {package.name} doesn't have a valid Stripe price ID. Environment variables: {env_vars}")
             raise HTTPException(
                 status_code=500, 
                 detail=f"Package {package.name} doesn't have a valid Stripe price ID. Check environment variables: STRIPE_STARTER_PRICE_ID, STRIPE_PROFESSIONAL_PRICE_ID, STRIPE_BUSINESS_PRICE_ID"

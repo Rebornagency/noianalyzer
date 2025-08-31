@@ -531,6 +531,13 @@ class DatabaseService:
                 for row in missing_ids:
                     logger.warning(f"   - {row['name']}: Missing Stripe price ID")
                 logger.warning("   Ensure STRIPE_STARTER_PRICE_ID, STRIPE_PROFESSIONAL_PRICE_ID, and STRIPE_BUSINESS_PRICE_ID are set in your environment variables!")
+                # Log the current environment variables for debugging
+                logger.warning("   Current environment variables:")
+                logger.warning(f"     STRIPE_STARTER_PRICE_ID: {os.getenv('STRIPE_STARTER_PRICE_ID', 'NOT SET')}")
+                logger.warning(f"     STRIPE_PROFESSIONAL_PRICE_ID: {os.getenv('STRIPE_PROFESSIONAL_PRICE_ID', 'NOT SET')}")
+                logger.warning(f"     STRIPE_BUSINESS_PRICE_ID: {os.getenv('STRIPE_BUSINESS_PRICE_ID', 'NOT SET')}")
+            else:
+                logger.info("✅ All packages have valid Stripe price IDs")
             
         except Exception as e:
             logger.error(f"Error creating default packages: {e}")

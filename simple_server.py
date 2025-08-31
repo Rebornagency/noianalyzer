@@ -18,13 +18,18 @@ try:
     import stripe
     STRIPE_AVAILABLE = True
     # Initialize Stripe with environment variable
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
-    if not stripe.api_key:
+    stripe_api_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if stripe_api_key:
+        stripe.api_key = stripe_api_key
+        print("✅ Stripe initialized successfully")
+    else:
         STRIPE_AVAILABLE = False
         print("⚠️  Stripe secret key not found - Stripe integration disabled")
+        print("   Make sure STRIPE_SECRET_KEY is set in your environment variables")
 except ImportError:
     STRIPE_AVAILABLE = False
     print("⚠️  Stripe library not available - Stripe integration disabled")
+    print("   Run 'pip install stripe' to enable Stripe integration")
 
 # Credit packages for NOI Analyzer
 CREDIT_PACKAGES = {
@@ -39,6 +44,13 @@ STRIPE_PRICE_ID_ENV_MAP = {
     "professional": "STRIPE_PROFESSIONAL_PRICE_ID",
     "business": "STRIPE_BUSINESS_PRICE_ID"
 }
+
+# Debug: Print environment variables at startup
+print("🔍 Environment variables check:")
+print(f"   STRIPE_SECRET_KEY: {'SET' if os.getenv('STRIPE_SECRET_KEY') else 'NOT SET'}")
+for package_id, env_var in STRIPE_PRICE_ID_ENV_MAP.items():
+    print(f"   {env_var}: {'SET' if os.getenv(env_var) else 'NOT SET'}")
+
 
 class DatabaseManager:
     def __init__(self, db_path="credits.db"):
@@ -551,17 +563,29 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     self._send_json_response({"error": "Invalid package_id"}, 400)
                     return
                 
+                # Debug information
+                print(f"🔍 Purchase request - Email: {email}, Package: {package_id}")
+                print(f"   STRIPE_AVAILABLE: {STRIPE_AVAILABLE}")
+                print(f"   stripe.api_key set: {bool(stripe.api_key) if 'stripe' in globals() and hasattr(stripe, 'api_key') else 'N/A'}")
+                
                 # Check if Stripe is available and properly configured
                 if STRIPE_AVAILABLE and stripe.api_key:
                     # Get the appropriate Stripe price ID directly from environment variables
                     env_var_name = STRIPE_PRICE_ID_ENV_MAP.get(package_id)
                     stripe_price_id = os.getenv(env_var_name) if env_var_name else None
                     
+                    print(f"   Environment variable name: {env_var_name}")
+                    print(f"   Stripe price ID from env: {stripe_price_id}")
+                    
                     if not stripe_price_id:
                         self._send_json_response({
                             "error": "Stripe price ID not configured for this package",
                             "message": "Missing Stripe configuration - contact administrator",
-                            "package": CREDIT_PACKAGES[package_id]
+                            "package": CREDIT_PACKAGES[package_id],
+                            "debug": {
+                                "env_var_name": env_var_name,
+                                "env_var_value": os.getenv(env_var_name) if env_var_name else None
+                            }
                         }, 500)
                         return
                     
@@ -584,6 +608,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     
                     # Create Stripe checkout session
                     try:
+                        print(f"   Creating Stripe session for price ID: {stripe_price_id}")
                         session = stripe.checkout.Session.create(
                             payment_method_types=["card"],
                             mode="payment",
@@ -605,12 +630,14 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         })
                         
                     except stripe.error.StripeError as e:
+                        print(f"❌ Stripe error: {str(e)}")
                         self._send_json_response({
                             "error": "Stripe error",
                             "message": str(e),
                             "package": CREDIT_PACKAGES[package_id]
                         }, 500)
                     except Exception as e:
+                        print(f"❌ Unexpected error creating Stripe session: {str(e)}")
                         self._send_json_response({
                             "error": "Failed to create Stripe checkout session",
                             "message": str(e),
@@ -624,6 +651,16 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         "package": package_info,
                         "next_step": "Set up Stripe integration for real payments",
                         "checkout_url": None,
+                        "debug": {
+                            "STRIPE_AVAILABLE": STRIPE_AVAILABLE,
+                            "stripe_api_key_set": bool(stripe.api_key) if 'stripe' in globals() and hasattr(stripe, 'api_key') else False,
+                            "required_env_vars": {
+                                "STRIPE_SECRET_KEY": bool(os.getenv("STRIPE_SECRET_KEY")),
+                                "STRIPE_STARTER_PRICE_ID": bool(os.getenv("STRIPE_STARTER_PRICE_ID")),
+                                "STRIPE_PROFESSIONAL_PRICE_ID": bool(os.getenv("STRIPE_PROFESSIONAL_PRICE_ID")),
+                                "STRIPE_BUSINESS_PRICE_ID": bool(os.getenv("STRIPE_BUSINESS_PRICE_ID"))
+                            }
+                        },
                         "setup_instructions": [
                             "1. Create a Stripe account at https://stripe.com",
                             "2. Create products in Stripe Dashboard for each credit package",

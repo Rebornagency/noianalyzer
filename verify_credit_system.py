@@ -130,8 +130,11 @@ def test_environment_variables():
         value = os.getenv(var)
         if value and not value.startswith("PLACEHOLDER"):
             print(f"✅ {var}: Set and not placeholder")
+        elif value and value.startswith("PLACEHOLDER"):
+            print(f"❌ {var}: Placeholder value detected - please update with real value")
+            all_good = False
         else:
-            print(f"❌ {var}: Missing or placeholder value")
+            print(f"❌ {var}: Missing or not set")
             all_good = False
     
     for var in optional_vars:
@@ -140,6 +143,17 @@ def test_environment_variables():
             print(f"✅ {var}: {value}")
         else:
             print(f"⚠️  {var}: Not set (using default)")
+    
+    if not all_good:
+        print("\n📝 To fix missing environment variables:")
+        print("   1. If running locally, create a .env file with your real values")
+        print("   2. If running on Render, set the environment variables in your dashboard")
+        print("   3. Required Stripe variables:")
+        print("      - STRIPE_SECRET_KEY")
+        print("      - STRIPE_STARTER_PRICE_ID")
+        print("      - STRIPE_PROFESSIONAL_PRICE_ID")
+        print("      - STRIPE_BUSINESS_PRICE_ID")
+        print("      - STRIPE_WEBHOOK_SECRET")
     
     return all_good
 

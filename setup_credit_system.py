@@ -119,19 +119,32 @@ def check_render_environment():
     ]
     
     missing_vars = []
+    set_vars = []
+    
     for var in render_vars:
-        if not os.getenv(var):
+        value = os.getenv(var)
+        if value:
+            set_vars.append(var)
+        else:
             missing_vars.append(var)
     
     if missing_vars:
         print("⚠️  Missing Render environment variables:")
         for var in missing_vars:
             print(f"   - {var}")
-        print("⚠️  You need to set these variables in your Render environment or .env file")
+        print("\n📝 Instructions to fix:")
+        print("   1. Go to your Render dashboard")
+        print("   2. Navigate to your service > Environment")
+        print("   3. Add the following environment variables:")
+        for var in missing_vars:
+            print(f"      - {var}")
+        print("   4. After adding the variables, restart your service")
         print("⚠️  Payments will not work without these variables")
         return False
     else:
-        print("✅ All Render environment variables are set")
+        print("✅ All Render environment variables are set:")
+        for var in set_vars:
+            print(f"   - {var}: SET")
         return True
 
 def main():
