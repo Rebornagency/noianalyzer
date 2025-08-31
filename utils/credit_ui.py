@@ -5,6 +5,8 @@ from typing import Dict, Any, Optional
 import logging
 import time
 
+import uuid
+
 # Import loading functions
 try:
     from .ui_helpers import (
@@ -529,6 +531,11 @@ def display_credit_store():
         width: calc(100% - 2rem) !important; /* Proper width with margins */
         margin: 1.25rem auto 1.5rem auto !important; /* Center align */
         box-sizing: border-box !important;
+        /* Fix for overflow issue - ensure proper containment */
+        max-width: calc(100% - 2rem) !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
 
     /* Ensure all text within discount badges is white */
@@ -538,6 +545,10 @@ def display_credit_store():
     div[data-testid="column"] div[data-testid="stAlert"] div {
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
+        /* Fix for overflow issue - ensure text fits within container */
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
 
     /* Headline style */
@@ -561,6 +572,9 @@ def display_credit_store():
         font-size: 1.2rem !important; /* larger CTA text */
         box-sizing: border-box !important;
         margin: 0 auto !important; /* Center the button */
+        /* Fix for overflow issue - ensure proper containment */
+        max-width: calc(100% - 2rem) !important;
+        min-width: 0 !important; /* Allow button to shrink if needed */
     }
 
     /* ===== Typography upgrades & spacing tweaks ===== */
