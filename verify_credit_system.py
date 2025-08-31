@@ -112,7 +112,10 @@ def test_environment_variables():
     critical_vars = [
         "OPENAI_API_KEY",
         "STRIPE_SECRET_KEY", 
-        "STRIPE_WEBHOOK_SECRET"
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_STARTER_PRICE_ID",
+        "STRIPE_PROFESSIONAL_PRICE_ID",
+        "STRIPE_BUSINESS_PRICE_ID"
     ]
     
     optional_vars = [
@@ -176,13 +179,13 @@ def main():
     if all_passed:
         print("🎉 ALL TESTS PASSED - Credit system is ready!")
         print("\n📝 Next steps:")
-        print("   1. Test with real Stripe credentials in production")
-        print("   2. Consider implementing the enhanced features")
+        print("   1. Verify Render environment variables are correctly set")
+        print("   2. Test with real Stripe credentials in production")
         print("   3. Set up monitoring and backups")
     else:
         print("⚠️  SOME TESTS FAILED - Fix issues before deployment")
         print("\n📝 Required actions:")
-        print("   1. Fix any critical environment variables")
+        print("   1. Check STRIPE_* environment variables in Render")
         print("   2. Ensure database is properly initialized")
         print("   3. Verify all imports work correctly")
     

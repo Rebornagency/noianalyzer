@@ -100,11 +100,22 @@ async def purchase_credits(
         if not package:
             raise HTTPException(status_code=404, detail="Package not found")
         
+        # Ensure the package has a valid Stripe price ID
+        if not package.stripe_price_id:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Package {package.name} doesn't have a valid Stripe price ID. Check environment variables: STRIPE_STARTER_PRICE_ID, STRIPE_PROFESSIONAL_PRICE_ID, STRIPE_BUSINESS_PRICE_ID"
+            )
+        
         # Create or get user (this will track IP if it's a new user)
         user = credit_service.get_user_by_email(email, ip_address, user_agent)
         
-        checkout_url = create_credit_checkout_session(email, package_id)
-        return {"checkout_url": checkout_url, "package": package.name}
+        try:
+            checkout_url = create_credit_checkout_session(email, package_id)
+            return {"checkout_url": checkout_url, "package": package.name}
+        except RuntimeError as e:
+            # Handle Stripe configuration errors
+            raise HTTPException(status_code=500, detail=f"Stripe integration error: {str(e)}")
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

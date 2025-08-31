@@ -11,13 +11,33 @@ import sqlite3
 import time
 import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
+
+# Try to import Stripe, but handle gracefully if not available
+try:
+    import stripe
+    STRIPE_AVAILABLE = True
+    # Initialize Stripe with environment variable
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if not stripe.api_key:
+        STRIPE_AVAILABLE = False
+        print("⚠️  Stripe secret key not found - Stripe integration disabled")
+except ImportError:
+    STRIPE_AVAILABLE = False
+    print("⚠️  Stripe library not available - Stripe integration disabled")
 
 # Credit packages for NOI Analyzer
 CREDIT_PACKAGES = {
     "starter": {"credits": 5, "price": 1500, "name": "Starter Pack"},
     "professional": {"credits": 10, "price": 3000, "name": "Professional Pack"},
     "business": {"credits": 40, "price": 7500, "name": "Business Pack"}
+}
+
+# Map package IDs to environment variable names for Stripe price IDs
+STRIPE_PRICE_ID_ENV_MAP = {
+    "starter": "STRIPE_STARTER_PRICE_ID",
+    "professional": "STRIPE_PROFESSIONAL_PRICE_ID",
+    "business": "STRIPE_BUSINESS_PRICE_ID"
 }
 
 class DatabaseManager:
@@ -506,7 +526,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
                 
         elif path == "/pay-per-use/credits/purchase":
-            # Credit purchase endpoint (simplified for now)
+            # Credit purchase endpoint - now with proper Stripe integration
             try:
                 content_length = int(self.headers.get('Content-Length', 0))
                 post_data = self.rfile.read(content_length)
@@ -531,14 +551,87 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     self._send_json_response({"error": "Invalid package_id"}, 400)
                     return
                 
-                # For now, return a message about setting up Stripe
-                package_info = CREDIT_PACKAGES[package_id]
-                self._send_json_response({
-                    "message": "Credit purchase endpoint ready",
-                    "package": package_info,
-                    "next_step": "Set up Stripe integration for real payments",
-                    "checkout_url": None  # Will add Stripe integration later
-                })
+                # Check if Stripe is available and properly configured
+                if STRIPE_AVAILABLE and stripe.api_key:
+                    # Get the appropriate Stripe price ID directly from environment variables
+                    env_var_name = STRIPE_PRICE_ID_ENV_MAP.get(package_id)
+                    stripe_price_id = os.getenv(env_var_name) if env_var_name else None
+                    
+                    if not stripe_price_id:
+                        self._send_json_response({
+                            "error": "Stripe price ID not configured for this package",
+                            "message": "Missing Stripe configuration - contact administrator",
+                            "package": CREDIT_PACKAGES[package_id]
+                        }, 500)
+                        return
+                    
+                    # Build success URL with email parameter
+                    base_success_url = os.getenv("CREDIT_SUCCESS_URL")
+                    
+                    if base_success_url:
+                        # If environment variable is set, use it but ensure email is included
+                        if "email=" not in base_success_url and "{email}" not in base_success_url:
+                            separator = "&" if "?" in base_success_url else "?"
+                            success_url_with_email = f"{base_success_url}{separator}email={quote(email)}"
+                        elif "{email}" in base_success_url:
+                            # Replace {email} placeholder with actual email
+                            success_url_with_email = base_success_url.replace("{email}", quote(email))
+                        else:
+                            success_url_with_email = base_success_url
+                    else:
+                        # Default URL with both session_id and email
+                        success_url_with_email = f"https://noianalyzer-1.onrender.com/credit-success?session_id={{CHECKOUT_SESSION_ID}}&email={quote(email)}"
+                    
+                    # Create Stripe checkout session
+                    try:
+                        session = stripe.checkout.Session.create(
+                            payment_method_types=["card"],
+                            mode="payment",
+                            customer_email=email,
+                            line_items=[{"price": stripe_price_id, "quantity": 1}],
+                            success_url=success_url_with_email,
+                            cancel_url=os.getenv("CREDIT_CANCEL_URL", "https://noianalyzer-1.onrender.com/payment-cancel"),
+                            metadata={
+                                "type": "credit_purchase",
+                                "package_id": package_id,
+                                "email": email
+                            },
+                        )
+                        
+                        # Return the checkout URL
+                        self._send_json_response({
+                            "checkout_url": session.url,
+                            "package": CREDIT_PACKAGES[package_id]
+                        })
+                        
+                    except stripe.error.StripeError as e:
+                        self._send_json_response({
+                            "error": "Stripe error",
+                            "message": str(e),
+                            "package": CREDIT_PACKAGES[package_id]
+                        }, 500)
+                    except Exception as e:
+                        self._send_json_response({
+                            "error": "Failed to create Stripe checkout session",
+                            "message": str(e),
+                            "package": CREDIT_PACKAGES[package_id]
+                        }, 500)
+                else:
+                    # Stripe not available - return placeholder response with clear instructions
+                    package_info = CREDIT_PACKAGES[package_id]
+                    self._send_json_response({
+                        "message": "Credit purchase endpoint ready",
+                        "package": package_info,
+                        "next_step": "Set up Stripe integration for real payments",
+                        "checkout_url": None,
+                        "setup_instructions": [
+                            "1. Create a Stripe account at https://stripe.com",
+                            "2. Create products in Stripe Dashboard for each credit package",
+                            "3. Copy the price IDs from each product",
+                            "4. Set STRIPE_SECRET_KEY and STRIPE_*_PRICE_ID environment variables",
+                            "5. Restart the server"
+                        ]
+                    })
                 
             except Exception as e:
                 self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
@@ -600,45 +693,14 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         self._send_json_response({"error": "Email and status are required"}, 400)
                         return
                     
-                    valid_statuses = ["active", "suspended", "banned"]
-                    if status not in valid_statuses:
-                        self._send_json_response({"error": f"Invalid status. Must be one of: {valid_statuses}"}, 400)
-                        return
-                    
-                    # For this simple server, we'll just return success
-                    # In a full implementation, you'd update a status field
-                    self._send_json_response({
-                        "success": True,
-                        "message": f"User {email} status updated to {status}",
-                        "email": email,
-                        "new_status": status
-                    })
+                    # Implementation would go here
+                    self._send_json_response({"message": "User status updated (placeholder)"})
                 
                 else:
-                    self._send_json_response({"error": "Admin POST endpoint not found"}, 404)
-                    
+                    self._send_json_response({"error": "Admin endpoint not found"}, 404)
+            
             except Exception as e:
-                self._send_json_response({"error": f"Invalid admin request: {str(e)}"}, 400)
+                self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
+        
         else:
-            self._send_json_response({"error": "POST endpoint not found"}, 404)
-    
-    def log_message(self, format, *args):
-        # Reduce log noise in production
-        pass
-
-if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 8000))
-    print(f"🚀 Starting NOI Analyzer Credit API on port {port}")
-    print(f"📊 Credit packages loaded: {len(CREDIT_PACKAGES)} packages")
-    print(f"🔗 Health check: http://0.0.0.0:{port}/health")
-    print(f"💳 Packages: http://0.0.0.0:{port}/packages")
-    print(f"👤 Credits: http://0.0.0.0:{port}/credits?email=test@example.com")
-    
-    server = HTTPServer(('0.0.0.0', port), CreditAPIHandler)
-    print(f"✅ NOI Analyzer Credit API ready!")
-    
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print("\n🛑 Server stopped")
-        server.shutdown()
+            self._send_json_response({"error": "Endpoint not found"}, 404)

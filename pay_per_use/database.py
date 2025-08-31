@@ -472,7 +472,7 @@ class DatabaseService:
                 "name": "Starter Pack",
                 "credits": 3,
                 "price_cents": 1500,  # $15.00
-                "stripe_price_id": os.getenv("STRIPE_STARTER_PRICE_ID", "PLACEHOLDER_STARTER_PRICE_ID"),
+                "stripe_price_id": os.getenv("STRIPE_STARTER_PRICE_ID", ""),
                 "description": "Perfect for trying out our service"
             },
             {
@@ -480,7 +480,7 @@ class DatabaseService:
                 "name": "Professional Pack",
                 "credits": 10,
                 "price_cents": 3000,  # $30.00
-                "stripe_price_id": os.getenv("STRIPE_PROFESSIONAL_PRICE_ID", "PLACEHOLDER_PROFESSIONAL_PRICE_ID"),
+                "stripe_price_id": os.getenv("STRIPE_PROFESSIONAL_PRICE_ID", ""),
                 "description": "Great for regular users"
             },
             {
@@ -488,7 +488,7 @@ class DatabaseService:
                 "name": "Business Pack",
                 "credits": 40,
                 "price_cents": 7500,  # $75.00
-                "stripe_price_id": os.getenv("STRIPE_BUSINESS_PRICE_ID", "PLACEHOLDER_BUSINESS_PRICE_ID"),
+                "stripe_price_id": os.getenv("STRIPE_BUSINESS_PRICE_ID", ""),
                 "description": "Best value for power users"
             }
         ]
@@ -523,14 +523,14 @@ class DatabaseService:
             conn.commit()
             logger.info("Default credit packages created/updated")
             
-            # Check for placeholder IDs and warn
-            cursor = conn.execute('SELECT name, stripe_price_id FROM credit_packages WHERE stripe_price_id LIKE "PLACEHOLDER%"')
-            placeholders = cursor.fetchall()
-            if placeholders:
-                logger.warning("⚠️  IMPORTANT: Some packages still have placeholder Stripe price IDs:")
-                for row in placeholders:
-                    logger.warning(f"   - {row['name']}: {row['stripe_price_id']}")
-                logger.warning("   Update your .env file with real Stripe price IDs!")
+            # Check for missing Stripe price IDs and warn
+            cursor = conn.execute('SELECT name, stripe_price_id FROM credit_packages WHERE stripe_price_id = "" OR stripe_price_id IS NULL')
+            missing_ids = cursor.fetchall()
+            if missing_ids:
+                logger.warning("⚠️  IMPORTANT: Some packages have missing Stripe price IDs:")
+                for row in missing_ids:
+                    logger.warning(f"   - {row['name']}: Missing Stripe price ID")
+                logger.warning("   Ensure STRIPE_STARTER_PRICE_ID, STRIPE_PROFESSIONAL_PRICE_ID, and STRIPE_BUSINESS_PRICE_ID are set in your environment variables!")
             
         except Exception as e:
             logger.error(f"Error creating default packages: {e}")

@@ -106,28 +106,33 @@ def initialize_database():
         print(f"❌ Database initialization failed: {e}")
         return False
 
-def test_basic_functionality():
-    """Test that everything is working"""
-    print("🧪 Testing basic functionality...")
+def check_render_environment():
+    """Check if Render environment variables are set"""
+    print("🧪 Checking Render environment variables...")
     
-    try:
-        from pay_per_use.database import db_service
-        from pay_per_use.credit_service import credit_service
-        
-        # Test user creation
-        test_email = "test@example.com"
-        user = db_service.get_or_create_user(test_email)
-        print(f"✅ Test user created: {user.email} with {user.credits} credits")
-        
-        # Test packages
-        packages = db_service.get_active_packages()
-        print(f"✅ Found {len(packages)} credit packages")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Testing failed: {e}")
+    render_vars = [
+        "STRIPE_SECRET_KEY",
+        "STRIPE_STARTER_PRICE_ID",
+        "STRIPE_PROFESSIONAL_PRICE_ID",
+        "STRIPE_BUSINESS_PRICE_ID",
+        "STRIPE_WEBHOOK_SECRET"
+    ]
+    
+    missing_vars = []
+    for var in render_vars:
+        if not os.getenv(var):
+            missing_vars.append(var)
+    
+    if missing_vars:
+        print("⚠️  Missing Render environment variables:")
+        for var in missing_vars:
+            print(f"   - {var}")
+        print("⚠️  You need to set these variables in your Render environment or .env file")
+        print("⚠️  Payments will not work without these variables")
         return False
+    else:
+        print("✅ All Render environment variables are set")
+        return True
 
 def main():
     """Main setup function"""
@@ -138,6 +143,7 @@ def main():
         ("Install Dependencies", install_dependencies),
         ("Create Environment Template", create_env_template),
         ("Initialize Database", initialize_database),
+        ("Check Render Environment", check_render_environment),
         ("Test Basic Functionality", test_basic_functionality)
     ]
     
@@ -150,10 +156,16 @@ def main():
     print("\n" + "=" * 40)
     print("🎉 SETUP COMPLETED SUCCESSFULLY!")
     print("\n📝 Next Steps:")
-    print("1. Edit .env file with your real API keys")
-    print("2. Test the credit system: python verify_credit_system.py")
-    print("3. Start the API server: python api_server_minimal.py")
-    print("4. Test purchases in the Streamlit app")
+    print("1. Edit .env file with your real API keys or")
+    print("2. Set environment variables in Render:")
+    print("   - STRIPE_SECRET_KEY")
+    print("   - STRIPE_STARTER_PRICE_ID")
+    print("   - STRIPE_PROFESSIONAL_PRICE_ID")
+    print("   - STRIPE_BUSINESS_PRICE_ID")
+    print("   - STRIPE_WEBHOOK_SECRET")
+    print("3. Test the credit system: python verify_credit_system.py")
+    print("4. Start the API server: python api_server_minimal.py")
+    print("5. Test purchases in the Streamlit app")
     print("\n⚠️  ONLY AFTER TESTING, consider the enhanced features")
     
     return True
