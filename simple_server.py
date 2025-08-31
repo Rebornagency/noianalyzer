@@ -342,6 +342,117 @@ class DatabaseManager:
         return provided_key == admin_key
 
 class CreditAPIHandler(BaseHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.db = DatabaseManager()
+        super().__init__(*args, **kwargs)
+    
+    def _send_json_response(self, data, status=200):
+        """Send JSON response with CORS headers"""
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+        
+        response = json.dumps(data)
+        self.wfile.write(response.encode('utf-8'))
+    
+    def serve_docs(self):
+        """Serve API documentation"""
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+        
+        # Simple HTML documentation page
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>NOI Analyzer Credit API Documentation</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+                .container { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                h1, h2, h3 { color: #2c3e50; }
+                h1 { border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+                h2 { border-left: 4px solid #3498db; padding-left: 15px; }
+                a { color: #3498db; text-decoration: none; }
+                a:hover { text-decoration: underline; }
+                .endpoint { background: #f8f9fa; border-left: 4px solid #27ae60; padding: 15px; margin: 15px 0; border-radius: 0 4px 4px 0; }
+                .method { background: #3498db; color: white; padding: 3px 8px; border-radius: 3px; font-size: 0.9em; }
+                .url { font-family: 'Courier New', monospace; background: #eee; padding: 2px 6px; border-radius: 3px; }
+                code { background: #f1f2f6; padding: 2px 4px; border-radius: 3px; }
+                pre { background: #2c3e50; color: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; }
+                .note { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; border-radius: 0 4px 4px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>💳 NOI Analyzer Credit API</h1>
+                <p>API for managing credits in the NOI Analyzer financial analysis tool.</p>
+                
+                <h2>📦 Credit Packages</h2>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="url">/packages</span>
+                    <p>Get available credit packages for purchase.</p>
+                    <p><strong>Response:</strong> Array of package objects with id, name, credits, and price.</p>
+                </div>
+                
+                <h2>👤 User Credits</h2>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="url">/pay-per-use/credits/{email}</span>
+                    <p>Get credit balance for a specific user.</p>
+                    <p><strong>Response:</strong> Object with email and credit count.</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="method">POST</span> <span class="url">/pay-per-use/use-credits</span>
+                    <p>Deduct one credit for NOI analysis.</p>
+                    <p><strong>Body:</strong> <code>{"email": "user@example.com"}</code></p>
+                    <p><strong>Response:</strong> Success status and remaining credits.</p>
+                </div>
+                
+                <h2>💰 Credit Purchase</h2>
+                <div class="endpoint">
+                    <span class="method">POST</span> <span class="url">/pay-per-use/credits/purchase</span>
+                    <p>Create a Stripe checkout session for credit purchase.</p>
+                    <p><strong>Body:</strong> <code>{"email": "user@example.com", "package_id": "professional"}</code></p>
+                    <p><strong>Response:</strong> Checkout URL for payment.</p>
+                </div>
+                
+                <h2>🛡️ Admin Endpoints</h2>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="url">/pay-per-use/admin/users?admin_key=SECRET</span>
+                    <p>Get all users (requires admin key).</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="url">/pay-per-use/admin/transactions?admin_key=SECRET</span>
+                    <p>Get all transactions (requires admin key).</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="method">POST</span> <span class="url">/pay-per-use/admin/adjust-credits</span>
+                    <p>Manually adjust user credits (requires admin key).</p>
+                </div>
+                
+                <h2>🔧 Health & Info</h2>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="url">/health</span>
+                    <p>Health check endpoint.</p>
+                </div>
+                
+                <div class="note">
+                    <strong>Note:</strong> All POST requests should use <code>application/x-www-form-urlencoded</code> or <code>application/json</code> content type.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        self.wfile.write(html_content.encode('utf-8'))
+    
     def do_GET(self):
         parsed_path = urlparse(self.path)
         path = parsed_path.path
@@ -453,10 +564,18 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     # Parse form data
                     from urllib.parse import parse_qs
                     parsed_data = parse_qs(post_data.decode('utf-8'))
+                    # Convert lists to single values
                     data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in parsed_data.items()}
                 
+                # Extract email and package_id, ensuring they are strings
                 email = data.get('email')
                 package_id = data.get('package_id')
+                
+                # Handle case where email or package_id might be a list
+                if isinstance(email, list):
+                    email = email[0] if email else ""
+                if isinstance(package_id, list):
+                    package_id = package_id[0] if package_id else ""
                 
                 if not email or not package_id:
                     self._send_json_response({"error": "Email and package_id required"}, 400)
@@ -469,10 +588,17 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 # Debug information
                 print(f"🔍 Purchase request - Email: {email}, Package: {package_id}")
                 print(f"   STRIPE_AVAILABLE: {STRIPE_AVAILABLE}")
-                print(f"   stripe.api_key set: {bool(stripe.api_key) if 'stripe' in globals() and hasattr(stripe, 'api_key') else 'N/A'}")
+                # Check if stripe is available and has api_key attribute
+                stripe_api_key_set = False
+                try:
+                    if 'stripe' in globals() and hasattr(stripe, 'api_key'):
+                        stripe_api_key_set = bool(stripe.api_key)
+                except:
+                    pass
+                print(f"   stripe.api_key set: {stripe_api_key_set}")
                 
                 # Check if Stripe is available and properly configured
-                if STRIPE_AVAILABLE and stripe.api_key:
+                if STRIPE_AVAILABLE and stripe_api_key_set:
                     # Get the appropriate Stripe price ID directly from environment variables
                     env_var_name = STRIPE_PRICE_ID_ENV_MAP.get(package_id)
                     stripe_price_id = os.getenv(env_var_name) if env_var_name else None
@@ -495,60 +621,77 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     # Build success URL with email parameter
                     base_success_url = os.getenv("CREDIT_SUCCESS_URL")
                     
+                    # Ensure email is a string for quote function
+                    email_str = str(email) if email else ""
+                    
                     if base_success_url:
                         # If environment variable is set, use it but ensure email is included
                         if "email=" not in base_success_url and "{email}" not in base_success_url:
                             separator = "&" if "?" in base_success_url else "?"
-                            success_url_with_email = f"{base_success_url}{separator}email={quote(email)}"
+                            success_url_with_email = f"{base_success_url}{separator}email={quote(email_str)}"
                         elif "{email}" in base_success_url:
                             # Replace {email} placeholder with actual email
-                            success_url_with_email = base_success_url.replace("{email}", quote(email))
+                            success_url_with_email = base_success_url.replace("{email}", quote(email_str))
                         else:
                             success_url_with_email = base_success_url
                     else:
                         # Default URL with both session_id and email
-                        success_url_with_email = f"https://noianalyzer-1.onrender.com/credit-success?session_id={{CHECKOUT_SESSION_ID}}&email={quote(email)}"
+                        success_url_with_email = f"https://noianalyzer-1.onrender.com/credit-success?session_id={{CHECKOUT_SESSION_ID}}&email={quote(email_str)}"
                     
                     # Create Stripe checkout session
                     try:
                         print(f"   Creating Stripe session for price ID: {stripe_price_id}")
-                        session = stripe.checkout.Session.create(
-                            payment_method_types=["card"],
-                            mode="payment",
-                            customer_email=email,
-                            line_items=[{"price": stripe_price_id, "quantity": 1}],
-                            success_url=success_url_with_email,
-                            cancel_url=os.getenv("CREDIT_CANCEL_URL", "https://noianalyzer-1.onrender.com/payment-cancel"),
-                            metadata={
-                                "type": "credit_purchase",
-                                "package_id": package_id,
-                                "email": email
-                            },
-                        )
+                        # Check if stripe module is available before using it
+                        if 'stripe' in globals():
+                            session = stripe.checkout.Session.create(
+                                payment_method_types=["card"],
+                                mode="payment",
+                                customer_email=email_str,
+                                line_items=[{"price": stripe_price_id, "quantity": 1}],
+                                success_url=success_url_with_email,
+                                cancel_url=os.getenv("CREDIT_CANCEL_URL", "https://noianalyzer-1.onrender.com/payment-cancel"),
+                                metadata={
+                                    "type": "credit_purchase",
+                                    "package_id": package_id,
+                                    "email": email_str
+                                },
+                            )
+                            
+                            # Return the checkout URL
+                            self._send_json_response({
+                                "checkout_url": session.url,
+                                "package": CREDIT_PACKAGES[package_id]
+                            })
+                        else:
+                            # This shouldn't happen if STRIPE_AVAILABLE is True, but just in case
+                            raise Exception("Stripe module not available")
                         
-                        # Return the checkout URL
-                        self._send_json_response({
-                            "checkout_url": session.url,
-                            "package": CREDIT_PACKAGES[package_id]
-                        })
-                        
-                    except stripe.error.StripeError as e:
-                        print(f"❌ Stripe error: {str(e)}")
-                        self._send_json_response({
-                            "error": "Stripe error",
-                            "message": str(e),
-                            "package": CREDIT_PACKAGES[package_id]
-                        }, 500)
                     except Exception as e:
-                        print(f"❌ Unexpected error creating Stripe session: {str(e)}")
-                        self._send_json_response({
-                            "error": "Failed to create Stripe checkout session",
-                            "message": str(e),
-                            "package": CREDIT_PACKAGES[package_id]
-                        }, 500)
+                        # Handle both Stripe errors and general exceptions
+                        print(f"❌ Error creating Stripe session: {str(e)}")
+                        # Check if it's a Stripe error
+                        if 'stripe' in globals() and hasattr(e, 'code'):
+                            self._send_json_response({
+                                "error": "Stripe error",
+                                "message": str(e),
+                                "package": CREDIT_PACKAGES[package_id]
+                            }, 500)
+                        else:
+                            self._send_json_response({
+                                "error": "Failed to create Stripe checkout session",
+                                "message": str(e),
+                                "package": CREDIT_PACKAGES[package_id]
+                            }, 500)
                 else:
                     # Stripe not available - return placeholder response with clear instructions
                     package_info = CREDIT_PACKAGES[package_id]
+                    # Check if stripe is available and has api_key attribute for debug info
+                    stripe_api_key_set_debug = False
+                    try:
+                        if 'stripe' in globals() and hasattr(stripe, 'api_key'):
+                            stripe_api_key_set_debug = bool(stripe.api_key)
+                    except:
+                        pass
                     self._send_json_response({
                         "message": "Credit purchase endpoint ready",
                         "package": package_info,
@@ -556,7 +699,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         "checkout_url": None,
                         "debug": {
                             "STRIPE_AVAILABLE": STRIPE_AVAILABLE,
-                            "stripe_api_key_set": bool(stripe.api_key) if 'stripe' in globals() and hasattr(stripe, 'api_key') else False,
+                            "stripe_api_key_set": stripe_api_key_set_debug,
                             "required_env_vars": {
                                 "STRIPE_SECRET_KEY": bool(os.getenv("STRIPE_SECRET_KEY")),
                                 "STRIPE_STARTER_PRICE_ID": bool(os.getenv("STRIPE_STARTER_PRICE_ID")),
@@ -585,10 +728,15 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 # Parse form data
                 from urllib.parse import parse_qs
                 parsed_data = parse_qs(post_data.decode('utf-8'))
+                # Convert lists to single values
                 data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in parsed_data.items()}
                 
                 # Check admin authentication
                 admin_key = data.get('admin_key')
+                # Handle case where admin_key might be a list
+                if isinstance(admin_key, list):
+                    admin_key = admin_key[0] if admin_key else ""
+                
                 if not self.db.verify_admin_key(admin_key):
                     self._send_json_response({"error": "Unauthorized"}, 403)
                     return
@@ -598,12 +746,24 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     credit_change = data.get('credit_change')
                     reason = data.get('reason')
                     
+                    # Handle case where these might be lists
+                    if isinstance(email, list):
+                        email = email[0] if email else ""
+                    if isinstance(credit_change, list):
+                        credit_change = credit_change[0] if credit_change else ""
+                    if isinstance(reason, list):
+                        reason = reason[0] if reason else ""
+                    
                     if not email or not reason or credit_change is None:
                         self._send_json_response({"error": "Email, credit_change, and reason are required"}, 400)
                         return
                     
                     try:
-                        credit_change = int(credit_change)
+                        # Ensure credit_change is an integer
+                        if isinstance(credit_change, str):
+                            credit_change = int(credit_change)
+                        else:
+                            credit_change = int(credit_change)
                     except ValueError:
                         self._send_json_response({"error": "credit_change must be a number"}, 400)
                         return
@@ -629,6 +789,12 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     email = data.get('email')
                     status = data.get('status')
                     
+                    # Handle case where these might be lists
+                    if isinstance(email, list):
+                        email = email[0] if email else ""
+                    if isinstance(status, list):
+                        status = status[0] if status else ""
+                    
                     if not email or not status:
                         self._send_json_response({"error": "Email and status are required"}, 400)
                         return
@@ -644,7 +810,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         
         else:
             self._send_json_response({"error": "Endpoint not found"}, 404)
-
+    
     def serve_health(self):
         """Serve health check endpoint"""
         self.send_response(200)
