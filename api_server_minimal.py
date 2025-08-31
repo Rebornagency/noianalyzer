@@ -477,6 +477,183 @@ async def block_ip_address(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# COMPREHENSIVE ADMIN ENDPOINTS FOR FULL SYSTEM MANAGEMENT
+@app.get("/pay-per-use/admin/users")
+async def get_all_users(admin_key: str = "", limit: int = 1000):
+    """Get all users (admin only)"""
+    if admin_key != os.getenv("ADMIN_API_KEY", ""):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    try:
+        users = db_service.get_all_users(limit)
+        return {
+            "users": [
+                {
+                    "user_id": user.user_id,
+                    "email": user.email,
+                    "credits": user.credits,
+                    "total_credits_purchased": user.total_credits_purchased,
+                    "total_credits_used": user.total_credits_used,
+                    "status": user.status.value,
+                    "created_at": user.created_at.isoformat(),
+                    "last_active": user.last_active.isoformat() if user.last_active else None,
+                    "free_trial_used": user.free_trial_used
+                }
+                for user in users
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/pay-per-use/admin/transactions")
+async def get_all_transactions(admin_key: str = "", limit: int = 1000):
+    """Get all transactions (admin only)"""
+    if admin_key != os.getenv("ADMIN_API_KEY", ""):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    try:
+        transactions = db_service.get_all_transactions(limit)
+        return {"transactions": transactions}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/pay-per-use/admin/user/{email}")
+async def get_user_details(email: str, admin_key: str = ""):
+    """Get detailed user information (admin only)"""
+    if admin_key != os.getenv("ADMIN_API_KEY", ""):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    try:
+        user = db_service.get_user_by_email_admin(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user transactions
+        transactions = db_service.get_user_transactions(user.user_id, 100)
+        
+        return {
+            "user": {
+                "user_id": user.user_id,
+                "email": user.email,
+                "credits": user.credits,
+                "total_credits_purchased": user.total_credits_purchased,
+                "total_credits_used": user.total_credits_used,
+                "status": user.status.value,
+                "created_at": user.created_at.isoformat(),
+                "last_active": user.last_active.isoformat() if user.last_active else None,
+                "free_trial_used": user.free_trial_used
+            },
+            "transactions": [
+                {
+                    "transaction_id": tx.transaction_id,
+                    "type": tx.type.value,
+                    "amount": tx.amount,
+                    "description": tx.description,
+                    "stripe_session_id": tx.stripe_session_id,
+                    "created_at": tx.created_at.isoformat()
+                }
+                for tx in transactions
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/pay-per-use/admin/adjust-credits")
+async def admin_adjust_credits(
+    email: str = Form(...),
+    credit_change: int = Form(...),
+    reason: str = Form(...),
+    admin_key: str = Form(...)
+):
+    """Manually adjust user credits (admin only)"""
+    if admin_key != os.getenv("ADMIN_API_KEY", ""):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Validate input
+    if not email or not reason.strip():
+        raise HTTPException(status_code=400, detail="Email and reason are required")
+    
+    if credit_change == 0:
+        raise HTTPException(status_code=400, detail="Credit change cannot be zero")
+    
+    try:
+        # Get admin identifier (you could expand this to track specific admin users)
+        admin_user = "system_admin"
+        
+        success = db_service.admin_adjust_credits(email, credit_change, reason, admin_user)
+        
+        if success:
+            # Get updated user info
+            user = db_service.get_user_by_email_admin(email)
+            return {
+                "success": True,
+                "message": f"Credits adjusted for {email}",
+                "credit_change": credit_change,
+                "new_balance": user.credits if user else None,
+                "reason": reason
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Failed to adjust credits")
+            
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/pay-per-use/admin/stats")
+async def get_system_stats(admin_key: str = ""):
+    """Get system statistics (admin only)"""
+    if admin_key != os.getenv("ADMIN_API_KEY", ""):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    try:
+        stats = db_service.get_system_stats()
+        return {"stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/pay-per-use/admin/user-status")
+async def update_user_status(
+    email: str = Form(...),
+    status: str = Form(...),
+    admin_key: str = Form(...)
+):
+    """Update user status (admin only)"""
+    if admin_key != os.getenv("ADMIN_API_KEY", ""):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    
+    # Validate status
+    valid_statuses = ["active", "suspended", "banned"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    try:
+        user = db_service.get_user_by_email_admin(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update user status in database
+        conn = db_service.get_connection()
+        try:
+            conn.execute('UPDATE users SET status = ? WHERE email = ?', (status, email))
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": f"User {email} status updated to {status}",
+                "email": email,
+                "new_status": status
+            }
+        finally:
+            conn.close()
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     # For local development
     uvicorn.run(

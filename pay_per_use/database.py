@@ -295,6 +295,173 @@ class DatabaseService:
         finally:
             conn.close()
     
+    # ADMIN FUNCTIONS
+    def get_all_users(self, limit: int = 1000) -> List[User]:
+        """Get all users (admin function)"""
+        conn = self.get_connection()
+        try:
+            cursor = conn.execute('''
+                SELECT * FROM users 
+                ORDER BY created_at DESC 
+                LIMIT ?
+            ''', (limit,))
+            
+            users = []
+            for row in cursor.fetchall():
+                users.append(User(
+                    user_id=row['user_id'],
+                    email=row['email'],
+                    credits=row['credits'],
+                    total_credits_purchased=row['total_credits_purchased'],
+                    total_credits_used=row['total_credits_used'],
+                    status=UserStatus(row['status']),
+                    created_at=datetime.fromisoformat(row['created_at']),
+                    last_active=datetime.fromisoformat(row['last_active']) if row['last_active'] else None,
+                    free_trial_used=bool(row['free_trial_used'])
+                ))
+            
+            return users
+            
+        except Exception as e:
+            logger.error(f"Error getting all users: {e}")
+            return []
+        finally:
+            conn.close()
+    
+    def get_all_transactions(self, limit: int = 1000) -> List[Dict[str, Any]]:
+        """Get all transactions with user email (admin function)"""
+        conn = self.get_connection()
+        try:
+            cursor = conn.execute('''
+                SELECT 
+                    ct.transaction_id,
+                    ct.user_id,
+                    u.email,
+                    ct.type,
+                    ct.amount,
+                    ct.description,
+                    ct.stripe_session_id,
+                    ct.created_at
+                FROM credit_transactions ct
+                JOIN users u ON ct.user_id = u.user_id
+                ORDER BY ct.created_at DESC 
+                LIMIT ?
+            ''', (limit,))
+            
+            transactions = []
+            for row in cursor.fetchall():
+                transactions.append({
+                    'transaction_id': row['transaction_id'],
+                    'user_id': row['user_id'],
+                    'email': row['email'],
+                    'type': row['type'],
+                    'amount': row['amount'],
+                    'description': row['description'],
+                    'stripe_session_id': row['stripe_session_id'],
+                    'created_at': row['created_at']
+                })
+            
+            return transactions
+            
+        except Exception as e:
+            logger.error(f"Error getting all transactions: {e}")
+            return []
+        finally:
+            conn.close()
+    
+    def get_user_by_email_admin(self, email: str) -> Optional[User]:
+        """Get user by email (admin function - no creation)"""
+        conn = self.get_connection()
+        try:
+            cursor = conn.execute('SELECT * FROM users WHERE email = ?', (email,))
+            row = cursor.fetchone()
+            
+            if row:
+                return User(
+                    user_id=row['user_id'],
+                    email=row['email'],
+                    credits=row['credits'],
+                    total_credits_purchased=row['total_credits_purchased'],
+                    total_credits_used=row['total_credits_used'],
+                    status=UserStatus(row['status']),
+                    created_at=datetime.fromisoformat(row['created_at']),
+                    last_active=datetime.fromisoformat(row['last_active']) if row['last_active'] else None,
+                    free_trial_used=bool(row['free_trial_used'])
+                )
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting user by email {email}: {e}")
+            return None
+        finally:
+            conn.close()
+    
+    def admin_adjust_credits(self, email: str, credit_change: int, reason: str, admin_user: str) -> bool:
+        """Admin function to manually adjust user credits"""
+        user = self.get_user_by_email_admin(email)
+        if not user:
+            logger.error(f"User {email} not found for admin credit adjustment")
+            return False
+        
+        # Use admin reason with admin identifier
+        description = f"Admin adjustment by {admin_user}: {reason}"
+        transaction_type = TransactionType.bonus if credit_change > 0 else TransactionType.refund
+        
+        success = self.update_user_credits(
+            user.user_id, 
+            credit_change, 
+            transaction_type, 
+            description
+        )
+        
+        if success:
+            logger.info(f"Admin {admin_user} adjusted credits for {email}: {credit_change} credits. Reason: {reason}")
+        
+        return success
+    
+    def get_system_stats(self) -> Dict[str, Any]:
+        """Get system statistics (admin function)"""
+        conn = self.get_connection()
+        try:
+            stats = {}
+            
+            # User stats
+            cursor = conn.execute('SELECT COUNT(*) FROM users')
+            stats['total_users'] = cursor.fetchone()[0]
+            
+            cursor = conn.execute('SELECT SUM(credits) FROM users')
+            stats['total_outstanding_credits'] = cursor.fetchone()[0] or 0
+            
+            cursor = conn.execute('SELECT SUM(total_credits_purchased) FROM users')
+            stats['total_credits_purchased'] = cursor.fetchone()[0] or 0
+            
+            cursor = conn.execute('SELECT SUM(total_credits_used) FROM users')
+            stats['total_credits_used'] = cursor.fetchone()[0] or 0
+            
+            # Transaction stats
+            cursor = conn.execute('SELECT COUNT(*) FROM credit_transactions')
+            stats['total_transactions'] = cursor.fetchone()[0]
+            
+            cursor = conn.execute('''
+                SELECT COUNT(*) FROM credit_transactions 
+                WHERE type = 'purchase' AND created_at > datetime('now', '-30 days')
+            ''')
+            stats['purchases_last_30_days'] = cursor.fetchone()[0]
+            
+            cursor = conn.execute('''
+                SELECT COUNT(*) FROM users 
+                WHERE created_at > datetime('now', '-7 days')
+            ''')
+            stats['new_users_last_7_days'] = cursor.fetchone()[0]
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error getting system stats: {e}")
+            return {}
+        finally:
+            conn.close()
+    
     # CREDIT PACKAGES
     def create_default_packages(self):
         """Create default credit packages with placeholder Stripe IDs"""
