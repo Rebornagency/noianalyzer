@@ -3814,7 +3814,12 @@ def generate_comprehensive_pdf():
                 return None
         else:
             logger.warning("PDF EXPORT: WeasyPrint not available - PDF generation disabled")
-            st.warning("📄 PDF export is temporarily unavailable. You can still export data as Excel or view the HTML report.")
+            st.info("💡 **Good news!** Your analysis is ready, but PDF download is currently unavailable on this server.\n\n"
+                   "**Here's what you can do instead:**\n"
+                   "• ✅ **Download Excel Report** - Get all your data in a spreadsheet format\n"
+                   "• ✅ **Copy Analysis Text** - Copy the insights and narrative to use elsewhere\n"
+                   "• ✅ **View Full Results** - All charts and data are available on screen\n\n"
+                   "*Your analysis results are complete and ready to use!*")
             return None
         
         # Clean up temporary file
@@ -5328,9 +5333,9 @@ def main():
         with col_pdf:
             # PDF Export button with loading state
             pdf_clicked, pdf_button_placeholder = create_loading_button(
-                "Generate Complete PDF Report",
+                "Try PDF Export",
                 key="global_pdf_export",
-                help="Generate a comprehensive PDF report of your analysis"
+                help="Attempt to generate PDF report (Excel export also available below)"
             )
             
             if pdf_clicked:
@@ -5355,7 +5360,7 @@ def main():
                         
                         # Clear loading states
                         loading_container.empty()
-                        restore_button(pdf_button_placeholder, "Generate Complete PDF Report", key="global_pdf_export")
+                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export")
                         
                         # Display download button
                         st.download_button(
@@ -5370,13 +5375,23 @@ def main():
                     else:
                         # Clear loading states on failure
                         loading_container.empty()
-                        restore_button(pdf_button_placeholder, "Generate Complete PDF Report", key="global_pdf_export")
-                        st.error("Failed to generate PDF report. Please try again.")
+                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export")
+                        st.info("📄 **PDF generation is currently unavailable**, but your analysis is complete!\n\n"
+                               "📊 **You can still access all your results:**\n"
+                               "• View all charts and analysis above\n"
+                               "• Use the Excel export button for downloadable data\n"
+                               "• Copy any text or insights you need\n\n"
+                               "*All your analysis data is ready to use!*")
                 except Exception as e:
                     # Clear loading states on error
                     loading_container.empty()
-                    restore_button(pdf_button_placeholder, "Generate Complete PDF Report", key="global_pdf_export")
-                    st.error(f"Error generating PDF: {str(e)}")
+                    restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export")
+                    st.info("🔧 **PDF generation encountered an issue**, but don't worry!\n\n"
+                           "📈 **Your analysis is complete and available:**\n"
+                           "• All charts and insights are displayed above\n"
+                           "• Excel export is working perfectly\n"
+                           "• You can copy any text or data you need\n\n"
+                           "*No data was lost - everything is ready to use!*")
                     logger.error(f"PDF generation error: {str(e)}")
 
     # Legal Footer - Terms of Service and Privacy Policy
