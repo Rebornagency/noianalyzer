@@ -334,7 +334,7 @@ def display_credit_store():
         flex-direction: column !important;
         justify-content: flex-start !important;
         position: relative !important;
-        /* No overflow hidden so content visible */
+        box-sizing: border-box !important; /* Ensure proper box model */
     }
     
     div[data-testid="column"] > div:hover {
@@ -387,9 +387,9 @@ def display_credit_store():
         text-align: center !important;
     }
     
-    /* Success Badge (Save %) Styling */
+    /* Success Badge (Save %) Styling - FIXED WIDTH AND ALIGNMENT */
     div[data-testid="column"] div[data-testid="stAlert"] {
-        margin: 1.25rem 0.5rem 1.5rem 0.5rem !important; /* Added horizontal margins */
+        margin: 1.25rem auto 1.5rem auto !important; /* Center align with auto margins */
         padding: 0.75rem 1rem !important;
         border-radius: 25px !important;
         text-align: center !important;
@@ -403,7 +403,7 @@ def display_credit_store():
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        width: calc(100% - 1rem) !important; /* Ensure proper width within container */
+        width: calc(100% - 2rem) !important; /* Proper width with margins */
         max-width: 100% !important;
         box-sizing: border-box !important;
     }
@@ -413,9 +413,7 @@ def display_credit_store():
     div[data-testid="column"] div[data-testid="stAlert"] span,
     div[data-testid="column"] div[data-testid="stAlert"] p,
     div[data-testid="column"] div[data-testid="stAlert"] div,
-    .stAlert-success *,
-    .stAlert-success span,
-    .stAlert-success p {
+    .stAlert-success * {
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
@@ -437,18 +435,21 @@ def display_credit_store():
         flex-grow: 1 !important;
     }
     
-    /* Button Container Alignment */
+    /* Button Container Alignment - FIXED ALIGNMENT AND WIDTH */
     div[data-testid="column"] div[data-testid="stButton"] {
          margin-top: auto !important; /* Push CTA to bottom within flex column */
-         padding: 1rem 1rem 0 1rem !important; /* Consistent padding with other elements */
-         width: 100% !important; /* ensure full-width alignment */
+         padding: 1rem 0 0 0 !important; /* Remove horizontal padding */
+         width: 100% !important; /* Full width */
          margin-bottom: 0 !important; /* Prevent button from extending beyond card */
          box-sizing: border-box !important;
+         display: flex !important;
+         justify-content: center !important; /* Center the button */
     }
     
-    /* Button Styling Enhancement */
+    /* Button Styling Enhancement - FIXED WIDTH AND CONTAINMENT */
     div[data-testid="column"] button[data-testid="baseButton-primary"] {
-        width: 100% !important; /* Full width within the padded container */
+        width: calc(100% - 2rem) !important; /* Full width minus margins */
+        max-width: 100% !important; /* Ensure it doesn't overflow */
         padding: 1rem 1.5rem !important;
         font-size: 1.1rem !important;
         font-weight: 700 !important;
@@ -462,6 +463,8 @@ def display_credit_store():
         text-transform: none !important;
         letter-spacing: 0.5px !important;
         box-sizing: border-box !important;
+        margin: 0 auto !important; /* Center the button */
+        display: block !important; /* Ensure proper block display */
     }
     
     div[data-testid="column"] button[data-testid="baseButton-primary"]:hover {
@@ -506,6 +509,7 @@ def display_credit_store():
         border: 1px solid #1f2a36 !important;
         border-radius: 8px !important;
         box-shadow: 0 6px 12px rgba(0,0,0,0.35) !important;
+        box-sizing: border-box !important; /* Ensure proper box model */
     }
 
     /* Card hover state */
@@ -522,7 +526,9 @@ def display_credit_store():
         box-shadow: none !important;
         opacity: 0.85 !important;
         color: #FFFFFF !important;
-        /* Width and margin already handled by the main alert styling above */
+        width: calc(100% - 2rem) !important; /* Proper width with margins */
+        margin: 1.25rem auto 1.5rem auto !important; /* Center align */
+        box-sizing: border-box !important;
     }
 
     /* Ensure all text within discount badges is white */
@@ -550,10 +556,11 @@ def display_credit_store():
 
     /* Purchase button sizing - Fixed for proper containment */
     div[data-testid="column"] button[data-testid="baseButton-primary"] {
-        width: 100% !important; /* Use full width within padded container */
+        width: calc(100% - 2rem) !important; /* Proper width with margins */
         height: 48px !important;
         font-size: 1.2rem !important; /* larger CTA text */
         box-sizing: border-box !important;
+        margin: 0 auto !important; /* Center the button */
     }
 
     /* ===== Typography upgrades & spacing tweaks ===== */
