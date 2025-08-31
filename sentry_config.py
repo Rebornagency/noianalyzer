@@ -31,9 +31,11 @@ except ImportError:
     HAS_PANDAS_INTEGRATION = False
 
 try:
+    # Only try to import FastAPI integration if starlette is available
     from sentry_sdk.integrations.fastapi import FastApiIntegration
     HAS_FASTAPI_INTEGRATION = True
-except ImportError:
+except (ImportError, Exception) as e:
+    # Catch both ImportError and DidNotEnable exceptions
     HAS_FASTAPI_INTEGRATION = False
 
 DEFAULT_SENTRY_DSN = "https://79cb707e8d1573757f94b1afcd1bd7bf@o4509419524653056.ingest.us.sentry.io/4509419570462720"
