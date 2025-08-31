@@ -27,6 +27,14 @@ def is_stripe_configured() -> bool:
             return True
     return False
 
+def is_stripe_library_available() -> bool:
+    """Check if the Stripe library is available for import."""
+    try:
+        import stripe
+        return True
+    except ImportError:
+        return False
+
 def start_ultra_minimal():
     """Start the ultra minimal API server (most reliable)"""
     print("🚀 Starting Ultra Minimal Credit API Server...")
@@ -71,6 +79,29 @@ def start_minimal():
     
     return True
 
+def start_simple_server():
+    """Start the simple server with Stripe integration"""
+    print("🚀 Starting Simple Credit Server with Stripe Integration...")
+    print("   - Port: 10000")
+    print("   - Requires Stripe library")
+    print("   - Press Ctrl+C to stop")
+    print("=" * 50)
+    
+    try:
+        # Import and run the simple server
+        from simple_server import run_server
+        run_server()
+    except ImportError as e:
+        print(f"❌ Missing dependencies for simple server: {e}")
+        return False
+    except KeyboardInterrupt:
+        print("\n👋 Server stopped by user")
+    except Exception as e:
+        print(f"❌ Failed to start simple server: {e}")
+        return False
+    
+    return True
+
 def main():
     """Main function to start the credit API"""
     print("NOI Analyzer Credit API Starter")
@@ -85,20 +116,26 @@ def main():
         elif server_type == "minimal":
             start_minimal()
             return
+        elif server_type == "simple":
+            start_simple_server()
+            return
         else:
             print(f"❌ Unknown server type: {server_type}")
-            print("Valid options: ultra, minimal")
+            print("Valid options: ultra, minimal, simple")
             return
     
     # Try to start servers in order of reliability
     print("🔍 Auto-selecting best server option...")
 
     # NEW: Prefer the minimal FastAPI server when Stripe is configured
-    if is_stripe_configured():
-        print("\n1️⃣ Detected Stripe configuration – trying minimal FastAPI server first...")
+    if is_stripe_configured() and is_stripe_library_available():
+        print("\n1️⃣ Detected Stripe configuration and library – trying minimal FastAPI server first...")
         if start_minimal():
             return
-        print("\n2️⃣ Falling back to ultra minimal server...")
+        print("\n2️⃣ Falling back to simple server...")
+        if start_simple_server():
+            return
+        print("\n3️⃣ Falling back to ultra minimal server...")
         start_ultra_minimal()
         return
 
@@ -111,15 +148,21 @@ def main():
     if start_minimal():
         return
     
+    print("\n3️⃣ Trying simple server...")
+    if start_simple_server():
+        return
+    
     # If all fail, show instructions
     print("\n❌ Could not start any server.")
     print("\n💡 Manual options:")
     print("   python start_credit_api.py ultra    # Start ultra minimal server")
     print("   python start_credit_api.py minimal  # Start FastAPI server")
+    print("   python start_credit_api.py simple   # Start simple server")
     print("\n🔧 If you're still having issues:")
     print("   1. Check that you have Python installed")
     print("   2. Check that the required files exist")
     print("   3. For FastAPI server, install: pip install fastapi uvicorn")
+    print("   4. For Stripe integration, install: pip install stripe")
 
 if __name__ == "__main__":
-    main() 
+    main()

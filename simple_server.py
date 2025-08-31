@@ -22,14 +22,42 @@ try:
     if stripe_api_key:
         stripe.api_key = stripe_api_key
         print("✅ Stripe initialized successfully")
+        print(f"   Stripe API key length: {len(stripe_api_key)} characters")
+        # Mask the API key for security (show only first 3 and last 4 characters)
+        masked_key = f"{stripe_api_key[:3]}...{stripe_api_key[-4:]}" if len(stripe_api_key) > 7 else "Too short"
+        print(f"   Stripe API key (masked): {masked_key}")
     else:
         STRIPE_AVAILABLE = False
         print("⚠️  Stripe secret key not found - Stripe integration disabled")
         print("   Make sure STRIPE_SECRET_KEY is set in your environment variables")
+        # Debug: Show what environment variables are actually set
+        env_vars = dict(os.environ)
+        stripe_vars = {k: v for k, v in env_vars.items() if 'STRIPE' in k.upper()}
+        if stripe_vars:
+            print("   Available STRIPE-related environment variables:")
+            for k, v in stripe_vars.items():
+                # Mask sensitive values
+                if 'KEY' in k.upper() or 'SECRET' in k.upper():
+                    masked_value = f"{v[:3]}...{v[-4:]}" if len(v) > 7 else "Too short"
+                    print(f"     {k}: {masked_value}")
+                else:
+                    print(f"     {k}: {v[:20]}{'...' if len(v) > 20 else ''}")
+        else:
+            print("   No STRIPE-related environment variables found")
 except ImportError:
     STRIPE_AVAILABLE = False
     print("⚠️  Stripe library not available - Stripe integration disabled")
     print("   Run 'pip install stripe' to enable Stripe integration")
+    # Check if it's in requirements
+    try:
+        with open('requirements-api.txt', 'r') as f:
+            requirements = f.read()
+            if 'stripe' in requirements.lower():
+                print("   Note: stripe is listed in requirements-api.txt")
+            else:
+                print("   Note: stripe not found in requirements-api.txt")
+    except:
+        pass
 
 # Credit packages for NOI Analyzer
 CREDIT_PACKAGES = {
@@ -741,3 +769,22 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         
         else:
             self._send_json_response({"error": "Endpoint not found"}, 404)
+
+def run_server():
+    """Run the HTTP server"""
+    port = int(os.environ.get('PORT', 10000))
+    server = HTTPServer(('0.0.0.0', port), CreditAPIHandler)
+    print(f"🚀 Starting Credit API server on port {port}")
+    print(f"   - Health check: http://localhost:{port}/health")
+    print(f"   - Packages: http://localhost:{port}/packages")
+    print(f"   - Credits: http://localhost:{port}/credits?email=test@example.com")
+    print("=" * 50)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\n👋 Server stopped by user")
+    except Exception as e:
+        print(f"❌ Server error: {e}")
+
+if __name__ == "__main__":
+    run_server()
