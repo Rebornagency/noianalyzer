@@ -18,6 +18,13 @@ try:
 except ImportError:
     HAS_STREAMLIT_INTEGRATION = False
 
+# Try to import Starlette integration as fallback for Streamlit
+try:
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+    HAS_STARLETTE_INTEGRATION = True
+except ImportError:
+    HAS_STARLETTE_INTEGRATION = False
+
 try:
     from sentry_sdk.integrations.logging import LoggingIntegration
     HAS_LOGGING_INTEGRATION = True
@@ -65,8 +72,15 @@ def init_sentry():
         # Build integrations list based on what's available
         integrations = []
         
+        # Use Streamlit integration if available, otherwise use Starlette as fallback
         if HAS_STREAMLIT_INTEGRATION:
             integrations.append(StreamlitIntegration())
+            logger.info("Using Streamlit integration for Sentry")
+        elif HAS_STARLETTE_INTEGRATION:
+            integrations.append(StarletteIntegration())
+            logger.info("Using Starlette integration as fallback for Sentry (Streamlit integration not available)")
+        else:
+            logger.warning("Neither Streamlit nor Starlette integration available for Sentry")
         
         if HAS_LOGGING_INTEGRATION:
             integrations.append(LoggingIntegration(
