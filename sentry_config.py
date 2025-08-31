@@ -4,6 +4,7 @@ Handles error tracking, performance monitoring, and debugging
 """
 
 import os
+import sys
 import sentry_sdk
 from datetime import datetime
 import logging
@@ -17,6 +18,7 @@ try:
     HAS_STREAMLIT_INTEGRATION = True
 except ImportError:
     HAS_STREAMLIT_INTEGRATION = False
+    StreamlitIntegration = None
 
 # Try to import Starlette integration as fallback for Streamlit
 try:
@@ -25,18 +27,21 @@ try:
 except (ImportError, Exception) as e:
     # Catch both ImportError and DidNotEnable exceptions
     HAS_STARLETTE_INTEGRATION = False
+    StarletteIntegration = None
 
 try:
     from sentry_sdk.integrations.logging import LoggingIntegration
     HAS_LOGGING_INTEGRATION = True
 except ImportError:
     HAS_LOGGING_INTEGRATION = False
+    LoggingIntegration = None
 
 try:
     from sentry_sdk.integrations.pandas import PandasIntegration
     HAS_PANDAS_INTEGRATION = True
 except ImportError:
     HAS_PANDAS_INTEGRATION = False
+    PandasIntegration = None
 
 try:
     # Only try to import FastAPI integration if starlette is available
@@ -45,6 +50,7 @@ try:
 except (ImportError, Exception) as e:
     # Catch both ImportError and DidNotEnable exceptions
     HAS_FASTAPI_INTEGRATION = False
+    FastApiIntegration = None
 
 DEFAULT_SENTRY_DSN = "https://79cb707e8d1573757f94b1afcd1bd7bf@o4509419524653056.ingest.us.sentry.io/4509419570462720"
 
@@ -74,22 +80,22 @@ def init_sentry():
         integrations = []
         
         # Use Streamlit integration if available, otherwise don't use any web framework integration
-        if HAS_STREAMLIT_INTEGRATION:
+        if HAS_STREAMLIT_INTEGRATION and StreamlitIntegration:
             integrations.append(StreamlitIntegration())
             logger.info("Using Streamlit integration for Sentry")
         else:
             logger.info("Streamlit integration not available for Sentry - proceeding without web framework integration")
         
-        if HAS_LOGGING_INTEGRATION:
+        if HAS_LOGGING_INTEGRATION and LoggingIntegration:
             integrations.append(LoggingIntegration(
                 level=logging.WARNING,  # Only capture warnings and above
                 event_level=logging.ERROR,  # Only send errors as events
             ))
         
-        if HAS_PANDAS_INTEGRATION:
+        if HAS_PANDAS_INTEGRATION and PandasIntegration:
             integrations.append(PandasIntegration())
         
-        if HAS_FASTAPI_INTEGRATION:
+        if HAS_FASTAPI_INTEGRATION and FastApiIntegration:
             integrations.append(FastApiIntegration(
                 transaction_style="endpoint",
             ))
@@ -138,7 +144,7 @@ def init_sentry():
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("app.name", "NOI Analyzer")
             scope.set_tag("app.version", release)
-            scope.set_tag("python.version", os.sys.version.split()[0])
+            scope.set_tag("python.version", sys.version.split()[0])
             
         logger.info(f"Sentry initialized successfully for environment: {environment}")
         logger.info(f"Available integrations: {[type(i).__name__ for i in integrations]}")
@@ -210,32 +216,121 @@ def set_user_context(user_id=None, property_name=None, session_id=None):
             scope.set_tag("session.id", session_id)
 
 
-def capture_exception(error, message=None, **kwargs):
+def add_breadcrumb(message, category="generic", level="info"):
+    """
+    Add a breadcrumb for better error tracking.
+    
+    Args:
+        message (str): The breadcrumb message
+        category (str): The category of the breadcrumb
+        level (str): The level of the breadcrumb (info, warning, error)
+    """
+    try:
+        sentry_sdk.add_breadcrumb(
+            message=message,
+            category=category,
+            level=level
+        )
+        # Also log to Python logger for local debugging
+        logger.log(getattr(logging, level.upper()), f"[{category}] {message}")
+    except Exception:
+        # If Sentry is not initialized or other issues, just log locally
+        logger.log(getattr(logging, level.upper()), f"[{category}] {message}")
+
+
+def capture_exception_with_context(error, context=None, **kwargs):
     """
     Capture an exception with additional context.
     
     Args:
         error (Exception): The exception to capture
-        message (str, optional): Additional message to include
+        context (dict, optional): Additional context to include
         **kwargs: Additional context to include
     """
-    if message:
-        logger.error(f"{message}: {str(error)}")
-        sentry_sdk.set_context("custom", kwargs)
-        sentry_sdk.capture_message(message)
-    
-    sentry_sdk.capture_exception(error)
+    try:
+        # Add context if provided
+        if context:
+            sentry_sdk.set_context("custom_context", context)
+        
+        # Add any additional kwargs as context
+        if kwargs:
+            sentry_sdk.set_context("additional_info", kwargs)
+        
+        # Capture the exception
+        sentry_sdk.capture_exception(error)
+        
+        # Also log locally
+        logger.error(f"Exception captured: {str(error)}", exc_info=True)
+    except Exception:
+        # If Sentry is not available, just log locally
+        logger.error(f"Exception (Sentry unavailable): {str(error)}", exc_info=True)
 
 
-def capture_message(message, level="info", **kwargs):
+def capture_message_with_context(message, level="info", context=None, **kwargs):
     """
-    Capture a custom message with additional context.
+    Capture a message with additional context.
     
     Args:
         message (str): The message to capture
         level (str): The level of the message (info, warning, error)
+        context (dict, optional): Additional context to include
         **kwargs: Additional context to include
     """
-    logger.log(getattr(logging, level.upper()), message)
-    sentry_sdk.set_context("custom", kwargs)
-    sentry_sdk.capture_message(message, level=level)
+    try:
+        # Add context if provided
+        if context:
+            sentry_sdk.set_context("custom_context", context)
+        
+        # Add any additional kwargs as context
+        if kwargs:
+            sentry_sdk.set_context("additional_info", kwargs)
+        
+        # Capture the message with proper level typing
+        if level == "fatal":
+            sentry_sdk.capture_message(message, level="fatal")
+        elif level == "critical":
+            sentry_sdk.capture_message(message, level="critical")
+        elif level == "error":
+            sentry_sdk.capture_message(message, level="error")
+        elif level == "warning":
+            sentry_sdk.capture_message(message, level="warning")
+        elif level == "info":
+            sentry_sdk.capture_message(message, level="info")
+        elif level == "debug":
+            sentry_sdk.capture_message(message, level="debug")
+        else:
+            sentry_sdk.capture_message(message, level="info")
+        
+        # Also log locally
+        logger.log(getattr(logging, level.upper()), message)
+    except Exception:
+        # If Sentry is not available, just log locally
+        logger.log(getattr(logging, level.upper()), f"Message (Sentry unavailable): {message}")
+
+
+def monitor_performance(operation_name, operation_type="custom"):
+    """
+    Monitor performance of an operation.
+    
+    Args:
+        operation_name (str): Name of the operation
+        operation_type (str): Type of the operation
+    
+    Returns:
+        context manager for the transaction
+    """
+    try:
+        from sentry_sdk import start_transaction
+        return start_transaction(op=operation_type, name=operation_name)
+    except Exception:
+        # If Sentry is not available, return a dummy context manager
+        class DummyContextManager:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                pass
+            def set_tag(self, key, value):
+                pass
+            def set_data(self, key, value):
+                pass
+        return DummyContextManager()
