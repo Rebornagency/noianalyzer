@@ -96,15 +96,15 @@ def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name
     logger.debug(f"GPT Prompt:\n{prompt}")
 
     try:
-        # Call OpenAI API
+        # Call OpenAI API with optimized settings for better performance
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a senior real estate financial analyst specializing in detailed NOI variance analysis and reporting."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.5, # Slightly higher temp for more nuanced language
-            max_tokens=1200 # Allow more tokens for detailed analysis
+            temperature=0.3,  # Optimized: Lower temperature for faster, more consistent responses
+            max_tokens=800    # Optimized: Reduced tokens for better performance and cost
         )
 
         # Log the response
