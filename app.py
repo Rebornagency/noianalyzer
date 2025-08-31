@@ -4119,12 +4119,53 @@ def main():
     # Pre-fill email if user returned from successful purchase
     default_email = st.session_state.get('user_email', '')
     
+    # Custom email input with required indicator
+    st.markdown(
+        """
+        <style>
+        .email-title {
+            color: #ffffff !important;
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+            margin-bottom: 0.5rem !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+        
+        .required-badge-email {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            color: white !important;
+            padding: 0.2rem 0.6rem !important;
+            border-radius: 6px !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Display email title with required indicator
+    st.markdown(
+        """
+        <div class="email-title">
+            📧 Email Address
+            <span class="required-badge-email">Required</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
     email_input = st.text_input(
         "Email Address",
         value=default_email,
         placeholder="Enter your email address",
         help="We'll track your credits and send you the analysis report",
-        key="user_email_input"
+        key="user_email_input",
+        label_visibility="collapsed"  # Hide the default label since we have custom title
     )
     
     # Store email in session state for credit tracking
@@ -5992,6 +6033,63 @@ def instructions_card(items):
     </div>
     """, unsafe_allow_html=True)
 
+def main():
+    """
+    Main function to run the Streamlit app.
+    """
+    # Add email input field at the top level - ALWAYS visible
+    # Pre-fill email if user returned from successful purchase
+    default_email = st.session_state.get('user_email', '')
+    
+    # Custom email input with required indicator
+    st.markdown(
+        """
+        <style>
+        .email-title {
+            color: #ffffff !important;
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+            margin-bottom: 0.5rem !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+        
+        .required-badge-email {
+            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+            color: white !important;
+            padding: 0.2rem 0.6rem !important;
+            border-radius: 6px !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # Display email title with required indicator
+    st.markdown(
+        """
+        <div class="email-title">
+            📧 Email Address
+            <span class="required-badge-email">Required</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    email_input = st.text_input(
+        "Email Address",
+        value=default_email,
+        placeholder="Enter your email address",
+        help="We'll track your credits and send you the analysis report",
+        key="user_email_input",
+        label_visibility="collapsed"  # Hide the default label since we have custom title
+    )
+    
 def feature_list(features):
     """
     Display an enhanced feature list.
