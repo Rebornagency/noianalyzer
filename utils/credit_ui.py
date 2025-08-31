@@ -389,7 +389,7 @@ def display_credit_store():
     
     /* Success Badge (Save %) Styling */
     div[data-testid="column"] div[data-testid="stAlert"] {
-        margin: 1.25rem 0 1.5rem 0 !important;
+        margin: 1.25rem 0.5rem 1.5rem 0.5rem !important; /* Added horizontal margins */
         padding: 0.75rem 1rem !important;
         border-radius: 25px !important;
         text-align: center !important;
@@ -403,6 +403,9 @@ def display_credit_store():
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        width: calc(100% - 1rem) !important; /* Ensure proper width within container */
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     /* Force all text elements within success badges to be white */
@@ -437,7 +440,7 @@ def display_credit_store():
     /* Button Container Alignment */
     div[data-testid="column"] div[data-testid="stButton"] {
          margin-top: auto !important; /* Push CTA to bottom within flex column */
-         padding-top: 1rem !important;
+         padding: 1rem 1rem 0 1rem !important; /* Consistent padding with other elements */
          width: 100% !important; /* ensure full-width alignment */
          margin-bottom: 0 !important; /* Prevent button from extending beyond card */
          box-sizing: border-box !important;
@@ -445,7 +448,7 @@ def display_credit_store():
     
     /* Button Styling Enhancement */
     div[data-testid="column"] button[data-testid="baseButton-primary"] {
-        width: 100% !important;
+        width: 100% !important; /* Full width within the padded container */
         padding: 1rem 1.5rem !important;
         font-size: 1.1rem !important;
         font-weight: 700 !important;
@@ -458,6 +461,7 @@ def display_credit_store():
         box-shadow: 0 4px 12px rgba(14, 77, 227, 0.4) !important;
         text-transform: none !important;
         letter-spacing: 0.5px !important;
+        box-sizing: border-box !important;
     }
     
     div[data-testid="column"] button[data-testid="baseButton-primary"]:hover {
@@ -510,7 +514,7 @@ def display_credit_store():
         background: rgba(255,255,255,0.06) !important;
     }
 
-    /* Discount badge subtle styling */
+    /* Discount badge subtle styling - Fixed for proper containment */
     div[data-testid="column"] div[data-testid="stAlert"] {
         background: linear-gradient(135deg, #244533, #1b362a) !important;
         border-radius: 6px !important;
@@ -518,6 +522,7 @@ def display_credit_store():
         box-shadow: none !important;
         opacity: 0.85 !important;
         color: #FFFFFF !important;
+        /* Width and margin already handled by the main alert styling above */
     }
 
     /* Ensure all text within discount badges is white */
@@ -543,12 +548,12 @@ def display_credit_store():
         color: #ffffff !important;
     }
 
-    /* Purchase button sizing */
+    /* Purchase button sizing - Fixed for proper containment */
     div[data-testid="column"] button[data-testid="baseButton-primary"] {
-        width: 90% !important;
-        margin: 0 auto !important;
+        width: 100% !important; /* Use full width within padded container */
         height: 48px !important;
         font-size: 1.2rem !important; /* larger CTA text */
+        box-sizing: border-box !important;
     }
 
     /* ===== Typography upgrades & spacing tweaks ===== */

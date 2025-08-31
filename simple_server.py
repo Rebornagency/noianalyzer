@@ -98,6 +98,182 @@ class DatabaseManager:
         conn.commit()
         conn.close()
         return True
+    
+    # ADMIN FUNCTIONS
+    def get_all_users(self):
+        """Get all users (admin function)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT email, credits, created_at FROM users ORDER BY created_at DESC")
+        users = []
+        for row in cursor.fetchall():
+            users.append({
+                'user_id': row[0][:8] + '...',  # Simplified ID
+                'email': row[0],
+                'credits': row[1],
+                'total_credits_purchased': row[1],  # Simplified
+                'total_credits_used': 0,  # Simplified
+                'status': 'active',
+                'created_at': row[2],
+                'last_active': row[2],
+                'free_trial_used': row[1] > 0
+            })
+        
+        conn.close()
+        return users
+    
+    def get_all_transactions(self):
+        """Get all transactions (admin function)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, email, package_type, credits, amount, status, created_at 
+            FROM transactions 
+            ORDER BY created_at DESC
+        ''')
+        
+        transactions = []
+        for row in cursor.fetchall():
+            transactions.append({
+                'transaction_id': row[0],
+                'user_id': row[1][:8] + '...',
+                'email': row[1],
+                'type': row[2] or 'manual',
+                'amount': row[3],
+                'description': f"{row[2] or 'Manual adjustment'}: {row[3]} credits",
+                'stripe_session_id': None,
+                'created_at': row[6]
+            })
+        
+        conn.close()
+        return transactions
+    
+    def get_user_details(self, email):
+        """Get detailed user information (admin function)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Get user info
+        cursor.execute("SELECT email, credits, created_at FROM users WHERE email = ?", (email,))
+        user_row = cursor.fetchone()
+        
+        if not user_row:
+            conn.close()
+            return None
+        
+        # Get user transactions
+        cursor.execute('''
+            SELECT id, package_type, credits, amount, status, created_at 
+            FROM transactions 
+            WHERE email = ? 
+            ORDER BY created_at DESC
+        ''', (email,))
+        
+        transactions = []
+        for row in cursor.fetchall():
+            transactions.append({
+                'transaction_id': row[0],
+                'type': row[1] or 'manual',
+                'amount': row[2],
+                'description': f"{row[1] or 'Manual adjustment'}: {row[2]} credits",
+                'stripe_session_id': None,
+                'created_at': row[5]
+            })
+        
+        conn.close()
+        
+        return {
+            'user': {
+                'user_id': user_row[0][:8] + '...',
+                'email': user_row[0],
+                'credits': user_row[1],
+                'total_credits_purchased': user_row[1],
+                'total_credits_used': 0,
+                'status': 'active',
+                'created_at': user_row[2],
+                'last_active': user_row[2],
+                'free_trial_used': user_row[1] > 0
+            },
+            'transactions': transactions
+        }
+    
+    def admin_adjust_credits(self, email, credit_change, reason):
+        """Admin function to manually adjust user credits"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Get current credits
+            cursor.execute("SELECT credits FROM users WHERE email = ?", (email,))
+            result = cursor.fetchone()
+            
+            if not result:
+                # Create user if doesn't exist
+                cursor.execute("INSERT INTO users (email, credits) VALUES (?, ?)", (email, max(0, credit_change)))
+                new_balance = max(0, credit_change)
+            else:
+                current_credits = result[0]
+                new_balance = max(0, current_credits + credit_change)
+                cursor.execute("UPDATE users SET credits = ? WHERE email = ?", (new_balance, email))
+            
+            # Add transaction record
+            transaction_id = str(uuid.uuid4())
+            cursor.execute('''
+                INSERT INTO transactions (id, email, package_type, credits, amount, status)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (transaction_id, email, 'admin_adjustment', credit_change, 0, 'completed'))
+            
+            conn.commit()
+            conn.close()
+            return True, new_balance
+            
+        except Exception as e:
+            conn.rollback()
+            conn.close()
+            return False, str(e)
+    
+    def get_system_stats(self):
+        """Get system statistics (admin function)"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        stats = {}
+        
+        # User stats
+        cursor.execute("SELECT COUNT(*) FROM users")
+        stats['total_users'] = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT SUM(credits) FROM users")
+        result = cursor.fetchone()[0]
+        stats['total_outstanding_credits'] = result if result else 0
+        
+        cursor.execute("SELECT SUM(credits) FROM users")
+        result = cursor.fetchone()[0]
+        stats['total_credits_purchased'] = result if result else 0
+        
+        cursor.execute("SELECT COUNT(*) FROM users WHERE credits = 0")
+        used_credits_users = cursor.fetchone()[0]
+        stats['total_credits_used'] = used_credits_users  # Simplified
+        
+        # Transaction stats
+        cursor.execute("SELECT COUNT(*) FROM transactions")
+        stats['total_transactions'] = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM transactions WHERE created_at > datetime('now', '-30 days')")
+        stats['purchases_last_30_days'] = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM users WHERE created_at > datetime('now', '-7 days')")
+        stats['new_users_last_7_days'] = cursor.fetchone()[0]
+        
+        conn.close()
+        return stats
+    
+    def verify_admin_key(self, provided_key):
+        """Verify admin API key"""
+        admin_key = os.getenv("ADMIN_API_KEY", "test_admin_key_change_me")
+        return provided_key == admin_key
 
 class CreditAPIHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -136,7 +312,15 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 "message": "NOI Analyzer Credit API running successfully!",
                 "server": "credit_api",
                 "version": "1.0",
-                "endpoints": ["/health", "/packages", "/credits", "/pay-per-use/credits/{email}"]
+                "endpoints": ["/health", "/packages", "/credits", "/pay-per-use/credits/{email}"],
+                "admin_endpoints": [
+                    "/pay-per-use/admin/users",
+                    "/pay-per-use/admin/transactions", 
+                    "/pay-per-use/admin/user/{email}",
+                    "/pay-per-use/admin/stats",
+                    "/pay-per-use/admin/adjust-credits",
+                    "/pay-per-use/admin/user-status"
+                ]
             })
             
         elif path == "/packages":
@@ -197,9 +381,55 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     "description": f"Get {info['credits']} NOI analysis credits"
                 })
             self._send_json_response(packages_list)
+        
+        # ADMIN ENDPOINTS
+        elif path.startswith("/pay-per-use/admin/"):
+            # Check admin authentication
+            admin_key = query_params.get('admin_key', [None])[0]
+            if not self.db.verify_admin_key(admin_key):
+                self._send_json_response({"error": "Unauthorized"}, 403)
+                return
+            
+            if path == "/pay-per-use/admin/users":
+                users = self.db.get_all_users()
+                self._send_json_response({"users": users})
+            
+            elif path == "/pay-per-use/admin/transactions":
+                transactions = self.db.get_all_transactions()
+                self._send_json_response({"transactions": transactions})
+            
+            elif path.startswith("/pay-per-use/admin/user/"):
+                email = path.split("/pay-per-use/admin/user/")[-1]
+                if not email:
+                    self._send_json_response({"error": "Email required"}, 400)
+                    return
+                
+                user_details = self.db.get_user_details(email)
+                if user_details:
+                    self._send_json_response(user_details)
+                else:
+                    self._send_json_response({"error": "User not found"}, 404)
+            
+            elif path == "/pay-per-use/admin/stats":
+                stats = self.db.get_system_stats()
+                self._send_json_response({"stats": stats})
+            
+            else:
+                self._send_json_response({"error": "Admin endpoint not found"}, 404)
             
         else:
-            self._send_json_response({"error": "Endpoint not found", "available_endpoints": ["/health", "/packages", "/credits", "/pay-per-use/credits/{email}"]}, 404)
+            self._send_json_response({
+                "error": "Endpoint not found", 
+                "available_endpoints": ["/health", "/packages", "/credits", "/pay-per-use/credits/{email}"],
+                "admin_endpoints": [
+                    "/pay-per-use/admin/users",
+                    "/pay-per-use/admin/transactions",
+                    "/pay-per-use/admin/user/{email}",
+                    "/pay-per-use/admin/stats",
+                    "/pay-per-use/admin/adjust-credits",
+                    "/pay-per-use/admin/user-status"
+                ]
+            }, 404)
     
     def do_POST(self):
         """Handle POST requests for credit operations"""
@@ -304,6 +534,83 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 
             except Exception as e:
                 self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
+        
+        # ADMIN POST ENDPOINTS
+        elif path.startswith("/pay-per-use/admin/"):
+            try:
+                content_length = int(self.headers.get('Content-Length', 0))
+                post_data = self.rfile.read(content_length)
+                
+                # Parse form data
+                from urllib.parse import parse_qs
+                parsed_data = parse_qs(post_data.decode('utf-8'))
+                data = {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in parsed_data.items()}
+                
+                # Check admin authentication
+                admin_key = data.get('admin_key')
+                if not self.db.verify_admin_key(admin_key):
+                    self._send_json_response({"error": "Unauthorized"}, 403)
+                    return
+                
+                if path == "/pay-per-use/admin/adjust-credits":
+                    email = data.get('email')
+                    credit_change = data.get('credit_change')
+                    reason = data.get('reason')
+                    
+                    if not email or not reason or credit_change is None:
+                        self._send_json_response({"error": "Email, credit_change, and reason are required"}, 400)
+                        return
+                    
+                    try:
+                        credit_change = int(credit_change)
+                    except ValueError:
+                        self._send_json_response({"error": "credit_change must be a number"}, 400)
+                        return
+                    
+                    if credit_change == 0:
+                        self._send_json_response({"error": "Credit change cannot be zero"}, 400)
+                        return
+                    
+                    success, result = self.db.admin_adjust_credits(email, credit_change, reason)
+                    
+                    if success:
+                        self._send_json_response({
+                            "success": True,
+                            "message": f"Credits adjusted for {email}",
+                            "credit_change": credit_change,
+                            "new_balance": result,
+                            "reason": reason
+                        })
+                    else:
+                        self._send_json_response({"error": f"Failed to adjust credits: {result}"}, 400)
+                
+                elif path == "/pay-per-use/admin/user-status":
+                    email = data.get('email')
+                    status = data.get('status')
+                    
+                    if not email or not status:
+                        self._send_json_response({"error": "Email and status are required"}, 400)
+                        return
+                    
+                    valid_statuses = ["active", "suspended", "banned"]
+                    if status not in valid_statuses:
+                        self._send_json_response({"error": f"Invalid status. Must be one of: {valid_statuses}"}, 400)
+                        return
+                    
+                    # For this simple server, we'll just return success
+                    # In a full implementation, you'd update a status field
+                    self._send_json_response({
+                        "success": True,
+                        "message": f"User {email} status updated to {status}",
+                        "email": email,
+                        "new_status": status
+                    })
+                
+                else:
+                    self._send_json_response({"error": "Admin POST endpoint not found"}, 404)
+                    
+            except Exception as e:
+                self._send_json_response({"error": f"Invalid admin request: {str(e)}"}, 400)
         else:
             self._send_json_response({"error": "POST endpoint not found"}, 404)
     

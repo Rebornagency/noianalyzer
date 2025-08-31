@@ -27,9 +27,13 @@ def test_endpoint(endpoint, method="GET", data=None, params=None):
             if data is None:
                 data = {}
             data["admin_key"] = ADMIN_API_KEY
+            # Use form data instead of JSON for simple server
             response = requests.post(url, data=data, timeout=10)
         
-        return response.status_code, response.json() if response.status_code == 200 else response.text
+        if response.status_code == 200:
+            return response.status_code, response.json()
+        else:
+            return response.status_code, response.text
     except Exception as e:
         return 0, str(e)
 
