@@ -3870,13 +3870,14 @@ def main():
         # Handle page routing for credit system
         if CREDIT_SYSTEM_AVAILABLE:
             # Handle successful credit purchase return
-            if 'credit_success' in st.query_params:
+            query_params = get_url_params()
+            if query_params and 'credit_success' in query_params:
                 st.session_state.show_credit_store = False
                 st.session_state.clear_credit_store = False
                 
                 # Pre-fill email if provided in URL
-                if 'email' in st.query_params:
-                    returned_email = st.query_params['email']
+                if 'email' in query_params:
+                    returned_email = query_params['email']
                     # Only set email if it's a valid email (not None, empty, or "None")
                     if returned_email and returned_email.lower() != 'none' and '@' in returned_email:
                         st.session_state.user_email = returned_email
@@ -3892,7 +3893,7 @@ def main():
                 logger.info("User returned from successful credit purchase")
                 
                 # Clear URL parameters to prevent repeated processing
-                st.query_params.clear()
+                clear_url_params()
             
             # Clear credit store flag if needed
             elif st.session_state.get('clear_credit_store', False):
@@ -6033,6 +6034,57 @@ def property_input(value=""):
     )
     
     return property_name
+
+# Helper functions for URL parameter handling (Streamlit 1.28.0 compatible)
+def get_url_params():
+    """
+    Get URL parameters in a way that's compatible with Streamlit 1.28.0.
+    
+    Returns:
+        dict: Dictionary of URL parameters or empty dict if not available
+    """
+    try:
+        # Try new st.query_params first (for newer versions)
+        if hasattr(st, 'query_params'):
+            return dict(st.query_params)
+    except (AttributeError, Exception):
+        pass
+    
+    try:
+        # Fallback to experimental query params (older versions)
+        if hasattr(st, 'experimental_get_query_params'):
+            params = st.experimental_get_query_params()
+            # Convert list values to single values (take first item)
+            return {k: v[0] if isinstance(v, list) and v else v for k, v in params.items()}
+    except (AttributeError, Exception):
+        pass
+    
+    # If all methods fail, return empty dict
+    logger.warning("Unable to access URL parameters - feature not available in this Streamlit version")
+    return {}
+
+def clear_url_params():
+    """
+    Clear URL parameters in a way that's compatible with Streamlit 1.28.0.
+    """
+    try:
+        # Try new st.query_params first (for newer versions)
+        if hasattr(st, 'query_params') and hasattr(st.query_params, 'clear'):
+            st.query_params.clear()
+            return
+    except (AttributeError, Exception):
+        pass
+    
+    try:
+        # Fallback to experimental query params (older versions)
+        if hasattr(st, 'experimental_set_query_params'):
+            st.experimental_set_query_params()
+            return
+    except (AttributeError, Exception):
+        pass
+    
+    # If all methods fail, log warning
+    logger.warning("Unable to clear URL parameters - feature not available in this Streamlit version")
 
 # Helper function to summarize data structures for logging
 def summarize_data_for_log(data_dict, max_items=3):
