@@ -4407,11 +4407,57 @@ def main():
                 box-shadow: 0 4px 12px rgba(121, 184, 243, 0.4) !important;
                 transform: translateY(-2px) !important;
             }
+            
+            /* Custom styles for Terms of Service checkbox */
+            .tos-checkbox-label {
+                color: #ffffff !important;
+                font-size: 0.95rem !important;
+                line-height: 1.4 !important;
+                margin-bottom: 1rem !important;
+            }
+            
+            .tos-link {
+                color: #79b8f3 !important;
+                text-decoration: underline !important;
+            }
+            
+            .tos-error {
+                color: #f87171 !important;
+                background-color: rgba(248, 113, 113, 0.1) !important;
+                border: 1px solid #f87171 !important;
+                border-radius: 6px !important;
+                padding: 0.75rem !important;
+                margin: 1rem 0 !important;
+                font-weight: 500 !important;
+            }
             </style>
             '''
             , unsafe_allow_html=True)
             
             # Email input is now handled at the top level
+            
+            # Terms of Service acceptance checkbox
+            st.markdown(
+                '<div class="tos-checkbox-label">🔒 By processing documents, you agree to our <a href="/terms-of-service" target="_blank" class="tos-link">Terms of Service</a> and <a href="/privacy-policy" target="_blank" class="tos-link">Privacy Policy</a></div>',
+                unsafe_allow_html=True
+            )
+            terms_accepted = st.checkbox(
+                "I have read and accept the Terms of Service and Privacy Policy",
+                value=st.session_state.get('terms_accepted', False),
+                key="terms_acceptance"
+            )
+            
+            # Update session state with terms acceptance
+            st.session_state.terms_accepted = terms_accepted
+            
+            # Display error message if terms were not accepted on previous attempt
+            if st.session_state.get('show_tos_error', False):
+                st.markdown(
+                    '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
+                    unsafe_allow_html=True
+                )
+                # Reset the error flag
+                st.session_state.show_tos_error = False
             
             # Enhanced Process Documents button with loading state
             process_clicked, process_button_placeholder = create_loading_button(
@@ -4526,40 +4572,6 @@ def main():
                         st.rerun()
                     
                     # Production mode - check credits
-                    user_email = st.session_state.get('user_email', '')
-                    if not user_email:
-                        # Clear loading states before showing error
-                        loading_container.empty()
-                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                        st.error("Please enter your email address to proceed.")
-                        st.stop()
-                        
-                    # Update loading message for credit checking
-                    with loading_container.container():
-                        display_loading_spinner("🧪 Generating test data...", "This will complete quickly in testing mode")
-                    
-                    # Call the existing testing mode processing function
-                    # This function should handle setting processing_completed = True
-                    process_documents_testing_mode() 
-                if is_testing_mode_active():
-                    # Check if Terms of Service have been accepted
-                    if not st.session_state.get('terms_accepted', False):
-                        st.session_state.show_tos_error = True
-                        # Clear loading states before showing error
-                        loading_container.empty()
-                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                        st.rerun()
-                    
-                    # Keep testing mode functionality unchanged
-                    st.session_state.user_initiated_processing = True
-                    save_testing_config() # Save current testing config
-                    
-                    # Clear loading and restore button
-                    loading_container.empty()
-                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                    st.rerun()
-                else:
-                    # Production mode - check credits
                     user_email = st.session_state.get('user_email', '').strip()
                     if not user_email:
                         # Clear loading states before showing error
@@ -4571,6 +4583,7 @@ def main():
                     # Update loading message for credit checking
                     with loading_container.container():
                         display_loading_spinner("💳 Checking credits...", "Verifying your account status")
+                    
                     # Check if user has enough credits
                     if CREDIT_SYSTEM_AVAILABLE:
                         has_credits, message = check_credits_for_analysis(user_email)
@@ -5541,44 +5554,62 @@ def main():
     # Display Terms of Service when button is clicked
     if st.session_state.get("display_terms", False):
         with st.expander("📄 Terms of Service", expanded=True):
-            st.markdown("""
-            **Effective Date:** January 2024 | **Last Updated:** January 2024
-            ## 🔒 **ZERO DOCUMENT STORAGE POLICY**
-            **We do NOT store your documents.** This is our commitment to your privacy:
-            - ✅ **Documents are processed immediately** upon upload
-            - ✅ **All documents are permanently deleted** after analysis
-            - ✅ **No copies are retained** on our servers
-            - ✅ **Processing happens in temporary memory** only
-            ## Credit System & Fair Use
-            - Each analysis requires 1 credit
-            - New users receive 1 free trial credit
-            - Maximum of 1 free trial per IP address
-            - Credits are non-refundable once analysis is completed
-            - All payments processed securely through Stripe
-            ## Acceptable Use
-            **You May:**
-            - ✅ Upload legitimate financial documents for analysis
-            - ✅ Use the service for real estate investment analysis
-            - ✅ Share generated reports with authorized parties
-            **You May NOT:**
-            - ❌ Upload documents you don't have permission to analyze
-            - ❌ Create multiple accounts to bypass credit limits
-            - ❌ Use automated tools to abuse the service
-            ## Limitation of Liability
-            """)
+            # Try to read the full Terms of Service content from the markdown file
+            try:
+                with open("TERMS_OF_SERVICE.md", "r", encoding="utf-8") as f:
+                    terms_content = f.read()
+                    # Remove the first line (title) since we already have it in the expander
+                    terms_content = "\n".join(terms_content.split("\n")[1:])
+                    st.markdown(terms_content)
+            except FileNotFoundError:
+                # Fallback to the abbreviated version if file is not found
+                st.markdown("""
+                **Effective Date:** January 2024 | **Last Updated:** January 2024
+                ## 🔒 **ZERO DOCUMENT STORAGE POLICY**
+                **We do NOT store your documents.** This is our commitment to your privacy:
+                - ✅ **Documents are processed immediately** upon upload
+                - ✅ **All documents are permanently deleted** after analysis
+                - ✅ **No copies are retained** on our servers
+                - ✅ **Processing happens in temporary memory** only
+                ## Credit System & Fair Use
+                - Each analysis requires 1 credit
+                - New users receive 1 free trial credit
+                - Maximum of 1 free trial per IP address
+                - Credits are non-refundable once analysis is completed
+                - All payments processed securely through Stripe
+                ## Acceptable Use
+                **You May:**
+                - ✅ Upload legitimate financial documents for analysis
+                - ✅ Use the service for real estate investment analysis
+                - ✅ Share generated reports with authorized parties
+                **You May NOT:**
+                - ❌ Upload documents you don't have permission to analyze
+                - ❌ Create multiple accounts to bypass credit limits
+                - ❌ Use automated tools to abuse the service
+                ## Limitation of Liability
+                """)
 
     # Display Privacy Policy when button is clicked
     if st.session_state.get("display_privacy", False):
         with st.expander("🔒 Privacy Policy", expanded=True):
-            st.markdown("""
-            **Effective Date:** January 2024 | **Last Updated:** January 2024
-            
-            ## Privacy Policy
-            
-            We value your privacy and are committed to protecting your personal information. Please review our full privacy policy for details on how your data is handled.
-            
-            For any questions, contact: rebornenterprisellc@gmail.com
-            """)
+            # Try to read the full Privacy Policy content from the markdown file
+            try:
+                with open("PRIVACY_POLICY.md", "r", encoding="utf-8") as f:
+                    privacy_content = f.read()
+                    # Remove the first line (title) since we already have it in the expander
+                    privacy_content = "\n".join(privacy_content.split("\n")[1:])
+                    st.markdown(privacy_content)
+            except FileNotFoundError:
+                # Fallback to the abbreviated version if file is not found
+                st.markdown("""
+                **Effective Date:** January 2024 | **Last Updated:** January 2024
+                
+                ## Privacy Policy
+                
+                We value your privacy and are committed to protecting your personal information. Please review our full privacy policy for details on how your data is handled.
+                
+                For any questions, contact: rebornenterprisellc@gmail.com
+                """)
 
     # Add always-visible privacy disclaimer at the very bottom
     st.markdown("""
