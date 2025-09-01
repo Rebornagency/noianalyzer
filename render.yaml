@@ -18,12 +18,15 @@ services:
       - key: EXTRACTION_API_URL
         value: https://dataextractionai.onrender.com
 
-  # Credit Service
+  # Credit Service (Stripe Payment API)
+  # This service handles all credit and payment processing
+  # It requires the stripe library to be installed via requirements-api.txt
   - type: web
     name: noianalyzer-1
     env: python
-    # Specify Python version to ensure compatibility
+    # Build command installs all required dependencies including stripe
     buildCommand: pip install -r requirements-api.txt
+    # Start command runs the credit API server
     startCommand: python start_credit_api.py
     plan: free
     envVars:

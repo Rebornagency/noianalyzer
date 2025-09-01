@@ -56,6 +56,10 @@ def is_stripe_library_available() -> bool:
                 logger.info(f"   Stripe-related packages found: {stripe_packages}")
             else:
                 logger.info("   No Stripe-related packages found in installed packages")
+                # Check if we're on Render and suggest clearing cache
+                if os.getenv('RENDER'):
+                    logger.info("   💡 On Render: Try clearing build cache and redeploying")
+                    logger.info("   💡 Add DISABLE_POETRY=1 and UV_INSTALL_PURELIB=0 to environment variables")
         except Exception as pkg_error:
             logger.info(f"   Could not check installed packages: {pkg_error}")
         return False

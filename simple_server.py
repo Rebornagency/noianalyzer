@@ -78,6 +78,11 @@ except ImportError as e:
                 logger.info("      1. Check Render build logs for pip install errors")
                 logger.info("      2. Verify requirements-api.txt is being used in buildCommand")
                 logger.info("      3. Check if there are any version conflicts")
+                # Render-specific debugging
+                if os.getenv('RENDER'):
+                    logger.info("      4. On Render: Try clearing build cache and redeploying")
+                    logger.info("      5. On Render: Add DISABLE_POETRY=1 and UV_INSTALL_PURELIB=0 to environment variables")
+                    logger.info("      6. On Render: Check if buildCommand is being overridden")
             else:
                 logger.info("   Note: stripe not found in requirements-api.txt")
     except Exception as req_error:
