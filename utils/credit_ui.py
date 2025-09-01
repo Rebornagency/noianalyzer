@@ -729,8 +729,8 @@ def display_credit_store():
                     # Use st.success to create identical styling to other badges
                     st.success("Ideal entry point 🚀")
                 
-                # Description
-                st.caption(package.get('description', f"Top up {package['credits']} credits"))
+                # Description - centered
+                st.markdown(f"<div style='text-align: center; margin: 2rem 0;'>{package.get('description', f'Top up {package["credits"]} credits')}</div>", unsafe_allow_html=True)
                 
                 # Purchase button with loading state
                 email = st.session_state.get('user_email', '')
@@ -830,6 +830,86 @@ def display_credit_store():
     div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] * {
         color: #FFFFFF !important;
         -webkit-text-fill-color: #FFFFFF !important;
+    }
+    
+    /* Ensure all content within cards is centered */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div {
+        text-align: center !important;
+    }
+    
+    /* Center all text elements */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] *,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] * {
+        text-align: center !important;
+    }
+    
+    /* Modern card enhancements */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+        background: linear-gradient(145deg, #0f1722, #1a2436) !important;
+        border: 1px solid #2a3a50 !important;
+        border-radius: 16px !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5) !important;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        padding: 2.5rem 2rem !important;
+        margin: 1.25rem !important;
+        height: 100% !important;
+    }
+    
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover {
+        transform: translateY(-10px) !important;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+        border-color: #3a7bff !important;
+    }
+    
+    /* Enhanced savings badge */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] {
+        background: linear-gradient(135deg, #10b981, #059669) !important;
+        border: 2px solid rgba(16, 185, 129, 0.7) !important;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
+        border-radius: 50px !important;
+        margin: 2rem auto !important;
+        padding: 1.2rem 1.8rem !important;
+        font-weight: 800 !important;
+        font-size: 1.2rem !important;
+        min-height: 60px !important;
+    }
+    
+    /* Enhanced CTA buttons */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"] {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5) !important;
+        height: 56px !important;
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
+        transition: all 0.3s ease !important;
+        max-width: 260px !important;
+        margin: 0 auto !important;
+    }
+    
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+        transform: translateY(-5px) !important;
+        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.7) !important;
+    }
+    
+    /* Ensure consistent spacing */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div[style],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div[style] {
+        text-align: center !important;
+    }
+    
+    /* Center captions */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stCaptionContainer"],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stCaptionContainer"] {
+        text-align: center !important;
+        margin: 2rem 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
