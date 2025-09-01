@@ -7,6 +7,7 @@ This will try different server options and start the first one that works
 import sys
 import os
 import logging
+import subprocess
 
 # Add helper to detect Stripe config
 STRIPE_ENV_VARS = [
@@ -138,6 +139,81 @@ def main():
     """Main function to start the credit API"""
     logger.info("NOI Analyzer Credit API Starter")
     logger.info("=" * 50)
+    
+    # CRITICAL DEBUGGING - Enhanced diagnostics at startup
+    logger.info("=== STARTUP DEBUGGING INFO ===")
+    
+    # Platform detection
+    is_render = bool(os.getenv('RENDER'))
+    logger.info(f"📍 Platform: {'Render' if is_render else 'Local/Other'}")
+    
+    if is_render:
+        # Enhanced Render diagnostics
+        logger.info("🔍 DETAILED STARTUP DIAGNOSTICS:")
+        
+        # Python info
+        logger.info(f"   Python: {sys.version}")
+        logger.info(f"   Executable: {sys.executable}")
+        logger.info(f"   Current directory: {os.getcwd()}")
+        
+        # Directory contents
+        try:
+            files = os.listdir('.')
+            logger.info(f"   Directory contents: {files}")
+        except Exception as e:
+            logger.error(f"   Error listing directory: {e}")
+        
+        # Check requirements file
+        if os.path.exists('requirements-api.txt'):
+            logger.info("   ✅ requirements-api.txt found")
+            try:
+                with open('requirements-api.txt', 'r') as f:
+                    content = f.read()
+                    lines = content.split('\n')
+                    stripe_lines = [line for line in lines if 'stripe' in line.lower() and not line.startswith('#')]
+                    if stripe_lines:
+                        logger.info(f"   🎯 Stripe requirement: {stripe_lines[0]}")
+                    else:
+                        logger.error("   ❌ No stripe requirement found")
+            except Exception as e:
+                logger.error(f"   Error reading requirements: {e}")
+        else:
+            logger.error("   ❌ requirements-api.txt NOT FOUND")
+        
+        # Environment variables
+        critical_env_vars = [
+            "DISABLE_POETRY",
+            "UV_INSTALL_PURELIB", 
+            "STRIPE_SECRET_KEY",
+            "STRIPE_STARTER_PRICE_ID",
+            "STRIPE_PROFESSIONAL_PRICE_ID",
+            "STRIPE_BUSINESS_PRICE_ID"
+        ]
+        
+        for var in critical_env_vars:
+            value = os.getenv(var)
+            if value is not None:
+                if 'KEY' in var or 'SECRET' in var:
+                    masked = f"{value[:3]}...{value[-4:]}" if len(value) > 7 else "Too short"
+                    logger.info(f"   ✅ {var}: {masked}")
+                else:
+                    logger.info(f"   ✅ {var}: SET")
+            else:
+                logger.info(f"   ⚠️  {var}: NOT SET")
+        
+        # Check if pip can install packages
+        logger.info("   🧪 Testing pip installation capability:")
+        try:
+            result = subprocess.run([sys.executable, '-m', 'pip', 'list'], 
+                                  capture_output=True, text=True, timeout=15)
+            if result.returncode == 0:
+                logger.info("   ✅ pip is working")
+            else:
+                logger.error(f"   ❌ pip error: {result.stderr}")
+        except Exception as e:
+            logger.error(f"   ❌ pip test failed: {e}")
+    
+    logger.info("=== END STARTUP DEBUGGING INFO ===")
     
     # Run pre-deployment check
     try:

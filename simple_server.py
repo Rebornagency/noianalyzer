@@ -13,6 +13,8 @@ import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, quote
 import logging
+import sys
+import subprocess
 
 # Configure logging with better formatting for Render
 logging.basicConfig(
@@ -23,6 +25,124 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# CRITICAL DEBUGGING - Enhanced diagnostics for Render deployment issues
+logger.info("=== CRITICAL RENDER DEBUGGING INFO ===")
+logger.info("Starting enhanced diagnostics...")
+
+# Platform detection
+is_render = bool(os.getenv('RENDER'))
+logger.info(f"📍 Platform: {'Render' if is_render else 'Local/Other'}")
+
+if is_render:
+    # Comprehensive Render diagnostics
+    logger.info("🔍 DETAILED RENDER DIAGNOSTICS:")
+    
+    # 1. Python environment
+    logger.info(f"   Python version: {sys.version}")
+    logger.info(f"   Python executable: {sys.executable}")
+    logger.info(f"   Current working directory: {os.getcwd()}")
+    
+    # 2. Directory contents
+    try:
+        files = os.listdir('.')
+        logger.info(f"   Files in current directory: {files}")
+        
+        # Check for critical files
+        critical_files = ['requirements-api.txt', 'start_credit_api.py', 'simple_server.py']
+        for cf in critical_files:
+            if os.path.exists(cf):
+                logger.info(f"   ✅ {cf}: FOUND")
+            else:
+                logger.error(f"   ❌ {cf}: MISSING")
+    except Exception as e:
+        logger.error(f"   Error listing directory: {e}")
+    
+    # 3. Environment variables (filtered for security)
+    logger.info("   Environment variables (filtered):")
+    sensitive_vars = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
+    for var in ['RENDER', 'PORT', 'PYTHON_VERSION'] + sensitive_vars:
+        value = os.getenv(var)
+        if value:
+            if var in sensitive_vars:
+                # Mask sensitive values
+                masked = f"{value[:3]}...{value[-4:]}" if len(value) > 7 else "Too short"
+                logger.info(f"     {var}: {masked} (SET)")
+            else:
+                logger.info(f"     {var}: {value}")
+        else:
+            logger.info(f"     {var}: NOT SET")
+    
+    # 4. Requirements file analysis
+    if os.path.exists('requirements-api.txt'):
+        logger.info("   📄 requirements-api.txt analysis:")
+        try:
+            with open('requirements-api.txt', 'r') as f:
+                lines = f.readlines()
+                logger.info(f"     Total lines: {len(lines)}")
+                for i, line in enumerate(lines):
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        logger.info(f"     Line {i+1}: {line}")
+                        if 'stripe' in line.lower():
+                            logger.info(f"     🎯 STRIPE requirement found: {line}")
+        except Exception as e:
+            logger.error(f"     Error reading requirements-api.txt: {e}")
+    else:
+        logger.error("   ❌ requirements-api.txt NOT FOUND")
+    
+    # 5. Package installation verification
+    logger.info("   📦 Package installation verification:")
+    try:
+        # Try to list installed packages
+        logger.info("     Running 'pip list'...")
+        result = subprocess.run([sys.executable, '-m', 'pip', 'list'], 
+                              capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            lines = result.stdout.split('\n')
+            logger.info(f"     Total packages installed: {len([l for l in lines if l.strip()])}")
+            
+            # Look for critical packages
+            critical_packages = ['stripe', 'fastapi', 'uvicorn']
+            found_packages = []
+            for line in lines:
+                line_lower = line.lower()
+                for pkg in critical_packages:
+                    if pkg in line_lower:
+                        logger.info(f"     ✅ {line.strip()}")
+                        found_packages.append(pkg)
+            
+            missing_packages = [pkg for pkg in critical_packages if pkg not in found_packages]
+            for pkg in missing_packages:
+                logger.error(f"     ❌ {pkg}: NOT INSTALLED")
+        else:
+            logger.error(f"     Error running pip list: {result.stderr}")
+    except subprocess.TimeoutExpired:
+        logger.error("     pip list command timed out")
+    except Exception as e:
+        logger.error(f"     Error checking installed packages: {e}")
+    
+    # 6. Direct Stripe import test
+    logger.info("   🔌 Stripe import test:")
+    try:
+        import stripe
+        logger.info("     ✅ Stripe imported successfully")
+        logger.info(f"     Stripe version: {getattr(stripe, 'VERSION', 'Unknown')}")
+        
+        # Test API key setting
+        stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
+        if stripe_key:
+            stripe.api_key = stripe_key
+            logger.info("     ✅ Stripe API key can be set")
+        else:
+            logger.warning("     ⚠️  STRIPE_SECRET_KEY not set")
+    except ImportError as e:
+        logger.error(f"     ❌ Stripe import failed: {e}")
+        logger.error("     This is the main issue - Stripe library not available")
+    except Exception as e:
+        logger.error(f"     ❌ Stripe initialization error: {e}")
+
+logger.info("=== END CRITICAL RENDER DEBUGGING INFO ===")
 
 # Try to import Stripe, but handle gracefully if not available
 try:
@@ -495,6 +615,11 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         path = parsed_path.path
         query_params = parse_qs(parsed_path.query)
+        
+        # DEBUG ENDPOINT - Special endpoint to get detailed system information
+        if path == '/debug-system-info':
+            self.serve_debug_info()
+            return
         
         # Serve Terms of Service page
         if path == '/terms-of-service':
@@ -1011,6 +1136,89 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(f"<h1>Error loading Privacy Policy</h1><p>{str(e)}</p>".encode())
+    
+    def serve_debug_info(self):
+        """Serve detailed system information for debugging"""
+        import subprocess
+        import sys
+        
+        debug_data = {
+            "timestamp": time.time(),
+            "platform": "Render" if os.getenv('RENDER') else "Local",
+            "python_version": sys.version,
+            "python_executable": sys.executable,
+            "current_directory": os.getcwd(),
+            "directory_contents": [],
+            "environment_variables": {},
+            "requirements_file": {},
+            "installed_packages": [],
+            "stripe_status": {
+                "import_success": False,
+                "import_error": None,
+                "version": None,
+                "api_key_set": False
+            }
+        }
+        
+        # Get directory contents
+        try:
+            debug_data["directory_contents"] = os.listdir('.')
+        except Exception as e:
+            debug_data["directory_contents"] = f"Error: {str(e)}"
+        
+        # Get environment variables (filtered for security)
+        sensitive_vars = ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
+        for key, value in os.environ.items():
+            if key in sensitive_vars:
+                # Mask sensitive values
+                masked = f"{value[:3]}...{value[-4:]}" if len(value) > 7 else "Too short"
+                debug_data["environment_variables"][key] = masked
+            else:
+                debug_data["environment_variables"][key] = value
+        
+        # Check requirements file
+        if os.path.exists('requirements-api.txt'):
+            try:
+                with open('requirements-api.txt', 'r') as f:
+                    content = f.read()
+                    debug_data["requirements_file"] = {
+                        "status": "found",
+                        "lines": content.split('\n'),
+                        "stripe_line": [line for line in content.split('\n') if 'stripe' in line.lower() and not line.startswith('#')]
+                    }
+            except Exception as e:
+                debug_data["requirements_file"] = {"status": "error", "message": str(e)}
+        else:
+            debug_data["requirements_file"] = {"status": "missing"}
+        
+        # Get installed packages
+        try:
+            result = subprocess.run([sys.executable, '-m', 'pip', 'list'], 
+                                  capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                debug_data["installed_packages"] = result.stdout.split('\n')
+            else:
+                debug_data["installed_packages"] = f"Error: {result.stderr}"
+        except Exception as e:
+            debug_data["installed_packages"] = f"Error: {str(e)}"
+        
+        # Check Stripe specifically
+        try:
+            import stripe
+            debug_data["stripe_status"]["import_success"] = True
+            debug_data["stripe_status"]["version"] = getattr(stripe, 'VERSION', 'Unknown')
+            
+            # Check if API key can be set
+            stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
+            if stripe_key:
+                stripe.api_key = stripe_key
+                debug_data["stripe_status"]["api_key_set"] = True
+        except ImportError as e:
+            debug_data["stripe_status"]["import_error"] = str(e)
+        except Exception as e:
+            debug_data["stripe_status"]["import_error"] = f"Other error: {str(e)}"
+        
+        self._send_json_response(debug_data)
     
     def markdown_to_html(self, markdown_text):
         """Convert basic markdown to HTML"""
