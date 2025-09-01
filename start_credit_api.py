@@ -139,6 +139,17 @@ def main():
     logger.info("NOI Analyzer Credit API Starter")
     logger.info("=" * 50)
     
+    # Run pre-deployment check
+    try:
+        logger.info("🔍 Running pre-deployment verification...")
+        from pre_deploy_check import main as check_main
+        if not check_main():
+            logger.warning("⚠️  Pre-deployment checks failed, but continuing anyway...")
+    except ImportError:
+        logger.info("ℹ️  Pre-deployment check script not found, skipping...")
+    except Exception as e:
+        logger.error(f"❌ Error running pre-deployment check: {e}")
+    
     # Debug: Show current working directory and Python path
     logger.info(f"Current working directory: {os.getcwd()}")
     logger.info(f"Python path: {sys.path}")

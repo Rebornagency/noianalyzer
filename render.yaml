@@ -3,7 +3,7 @@ services:
   - type: web
     name: noianalyzer
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --no-cache-dir -r requirements.txt
     startCommand: streamlit run app.py --server.port=$PORT
     plan: free
     envVars:
@@ -17,6 +17,10 @@ services:
         sync: false
       - key: EXTRACTION_API_URL
         value: https://dataextractionai.onrender.com
+      - key: DISABLE_POETRY
+        value: 1
+      - key: UV_INSTALL_PURELIB
+        value: 0
 
   # Credit Service (Stripe Payment API)
   # This service handles all credit and payment processing
@@ -25,7 +29,7 @@ services:
     name: noianalyzer-1
     env: python
     # Build command installs all required dependencies including stripe
-    buildCommand: pip install -r requirements-api.txt
+    buildCommand: pip install --no-cache-dir -r requirements-api.txt
     # Start command runs the credit API server
     startCommand: python start_credit_api.py
     plan: free
@@ -48,3 +52,7 @@ services:
         value: https://noianalyzer.onrender.com/payment-cancel
       - key: BACKEND_URL
         value: https://noianalyzer-1.onrender.com
+      - key: DISABLE_POETRY
+        value: 1
+      - key: UV_INSTALL_PURELIB
+        value: 0
