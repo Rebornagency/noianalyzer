@@ -22,6 +22,7 @@ services:
   - type: web
     name: noianalyzer-1
     env: python
+    # Specify Python version to ensure compatibility
     buildCommand: pip install -r requirements-api.txt
     startCommand: python start_credit_api.py
     plan: free

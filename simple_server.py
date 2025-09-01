@@ -107,6 +107,12 @@ logger.info(f"   STRIPE_SECRET_KEY: {'SET' if os.getenv('STRIPE_SECRET_KEY') els
 for package_id, env_var in STRIPE_PRICE_ID_ENV_MAP.items():
     logger.info(f"   {env_var}: {'SET' if os.getenv(env_var) else 'NOT SET'}")
 
+# Additional debugging: Check if we're running on Render
+if os.getenv('RENDER'):
+    logger.info("📍 Running on platform: Render")
+else:
+    logger.info("📍 Running on platform: Local/Other")
+
 
 class DatabaseManager:
     def __init__(self, db_path="credits.db"):
@@ -483,6 +489,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
         path = parsed_path.path
+        query_params = parse_qs(parsed_path.query)
         
         # Serve Terms of Service page
         if path == '/terms-of-service':
@@ -503,6 +510,44 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         if path == '/health':
             self.serve_health()
             return
+        
+        # Serve credit packages
+        if path == '/packages' or path == '/pay-per-use/packages':
+            packages_list = []
+            for package_id, package_info in CREDIT_PACKAGES.items():
+                packages_list.append({
+                    "id": package_id,
+                    "name": package_info["name"],
+                    "credits": package_info["credits"],
+                    "price_cents": package_info["price"],
+                    "price_dollars": package_info["price"] / 100
+                })
+            self._send_json_response(packages_list)
+            return
+        
+        # Serve user credits - NEW ENDPOINT IMPLEMENTATION
+        if path.startswith('/pay-per-use/credits/'):
+            # Extract email from path
+            email = path.split('/pay-per-use/credits/')[-1]
+            if not email:
+                self._send_error("Email required")
+                return
+            credits = self.db.get_credits(email)
+            self._send_json_response({"email": email, "credits": credits, "recent_transactions": []})
+            return
+        
+        # Serve user credits (old endpoint)
+        if path == '/credits':
+            email = query_params.get('email', [None])[0]
+            if not email:
+                self._send_error("Email parameter required")
+                return
+            credits = self.db.get_credits(email)
+            self._send_json_response({"email": email, "credits": credits})
+            return
+        
+        # If no endpoint matched, return 404
+        self._send_error("Endpoint not found", 404)
     
     def do_POST(self):
         """Handle POST requests for credit operations"""

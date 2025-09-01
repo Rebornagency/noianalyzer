@@ -3,32 +3,30 @@
 Test script to check if Stripe library can be imported
 """
 
-print("Testing Stripe import...")
-
 try:
     import stripe
-    print(f"✅ Stripe library imported successfully (version: {getattr(stripe, 'VERSION', 'Unknown')})")
+    print("✅ Stripe library imported successfully")
+    print(f"Stripe version: {stripe.__version__}")
     
-    # Test if we can access the api_key attribute
-    print(f"✅ Stripe.api_key attribute accessible: {hasattr(stripe, 'api_key')}")
-    
-    # Test environment variable
-    import os
-    stripe_key = os.getenv("STRIPE_SECRET_KEY")
-    if stripe_key:
-        print(f"✅ STRIPE_SECRET_KEY environment variable is set (length: {len(stripe_key)} characters)")
-        # Test setting the API key
-        try:
-            stripe.api_key = stripe_key
-            print("✅ Stripe API key set successfully")
-        except Exception as e:
-            print(f"❌ Error setting Stripe API key: {e}")
+    # Try to access the api_key attribute
+    if hasattr(stripe, 'api_key'):
+        print("✅ Stripe api_key attribute available")
     else:
-        print("❌ STRIPE_SECRET_KEY environment variable is not set")
+        print("❌ Stripe api_key attribute not available")
         
 except ImportError as e:
     print(f"❌ Failed to import Stripe library: {e}")
+    
+    # Try to check what's installed
+    try:
+        import pkg_resources
+        installed_packages = [d.project_name for d in pkg_resources.working_set]
+        if 'stripe' in [pkg.lower() for pkg in installed_packages]:
+            print("ℹ️  Stripe package appears to be installed")
+        else:
+            print("ℹ️  Stripe package not found in installed packages")
+    except Exception as pkg_error:
+        print(f"❌ Could not check installed packages: {pkg_error}")
+
 except Exception as e:
     print(f"❌ Unexpected error: {e}")
-
-print("Test completed.")

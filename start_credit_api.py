@@ -42,20 +42,25 @@ def is_stripe_library_available() -> bool:
     """Check if the Stripe library is available for import."""
     try:
         import stripe
+        logger.info("✅ Stripe library imported successfully")
+        logger.info(f"   Stripe version info: {getattr(stripe, 'VERSION', 'Unknown')}")
         return True
     except ImportError as e:
-        logging.warning(f"Stripe library import failed: {e}")
+        logger.warning(f"❌ Stripe library import failed: {e}")
         # Try to provide more specific debugging info
         try:
-            import pip
-            logging.info("Available packages:")
-            installed_packages = [d.project_name for d in pip.get_installed_distributions()]
-            if 'stripe' in [pkg.lower() for pkg in installed_packages]:
-                logging.info("Stripe package appears to be installed")
+            import pkg_resources
+            installed_packages = [d.project_name for d in pkg_resources.working_set]
+            stripe_packages = [pkg for pkg in installed_packages if 'stripe' in pkg.lower()]
+            if stripe_packages:
+                logger.info(f"   Stripe-related packages found: {stripe_packages}")
             else:
-                logging.info("Stripe package not found in installed packages")
-        except Exception as pip_error:
-            logging.info(f"Could not check installed packages: {pip_error}")
+                logger.info("   No Stripe-related packages found in installed packages")
+        except Exception as pkg_error:
+            logger.info(f"   Could not check installed packages: {pkg_error}")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Unexpected error during Stripe import: {e}")
         return False
 
 def start_ultra_minimal():
@@ -130,6 +135,25 @@ def main():
     logger.info("NOI Analyzer Credit API Starter")
     logger.info("=" * 50)
     
+    # Debug: Show current working directory and Python path
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info(f"Python path: {sys.path}")
+    
+    # Debug: Check if requirements-api.txt exists
+    if os.path.exists('requirements-api.txt'):
+        logger.info("✅ requirements-api.txt found")
+        # Show first few lines of requirements-api.txt
+        try:
+            with open('requirements-api.txt', 'r') as f:
+                lines = f.readlines()
+                logger.info(f"   First 5 lines of requirements-api.txt:")
+                for i, line in enumerate(lines[:5]):
+                    logger.info(f"     {i+1}: {line.strip()}")
+        except Exception as e:
+            logger.error(f"   Error reading requirements-api.txt: {e}")
+    else:
+        logger.warning("❌ requirements-api.txt not found")
+    
     # Check command line arguments
     if len(sys.argv) > 1:
         server_type = sys.argv[1].lower()
@@ -167,7 +191,7 @@ def main():
         logger.warning("   This may be due to missing dependencies during deployment")
         logger.info("   🔍 Debugging steps:")
         logger.info("      1. Check Render build logs for 'pip install' errors")
-        logger.info("      2. Verify requirements-api.txt contains 'stripe==9.7.0'")
+        logger.info("      2. Verify requirements-api.txt contains 'stripe==10.10.0'")
         logger.info("      3. Check if there are any version conflicts")
         logger.info("\n1️⃣ Trying ultra minimal server (most reliable)...")
         if start_ultra_minimal():
