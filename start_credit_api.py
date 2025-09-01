@@ -6,6 +6,7 @@ This will try different server options and start the first one that works
 
 import sys
 import os
+import logging
 
 # Add helper to detect Stripe config
 STRIPE_ENV_VARS = [
@@ -14,6 +15,16 @@ STRIPE_ENV_VARS = [
     "STRIPE_PROFESSIONAL_PRICE_ID",
     "STRIPE_BUSINESS_PRICE_ID",
 ]
+
+# Import centralized logging configuration
+try:
+    from logging_config import setup_logging, get_logger
+    setup_logging()
+    logger = get_logger(__name__)
+except ImportError:
+    # Fallback to basic logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
 def is_stripe_configured() -> bool:
     """Return True if a Stripe secret key and at least one price ID are configured (non-placeholder)."""
@@ -37,75 +48,75 @@ def is_stripe_library_available() -> bool:
 
 def start_ultra_minimal():
     """Start the ultra minimal API server (most reliable)"""
-    print("🚀 Starting Ultra Minimal Credit API Server...")
-    print("   - Port: 10000")
-    print("   - No external dependencies")
-    print("   - Press Ctrl+C to stop")
-    print("=" * 50)
+    logger.info("🚀 Starting Ultra Minimal Credit API Server...")
+    logger.info("   - Port: 10000")
+    logger.info("   - No external dependencies")
+    logger.info("   - Press Ctrl+C to stop")
+    logger.info("=" * 50)
     
     try:
         # Import and run the ultra minimal server
         from ultra_minimal_api import run_server
         run_server()
     except KeyboardInterrupt:
-        print("\n👋 Server stopped by user")
+        logger.info("\n👋 Server stopped by user")
     except Exception as e:
-        print(f"❌ Failed to start ultra minimal server: {e}")
+        logger.error(f"❌ Failed to start ultra minimal server: {e}")
         return False
     
     return True
 
 def start_minimal():
     """Start the minimal FastAPI server"""
-    print("🚀 Starting Minimal FastAPI Credit Server...")
-    print("   - Port: 8000")
-    print("   - Requires FastAPI and uvicorn")
-    print("   - Press Ctrl+C to stop")
-    print("=" * 50)
+    logger.info("🚀 Starting Minimal FastAPI Credit Server...")
+    logger.info("   - Port: 8000")
+    logger.info("   - Requires FastAPI and uvicorn")
+    logger.info("   - Press Ctrl+C to stop")
+    logger.info("=" * 50)
     
     try:
         import uvicorn
         from api_server_minimal import app
         uvicorn.run(app, host="0.0.0.0", port=8000)
     except ImportError as e:
-        print(f"❌ Missing dependencies for FastAPI server: {e}")
-        print("💡 Try the ultra minimal server instead")
+        logger.error(f"❌ Missing dependencies for FastAPI server: {e}")
+        logger.info("💡 Try the ultra minimal server instead")
         return False
     except KeyboardInterrupt:
-        print("\n👋 Server stopped by user")
+        logger.info("\n👋 Server stopped by user")
     except Exception as e:
-        print(f"❌ Failed to start minimal server: {e}")
+        logger.error(f"❌ Failed to start minimal server: {e}")
         return False
     
     return True
 
 def start_simple_server():
     """Start the simple server with Stripe integration"""
-    print("🚀 Starting Simple Credit Server with Stripe Integration...")
-    print("   - Port: 10000")
-    print("   - Requires Stripe library")
-    print("   - Press Ctrl+C to stop")
-    print("=" * 50)
+    logger.info("🚀 Starting Simple Credit Server with Stripe Integration...")
+    logger.info("   - Port: 10000")
+    logger.info("   - Requires Stripe library")
+    logger.info("   - Press Ctrl+C to stop")
+    logger.info("=" * 50)
     
     try:
         # Import and run the simple server
         from simple_server import run_server
         run_server()
     except ImportError as e:
-        print(f"❌ Missing dependencies for simple server: {e}")
+        logger.error(f"❌ Missing dependencies for simple server: {e}")
         return False
     except KeyboardInterrupt:
-        print("\n👋 Server stopped by user")
+        logger.info("\n👋 Server stopped by user")
     except Exception as e:
-        print(f"❌ Failed to start simple server: {e}")
+        logger.error(f"❌ Failed to start simple server: {e}")
         return False
     
     return True
 
 def main():
     """Main function to start the credit API"""
-    print("NOI Analyzer Credit API Starter")
-    print("=" * 50)
+    logger.info("NOI Analyzer Credit API Starter")
+    logger.info("=" * 50)
     
     # Check command line arguments
     if len(sys.argv) > 1:
@@ -120,49 +131,49 @@ def main():
             start_simple_server()
             return
         else:
-            print(f"❌ Unknown server type: {server_type}")
-            print("Valid options: ultra, minimal, simple")
+            logger.error(f"❌ Unknown server type: {server_type}")
+            logger.info("Valid options: ultra, minimal, simple")
             return
     
     # Try to start servers in order of reliability
-    print("🔍 Auto-selecting best server option...")
+    logger.info("🔍 Auto-selecting best server option...")
 
     # NEW: Prefer the minimal FastAPI server when Stripe is configured
     if is_stripe_configured() and is_stripe_library_available():
-        print("\n1️⃣ Detected Stripe configuration and library – trying minimal FastAPI server first...")
+        logger.info("\n1️⃣ Detected Stripe configuration and library – trying minimal FastAPI server first...")
         if start_minimal():
             return
-        print("\n2️⃣ Falling back to simple server...")
+        logger.info("\n2️⃣ Falling back to simple server...")
         if start_simple_server():
             return
-        print("\n3️⃣ Falling back to ultra minimal server...")
+        logger.info("\n3️⃣ Falling back to ultra minimal server...")
         start_ultra_minimal()
         return
 
     # Original order when Stripe is NOT configured
-    print("\n1️⃣ Trying ultra minimal server...")
+    logger.info("\n1️⃣ Trying ultra minimal server...")
     if start_ultra_minimal():
         return
     
-    print("\n2️⃣ Trying minimal FastAPI server...")
+    logger.info("\n2️⃣ Trying minimal FastAPI server...")
     if start_minimal():
         return
     
-    print("\n3️⃣ Trying simple server...")
+    logger.info("\n3️⃣ Trying simple server...")
     if start_simple_server():
         return
     
     # If all fail, show instructions
-    print("\n❌ Could not start any server.")
-    print("\n💡 Manual options:")
-    print("   python start_credit_api.py ultra    # Start ultra minimal server")
-    print("   python start_credit_api.py minimal  # Start FastAPI server")
-    print("   python start_credit_api.py simple   # Start simple server")
-    print("\n🔧 If you're still having issues:")
-    print("   1. Check that you have Python installed")
-    print("   2. Check that the required files exist")
-    print("   3. For FastAPI server, install: pip install fastapi uvicorn")
-    print("   4. For Stripe integration, install: pip install stripe")
+    logger.error("\n❌ Could not start any server.")
+    logger.info("\n💡 Manual options:")
+    logger.info("   python start_credit_api.py ultra    # Start ultra minimal server")
+    logger.info("   python start_credit_api.py minimal  # Start FastAPI server")
+    logger.info("   python start_credit_api.py simple   # Start simple server")
+    logger.info("\n🔧 If you're still having issues:")
+    logger.info("   1. Check that you have Python installed")
+    logger.info("   2. Check that the required files exist")
+    logger.info("   3. For FastAPI server, install: pip install fastapi uvicorn")
+    logger.info("   4. For Stripe integration, install: pip install stripe")
 
 if __name__ == "__main__":
     main()

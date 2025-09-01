@@ -40,6 +40,13 @@ from sentry_config import (
     monitor_performance
 )
 
+# Import centralized logging configuration
+from logging_config import setup_logging, get_logger
+
+# Initialize logging first
+setup_logging()
+logger = get_logger(__name__)
+
 # Initialize Sentry as early as possible
 sentry_initialized = init_sentry()
 

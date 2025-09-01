@@ -12,6 +12,17 @@ import time
 import uuid
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, quote
+import logging
+
+# Configure logging with better formatting for Render
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # This ensures logs go to stdout which Render captures
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Try to import Stripe, but handle gracefully if not available
 try:
@@ -21,47 +32,47 @@ try:
     stripe_api_key = os.getenv("STRIPE_SECRET_KEY", "")
     if stripe_api_key:
         stripe.api_key = stripe_api_key
-        print("✅ Stripe initialized successfully")
-        print(f"   Stripe API key length: {len(stripe_api_key)} characters")
+        logger.info("✅ Stripe initialized successfully")
+        logger.info(f"   Stripe API key length: {len(stripe_api_key)} characters")
         # Mask the API key for security (show only first 3 and last 4 characters)
         masked_key = f"{stripe_api_key[:3]}...{stripe_api_key[-4:]}" if len(stripe_api_key) > 7 else "Too short"
-        print(f"   Stripe API key (masked): {masked_key}")
+        logger.info(f"   Stripe API key (masked): {masked_key}")
     else:
         STRIPE_AVAILABLE = False
-        print("⚠️  Stripe secret key not found - Stripe integration disabled")
-        print("   Make sure STRIPE_SECRET_KEY is set in your environment variables")
+        logger.warning("⚠️  Stripe secret key not found - Stripe integration disabled")
+        logger.info("   Make sure STRIPE_SECRET_KEY is set in your environment variables")
         # Debug: Show what environment variables are actually set
         env_vars = dict(os.environ)
         stripe_vars = {k: v for k, v in env_vars.items() if 'STRIPE' in k.upper()}
         if stripe_vars:
-            print("   Available STRIPE-related environment variables:")
+            logger.info("   Available STRIPE-related environment variables:")
             for k, v in stripe_vars.items():
                 # Mask sensitive values
                 if 'KEY' in k.upper() or 'SECRET' in k.upper():
                     masked_value = f"{v[:3]}...{v[-4:]}" if len(v) > 7 else "Too short"
-                    print(f"     {k}: {masked_value}")
+                    logger.info(f"     {k}: {masked_value}")
                 else:
-                    print(f"     {k}: {v[:20]}{'...' if len(v) > 20 else ''}")
+                    logger.info(f"     {k}: {v[:20]}{'...' if len(v) > 20 else ''}")
         else:
-            print("   No STRIPE-related environment variables found")
+            logger.info("   No STRIPE-related environment variables found")
             
         # Additional debugging to help diagnose the issue
-        print("   🔍 Debugging STRIPE_SECRET_KEY:")
-        print(f"      os.getenv('STRIPE_SECRET_KEY'): {repr(os.getenv('STRIPE_SECRET_KEY'))}")
-        print(f"      os.environ.get('STRIPE_SECRET_KEY'): {repr(os.environ.get('STRIPE_SECRET_KEY'))}")
-        print(f"      'STRIPE_SECRET_KEY' in os.environ: {'STRIPE_SECRET_KEY' in os.environ}")
+        logger.info("   🔍 Debugging STRIPE_SECRET_KEY:")
+        logger.info(f"      os.getenv('STRIPE_SECRET_KEY'): {repr(os.getenv('STRIPE_SECRET_KEY'))}")
+        logger.info(f"      os.environ.get('STRIPE_SECRET_KEY'): {repr(os.environ.get('STRIPE_SECRET_KEY'))}")
+        logger.info(f"      'STRIPE_SECRET_KEY' in os.environ: {'STRIPE_SECRET_KEY' in os.environ}")
 except ImportError:
     STRIPE_AVAILABLE = False
-    print("⚠️  Stripe library not available - Stripe integration disabled")
-    print("   Run 'pip install stripe' to enable Stripe integration")
+    logger.warning("⚠️  Stripe library not available - Stripe integration disabled")
+    logger.info("   Run 'pip install stripe' to enable Stripe integration")
     # Check if it's in requirements
     try:
         with open('requirements-api.txt', 'r') as f:
             requirements = f.read()
             if 'stripe' in requirements.lower():
-                print("   Note: stripe is listed in requirements-api.txt")
+                logger.info("   Note: stripe is listed in requirements-api.txt")
             else:
-                print("   Note: stripe not found in requirements-api.txt")
+                logger.info("   Note: stripe not found in requirements-api.txt")
     except:
         pass
 
@@ -80,10 +91,10 @@ STRIPE_PRICE_ID_ENV_MAP = {
 }
 
 # Debug: Print environment variables at startup
-print("🔍 Environment variables check:")
-print(f"   STRIPE_SECRET_KEY: {'SET' if os.getenv('STRIPE_SECRET_KEY') else 'NOT SET'}")
+logger.info("🔍 Environment variables check:")
+logger.info(f"   STRIPE_SECRET_KEY: {'SET' if os.getenv('STRIPE_SECRET_KEY') else 'NOT SET'}")
 for package_id, env_var in STRIPE_PRICE_ID_ENV_MAP.items():
-    print(f"   {env_var}: {'SET' if os.getenv(env_var) else 'NOT SET'}")
+    logger.info(f"   {env_var}: {'SET' if os.getenv(env_var) else 'NOT SET'}")
 
 
 class DatabaseManager:
@@ -586,8 +597,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     return
                 
                 # Debug information
-                print(f"🔍 Purchase request - Email: {email}, Package: {package_id}")
-                print(f"   STRIPE_AVAILABLE: {STRIPE_AVAILABLE}")
+                logger.info(f"🔍 Purchase request - Email: {email}, Package: {package_id}")
+                logger.info(f"   STRIPE_AVAILABLE: {STRIPE_AVAILABLE}")
                 # Check if stripe is available and has api_key attribute
                 stripe_api_key_set = False
                 try:
@@ -595,7 +606,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         stripe_api_key_set = bool(stripe.api_key)
                 except:
                     pass
-                print(f"   stripe.api_key set: {stripe_api_key_set}")
+                logger.info(f"   stripe.api_key set: {stripe_api_key_set}")
                 
                 # Check if Stripe is available and properly configured
                 if STRIPE_AVAILABLE and stripe_api_key_set:
@@ -603,8 +614,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     env_var_name = STRIPE_PRICE_ID_ENV_MAP.get(package_id)
                     stripe_price_id = os.getenv(env_var_name) if env_var_name else None
                     
-                    print(f"   Environment variable name: {env_var_name}")
-                    print(f"   Stripe price ID from env: {stripe_price_id}")
+                    logger.info(f"   Environment variable name: {env_var_name}")
+                    logger.info(f"   Stripe price ID from env: {stripe_price_id}")
                     
                     if not stripe_price_id:
                         self._send_json_response({
@@ -640,7 +651,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     
                     # Create Stripe checkout session
                     try:
-                        print(f"   Creating Stripe session for price ID: {stripe_price_id}")
+                        logger.info(f"   Creating Stripe session for price ID: {stripe_price_id}")
                         # Check if stripe module is available before using it
                         if 'stripe' in globals():
                             session = stripe.checkout.Session.create(
@@ -668,7 +679,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         
                     except Exception as e:
                         # Handle both Stripe errors and general exceptions
-                        print(f"❌ Error creating Stripe session: {str(e)}")
+                        logger.error(f"❌ Error creating Stripe session: {str(e)}")
                         # Check if it's a Stripe error
                         if 'stripe' in globals() and hasattr(e, 'code'):
                             self._send_json_response({
@@ -956,17 +967,17 @@ def run_server():
     """Run the HTTP server"""
     port = int(os.environ.get('PORT', 10000))
     server = HTTPServer(('0.0.0.0', port), CreditAPIHandler)
-    print(f"🚀 Starting Credit API server on port {port}")
-    print(f"   - Health check: http://localhost:{port}/health")
-    print(f"   - Packages: http://localhost:{port}/packages")
-    print(f"   - Credits: http://localhost:{port}/credits?email=test@example.com")
-    print("=" * 50)
+    logger.info(f"🚀 Starting Credit API server on port {port}")
+    logger.info(f"   - Health check: http://localhost:{port}/health")
+    logger.info(f"   - Packages: http://localhost:{port}/packages")
+    logger.info(f"   - Credits: http://localhost:{port}/credits?email=test@example.com")
+    logger.info("=" * 50)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n👋 Server stopped by user")
+        logger.info("\n👋 Server stopped by user")
     except Exception as e:
-        print(f"❌ Server error: {e}")
+        logger.error(f"❌ Server error: {e}")
 
 if __name__ == "__main__":
     run_server()

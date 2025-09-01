@@ -14,8 +14,14 @@ from urllib.parse import urlparse, parse_qs
 from threading import Thread
 import uuid
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with better formatting for Render
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # This ensures logs go to stdout which Render captures
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # Constants

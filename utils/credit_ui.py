@@ -29,6 +29,14 @@ except ImportError:
     def restore_button(placeholder, label, key=None, **kwargs):
         placeholder.button(label, key=key, **kwargs)
 
+# Configure logging with better formatting for Render and Sentry
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # This ensures logs go to stdout which Render captures
+    ]
+)
 logger = logging.getLogger(__name__)
 
 def get_backend_url():
