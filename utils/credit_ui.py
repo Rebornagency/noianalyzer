@@ -676,6 +676,246 @@ def display_credit_store():
     </style>
     """, unsafe_allow_html=True)
     
+    # Additional CSS injection to ensure styles take precedence
+    # Using even more specific selectors with ID-based targeting
+    st.markdown("""
+    <style>
+    /* Final override styles with maximum specificity */
+    
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+        background: #101922 !important;
+        border: 1px solid #1f2a36 !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+        padding: 2rem 1.5rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover {
+        border-color: #0E4DE3 !important;
+        background: rgba(14, 77, 227, 0.08) !important;
+        transform: translateY(-8px) !important;
+        box-shadow: 0 12px 32px rgba(14, 77, 227, 0.3) !important;
+    }
+    
+    /* Ensure all text elements inside the card are centered */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] *,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] * {
+        text-align: center !important;
+    }
+    
+    /* Package Title Styling */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3 {
+        margin-top: 0 !important;
+        margin-bottom: 1.25rem !important;
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        text-align: center !important;
+        color: #FFFFFF !important;
+        padding-bottom: 0.75rem !important;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.15) !important;
+        width: 100% !important;
+    }
+    
+    /* Credits Display */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:first-of-type,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:first-of-type {
+        font-size: 1.3rem !important;
+        font-weight: 600 !important;
+        color: rgba(255, 255, 255, 0.95) !important;
+        text-align: center !important;
+        margin: 1.25rem 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Price Display */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3:nth-of-type(2),
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3:nth-of-type(2) {
+        font-size: 2.8rem !important;
+        font-weight: 800 !important;
+        color: #FFFFFF !important;
+        margin: 1.5rem 0 !important;
+        text-align: center !important;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+        width: 100% !important;
+    }
+    
+    /* Per Credit Price */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:nth-of-type(2),
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:nth-of-type(2) {
+        color: rgba(255, 255, 255, 0.8) !important;
+        font-size: 1.1rem !important;
+        font-style: italic !important;
+        margin: 1rem 0 1.5rem 0 !important;
+        text-align: center !important;
+        width: 100% !important;
+    }
+    
+    /* Savings Badge */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] {
+        margin: 1.5rem auto !important;
+        padding: 0.85rem 1.25rem !important;
+        border-radius: 30px !important;
+        text-align: center !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        color: #FFFFFF !important;
+        background: linear-gradient(135deg, #22C55E, #16A34A) !important;
+        border: 2px solid rgba(34, 197, 94, 0.5) !important;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3) !important;
+        min-height: 52px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: calc(100% - 2rem) !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+    }
+    
+    /* Savings Badge Text */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] *,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] * {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+        text-align: center !important;
+    }
+    
+    /* Description Text */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div:last-of-type,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div:last-of-type {
+        color: rgba(255, 255, 255, 0.85) !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        margin: 1.5rem 0 2rem 0 !important;
+        text-align: center !important;
+        flex-grow: 1 !important;
+        width: 100% !important;
+    }
+    
+    /* Time Savings Highlight */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div[style*="color:#FACC15"],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div[style*="color:#FACC15"] {
+        color: #FACC15 !important;
+        font-weight: 700 !important;
+        font-size: 1.15rem !important;
+        margin: 1rem 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Button Container */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] {
+        margin-top: auto !important;
+        padding: 1.25rem 0 0 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+    
+    /* CTA Button - Maximum specificity to override global styles */
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button {
+        width: calc(100% - 2rem) !important;
+        height: 52px !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
+        border-radius: 12px !important;
+        border: none !important;
+        background: linear-gradient(135deg, #0E4DE3 0%, #1C5CF5 100%) !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 6px 16px rgba(14, 77, 227, 0.4) !important;
+        text-transform: none !important;
+        letter-spacing: 0.5px !important;
+        box-sizing: border-box !important;
+        margin: 0 auto !important;
+        display: block !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+    }
+    
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover,
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button:hover,
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:hover,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button:hover,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:hover {
+        background: linear-gradient(135deg, #1C5CF5 0%, #2563EB 100%) !important;
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 20px rgba(14, 77, 227, 0.6) !important;
+    }
+    
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:active,
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button:active,
+    #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:active,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:active,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button:active,
+    div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button:active {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(14, 77, 227, 0.4) !important;
+    }
+    
+    /* Header styling */
+    #credit-store-container .stApp [data-testid="stVerticalBlock"]:nth-child(3) h1,
+    div#credit-store-container .stApp [data-testid="stVerticalBlock"]:nth-child(3) h1,
+    .stApp [data-testid="stVerticalBlock"]:nth-child(3) h1 {
+        margin-bottom: 2rem !important;
+        text-align: center !important;
+        font-size: 2.75rem !important;
+        color: #FFFFFF !important;
+    }
+    
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
+        div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+            min-height: auto !important;
+            padding: 1.5rem 1rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+        
+        #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3,
+        div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3 {
+            font-size: 1.5rem !important;
+        }
+        
+        #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3:nth-of-type(2),
+        div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] h3:nth-of-type(2) {
+            font-size: 2.2rem !important;
+        }
+        
+        #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
+        #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
+        #credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button,
+        div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
+        div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
+        div#credit-store-container [data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"] > button {
+            height: 48px !important;
+            font-size: 1.1rem !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Add a container with ID to help with CSS specificity
     st.markdown('<div id="credit-store-container">', unsafe_allow_html=True)
     
@@ -692,8 +932,16 @@ def display_credit_store():
                 if savings_percent > 0:
                     savings_text = f"Save {savings_percent:.0f}%!"
             
-            # Use Streamlit container for styling
+            # Use Streamlit container for styling with modern card design
             with st.container():
+                # Center all content within the package card
+                st.markdown(
+                    """
+                    <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                    """, 
+                    unsafe_allow_html=True
+                )
+                
                 # Package title
                 if idx == 1:  # Highlight middle package
                     st.markdown(f"### **{package['name']}**")
@@ -732,6 +980,9 @@ def display_credit_store():
                 # Description - centered
                 description_text = package.get('description', f"Top up {package['credits']} credits")
                 st.markdown(f"<div style='text-align: center; margin: 2rem 0;'>{description_text}</div>", unsafe_allow_html=True)
+                
+                # Close the centering div
+                st.markdown("</div>", unsafe_allow_html=True)
                 
                 # Purchase button with loading state
                 email = st.session_state.get('user_email', '')

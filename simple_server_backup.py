@@ -246,7 +246,6 @@ class DatabaseManager:
 
     def init_db(self):
         """Initialize database tables"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -276,7 +275,7 @@ class DatabaseManager:
             conn.close()
         except Exception as e:
             logger.error(f"Error in init_db: {str(e)}")
-            if conn:
+            if 'conn' in locals():
                 conn.close()
     
     def check_email_format(self, email):
@@ -285,7 +284,6 @@ class DatabaseManager:
     
     def has_email(self, email):
         """Check if email exists in users"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -297,13 +295,12 @@ class DatabaseManager:
             return result is not None
         except Exception as e:
             logger.error(f"Error in has_email: {str(e)}")
-            if conn:
+            if 'conn' in locals():
                 conn.close()
             return False
     
     def add_email(self, email):
         """Add user if not already existing"""
-        conn = None
         try:
             if not self.check_email_format(email) or self.has_email(email):
                 return False
@@ -318,13 +315,12 @@ class DatabaseManager:
             return True
         except Exception as e:
             logger.error(f"Error in add_email: {str(e)}")
-            if conn:
+            if 'conn' in locals():
                 conn.close()
             return False
     
     def get_credits(self, email):
         """Get user's credit balance"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -343,13 +339,10 @@ class DatabaseManager:
             return result[0] if result else 0
         except Exception as e:
             logger.error(f"Error in get_credits: {str(e)}")
-            if conn:
-                conn.close()
             return 0
 
     def deduct_credits(self, email, credits):
         """Deduct credits from user account"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -378,14 +371,13 @@ class DatabaseManager:
             return True
         except Exception as e:
             logger.error(f"Error in deduct_credits: {str(e)}")
-            if conn:
+            if 'conn' in locals():
                 conn.close()
             return False
 
     # ADMIN FUNCTIONS
     def get_all_users(self):
         """Get all users (admin function)"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -416,13 +408,10 @@ class DatabaseManager:
             return users
         except Exception as e:
             logger.error(f"Error in get_all_users: {str(e)}")
-            if conn:
-                conn.close()
             return []
 
     def get_all_transactions(self):
         """Get all transactions (admin function)"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -450,13 +439,10 @@ class DatabaseManager:
             return transactions
         except Exception as e:
             logger.error(f"Error in get_all_transactions: {str(e)}")
-            if conn:
-                conn.close()
             return []
 
     def add_credits(self, email, credits):
         """Add credits to user account"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -477,12 +463,11 @@ class DatabaseManager:
             conn.close()
         except Exception as e:
             logger.error(f"Error in add_credits: {str(e)}")
-            if conn:
+            if 'conn' in locals():
                 conn.close()
                 
     def get_user_details(self, email):
         """Get detailed user information (admin function)"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -539,13 +524,10 @@ class DatabaseManager:
             }
         except Exception as e:
             logger.error(f"Error in get_user_details: {str(e)}")
-            if conn:
-                conn.close()
             return None
 
     def get_system_stats(self):
         """Get system statistics (admin function)"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -583,8 +565,6 @@ class DatabaseManager:
             return stats
         except Exception as e:
             logger.error(f"Error in get_system_stats: {str(e)}")
-            if conn:
-                conn.close()
             return {}
 
     def verify_admin_key(self, provided_key):
@@ -598,7 +578,6 @@ class DatabaseManager:
     
     def admin_adjust_credits(self, email, credit_change, reason):
         """Admin function to manually adjust user credits"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -636,20 +615,15 @@ class DatabaseManager:
                 return True, new_balance
                 
             except Exception as e:
-                if conn:
-                    conn.rollback()
-                if conn:
-                    conn.close()
+                conn.rollback()
+                conn.close()
                 return False, str(e)
         except Exception as e:
             logger.error(f"Error in admin_adjust_credits: {str(e)}")
-            if conn:
-                conn.close()
             return False, str(e)
     
     def log_transaction(self, transaction_id, email, package_type, credits, amount, status):
         """Log a transaction to the database"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -663,12 +637,11 @@ class DatabaseManager:
             conn.close()
         except Exception as e:
             logger.error(f"Error in log_transaction: {str(e)}")
-            if conn:
+            if 'conn' in locals():
                 conn.close()
     
     def update_user_status(self, email, status):
         """Update user status"""
-        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -692,8 +665,6 @@ class DatabaseManager:
                 return False, "User not found"
         except Exception as e:
             logger.error(f"Error in update_user_status: {str(e)}")
-            if conn:
-                conn.close()
             return False, str(e)
 
 class CreditAPIHandler(BaseHTTPRequestHandler):
@@ -1077,9 +1048,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                     # Check if stripe is available and has api_key attribute
                     stripe_api_key_set = False
                     try:
-                        import stripe as stripe_module
-                        if hasattr(stripe_module, 'api_key'):
-                            stripe_api_key_set = bool(stripe_module.api_key)
+                        if 'stripe' in globals() and hasattr(stripe, 'api_key'):
+                            stripe_api_key_set = bool(stripe.api_key)
                     except:
                         pass
                     logger.info(f"   stripe.api_key set: {stripe_api_key_set}")
@@ -1129,45 +1099,41 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         try:
                             logger.info(f"   Creating Stripe session for price ID: {stripe_price_id}")
                             # Check if stripe module is available before using it
-                            import stripe as stripe_module
-                            session = stripe_module.checkout.Session.create(
-                                payment_method_types=["card"],
-                                mode="payment",
-                                customer_email=email_str,
-                                line_items=[{"price": stripe_price_id, "quantity": 1}],
-                                success_url=success_url_with_email,
-                                cancel_url=os.getenv("CREDIT_CANCEL_URL", "https://noianalyzer-1.onrender.com/payment-cancel"),
-                                metadata={
-                                    "type": "credit_purchase",
-                                    "package_id": package_id,
-                                    "email": email_str
-                                },
-                            )
+                            if 'stripe' in globals():
+                                session = stripe.checkout.Session.create(
+                                    payment_method_types=["card"],
+                                    mode="payment",
+                                    customer_email=email_str,
+                                    line_items=[{"price": stripe_price_id, "quantity": 1}],
+                                    success_url=success_url_with_email,
+                                    cancel_url=os.getenv("CREDIT_CANCEL_URL", "https://noianalyzer-1.onrender.com/payment-cancel"),
+                                    metadata={
+                                        "type": "credit_purchase",
+                                        "package_id": package_id,
+                                        "email": email_str
+                                    },
+                                )
+                                
+                                # Return the checkout URL
+                                self._send_json_response({
+                                    "checkout_url": session.url,
+                                    "package": CREDIT_PACKAGES[package_id]
+                                })
+                            else:
+                                # This shouldn't happen if STRIPE_AVAILABLE is True, but just in case
+                                raise Exception("Stripe module not available")
                             
-                            # Return the checkout URL
-                            self._send_json_response({
-                                "checkout_url": session.url,
-                                "package": CREDIT_PACKAGES[package_id]
-                            })
                         except Exception as e:
                             # Handle both Stripe errors and general exceptions
                             logger.error(f"❌ Error creating Stripe session: {str(e)}")
                             # Check if it's a Stripe error
-                            try:
-                                import stripe as stripe_module
-                                if hasattr(e, 'code'):
-                                    self._send_json_response({
-                                        "error": "Stripe error",
-                                        "message": str(e),
-                                        "package": CREDIT_PACKAGES[package_id]
-                                    }, 500)
-                                else:
-                                    self._send_json_response({
-                                        "error": "Failed to create Stripe checkout session",
-                                        "message": str(e),
-                                        "package": CREDIT_PACKAGES[package_id]
-                                    }, 500)
-                            except:
+                            if 'stripe' in globals() and hasattr(e, 'code'):
+                                self._send_json_response({
+                                    "error": "Stripe error",
+                                    "message": str(e),
+                                    "package": CREDIT_PACKAGES[package_id]
+                                }, 500)
+                            else:
                                 self._send_json_response({
                                     "error": "Failed to create Stripe checkout session",
                                     "message": str(e),
@@ -1179,9 +1145,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                         # Check if stripe is available and has api_key attribute for debug info
                         stripe_api_key_set_debug = False
                         try:
-                            import stripe as stripe_module
-                            if hasattr(stripe_module, 'api_key'):
-                                stripe_api_key_set_debug = bool(stripe_module.api_key)
+                            if 'stripe' in globals() and hasattr(stripe, 'api_key'):
+                                stripe_api_key_set_debug = bool(stripe.api_key)
                         except:
                             pass
                         self._send_json_response({
