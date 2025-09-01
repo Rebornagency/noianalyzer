@@ -138,7 +138,7 @@ def main():
     # Try to start servers in order of reliability
     logger.info("🔍 Auto-selecting best server option...")
 
-    # NEW: Prefer the minimal FastAPI server when Stripe is configured
+    # NEW: Prefer the minimal FastAPI server when Stripe is configured AND library is available
     if is_stripe_configured() and is_stripe_library_available():
         logger.info("\n1️⃣ Detected Stripe configuration and library – trying minimal FastAPI server first...")
         if start_minimal():
@@ -149,7 +149,19 @@ def main():
         logger.info("\n3️⃣ Falling back to ultra minimal server...")
         start_ultra_minimal()
         return
-
+    elif is_stripe_configured() and not is_stripe_library_available():
+        # Stripe is configured but library is not available - show warning and use fallback
+        logger.warning("⚠️  Stripe is configured but stripe library is not available")
+        logger.warning("   This may be due to missing dependencies during deployment")
+        logger.info("\n1️⃣ Trying ultra minimal server (most reliable)...")
+        if start_ultra_minimal():
+            return
+        logger.info("\n2️⃣ Trying minimal FastAPI server...")
+        if start_minimal():
+            return
+        logger.info("\n3️⃣ Trying simple server (will show Stripe warning)...")
+        if start_simple_server():
+            return
     # Original order when Stripe is NOT configured
     logger.info("\n1️⃣ Trying ultra minimal server...")
     if start_ultra_minimal():

@@ -61,20 +61,26 @@ try:
         logger.info(f"      os.getenv('STRIPE_SECRET_KEY'): {repr(os.getenv('STRIPE_SECRET_KEY'))}")
         logger.info(f"      os.environ.get('STRIPE_SECRET_KEY'): {repr(os.environ.get('STRIPE_SECRET_KEY'))}")
         logger.info(f"      'STRIPE_SECRET_KEY' in os.environ: {'STRIPE_SECRET_KEY' in os.environ}")
-except ImportError:
+except ImportError as e:
     STRIPE_AVAILABLE = False
     logger.warning("⚠️  Stripe library not available - Stripe integration disabled")
     logger.info("   Run 'pip install stripe' to enable Stripe integration")
+    logger.info(f"   Import error details: {str(e)}")
     # Check if it's in requirements
     try:
         with open('requirements-api.txt', 'r') as f:
             requirements = f.read()
             if 'stripe' in requirements.lower():
                 logger.info("   Note: stripe is listed in requirements-api.txt")
+                logger.info("   This suggests the library should be available - possible deployment issue")
             else:
                 logger.info("   Note: stripe not found in requirements-api.txt")
-    except:
-        pass
+    except Exception as req_error:
+        logger.info(f"   Could not check requirements file: {str(req_error)}")
+except Exception as e:
+    STRIPE_AVAILABLE = False
+    logger.error(f"❌ Unexpected error during Stripe initialization: {str(e)}")
+    logger.info("   Stripe integration will be disabled")
 
 # Credit packages for NOI Analyzer
 CREDIT_PACKAGES = {
