@@ -515,12 +515,16 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         if path == '/packages' or path == '/pay-per-use/packages':
             packages_list = []
             for package_id, package_info in CREDIT_PACKAGES.items():
+                # Calculate per credit cost
+                per_credit = package_info["price"] / 100 / package_info["credits"]
                 packages_list.append({
-                    "id": package_id,
+                    "package_id": package_id,
                     "name": package_info["name"],
                     "credits": package_info["credits"],
                     "price_cents": package_info["price"],
-                    "price_dollars": package_info["price"] / 100
+                    "price_dollars": package_info["price"] / 100,
+                    "per_credit_cost": per_credit,
+                    "description": f"Top up {package_info['credits']} credits"
                 })
             self._send_json_response(packages_list)
             return
