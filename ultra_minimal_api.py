@@ -110,7 +110,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
         self.end_headers()
         
         response = json.dumps(data)
@@ -154,7 +155,8 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
         self.end_headers()
     
     def do_GET(self):
@@ -198,7 +200,7 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 return
             credits = self.db.get_credits(email)
             self._send_json_response({"email": email, "credits": credits})
-            
+        
         elif path.startswith("/checkout/"):
             # Handle checkout page
             transaction_id = path.split("/checkout/")[-1]
@@ -354,6 +356,33 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
                 logger.error(f"Failed to create transaction: {e}")
                 self._send_error(f"Failed to create transaction: {str(e)}")
         
+        elif path == "/pay-per-use/use-credits":
+            # Deduct credits for analysis
+            email = data.get('email')
+            if not email:
+                self._send_error("Email is required")
+                return
+            
+            try:
+                current_credits = self.db.get_credits(email)
+                if current_credits >= 1:
+                    self.db.add_credits(email, -1)  # Deduct 1 credit
+                    new_balance = self.db.get_credits(email)
+                    self._send_json_response({
+                        "success": True,
+                        "message": "Credit deducted for NOI analysis",
+                        "credits_remaining": new_balance
+                    })
+                else:
+                    self._send_json_response({
+                        "success": False,
+                        "error": "Insufficient credits",
+                        "credits_remaining": 0
+                    }, 402)  # 402 Payment Required
+            except Exception as e:
+                logger.error(f"Failed to deduct credits: {e}")
+                self._send_error(f"Failed to deduct credits: {str(e)}")
+        
         elif path == "/pay-per-use/init":
             # No-op initializer for frontend; just return OK
             logger.info("System initialization requested")
@@ -470,4 +499,4 @@ def run_server():
         server.shutdown()
 
 if __name__ == "__main__":
-    run_server() 
+    run_server()

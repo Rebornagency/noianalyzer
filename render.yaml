@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: noi-analyzer-api
+    name: noianalyzer-1
     env: python
     buildCommand: pip install -r requirements-api.txt
     startCommand: python start_credit_api.py

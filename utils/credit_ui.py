@@ -63,12 +63,17 @@ BACKEND_URL = get_backend_url()
 def get_user_credits(email: str) -> Optional[Dict[str, Any]]:
     """Get user credit information from API"""
     try:
+        # Try the new endpoint first
         response = requests.get(f"{BACKEND_URL}/pay-per-use/credits/{email}", timeout=10)
         if response.status_code == 200:
             return response.json()
-        else:
-            logger.error(f"Failed to get credits for {email}: HTTP {response.status_code} - {response.text[:200]}")
-            return None
+        # If that fails, try the old endpoint
+        elif response.status_code == 404:
+            response = requests.get(f"{BACKEND_URL}/credits?email={email}", timeout=10)
+            if response.status_code == 200:
+                return response.json()
+        logger.error(f"Failed to get credits for {email}: HTTP {response.status_code} - {response.text[:200]}")
+        return None
     except requests.exceptions.ConnectionError as e:
         logger.error(f"Cannot connect to backend API at {BACKEND_URL}: {e}")
         return None
@@ -82,12 +87,17 @@ def get_user_credits(email: str) -> Optional[Dict[str, Any]]:
 def get_credit_packages() -> list:
     """Get available credit packages"""
     try:
+        # Try the new endpoint first
         response = requests.get(f"{BACKEND_URL}/pay-per-use/packages", timeout=10)
         if response.status_code == 200:
             return response.json()
-        else:
-            logger.error(f"Failed to get packages: {response.text}")
-            return []
+        # If that fails, try the old endpoint
+        elif response.status_code == 404:
+            response = requests.get(f"{BACKEND_URL}/packages", timeout=10)
+            if response.status_code == 200:
+                return response.json()
+        logger.error(f"Failed to get packages: {response.text}")
+        return []
     except Exception as e:
         logger.error(f"Error getting packages: {e}")
         return []
@@ -1015,6 +1025,12 @@ def deduct_credits_for_analysis(email: str) -> tuple[bool, str, dict]:
                 return True, success_msg, credit_data
             else:
                 return True, "Analysis started! 1 credit deducted.", {}
+        elif response.status_code == 402:
+            # Insufficient credits
+            result = response.json()
+            error_msg = f"Insufficient credits: {result.get('error', 'Not enough credits')}"
+            logger.error(f"Insufficient credits for {email}: {response.status_code} - {response.text}")
+            return False, error_msg, {}
         else:
             # Credit deduction failed
             error_msg = f"Credit deduction failed: {response.text}"
@@ -1023,7 +1039,10 @@ def deduct_credits_for_analysis(email: str) -> tuple[bool, str, dict]:
             
     except requests.exceptions.ConnectionError as e:
         logger.error(f"Cannot connect to credit service for {email}: {e}")
-        return False, "Cannot connect to credit service", {}
+        return False, "Cannot connect to credit service. Please try again later.", {}
+    except requests.exceptions.Timeout as e:
+        logger.error(f"Timeout connecting to credit service for {email}: {e}")
+        return False, "Request timed out. Please try again later.", {}
     except Exception as e:
         logger.error(f"Unexpected error during credit deduction for {email}: {e}")
         return False, f"Credit system error: {str(e)}", {}
