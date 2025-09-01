@@ -1119,13 +1119,8 @@ def display_free_trial_welcome(email: str):
 
 def init_credit_system():
     """Initialize credit system - call this early in your main app"""
-    # Create default packages if they don't exist
-    try:
-        response = requests.post(f"{BACKEND_URL}/pay-per-use/init", timeout=10)
-        if response.status_code != 200:
-            logger.warning("Failed to initialize credit packages")
-    except Exception as e:
-        logger.warning(f"Could not initialize credit system: {e}")
+    # No initialization needed for simple server implementation
+    pass
     
     # Add JavaScript to handle credit purchase success messages
     st.markdown("""

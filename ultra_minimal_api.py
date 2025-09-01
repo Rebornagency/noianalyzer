@@ -459,13 +459,7 @@ def run_server():
     """Run the HTTP server"""
     port = int(os.environ.get('PORT', 10000))
     
-    # Create custom handler class with database instance
-    class Handler(CreditAPIHandler):
-        def __init__(self, *args, **kwargs):
-            self.db = DatabaseManager()
-            BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
-    
-    server = HTTPServer(('0.0.0.0', port), Handler)
+    server = HTTPServer(('0.0.0.0', port), CreditAPIHandler)
     
     logger.info(f"Starting credit API server on port {port}")
     
