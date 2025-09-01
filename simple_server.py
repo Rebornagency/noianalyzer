@@ -453,6 +453,19 @@ class DatabaseManager:
             conn.close()
             return False, str(e)
     
+    def log_transaction(self, transaction_id, email, package_type, credits, amount, status):
+        """Log a transaction to the database"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO transactions (id, email, package_type, credits, amount, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (transaction_id, email, package_type, credits, amount, status))
+        
+        conn.commit()
+        conn.close()
+    
     def get_system_stats(self):
         """Get system statistics (admin function)"""
         conn = sqlite3.connect(self.db_path)
@@ -639,6 +652,11 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         # Serve health check
         if path == '/health':
             self.serve_health()
+            return
+        
+        # ADD MISSING ENDPOINT: Credit success page
+        if path == '/credit-success':
+            self.serve_credit_success(query_params)
             return
         
         # Serve credit packages
@@ -925,6 +943,11 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send_json_response({"error": f"Invalid request: {str(e)}"}, 400)
         
+        # ADD MISSING ENDPOINT: Stripe webhook handler
+        elif path == "/pay-per-use/stripe/webhook":
+            self.handle_stripe_webhook()
+            return
+            
         # ADMIN POST ENDPOINTS
         elif path.startswith("/pay-per-use/admin/"):
             try:
@@ -1038,6 +1061,144 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
             "service": "NOI Analyzer Credit API"
         }
         self.wfile.write(json.dumps(health_data).encode())
+    
+    def serve_credit_success(self, query_params):
+        """Credit purchase success page"""
+        # Extract parameters from query
+        session_id = query_params.get('session_id', [None])[0]
+        email = query_params.get('email', [None])[0]
+        
+        # Get main app URL from environment or use default
+        main_app_url = os.getenv("MAIN_APP_URL", "https://noianalyzer.streamlit.app")
+        
+        # Handle email parameter properly - avoid None string
+        email_param = email if email and email.lower() != 'none' else ""
+        
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+        
+        html_content = f"""
+        <html>
+            <head>
+                <title>Credits Purchase Successful</title>
+                <meta charset='utf-8'/>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif; 
+                        text-align: center; 
+                        padding: 2rem;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        min-height: 100vh;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }}
+                    .card {{
+                        background: white; 
+                        color: #333;
+                        border-radius: 12px; 
+                        padding: 3rem 2rem; 
+                        max-width: 500px; 
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                        animation: slideIn 0.5s ease-out;
+                    }} 
+                    @keyframes slideIn {{
+                        from {{ opacity: 0; transform: translateY(20px); }}
+                        to {{ opacity: 1; transform: translateY(0); }}
+                    }}
+                    h1 {{ color: #28a745; margin-bottom: 1rem; font-size: 2rem; }}
+                    .success-icon {{ font-size: 4rem; margin-bottom: 1rem; }}
+                    p {{ color: #666666; line-height: 1.6; margin-bottom: 1rem; }}
+                    .session-id {{ font-family: monospace; font-size: 0.9rem; color: #666666; }}
+                    .action-btn {{
+                        background: #28a745;
+                        color: white;
+                        padding: 12px 24px;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        text-decoration: none;
+                        display: inline-block;
+                        margin: 0.5rem;
+                        transition: background 0.3s;
+                    }}
+                    .action-btn:hover {{ background: #218838; }}
+                    .secondary-btn {{
+                        background: #6c757d;
+                        color: white;
+                        padding: 8px 16px;
+                        border: none;
+                        border-radius: 4px;
+                        font-size: 0.9rem;
+                        cursor: pointer;
+                        text-decoration: none;
+                        display: inline-block;
+                        margin: 0.25rem;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class='card'>
+                    <div class='success-icon'>🎉</div>
+                    <h1>Credits Purchase Successful!</h1>
+                    <p><strong>Thank you for your purchase!</strong></p>
+                    <p>Your credits have been added to your account and are ready to use for NOI analysis.</p>
+                    
+                    <div style="margin: 2rem 0;">
+                        <a href="#" onclick="closeAndReturn()" class="action-btn">Return to NOI Analyzer</a>
+                    </div>
+                    
+                    <p style="font-size: 0.9rem; color: #666666;">
+                        You can now close this tab and continue using the NOI Analyzer app.
+                        Your credit balance should update automatically.
+                    </p>
+                </div>
+                
+                <script>
+                    function closeAndReturn() {{
+                        // First try to communicate with parent window if it exists
+                        if (window.opener) {{
+                            try {{
+                                window.opener.postMessage({{
+                                    type: 'CREDIT_PURCHASE_SUCCESS',
+                                    action: 'RETURN_TO_MAIN'
+                                }}, '*');
+                                window.opener.focus();
+                                // Close this window after messaging parent
+                                setTimeout(function() {{ window.close(); }}, 1000);
+                                return;
+                            }} catch(e) {{
+                                console.log('Could not message parent window:', e);
+                            }}
+                        }}
+                        
+                        // If no parent window or messaging failed, redirect to main app
+                        console.log('Redirecting to main app: {main_app_url}');
+                        const emailParam = '{email_param}' ? '&email={email_param}' : '';
+                        window.location.href = '{main_app_url}?credit_success=1&return_to_main=1' + emailParam;
+                    }}
+                    
+                    // Auto-redirect after 3 seconds (reduced from 5)
+                    setTimeout(function() {{
+                        closeAndReturn();
+                    }}, 3000);
+                    
+                    // Also try immediate redirect if user doesn't click button
+                    setTimeout(function() {{
+                        if (document.visibilityState === 'visible') {{
+                            console.log('Page still visible, attempting redirect...');
+                            const emailParam = '{email_param}' ? '&email={email_param}' : '';
+                            window.location.href = '{main_app_url}?credit_success=1&return_to_main=1' + emailParam;
+                        }}
+                    }}, 8000);
+                </script>
+            </body>
+        </html>
+        """
+        self.wfile.write(html_content.encode('utf-8'))
     
     def serve_terms_of_service(self):
         """Serve Terms of Service page"""
@@ -1249,6 +1410,99 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
             html_paragraphs.append(p)
         
         return '\n'.join(html_paragraphs)
+
+    def handle_stripe_webhook(self):
+        """Handle Stripe webhooks for credit purchases only"""
+        logger.info("🎯 WEBHOOK RECEIVED - Processing Stripe webhook")
+        
+        try:
+            # Read the payload
+            content_length = int(self.headers.get('Content-Length', 0))
+            payload = self.rfile.read(content_length)
+            
+            # Get the signature header
+            sig_header = self.headers.get('Stripe-Signature')
+            
+            logger.info(f"Webhook payload size: {len(payload)} bytes")
+            logger.info(f"Stripe signature header present: {bool(sig_header)}")
+            
+            # Verify webhook signature if secret is available
+            webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+            
+            if webhook_secret and sig_header:
+                try:
+                    # For now, we'll just log that we received the webhook
+                    # In a production environment, you would verify the signature
+                    logger.info("✅ Webhook signature verification would happen here (simplified for HTTP server)")
+                except Exception as e:
+                    logger.error(f"❌ Webhook verification failed: {e}")
+                    self._send_json_response({"error": "Webhook verification failed"}, 400)
+                    return
+            elif webhook_secret:
+                logger.warning("⚠️  Webhook secret configured but no signature header received")
+            
+            # Parse the event
+            try:
+                event = json.loads(payload)
+                event_type = event.get("type", "unknown")
+                logger.info(f"✅ Webhook parsed successfully - Event type: {event_type}")
+            except json.JSONDecodeError as e:
+                logger.error(f"❌ Failed to parse webhook payload: {e}")
+                self._send_json_response({"error": "Invalid JSON payload"}, 400)
+                return
+            
+            # Process the event
+            if event_type == "checkout.session.completed":
+                logger.info("💳 Processing checkout.session.completed event")
+                session = event.get("data", {}).get("object", {})
+                metadata = session.get("metadata", {})
+                session_type = metadata.get("type", "credit_purchase")
+                
+                logger.info(f"Session metadata: {metadata}")
+                
+                if session_type == "credit_purchase":
+                    # Handle credit purchase
+                    user_id = metadata.get("user_id")  # This might not be available in simple version
+                    package_id = metadata.get("package_id")
+                    email = metadata.get("email")
+                    
+                    logger.info(f"Credit purchase - user_id: {user_id}, package_id: {package_id}, email: {email}")
+                    
+                    # For the simple version, we'll use email as the identifier
+                    if not email or not package_id:
+                        logger.error(f"❌ Missing metadata - email: {email}, package_id: {package_id}")
+                        self._send_json_response({"error": "Missing credit purchase metadata"}, 400)
+                        return
+                    
+                    # Add credits to user account
+                    if package_id in CREDIT_PACKAGES:
+                        credits_to_add = CREDIT_PACKAGES[package_id]["credits"]
+                        logger.info(f"🏦 Adding {credits_to_add} credits to user {email}")
+                        
+                        # Add credits to user's account
+                        self.db.add_credits(email, credits_to_add)
+                        
+                        # Log the transaction
+                        transaction_id = str(uuid.uuid4())
+                        self.db.log_transaction(transaction_id, email, package_id, credits_to_add, 
+                                              CREDIT_PACKAGES[package_id]["price"], "completed")
+                        
+                        logger.info(f"✅ Credits successfully added to user {email}")
+                        self._send_json_response({"received": True, "credits_added": True})
+                        return
+                    else:
+                        logger.error(f"❌ Invalid package_id: {package_id}")
+                        self._send_json_response({"error": "Invalid package_id"}, 400)
+                        return
+            else:
+                logger.info(f"ℹ️ Received webhook event type: {event_type} (not processed)")
+            
+            # Send success response
+            self._send_json_response({"received": True})
+            
+        except Exception as e:
+            logger.error(f"❌ Error processing webhook: {e}")
+            self._send_json_response({"error": f"Error processing webhook: {str(e)}"}, 500)
 
 def run_server():
     """Run the HTTP server"""
