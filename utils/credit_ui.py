@@ -730,7 +730,8 @@ def display_credit_store():
                     st.success("Ideal entry point 🚀")
                 
                 # Description - centered
-                st.markdown(f"<div style='text-align: center; margin: 2rem 0;'>{package.get('description', f'Top up {package["credits"]} credits')}</div>", unsafe_allow_html=True)
+                description_text = package.get('description', f"Top up {package['credits']} credits")
+                st.markdown(f"<div style='text-align: center; margin: 2rem 0;'>{description_text}</div>", unsafe_allow_html=True)
                 
                 # Purchase button with loading state
                 email = st.session_state.get('user_email', '')
