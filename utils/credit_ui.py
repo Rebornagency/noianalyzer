@@ -41,24 +41,28 @@ logger = logging.getLogger(__name__)
 
 def get_backend_url():
     """Get the correct backend URL by testing available options"""
+    # First check environment variable
     backend_url = os.getenv("BACKEND_URL")
     if backend_url:
+        logger.info(f"Using BACKEND_URL from environment variable: {backend_url}")
         return backend_url
     
     # Try production server first since it's more likely to be working
     test_urls = [
-        "https://noianalyzer-1.onrender.com",  # Production server (primary)
+        "https://noianalyzer-1.onrender.com",  # Production credit service (primary)
         "http://localhost:8000",  # FastAPI servers
         "http://localhost:10000"  # Ultra minimal server
     ]
     
     for url in test_urls:
         try:
+            logger.info(f"Testing connection to backend: {url}")
             response = requests.get(f"{url}/health", timeout=5)
             if response.status_code == 200:
                 logger.info(f"Backend connected successfully: {url}")
                 return url
-        except:
+        except Exception as e:
+            logger.warning(f"Failed to connect to {url}: {e}")
             continue
     
     # Default fallback to production
@@ -115,7 +119,8 @@ def test_backend_connection() -> bool:
     try:
         response = requests.get(f"{BACKEND_URL}/health", timeout=5)
         return response.status_code == 200
-    except:
+    except Exception as e:
+        logger.error(f"Backend connection test failed: {e}")
         return False
 
 def display_credit_balance_header(email: str):

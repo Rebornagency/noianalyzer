@@ -1,4 +1,24 @@
 services:
+  # Main NOI Analyzer Application
+  - type: web
+    name: noianalyzer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port=$PORT
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8501
+      - key: BACKEND_URL
+        value: https://noianalyzer-1.onrender.com
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: EXTRACTION_API_KEY
+        sync: false
+      - key: EXTRACTION_API_URL
+        value: https://dataextractionai.onrender.com
+
+  # Credit Service
   - type: web
     name: noianalyzer-1
     env: python

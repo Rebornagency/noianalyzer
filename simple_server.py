@@ -369,11 +369,16 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
         self.end_headers()
         
         response = json.dumps(data)
         self.wfile.write(response.encode('utf-8'))
+    
+    def _send_error(self, message, status=400):
+        """Send error response"""
+        self._send_json_response({"error": message}, status)
     
     def serve_docs(self):
         """Serve API documentation"""
@@ -828,6 +833,15 @@ class CreditAPIHandler(BaseHTTPRequestHandler):
         else:
             self._send_json_response({"error": "Endpoint not found"}, 404)
     
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Access-Control-Allow-Credentials', 'true')
+        self.end_headers()
+
     def serve_health(self):
         """Serve health check endpoint"""
         self.send_response(200)
