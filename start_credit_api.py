@@ -43,7 +43,19 @@ def is_stripe_library_available() -> bool:
     try:
         import stripe
         return True
-    except ImportError:
+    except ImportError as e:
+        logging.warning(f"Stripe library import failed: {e}")
+        # Try to provide more specific debugging info
+        try:
+            import pip
+            logging.info("Available packages:")
+            installed_packages = [d.project_name for d in pip.get_installed_distributions()]
+            if 'stripe' in [pkg.lower() for pkg in installed_packages]:
+                logging.info("Stripe package appears to be installed")
+            else:
+                logging.info("Stripe package not found in installed packages")
+        except Exception as pip_error:
+            logging.info(f"Could not check installed packages: {pip_error}")
         return False
 
 def start_ultra_minimal():
@@ -153,6 +165,10 @@ def main():
         # Stripe is configured but library is not available - show warning and use fallback
         logger.warning("⚠️  Stripe is configured but stripe library is not available")
         logger.warning("   This may be due to missing dependencies during deployment")
+        logger.info("   🔍 Debugging steps:")
+        logger.info("      1. Check Render build logs for 'pip install' errors")
+        logger.info("      2. Verify requirements-api.txt contains 'stripe==9.7.0'")
+        logger.info("      3. Check if there are any version conflicts")
         logger.info("\n1️⃣ Trying ultra minimal server (most reliable)...")
         if start_ultra_minimal():
             return

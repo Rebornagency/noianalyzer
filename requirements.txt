@@ -32,7 +32,7 @@ xlsxwriter==3.1.2
 sentry-sdk==2.29.1
 
 # Payment processing (stable version)
-stripe==6.7.0
+stripe==10.10.0
 
 # Essential utilities
 email-validator==2.3.0

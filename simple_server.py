@@ -73,6 +73,11 @@ except ImportError as e:
             if 'stripe' in requirements.lower():
                 logger.info("   Note: stripe is listed in requirements-api.txt")
                 logger.info("   This suggests the library should be available - possible deployment issue")
+                # Try to provide more specific debugging info
+                logger.info("   🔍 Additional debugging steps:")
+                logger.info("      1. Check Render build logs for pip install errors")
+                logger.info("      2. Verify requirements-api.txt is being used in buildCommand")
+                logger.info("      3. Check if there are any version conflicts")
             else:
                 logger.info("   Note: stripe not found in requirements-api.txt")
     except Exception as req_error:
