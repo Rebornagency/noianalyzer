@@ -3,11 +3,14 @@ fastapi==0.104.1
 uvicorn==0.24.0
 stripe==9.7.0
 python-dotenv==1.0.0
-email-validator==2.1.0
+email-validator==2.3.0
 python-multipart==0.0.6
 # Use a version with pre-built wheels for Python 3.13
 pandas==2.2.3
 # Database (using sqlite3 which is built-in to Python)
 # No SQLAlchemy or other ORMs to avoid dependencies
 
-# That's it - minimal set for credit system only! 
+# Error tracking and monitoring
+sentry-sdk==2.29.1
+
+# That's it - minimal set for credit system only!

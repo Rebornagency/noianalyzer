@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 try:
     from sentry_sdk.integrations.streamlit import StreamlitIntegration
     HAS_STREAMLIT_INTEGRATION = True
-except ImportError:
+except (ImportError, Exception) as e:
     HAS_STREAMLIT_INTEGRATION = False
     StreamlitIntegration = None
+    logger.debug(f"Streamlit integration not available: {e}")
 
 # Try to import Starlette integration as fallback for Streamlit
 try:
@@ -28,6 +29,7 @@ except (ImportError, Exception) as e:
     # Catch both ImportError and DidNotEnable exceptions
     HAS_STARLETTE_INTEGRATION = False
     StarletteIntegration = None
+    logger.debug(f"Starlette integration not available: {e}")
 
 try:
     from sentry_sdk.integrations.logging import LoggingIntegration
@@ -51,6 +53,7 @@ except (ImportError, Exception) as e:
     # Catch both ImportError and DidNotEnable exceptions
     HAS_FASTAPI_INTEGRATION = False
     FastApiIntegration = None
+    logger.debug(f"FastAPI integration not available: {e}")
 
 DEFAULT_SENTRY_DSN = "https://79cb707e8d1573757f94b1afcd1bd7bf@o4509419524653056.ingest.us.sentry.io/4509419570462720"
 
@@ -83,8 +86,11 @@ def init_sentry():
         if HAS_STREAMLIT_INTEGRATION and StreamlitIntegration:
             integrations.append(StreamlitIntegration())
             logger.info("Using Streamlit integration for Sentry")
+        elif HAS_STARLETTE_INTEGRATION and StarletteIntegration:
+            integrations.append(StarletteIntegration())
+            logger.info("Using Starlette integration for Sentry (fallback)")
         else:
-            logger.info("Streamlit integration not available for Sentry - proceeding without web framework integration")
+            logger.info("No web framework integration available for Sentry - proceeding without web framework integration")
         
         if HAS_LOGGING_INTEGRATION and LoggingIntegration:
             integrations.append(LoggingIntegration(

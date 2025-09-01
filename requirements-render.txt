@@ -32,12 +32,12 @@ jinja2==3.1.2
 xlsxwriter==3.1.2
 
 # Error tracking and monitoring (simple version)
-sentry-sdk==1.32.0
+sentry-sdk==2.29.1
 
 # Payment processing (stable version)
 stripe==6.7.0
 
 # Essential utilities only
 typing-extensions==4.7.1
-email-validator==2.1.0
+email-validator==2.3.0
 python-multipart==0.0.6
