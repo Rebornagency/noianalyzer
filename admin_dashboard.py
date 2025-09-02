@@ -235,7 +235,8 @@ def main():
                 st.session_state.admin_authenticated = True
                 logger.info("Admin authentication successful")
                 st.success("✅ Access granted!")
-                st.rerun()
+                # Don't call st.rerun() to prevent infinite loop
+                # The UI will update naturally on the next render cycle
             else:
                 logger.warning("Admin authentication failed - invalid password")
                 st.error("❌ Invalid password")
@@ -342,7 +343,11 @@ def main():
                                     if success:
                                         logger.info(f"Quick credit adjustment successful for {user['email']}")
                                         st.success(message)
-                                        st.rerun()
+                                        # Clear the input fields to prevent infinite loop
+                                        st.session_state[f"quick_{user['user_id']}"] = 0
+                                        st.session_state[f"reason_{user['user_id']}"] = ""
+                                        # Don't call st.rerun() to prevent infinite loop
+                                        # The UI will update naturally on the next render cycle
                                     else:
                                         logger.error(f"Quick credit adjustment failed for {user['email']}: {message}")
                                         st.error(message)
@@ -366,7 +371,8 @@ def main():
                                     if success:
                                         logger.info(f"Status update successful for {user['email']}")
                                         st.success(message)
-                                        st.rerun()
+                                        # Don't call st.rerun() to prevent infinite loop
+                                        # The UI will update naturally on the next render cycle
                                     else:
                                         logger.error(f"Status update failed for {user['email']}: {message}")
                                         st.error(message)
@@ -607,14 +613,16 @@ def main():
             logger.info("Auto-refresh stats enabled")
             import time
             time.sleep(30)
-            st.rerun()
+            # Don't call st.rerun() to prevent infinite loop
+            # Auto-refresh will be handled by Streamlit's natural refresh cycle
         
         # Manual refresh
         col1, col2 = st.columns([1, 4])
         with col1:
             if st.button("🔄 Refresh Stats"):
                 logger.info("Manual stats refresh requested")
-                st.rerun()
+                # Don't call st.rerun() to prevent infinite loop
+                # The UI will update naturally on the next render cycle
         
         with col2:
             st.caption("Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))

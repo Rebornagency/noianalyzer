@@ -4461,7 +4461,7 @@ def main():
                     '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
                     unsafe_allow_html=True
                 )
-                # Reset the error flag
+                # Reset the error flag after displaying the message
                 st.session_state.show_tos_error = False
             
             # Enhanced Process Documents button with loading state
@@ -4566,7 +4566,8 @@ def main():
                     # Clear loading and restore button
                     loading_container.empty()
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                    st.rerun()
+                    # Remove st.rerun() to prevent potential loops
+                    # The UI will update naturally on the next render cycle
                 else:
                     # Check if Terms of Service have been accepted
                     if not st.session_state.get('terms_accepted', False):
@@ -4574,7 +4575,9 @@ def main():
                         # Clear loading states before showing error
                         loading_container.empty()
                         restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                        st.rerun()
+                        # Don't call st.rerun() here to prevent infinite loop
+                        # The error message will be displayed on the next render cycle
+                        return  # Exit the function to prevent further processing
                     
                     # Production mode - check credits
                     user_email = st.session_state.get('user_email', '').strip()
