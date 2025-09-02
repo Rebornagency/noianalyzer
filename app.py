@@ -2411,6 +2411,66 @@ if 'show_narrative_editor' not in st.session_state:
 if 'user_initiated_processing' not in st.session_state:
     st.session_state.user_initiated_processing = False
 
+    # Initialize error counters to prevent infinite loops
+    if 'document_processing_error_count' not in st.session_state:
+        st.session_state.document_processing_error_count = 0
+    if 'credit_deduction_error_count' not in st.session_state:
+        st.session_state.credit_deduction_error_count = 0
+    if 'analysis_error_count' not in st.session_state:
+        st.session_state.analysis_error_count = 0
+    if 'analysis_exception_count' not in st.session_state:
+        st.session_state.analysis_exception_count = 0
+    if 'analysis_exception_count_2' not in st.session_state:
+        st.session_state.analysis_exception_count_2 = 0
+    if 'results_header_error_count' not in st.session_state:
+        st.session_state.results_header_error_count = 0
+    if 'template_header_error_count' not in st.session_state:
+        st.session_state.template_header_error_count = 0
+    if 'document_processing_success_error_count' not in st.session_state:
+        st.session_state.document_processing_success_error_count = 0
+    if 'template_confirmation_error_count' not in st.session_state:
+        st.session_state.template_confirmation_error_count = 0
+    if 'template_error_count' not in st.session_state:
+        st.session_state.template_error_count = 0
+    if 'document_processing_exception_count' not in st.session_state:
+        st.session_state.document_processing_exception_count = 0
+    if 'analysis_error_reset_count' not in st.session_state:
+        st.session_state.analysis_error_reset_count = 0
+    if 'noi_coach_error_count' not in st.session_state:
+        st.session_state.noi_coach_error_count = 0
+    if 'testing_mode_toggle_error_count' not in st.session_state:
+        st.session_state.testing_mode_toggle_error_count = 0
+    if 'testing_mode_scenario_error_count' not in st.session_state:
+        st.session_state.testing_mode_scenario_error_count = 0
+    if 'testing_mode_clear_error_count' not in st.session_state:
+        st.session_state.testing_mode_clear_error_count = 0
+    if 'testing_mode_clear_success_error_count' not in st.session_state:
+        st.session_state.testing_mode_clear_success_error_count = 0
+    if 'tos_error_count' not in st.session_state:
+        st.session_state.tos_error_count = 0
+    
+    # Reset error counters when processing starts successfully
+    if st.session_state.get('user_initiated_processing', False) and st.session_state.get('current_month_actuals'):
+        st.session_state.document_processing_error_count = 0
+        st.session_state.credit_deduction_error_count = 0
+        st.session_state.analysis_error_count = 0
+        st.session_state.analysis_exception_count = 0
+        st.session_state.analysis_exception_count_2 = 0
+        st.session_state.results_header_error_count = 0
+        st.session_state.template_header_error_count = 0
+        st.session_state.document_processing_success_error_count = 0
+        st.session_state.template_confirmation_error_count = 0
+        st.session_state.template_error_count = 0
+        st.session_state.document_processing_exception_count = 0
+        st.session_state.analysis_error_reset_count = 0
+        st.session_state.noi_coach_error_count = 0
+        st.session_state.testing_mode_toggle_error_count = 0
+        st.session_state.testing_mode_scenario_error_count = 0
+        st.session_state.testing_mode_clear_error_count = 0
+        st.session_state.testing_mode_clear_success_error_count = 0
+        st.session_state.tos_error_count = 0
+
+
 # Testing mode initialization
 if 'testing_mode' not in st.session_state:
     st.session_state.testing_mode = DEFAULT_TESTING_MODE
@@ -4060,7 +4120,11 @@ def main():
     if testing_mode != st.session_state.get("testing_mode", DEFAULT_TESTING_MODE):
         st.session_state.testing_mode = testing_mode
         save_testing_config()
-        st.rerun()
+        # Add error counter to prevent infinite loop
+        error_count = st.session_state.get('testing_mode_toggle_error_count', 0)
+        if error_count < 3:  # Limit reruns to prevent infinite loop
+            st.session_state.testing_mode_toggle_error_count = error_count + 1
+            st.rerun()
     
     if is_testing_mode_active():
         st.sidebar.markdown("#### Testing Configuration")
@@ -4099,7 +4163,11 @@ def main():
             for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
                 if key in st.session_state:
                     del st.session_state[key]
-            st.rerun()
+            # Add error counter to prevent infinite loop
+            error_count = st.session_state.get('testing_mode_scenario_error_count', 0)
+            if error_count < 3:  # Limit reruns to prevent infinite loop
+                st.session_state.testing_mode_scenario_error_count = error_count + 1
+                st.rerun()
         
         # Scenario descriptions
         scenario_descriptions = {
@@ -4120,11 +4188,22 @@ def main():
             for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
                 if key in st.session_state:
                     del st.session_state[key]
+            # Reset states to allow user to restart
             st.session_state.processing_completed = False
             st.session_state.template_viewed = False
             st.session_state.user_initiated_processing = False
+            if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+            # Add error counter to prevent infinite loop
+            error_count = st.session_state.get('testing_mode_clear_error_count', 0)
+            if error_count < 3:  # Limit reruns to prevent infinite loop
+                st.session_state.testing_mode_clear_error_count = error_count + 1
+                st.rerun()
             st.sidebar.success("Testing data cleared")
-            st.rerun()
+            # Add error counter to prevent infinite loop for success message
+            success_error_count = st.session_state.get('testing_mode_clear_success_error_count', 0)
+            if success_error_count < 3:  # Limit reruns to prevent infinite loop
+                st.session_state.testing_mode_clear_success_error_count = success_error_count + 1
+                st.rerun()
     
     st.sidebar.markdown("---")
 
@@ -4198,13 +4277,17 @@ def main():
         # Add buy more credits button centered below
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("🛒 Buy More Credits", key="header_buy_credits", use_container_width=True, type="primary"):
-                logger.info("🛒 Buy More Credits button clicked - showing credit store")
+            if st.button("🛒 Buy More Credits", key="template_header_buy_credits", use_container_width=True, type="primary"):
+                logger.info("🛒 Template Buy More Credits button clicked - showing credit store")
                 st.session_state.show_credit_store = True
                 # Clear any conflicting flags
                 if 'show_credit_success' in st.session_state:
                     del st.session_state.show_credit_success
-                st.rerun()
+                # Add error counter to prevent infinite loop
+                error_count = st.session_state.get('template_header_error_count', 0)
+                if error_count < 3:  # Limit reruns to prevent infinite loop
+                    st.session_state.template_header_error_count = error_count + 1
+                    st.rerun()
     
     # Display initial UI or results based on processing_completed
     if not st.session_state.get('processing_completed', False) and not st.session_state.get('template_viewed', False) and not st.session_state.get('consolidated_data'):
@@ -4638,7 +4721,11 @@ def main():
                             # Clear loading states after processing
                             loading_container.empty()
                             restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                            st.rerun()
+                            # Add error counter to prevent infinite loop
+                            error_count = st.session_state.get('document_processing_success_error_count', 0)
+                            if error_count < 3:  # Limit reruns to prevent infinite loop
+                                st.session_state.document_processing_success_error_count = error_count + 1
+                                st.rerun()
                         else:
                             logger.info(f"User {user_email} has insufficient credits")
                             # Clear loading states before showing credit UI
@@ -4699,6 +4786,14 @@ def main():
                     'description': 'Compare current performance against budget, prior month, and prior year'
                 },
                 {
+                    'title': 'Data Validation',
+                    'description': 'Verify and edit extracted data in a user-friendly template'
+                },
+                {
+                    'title': 'Insights Generation',
+                    'description': 'Automatically generate insights and narratives based on analysis'
+                },
+                {
                     'title': 'NOI Coach Integration',
                     'description': 'Get AI-powered insights and recommendations for your financial performance'
                 },
@@ -4743,8 +4838,12 @@ def main():
                         add_breadcrumb("Document processing failed - no current month file", "processing", "error")
                         show_processing_status("Current Month Actuals file is required. Please upload it to proceed.", status_type="error")
                         st.session_state.user_initiated_processing = False # Reset flag as processing cannot continue
-                        st.rerun() # Rerun to show the error and stop
-                        return # Explicitly return
+                        # Add error counter to prevent infinite loop
+                        error_count = st.session_state.get('document_processing_error_count', 0)
+                        if error_count < 3:  # Limit reruns to prevent infinite loop
+                            st.session_state.document_processing_error_count = error_count + 1
+                            st.rerun() # Rerun to show the error and stop
+                        return # Explicitly return to prevent further execution
 
                     # Pass file objects from session state to process_all_documents
                     # process_all_documents internally uses st.session_state to get file objects
@@ -4798,7 +4897,11 @@ def main():
                                     st.info("💳 You may need to purchase more credits to continue.")
                                     if st.button("🛍️ Buy Credits", key="buy_credits_after_failed_deduction"):
                                         st.session_state.show_credit_store = True
-                                        st.rerun()
+                                        # Add error counter to prevent infinite loop
+                                        error_count = st.session_state.get('credit_deduction_error_count', 0)
+                                        if error_count < 3:  # Limit reruns to prevent infinite loop
+                                            st.session_state.credit_deduction_error_count = error_count + 1
+                                            st.rerun()
                                         
                                     st.stop()  # Stop processing immediately
                     elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
@@ -4897,7 +5000,11 @@ def main():
                 st.session_state.template_viewed = True
                 st.session_state.user_initiated_processing = False # Reset, as next step is auto analysis
                 logger.info("Data confirmed by user via template. Proceeding to analysis preparation.")
-                st.rerun() # Rerun to trigger analysis stage
+                # Add error counter to prevent infinite loop
+                error_count = st.session_state.get('template_confirmation_error_count', 0)
+                if error_count < 3:  # Limit reruns to prevent infinite loop
+                    st.session_state.template_confirmation_error_count = error_count + 1
+                    st.rerun() # Rerun to trigger analysis stage
             else:
                 # Template is displayed, waiting for user confirmation. Nothing else to do in this run.
                 logger.info("Data template is active. Waiting for user confirmation.")
@@ -4910,8 +5017,12 @@ def main():
             if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
             st.session_state.user_initiated_processing = False
             st.session_state.template_viewed = False
-            st.rerun()
-        return # Stop further execution in this run
+            # Add error counter to prevent infinite loop
+            error_count = st.session_state.get('template_error_count', 0)
+            if error_count < 3:  # Limit reruns to prevent infinite loop
+                st.session_state.template_error_count = error_count + 1
+                st.rerun()
+            return # Stop further execution in this run
 
     # --- Stage 3: Financial Analysis (if data confirmed and not yet processed) ---
     logger.info(f"STAGE 3 CHECK: template_viewed={st.session_state.get('template_viewed', False)}, processing_completed={st.session_state.get('processing_completed', False)}, consolidated_data_exists={'consolidated_data' in st.session_state}")
@@ -5047,7 +5158,30 @@ def main():
             logger.error(f"Exception during financial analysis stage: {str(e_analysis)}", exc_info=True)
             st.error(f"An unexpected error occurred during analysis: {str(e_analysis)}")
             st.session_state.processing_completed = False
-            st.rerun()
+            # Add exception counter to prevent infinite loop
+            exception_count = st.session_state.get('analysis_exception_count', 0)
+            if exception_count < 3:  # Limit reruns to prevent infinite loop
+                st.session_state.analysis_exception_count = exception_count + 1
+                st.rerun()
+        return # Stop further execution
+
+    # --- Stage 3: Document Processing ---
+    if st.session_state.get('user_initiated_processing', False):
+        if st.session_state.get('document_stage', None) == 'extract':
+            try:
+                document = extract_document(st.session_state.document_data)
+                st.session_state.document_stage = 'analyze'
+                st.session_state.document_stage_description = 'Analyzing document...'
+                st.session_state.document_stage_progress = 0.2
+            except Exception as e_extract:
+                logger.error(f"Exception during document extraction stage: {str(e_extract)}", exc_info=True)
+                st.error(f"An unexpected error occurred during document extraction: {str(e_extract)}")
+                st.session_state.user_initiated_processing = False # Reset flag
+                # Add exception counter to prevent infinite loop
+                exception_count = st.session_state.get('document_processing_exception_count', 0)
+                if exception_count < 3:  # Limit reruns to prevent infinite loop
+                    st.session_state.document_processing_exception_count = exception_count + 1
+                    st.rerun()
         return # Stop further execution
 
     # --- Stage 4: Display Results or Welcome Page ---
@@ -5068,7 +5202,11 @@ def main():
                     # Clear any conflicting flags
                     if 'show_credit_success' in st.session_state:
                         del st.session_state.show_credit_success
-                    st.rerun()
+                    # Add error counter to prevent infinite loop
+                    error_count = st.session_state.get('results_header_error_count', 0)
+                    if error_count < 3:  # Limit reruns to prevent infinite loop
+                        st.session_state.results_header_error_count = error_count + 1
+                        st.rerun()
             
             # Mark that results header has been displayed
             st.session_state.results_header_displayed = True
