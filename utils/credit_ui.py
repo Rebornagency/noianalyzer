@@ -39,6 +39,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Add specific logging for credit UI debugging
+credit_ui_logger = logging.getLogger("credit_ui_debug")
+credit_ui_logger.setLevel(logging.DEBUG)
+
+def log_credit_ui_debug(message):
+    """Log debug messages specifically for credit UI issues"""
+    credit_ui_logger.debug(f"[CREDIT_UI_DEBUG] {message}")
+
 def get_backend_url():
     """Get the correct backend URL by testing available options"""
     # First check environment variable
@@ -333,13 +341,24 @@ def display_credit_balance(email: str):
             st.markdown("*No recent activity*")
 
 def display_credit_store():
-    """Display credit purchase interface"""
-    # st.title("🛒 Buy Credits")  # Removed: single headline will be used below per new UI spec
+    """Display credit purchase interface with debugging instrumentation"""
+    log_credit_ui_debug("Starting display_credit_store function")
+    
+    # Add a visible debug header to see if this function is being called
+    st.markdown("""
+    <div style="background-color: #FFA500; color: #000; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+        <h3>💳 CREDIT STORE DEBUG MODE</h3>
+        <p>This header confirms the credit store function is being executed.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     packages = get_credit_packages()
     if not packages:
         st.error("Unable to load credit packages. Please try again later.")
+        log_credit_ui_debug("No packages loaded - returning early")
         return
+    
+    log_credit_ui_debug(f"Loaded {len(packages)} credit packages")
     
     st.markdown("## Choose a Credit Package")
     # Center-align subtitle and follow with a value-proposition blurb on time saved
@@ -364,6 +383,7 @@ def display_credit_store():
     
     # Display packages in columns using Streamlit native components
     cols = st.columns(min(len(packages), 3))
+    log_credit_ui_debug(f"Created {len(cols)} columns for packages")
     
     # Add custom HTML attributes to columns for better CSS targeting
     st.markdown("""
@@ -934,6 +954,9 @@ def display_credit_store():
             
             # Use Streamlit container for styling with modern card design
             with st.container():
+                # Log that we're creating a package card
+                log_credit_ui_debug(f"Creating package card for {package['name']}")
+                
                 # Center all content within the package card
                 st.markdown(
                     """
@@ -1165,6 +1188,8 @@ def display_credit_store():
     }
     </style>
     """, unsafe_allow_html=True)
+    
+    log_credit_ui_debug("Finished display_credit_store function")
 
 def purchase_credits(email: str, package_id: str, package_name: str):
     """Handle credit purchase with loading states"""
@@ -1515,4 +1540,4 @@ def init_credit_system():
         }, 100);
     }
     </script>
-    """, unsafe_allow_html=True) 
+    """, unsafe_allow_html=True)

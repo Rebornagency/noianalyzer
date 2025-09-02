@@ -3911,6 +3911,9 @@ def main():
             
             # Check if we should show credit store (prioritize this over other flows)
             if st.session_state.get('show_credit_store', False):
+                # Add debug logging
+                logger.info("APP: Showing credit store - show_credit_store flag is True")
+                
                 # Clear any purchase return flags when entering credit store
                 if 'purchase_return_handled' in st.session_state:
                     del st.session_state.purchase_return_handled
@@ -3924,7 +3927,9 @@ def main():
                     st.session_state.show_credit_store = False
                     st.rerun()
                 return
-        
+            else:
+                logger.info("APP: Not showing credit store - show_credit_store flag is False")
+
         # Load custom CSS
         inject_custom_css()
         

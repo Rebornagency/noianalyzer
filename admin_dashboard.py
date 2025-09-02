@@ -9,6 +9,19 @@ import requests
 from datetime import datetime
 import os
 import json
+import logging
+
+# Set up logging for the admin dashboard
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
+# Create a logger for the admin dashboard
+logger = logging.getLogger("admin_dashboard")
 
 # Optional plotly import for visualizations
 try:
@@ -16,6 +29,7 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
+    go = None  # Define go as None when plotly is not available
 
 # Set page config
 st.set_page_config(page_title="NOI Analyzer Admin", page_icon="🛠️", layout="wide")
@@ -26,8 +40,10 @@ ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "test_admin_key_change_me")
 
 def api_request(endpoint, method="GET", data=None, params=None):
     """Make API request to credit service"""
+    url = ""  # Initialize url to avoid unbound variable error
     try:
         url = f"{CREDIT_API_URL}{endpoint}"
+        logger.info(f"API Request: {method} {url}")
         
         # Add admin key to params for GET requests
         if method == "GET" and "admin" in endpoint:
@@ -43,45 +59,66 @@ def api_request(endpoint, method="GET", data=None, params=None):
                 data["admin_key"] = ADMIN_API_KEY
             response = requests.post(url, data=data, timeout=10)
         else:
+            logger.warning(f"Unsupported HTTP method: {method}")
             return None
             
+        logger.info(f"API Response: {response.status_code} from {method} {url}")
+        
         if response.status_code == 200:
+            logger.info(f"API Success: {method} {url} returned 200 OK")
             return response.json()
         else:
+            logger.error(f"API Error: {response.status_code} - {response.text} from {method} {url}")
             st.error(f"API Error: {response.status_code} - {response.text}")
             return None
     except Exception as e:
+        logger.error(f"Connection error during {method} {url}: {str(e)}", exc_info=True)
         st.error(f"Connection error: {str(e)}")
         return None
 
 def load_users():
     """Load all users from credit API"""
+    logger.info("Loading all users from credit API")
     result = api_request("/pay-per-use/admin/users")
     if result and 'users' in result:
+        logger.info(f"Successfully loaded {len(result['users'])} users")
         return result['users']
+    logger.warning("No users found in API response")
     return []
 
 def get_user_credits(email):
     """Get credits for a specific user"""
     if not email:
+        logger.warning("Attempted to get credits for empty email")
         return None
         
+    logger.info(f"Getting credits for user: {email}")
     result = api_request(f"/credits?email={email}")
     if result:
-        return result.get('credits', 0)
+        credits = result.get('credits', 0)
+        logger.info(f"User {email} has {credits} credits")
+        return credits
+    logger.warning(f"Failed to get credits for user: {email}")
     return None
 
 def get_user_details(email):
     """Get detailed user information"""
     if not email:
+        logger.warning("Attempted to get user details for empty email")
         return None
         
+    logger.info(f"Getting user details for: {email}")
     result = api_request(f"/pay-per-use/admin/user/{email}")
+    if result:
+        logger.info(f"Successfully retrieved details for user: {email}")
+    else:
+        logger.warning(f"Failed to get details for user: {email}")
     return result
 
 def load_transactions(email=None):
     """Load transactions from credit API"""
     if email:
+        logger.info(f"Loading transactions for user: {email}")
         # Get transactions for specific user
         user_details = get_user_details(email)
         if user_details and 'transactions' in user_details:
@@ -96,9 +133,12 @@ def load_transactions(email=None):
                     'type': tx['type'],
                     'description': tx['description']
                 })
+            logger.info(f"Loaded {len(transactions)} transactions for user: {email}")
             return transactions
+        logger.warning(f"No transactions found for user: {email}")
         return []
     else:
+        logger.info("Loading all transactions")
         # Get all transactions
         result = api_request("/pay-per-use/admin/transactions")
         if result and 'transactions' in result:
@@ -113,15 +153,21 @@ def load_transactions(email=None):
                     'type': tx['type'],
                     'description': tx['description']
                 })
+            logger.info(f"Loaded {len(transactions)} total transactions")
             return transactions
+        logger.warning("No transactions found in API response")
         return []
 
 def add_credits_manual(email, amount, reason):
     """Manually add credits to user account"""
+    logger.info(f"Attempting to adjust credits for {email}: {amount} credits, reason: {reason}")
+    
     if not email or not reason.strip():
+        logger.warning("Email and reason are required for credit adjustment")
         return False, "Email and reason are required"
     
     if amount == 0:
+        logger.warning("Credit change cannot be zero")
         return False, "Credit change cannot be zero"
     
     data = {
@@ -133,19 +179,26 @@ def add_credits_manual(email, amount, reason):
     result = api_request("/pay-per-use/admin/adjust-credits", method="POST", data=data)
     
     if result and result.get('success'):
+        logger.info(f"Successfully adjusted credits for {email}: {amount} credits, reason: {reason}")
         return True, result.get('message', 'Credits adjusted successfully')
     else:
+        logger.error(f"Failed to adjust credits for {email}: {amount} credits, reason: {reason}")
         return False, "Failed to adjust credits"
 
 def get_system_stats():
     """Get system statistics"""
+    logger.info("Fetching system statistics")
     result = api_request("/pay-per-use/admin/stats")
     if result and 'stats' in result:
+        logger.info("Successfully retrieved system statistics")
         return result['stats']
+    logger.warning("Failed to retrieve system statistics")
     return {}
 
 def update_user_status(email, status):
     """Update user status"""
+    logger.info(f"Updating status for user {email} to {status}")
+    
     data = {
         'email': email,
         'status': status
@@ -154,12 +207,15 @@ def update_user_status(email, status):
     result = api_request("/pay-per-use/admin/user-status", method="POST", data=data)
     
     if result and result.get('success'):
+        logger.info(f"Successfully updated status for user {email} to {status}")
         return True, result.get('message', 'Status updated successfully')
     else:
+        logger.error(f"Failed to update status for user {email} to {status}")
         return False, "Failed to update status"
 
 def main():
     """Main admin dashboard"""
+    logger.info("Starting admin dashboard")
     st.title("🛠️ NOI Analyzer Admin Dashboard")
     st.markdown("**Customer Support Tool for Credit System**")
     
@@ -168,21 +224,26 @@ def main():
         st.session_state.admin_authenticated = False
     
     if not st.session_state.admin_authenticated:
+        logger.info("Admin authentication required")
         st.warning("🔐 Admin Access Required")
         password = st.text_input("Enter admin password:", type="password")
         if st.button("Login"):
             # Simple password check (in production, use proper authentication)
             admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
+            logger.info("Admin login attempt")
             if password == admin_password:
                 st.session_state.admin_authenticated = True
+                logger.info("Admin authentication successful")
                 st.success("✅ Access granted!")
                 st.rerun()
             else:
+                logger.warning("Admin authentication failed - invalid password")
                 st.error("❌ Invalid password")
         
         st.info("**Default password:** admin123 (change ADMIN_PASSWORD environment variable)")
         return
     
+    logger.info("Admin dashboard authenticated and running")
     # Main dashboard
     tab1, tab2, tab3, tab4 = st.tabs(["👥 Users", "💳 Transactions", "🛠️ Support Tools", "📊 System Stats"])
     
@@ -190,6 +251,7 @@ def main():
         st.header("User Management")
         
         # System stats overview
+        logger.info("Loading system stats for overview")
         stats = get_system_stats()
         if stats:
             col1, col2, col3, col4 = st.columns(4)
@@ -211,8 +273,10 @@ def main():
             st.divider()
         
         # Load and display users
+        logger.info("Loading users for display")
         users_list = load_users()
         if not users_list:
+            logger.warning("No users found in database")
             st.warning("No users found in database")
             st.info("Users will appear here after they use the credit system for the first time.")
         else:
@@ -224,6 +288,7 @@ def main():
             
             # Filter users based on search
             if search_term:
+                logger.info(f"Filtering users by search term: {search_term}")
                 filtered_users = [user for user in users_list if search_term.lower() in user['email'].lower()]
             else:
                 filtered_users = users_list
@@ -271,14 +336,18 @@ def main():
                             quick_reason = st.text_input(f"Reason:", placeholder="e.g., Customer support issue", key=f"reason_{user['user_id']}")
                             
                             if st.button(f"Adjust Credits", key=f"adjust_{user['user_id']}"):
+                                logger.info(f"Quick credit adjustment requested for {user['email']}: {quick_credits} credits")
                                 if quick_credits != 0 and quick_reason.strip():
                                     success, message = add_credits_manual(user['email'], quick_credits, quick_reason)
                                     if success:
+                                        logger.info(f"Quick credit adjustment successful for {user['email']}")
                                         st.success(message)
                                         st.rerun()
                                     else:
+                                        logger.error(f"Quick credit adjustment failed for {user['email']}: {message}")
                                         st.error(message)
                                 else:
+                                    logger.warning(f"Quick credit adjustment failed for {user['email']}: Missing credit amount or reason")
                                     st.error("Please enter both credit amount and reason")
                         
                         with action_col2:
@@ -291,14 +360,18 @@ def main():
                             )
                             
                             if st.button(f"Update Status", key=f"update_status_{user['user_id']}"):
+                                logger.info(f"Status update requested for {user['email']}: {new_status}")
                                 if new_status != user['status']:
                                     success, message = update_user_status(user['email'], new_status)
                                     if success:
+                                        logger.info(f"Status update successful for {user['email']}")
                                         st.success(message)
                                         st.rerun()
                                     else:
+                                        logger.error(f"Status update failed for {user['email']}: {message}")
                                         st.error(message)
                                 else:
+                                    logger.info(f"Status unchanged for {user['email']}")
                                     st.info("Status unchanged")
                     
                     st.divider()
@@ -307,17 +380,21 @@ def main():
         st.header("Transaction History")
         
         # Filter by user
+        logger.info("Loading users for transaction filtering")
         users_list = load_users()
         if users_list:
             user_emails = ["All Users"] + [user['email'] for user in users_list]
             selected_user = st.selectbox("Filter by user:", user_emails)
             
             if selected_user == "All Users":
+                logger.info("Loading all transactions")
                 transactions_list = load_transactions()
             else:
+                logger.info(f"Loading transactions for user: {selected_user}")
                 transactions_list = load_transactions(selected_user)
             
             if not transactions_list:
+                logger.warning("No transactions found")
                 st.warning("No transactions found")
             else:
                 st.write(f"**Showing {len(transactions_list)} transactions**")
@@ -357,6 +434,7 @@ def main():
                         
                         st.divider()
         else:
+            logger.info("No users found for transactions")
             st.info("No users found. Transactions will appear after users start using the system.")
     
     with tab3:
@@ -369,10 +447,12 @@ def main():
         lookup_email = st.text_input("Enter user email to get detailed info:", key="lookup_email")
         
         if st.button("🔍 Get User Details", type="primary"):
+            logger.info(f"User details lookup requested for: {lookup_email}")
             if lookup_email:
                 with st.spinner("Fetching user details..."):
                     user_details = get_user_details(lookup_email)
                     if user_details:
+                        logger.info(f"User details found for: {lookup_email}")
                         user = user_details['user']
                         transactions = user_details['transactions']
                         
@@ -427,10 +507,13 @@ def main():
                                     st.caption(tx['description'])
                                     st.caption(tx['created_at'][:16])
                         else:
+                            logger.info(f"No transactions found for user: {lookup_email}")
                             st.info("No transactions found for this user")
                     else:
+                        logger.warning(f"User not found: {lookup_email}")
                         st.warning(f"⚠️ Could not find user: **{lookup_email}**")
             else:
+                logger.warning("User lookup attempted with empty email")
                 st.error("Please enter an email address")
         
         st.divider()
@@ -449,18 +532,22 @@ def main():
             adjustment_reason = st.text_area("Reason for adjustment:", placeholder="e.g., Customer support compensation, Refund for service issue, Account correction", key="adjust_reason")
         
         if st.button("🔧 Apply Credit Adjustment", type="primary"):
+            logger.info(f"Manual credit adjustment requested for {adjust_email}: {credit_amount} credits")
             if adjust_email and adjustment_reason.strip() and credit_amount != 0:
                 with st.spinner("Applying credit adjustment..."):
                     success, message = add_credits_manual(adjust_email, credit_amount, adjustment_reason)
                     if success:
+                        logger.info(f"Manual credit adjustment successful for {adjust_email}")
                         st.success(f"✅ {message}")
                         # Show updated balance
                         updated_credits = get_user_credits(adjust_email)
                         if updated_credits is not None:
                             st.info(f"💳 **{adjust_email}** now has **{updated_credits} credits**")
                     else:
+                        logger.error(f"Manual credit adjustment failed for {adjust_email}: {message}")
                         st.error(f"❌ {message}")
             else:
+                logger.warning(f"Manual credit adjustment failed for {adjust_email}: Missing required fields")
                 st.error("Please fill in all fields with valid values")
         
         st.divider()
@@ -472,10 +559,12 @@ def main():
         
         with health_col1:
             if st.button("🔍 Test Credit API Connection"):
+                logger.info("Credit API connection test requested")
                 with st.spinner("Testing API connection..."):
                     # Test the health endpoint
                     health_result = api_request("/health")
                     if health_result:
+                        logger.info("Credit API connection test successful")
                         st.success(f"✅ **Credit API is working!**\n\n"
                                  f"**Status:** {health_result.get('status', 'Unknown')}\n\n"
                                  f"**Message:** {health_result.get('message', 'No message')}")
@@ -483,22 +572,28 @@ def main():
                         # Test packages endpoint
                         packages_result = api_request("/packages")
                         if packages_result:
+                            logger.info(f"Credit packages endpoint test successful: {len(packages_result)} packages")
                             st.info(f"📆 **Available credit packages:** {len(packages_result)}")
                         else:
+                            logger.warning("Credit packages endpoint test failed")
                             st.warning("⚠️ Packages endpoint not responding")
                     else:
+                        logger.error("Credit API connection test failed")
                         st.error("❌ **Credit API connection failed**\n\n"
                                "Check if the credit service is running properly.")
         
         with health_col2:
             if st.button("📊 Test Admin Endpoints"):
+                logger.info("Admin endpoints test requested")
                 with st.spinner("Testing admin endpoints..."):
                     # Test admin endpoints
                     stats_result = get_system_stats()
                     if stats_result:
+                        logger.info("Admin endpoints test successful")
                         st.success("✅ **Admin endpoints working!**")
                         st.json(stats_result)
                     else:
+                        logger.error("Admin endpoints test failed")
                         st.error("❌ **Admin endpoints failed**\n\n"
                                "Check your ADMIN_API_KEY configuration.")
     
@@ -509,6 +604,7 @@ def main():
         auto_refresh = st.checkbox("Auto-refresh stats (every 30 seconds)", value=False)
         
         if auto_refresh:
+            logger.info("Auto-refresh stats enabled")
             import time
             time.sleep(30)
             st.rerun()
@@ -517,12 +613,14 @@ def main():
         col1, col2 = st.columns([1, 4])
         with col1:
             if st.button("🔄 Refresh Stats"):
+                logger.info("Manual stats refresh requested")
                 st.rerun()
         
         with col2:
             st.caption("Last updated: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
         # Get system stats
+        logger.info("Loading system statistics for display")
         stats = get_system_stats()
         
         if stats:
@@ -612,25 +710,35 @@ def main():
                     # Validation check
                     calculated_outstanding = purchased - used
                     if abs(calculated_outstanding - outstanding) > 1:
+                        logger.warning(f"Credit accounting inconsistency detected: calculated {calculated_outstanding} vs stored {outstanding}")
                         st.warning(f"⚠️ Data inconsistency detected: {calculated_outstanding} vs {outstanding}")
                     else:
+                        logger.info("Credit accounting is consistent")
                         st.success("✅ Credit accounting is consistent")
                 
                 with analysis_col2:
                     # Visual representation
-                    if PLOTLY_AVAILABLE:
-                        fig = go.Figure(data=[
-                            go.Bar(name='Used', x=['Credits'], y=[used]),
-                            go.Bar(name='Outstanding', x=['Credits'], y=[outstanding])
-                        ])
-                        
-                        fig.update_layout(
-                            title='Credit Distribution',
-                            barmode='stack',
-                            height=300
-                        )
-                        
-                        st.plotly_chart(fig, use_container_width=True)
+                    if PLOTLY_AVAILABLE and go is not None:
+                        try:
+                            fig = go.Figure(data=[
+                                go.Bar(name='Used', x=['Credits'], y=[used]),
+                                go.Bar(name='Outstanding', x=['Credits'], y=[outstanding])
+                            ])
+                            
+                            fig.update_layout(
+                                title='Credit Distribution',
+                                barmode='stack',
+                                height=300
+                            )
+                            
+                            st.plotly_chart(fig, use_container_width=True)
+                        except Exception as e:
+                            logger.error(f"Error creating plotly chart: {e}")
+                            st.write("**Credit Distribution:**")
+                            st.progress(used / (used + outstanding) if (used + outstanding) > 0 else 0)
+                            st.caption(f"Used: {used:,} credits")
+                            st.progress(outstanding / (used + outstanding) if (used + outstanding) > 0 else 0)
+                            st.caption(f"Outstanding: {outstanding:,} credits")
                     else:
                         st.write("**Credit Distribution:**")
                         st.progress(used / (used + outstanding) if (used + outstanding) > 0 else 0)
@@ -646,15 +754,19 @@ def main():
             with health_col1:
                 # Database connectivity
                 if stats:
+                    logger.info("Database connection successful")
                     st.success("🟢 Database: Connected")
                 else:
+                    logger.error("Database connection failed")
                     st.error("🔴 Database: Connection Failed")
                 
                 # Credit system status
                 total_users = stats.get('total_users', 0)
                 if total_users > 0:
+                    logger.info(f"Credit system active with {total_users} users")
                     st.success(f"🟢 Credit System: Active ({total_users} users)")
                 else:
+                    logger.warning("Credit system has no users yet")
                     st.warning("🟡 Credit System: No users yet")
             
             with health_col2:
@@ -663,13 +775,17 @@ def main():
                 recent_purchases = stats.get('purchases_last_30_days', 0)
                 
                 if recent_users > 0:
+                    logger.info(f"User growth detected: {recent_users} new users")
                     st.success(f"🟢 User Growth: {recent_users} new users")
                 else:
+                    logger.warning("No recent user growth")
                     st.warning("🟡 User Growth: No new users recently")
                 
                 if recent_purchases > 0:
+                    logger.info(f"Revenue activity detected: {recent_purchases} recent purchases")
                     st.success(f"🟢 Revenue: {recent_purchases} recent purchases")
                 else:
+                    logger.info("No recent revenue activity")
                     st.info("🟠 Revenue: No recent purchases")
             
             # Raw data for debugging
@@ -677,6 +793,7 @@ def main():
                 st.json(stats)
         
         else:
+            logger.error("Failed to fetch system statistics")
             st.error("❌ Unable to fetch system statistics")
             st.info("This could indicate:")
             st.write("- API connection issues")
@@ -684,10 +801,13 @@ def main():
             st.write("- Database connectivity problems")
             
             if st.button("Test Connection"):
+                logger.info("Connection test from error state requested")
                 test_result = api_request("/health")
                 if test_result:
+                    logger.info("Connection test successful")
                     st.success("Basic API connection works")
                 else:
+                    logger.error("Connection test failed")
                     st.error("Basic API connection failed")
 
 if __name__ == "__main__":
