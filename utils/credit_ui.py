@@ -990,11 +990,10 @@ def deduct_credits_for_analysis(email: str) -> tuple[bool, str, dict]:
 def display_insufficient_credits():
     """Display message when user has insufficient credits with loading states"""
     st.error("Insufficient Credits")
-    st.markdown("""
-    You don't have enough credits to run this analysis. Each analysis requires **1 credit**.
-    
-    **New users get 1 free credit** to try our service!
-    """)
+    st.markdown(
+        "You don't have enough credits to run this analysis. Each analysis requires **1 credit**.\n\n"
+        "**New users get 1 free credit** to try our service!"
+    )
     
     col1, col2 = st.columns(2)
     
