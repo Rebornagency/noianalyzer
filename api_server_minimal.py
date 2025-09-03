@@ -66,8 +66,14 @@ async def debug_credits_health():
         try:
             db_service.get_active_packages()
             db_connected = True
-        except Exception:
-            db_connected = False
+        except Exception as e:
+            logger.error(f"Database connection failed: {e}")
+        
+        # Log the health check for debugging
+        logger.info("[CREDITS_HEALTH] Debug endpoint called", extra={
+            "stripe_enabled": stripe_enabled,
+            "db_connected": db_connected
+        })
         
         return {
             "credits_page": True,
@@ -80,6 +86,7 @@ async def debug_credits_health():
             "timestamp": datetime.datetime.now().isoformat()
         }
     except Exception as e:
+        logger.error(f"Error in credits health debug endpoint: {e}")
         return {
             "credits_page": True,
             "error": str(e),
