@@ -174,19 +174,19 @@ def display_credit_balance_header(email: str):
     # Color coding based on credit level
     if credits >= 10:
         color = "#22C55E"  # Green
-        color = "#22C55E"  # Green
+        emoji = "🟢"
         status = "Good"
     elif credits >= 3:
         color = "#F59E0B"  # Amber
-        color = "#F59E0B"  # Amber
+        emoji = "🟡"
         status = "Low"
     elif credits > 0:
         color = "#EF4444"  # Red
-        color = "#EF4444"  # Red
+        emoji = "🔴"
         status = "Very Low"
     else:
         color = "#6B7280"  # Gray
-        color = "#6B7280"  # Gray
+        emoji = "⚫"
         status = "Empty"
     
     # Compact header display
@@ -204,6 +204,7 @@ def display_credit_balance_header(email: str):
             justify-content: center;
             gap: 0.5rem;
         ">
+            <div style="font-size: 1.2rem;">{emoji}</div>
             <div style="font-size: 1.1rem; font-weight: bold; color: {color};">{credits}</div>
             <div style="color: #ffffff; font-size: 0.9rem;">Credits</div>
             <div style="color: #ffffff; font-size: 0.8rem;">({status})</div>
@@ -259,6 +260,7 @@ def display_credit_balance(email: str):
             text-align: center;
             margin-bottom: 1rem;
         ">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">{emoji}</div>
             <div style="font-size: 1.5rem; font-weight: bold; color: {color};">{credits}</div>
             <div style="color: #ffffff; font-size: 0.9rem;">Credits Available</div>
         </div>
@@ -309,22 +311,26 @@ def display_credit_balance(email: str):
                 
                 # Format transaction display
                 if tx_type == "purchase":
+                    icon = "💰"
                     color_style = "color: #22C55E;"
                     amount_str = f"+{amount}"
                 elif tx_type == "usage":
+                    icon = "📊"
                     color_style = "color: #EF4444;"
                     amount_str = f"{amount}"  # Already negative
                 elif tx_type == "bonus":
+                    icon = "🎁"
                     color_style = "color: #3B82F6;"
                     amount_str = f"+{amount}"
                 else:
+                    icon = "📝"
                     color_style = "color: #6B7280;"
                     amount_str = f"{amount:+d}"
                 
                 st.markdown(
                     f"""
                     <div style="font-size: 0.8rem; margin-bottom: 0.5rem; padding: 0.25rem; border-left: 2px solid #E5E7EB;">
-                        <span style="{color_style}">{amount_str}</span><br/>
+                        {icon} <span style="{color_style}">{amount_str}</span><br/>
                         <span style="color: #6B7280;">{description}</span>
                     </div>
                     """,
@@ -334,12 +340,13 @@ def display_credit_balance(email: str):
             st.markdown("*No recent activity*")
 
 def display_credit_store():
-    """Display credit purchase interface with enhanced CSS specificity and debugging"""
+    """Display credit purchase interface with modern, organized layout"""
     # Add comprehensive debug logging
     log_credit_ui_debug("Starting display_credit_store function")
     log_credit_ui_debug(f"Session state keys: {list(st.session_state.keys())}")
     
     # Remove the yellow debug header as requested
+    # Only add logging to track execution
     log_credit_ui_debug("Credit store UI rendering started")
     
     packages = get_credit_packages()
@@ -350,318 +357,158 @@ def display_credit_store():
         log_credit_ui_debug("Failed to load credit packages")
         return
     
-    st.markdown("## Choose a Credit Package")
-    # Center-align subtitle and follow with a value-proposition blurb on time saved
-    st.markdown(
-        """
-        <div style="text-align: center; font-size: 1.05rem; color: rgba(255,255,255,0.85); margin-bottom: 0.75rem;">
-            Credits never expire and can be used for any NOI analysis.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Highlight the key benefit – time saved – in a subtle accent colour
-    st.markdown(
-        """
-        <div style="text-align: center; font-size: 1.15rem; color: #FACC15; margin-bottom: 2.5rem; font-weight: 600;">
-            Save <span style="font-weight: 800;">up to 3 hours</span> of manual spreadsheet work per analysis.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Modern header styling
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: #FFFFFF; font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+            💳 Credit Store
+        </h1>
+        <p style="color: #A0A0A0; font-size: 1.2rem; margin-bottom: 1rem;">
+            Purchase credits to unlock NOI analysis capabilities
+        </p>
+        <p style="color: #FACC15; font-size: 1.1rem; font-weight: 600;">
+            ⏱ Save <span style="font-weight: 800;">up to 3 hours</span> of manual spreadsheet work per analysis
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Enhanced CSS with maximum specificity to override global styles
+    # Enhanced CSS for modern, clean package cards
     st.markdown("""
     <style>
-    /* Credit Store Package Card Styling - Maximum specificity with ID targeting */
-    
-    /* Main card container - using multiple specificity techniques */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
-        background: linear-gradient(145deg, #0f1722, #1a2436) !important;
-        border: 1px solid #2a3a50 !important;
-        border-radius: 16px !important;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5) !important;
-        padding: 2.5rem 2rem !important;
-        margin: 1.25rem !important;
-        height: 100% !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        text-align: center !important;
-        box-sizing: border-box !important;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-        position: relative !important;
-        overflow: visible !important;
+    /* Modern Credit Package Cards */
+    div.credit-package-card {
+        background: linear-gradient(145deg, #1a2436, #0f1722);
+        border: 1px solid #2a3a50;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        padding: 2rem;
+        margin: 1.5rem 0;
+        text-align: center;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     
-    /* Card hover effect */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]):hover {
-        transform: translateY(-10px) !important;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
-        border-color: #3a7bff !important;
-        background: linear-gradient(145deg, #1a2436, #0f1722) !important;
+    div.credit-package-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        border-color: #3b82f6;
     }
     
-    /* Package Title Styling */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] h3,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] h3,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] h3,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] h3 {
-        margin-top: 0 !important;
-        margin-bottom: 1.25rem !important;
-        font-size: 1.8rem !important;
-        font-weight: 700 !important;
-        line-height: 1.2 !important;
-        text-align: center !important;
-        color: #FFFFFF !important;
-        padding-bottom: 0.75rem !important;
-        border-bottom: 2px solid rgba(255, 255, 255, 0.15) !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+    div.credit-package-card h3 {
+        color: #FFFFFF;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0 0 1.5rem 0;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     }
     
-    /* Credits Display */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:first-of-type,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:first-of-type,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > p:first-of-type,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > p:first-of-type {
-        font-size: 1.3rem !important;
-        font-weight: 600 !important;
-        color: rgba(255, 255, 255, 0.95) !important;
-        text-align: center !important;
-        margin: 1.25rem 0 !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+    div.credit-package-card .credits-amount {
+        color: #FFFFFF;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 1rem 0;
     }
     
-    /* Price Display */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] h3:nth-of-type(2),
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] h3:nth-of-type(2),
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] h3:nth-of-type(2),
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] h3:nth-of-type(2) {
-        font-size: 2.8rem !important;
-        font-weight: 800 !important;
-        color: #FFFFFF !important;
-        margin: 1.5rem 0 !important;
-        text-align: center !important;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+    div.credit-package-card .price {
+        color: #FFFFFF;
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 1rem 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
     
-    /* Per Credit Price */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:nth-of-type(2),
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > p:nth-of-type(2),
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > p:nth-of-type(2),
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > p:nth-of-type(2) {
-        color: rgba(255, 255, 255, 0.8) !important;
-        font-size: 1.1rem !important;
-        font-style: italic !important;
-        margin: 1rem 0 1.5rem 0 !important;
-        text-align: center !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+    div.credit-package-card .per-credit {
+        color: #A0A0A0;
+        font-size: 1rem;
+        font-style: italic;
+        margin: 0.5rem 0 1.5rem 0;
     }
     
-    /* Savings Badge */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"],
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"],
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] [data-testid="stAlert"],
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] [data-testid="stAlert"],
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stAlert,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stAlert,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stAlert,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stAlert {
-        margin: 1.5rem auto !important;
-        padding: 1.2rem 1.8rem !important;
-        border-radius: 50px !important;
-        text-align: center !important;
-        font-weight: 800 !important;
-        font-size: 1.2rem !important;
-        color: #FFFFFF !important;
-        background: linear-gradient(135deg, #10b981, #059669) !important;
-        border: 2px solid rgba(16, 185, 129, 0.7) !important;
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
-        min-height: 60px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: calc(100% - 2rem) !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        position: relative !important;
+    div.credit-package-card .savings-badge {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #FFFFFF;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 0.8rem 1.5rem;
+        border-radius: 50px;
+        margin: 1rem auto;
+        width: fit-content;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
     }
     
-    /* Description Text */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div:last-of-type,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div:last-of-type,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > div:last-of-type,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > div:last-of-type {
-        color: rgba(255, 255, 255, 0.85) !important;
-        font-size: 1rem !important;
-        line-height: 1.6 !important;
-        margin: 1.5rem 0 2rem 0 !important;
-        text-align: center !important;
-        flex-grow: 1 !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+    div.credit-package-card .description {
+        color: #D0D0D0;
+        font-size: 1rem;
+        line-height: 1.6;
+        margin: 1.5rem 0;
+        flex-grow: 1;
     }
     
-    /* Time Savings Highlight */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div[style*="color:#FACC15"],
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div[style*="color:#FACC15"],
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > div[style*="color:#FACC15"],
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > div[style*="color:#FACC15"],
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div[style*="color: rgb(250, 204, 21)"],
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div > div[style*="color: rgb(250, 204, 21)"],
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > div[style*="color: rgb(250, 204, 21)"],
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] > div > div[style*="color: rgb(250, 204, 21)"] {
-        color: #FACC15 !important;
-        font-weight: 700 !important;
-        font-size: 1.15rem !important;
-        margin: 1rem 0 !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+    div.credit-package-card .time-savings {
+        color: #FACC15;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin: 1rem 0;
     }
     
-    /* Button Container */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"],
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stButton"],
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] [data-testid="stButton"],
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] [data-testid="stButton"] {
-        margin-top: auto !important;
-        padding: 1.25rem 0 0 0 !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-        display: flex !important;
-        justify-content: center !important;
+    div.credit-package-card .purchase-button {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #FFFFFF;
+        border: none;
+        border-radius: 12px;
+        padding: 1rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        width: 100%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.5);
+        margin-top: auto;
     }
     
-    /* CTA Button - Maximum specificity */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] button[kind="primary"],
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] button[kind="primary"],
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button {
-        width: calc(100% - 2rem) !important;
-        height: 56px !important;
-        font-size: 1.3rem !important;
-        font-weight: 700 !important;
-        border-radius: 12px !important;
-        border: none !important;
-        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-        color: #FFFFFF !important;
-        -webkit-text-fill-color: #FFFFFF !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5) !important;
-        text-transform: none !important;
-        letter-spacing: 0.5px !important;
-        box-sizing: border-box !important;
-        margin: 0 auto !important;
-        display: block !important;
-        cursor: pointer !important;
-        padding: 0 !important;
-        max-width: 260px !important;
-        position: relative !important;
-        overflow: hidden !important;
+    div.credit-package-card .purchase-button:hover {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7);
     }
     
-    /* Button hover effects */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover,
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button:hover,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button:hover,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button:hover,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button:hover {
-        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-        transform: translateY(-5px) !important;
-        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.7) !important;
-    }
-    
-    /* Ensure all text elements inside the card are centered */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] *,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] *,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] *,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] * {
-        text-align: center !important;
+    div.credit-package-card .purchase-button:disabled {
+        background: #6b7280;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
     }
     
     /* Responsive adjustments */
     @media (max-width: 768px) {
-        div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
-        #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
-        div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]),
-        #credit-store-container .stColumn > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
-            min-height: auto !important;
-            padding: 1.5rem 1rem !important;
-            margin-bottom: 1.5rem !important;
+        div.credit-package-card {
+            padding: 1.5rem;
+            margin: 1rem 0;
         }
         
-        div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
-        #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"],
-        div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] button[kind="primary"],
-        #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] button[kind="primary"],
-        div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
-        #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
-        div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button,
-        #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button {
-            height: 48px !important;
-            font-size: 1.1rem !important;
+        div.credit-package-card h3 {
+            font-size: 1.5rem;
+        }
+        
+        div.credit-package-card .price {
+            font-size: 2rem;
         }
     }
-    
-    /* Override global button styles with even higher specificity */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton > button,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton > button,
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton button,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stButton button,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton button,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stButton button {
-        background-color: #2563eb !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 12px !important;
-        padding: 0 !important;
-        font-weight: 700 !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5) !important;
-        text-transform: none !important;
-        letter-spacing: 0.5px !important;
-        position: relative !important;
-        overflow: hidden !important;
-    }
-    
-    /* Override global alert styles with even higher specificity */
-    div#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stAlert,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] .stAlert,
-    div#credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stAlert,
-    #credit-store-container .stColumn > div[data-testid="stVerticalBlock"] .stAlert {
-        background: linear-gradient(135deg, #10b981, #059669) !important;
-        color: #FFFFFF !important;
-        border: 2px solid rgba(16, 185, 129, 0.7) !important;
-        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
-    }
     </style>
+    """, unsafe_allow_html=True)
     
-    # Add a container with ID to help with CSS specificity
-    st.markdown('<div id="credit-store-container">', unsafe_allow_html=True)
+    # Display packages in a responsive grid
+    num_packages = len(packages)
+    if num_packages == 1:
+        cols = st.columns(1)
+    elif num_packages == 2:
+        cols = st.columns(2)
+    else:
+        cols = st.columns(min(num_packages, 3))
     
-    # Display packages in columns using Streamlit native components
-    cols = st.columns(min(len(packages), 3))
     log_credit_ui_debug(f"Created {len(cols)} columns for packages")
     
     for idx, package in enumerate(packages):
@@ -678,86 +525,67 @@ def display_credit_store():
                 if savings_percent > 0:
                     savings_text = f"Save {savings_percent:.0f}%!"
             
+            # Modern card container
+            st.markdown('<div class="credit-package-card">', unsafe_allow_html=True)
+            
             # Package title with special highlighting for popular package
             if idx == 1 and len(packages) > 2:  # Middle package in 3+ packages
-                st.markdown(f"### **{package['name']}**")
+                st.markdown(f'<h3>🌟 {package["name"]} (Popular)</h3>', unsafe_allow_html=True)
             else:
-                st.markdown(f"### {package['name']}")
+                st.markdown(f'<h3>{package["name"]}</h3>', unsafe_allow_html=True)
             
             # Credits amount
-            st.markdown(f"**{package['credits']} Credits**")
+            st.markdown(f'<div class="credits-amount">{package["credits"]} Credits</div>', unsafe_allow_html=True)
             
             # Price
-            st.markdown(f"### ${package['price_dollars']:.2f}")
+            st.markdown(f'<div class="price">${package["price_dollars"]:.2f}</div>', unsafe_allow_html=True)
             
             # Per credit cost
-            st.markdown(f"*${package['per_credit_cost']:.2f} per credit*")
+            st.markdown(f'<div class="per-credit">${package["per_credit_cost"]:.2f} per credit</div>', unsafe_allow_html=True)
 
             # Savings badge
             if savings_text:
-                st.success(savings_text)
+                st.markdown(f'<div class="savings-badge">{savings_text}</div>', unsafe_allow_html=True)
             elif len(packages) > 1:
                 # For the best value package (first one), show a different badge
                 if idx == 0:
-                    # Use st.success to create identical styling to other badges
-                    st.success("Best Value!")
+                    st.markdown('<div class="savings-badge">Best Value! 🚀</div>', unsafe_allow_html=True)
             
-            # Realistic estimate: on average, each NOI analysis takes ~2 hours when done manually.
-            # With the tool, most of that labour is automated, leaving only review/adjustment (~15 min).
-            # That equates to roughly 1.75 hours saved per analysis. We round to whole hours for clarity:
+            # Time savings calculation
             hours_saved = int(round(package['credits'] * 1.75))
             st.markdown(
-                f"""
-                <div style='color:#FACC15; font-weight:600; text-align:center; margin-top:0.5rem;'>
-                    Save ~{hours_saved} hours of work!
-                </div>
-                """,
+                f'<div class="time-savings">⏱ Save ~{hours_saved} hours of work!</div>',
                 unsafe_allow_html=True,
             )
             
-            # Description - centered
+            # Description
             description_text = package.get('description', f"Top up {package['credits']} credits")
-            st.markdown(f"<div style='text-align: center; margin: 2rem 0;'>{description_text}</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="description">{description_text}</div>', unsafe_allow_html=True)
             
             # Purchase button with loading state
             email = st.session_state.get('user_email', '')
-            button_key = f"buy_{package['package_id']}"
             
             if not email:
                 st.warning("Please enter your email in the main app to purchase credits.")
+                st.markdown('<button class="purchase-button" disabled>Enter Email to Buy</button>', unsafe_allow_html=True)
             else:
-                # Create loading button for package purchase
-                purchase_clicked, purchase_button_placeholder = create_loading_button(
-                    f"Buy {package['name']}",
-                    key=button_key,
-                    use_container_width=True,
-                    type="primary"
-                )
+                # Create unique key for each button
+                button_key = f"buy_{package['package_id']}_{int(time.time())}"
                 
-                if purchase_clicked:
+                # Use HTML button for better styling control
+                if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True):
                     logger.info(f"Purchase button clicked for package {package['name']}")
                     log_credit_ui_debug(f"Purchase button clicked for package {package['name']}")
                     
-                    # Show button loading state
-                    show_button_loading(purchase_button_placeholder, "Processing...")
-                    
-                    # Call purchase function
-                    purchase_credits(email, package['package_id'], package['name'])
-                    
-                    # Restore button state (in case of error)
-                    restore_button(
-                        purchase_button_placeholder, 
-                        f"Buy {package['name']}", 
-                        key=f"{button_key}_restored",
-                        use_container_width=True,
-                        type="primary"
-                    )
+                    # Show loading state using Streamlit button
+                    with st.spinner("Setting up secure payment..."):
+                        # Call purchase function
+                        purchase_credits(email, package['package_id'], package['name'])
+            
+            st.markdown('</div>', unsafe_allow_html=True)  # Close card div
     
     # Add proper spacing after all cards are displayed
     st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    # Close the container div
-    st.markdown('</div>', unsafe_allow_html=True)
     
     log_credit_ui_debug("Finished display_credit_store function")
 
@@ -829,8 +657,8 @@ def purchase_credits(email: str, package_id: str, package_name: str):
                 # Show payment redirect with inline loading
                 with st.container():
                     display_inline_loading(
-                        "Redirecting to secure Stripe checkout...",
-                        "Payment"
+                        "🔄 Redirecting to secure Stripe checkout...",
+                        "💳"
                     )
                     
                     # Brief delay to show the redirect message
@@ -848,15 +676,15 @@ def purchase_credits(email: str, package_id: str, package_name: str):
                     st.markdown(f"<small>If you are not redirected, <a href='{checkout_url}' target='_blank'>click here to continue to Stripe.</a></small>", unsafe_allow_html=True)
             else:
                 loading_container.empty()
-                st.error("Failed to create checkout session.")
+                st.error("❌ Failed to create checkout session.")
                 st.info(f"Server response: {result}")
         else:
             loading_container.empty()
             error_msg = f"Failed to initiate purchase: {response.text}"
-            st.error(f"Failed to initiate purchase: {response.text}")
+            st.error(f"❌ {error_msg}")
             
             # Show detailed error info
-            with st.expander("Debug Information"):
+            with st.expander("🔧 Debug Information"):
                 st.code(f"""
 Status Code: {response.status_code}
 URL: {url}
@@ -875,9 +703,9 @@ Response: {response.text}
             
     except requests.exceptions.ConnectionError as e:
         loading_container.empty()
-        st.error("Connection Error")
+        st.error("❌ **Connection Error**")
         st.error("Cannot connect to the backend API server.")
-        with st.expander("Technical Details"):
+        with st.expander("🔧 Technical Details"):
             st.code(f"""
 Backend URL: {BACKEND_URL}
 Error: {str(e)}
@@ -891,16 +719,16 @@ Error: {str(e)}
         
     except requests.exceptions.Timeout as e:
         loading_container.empty()
-        st.error("Request Timeout")
+        st.error("❌ **Request Timeout**")
         st.error("The request took too long to complete.")
         st.info("Please try again. If the problem persists, contact support.")
         
     except Exception as e:
         loading_container.empty()
         logger.error(f"Unexpected error during purchase: {str(e)}", exc_info=True)
-        st.error(f"Unexpected Error")
+        st.error(f"❌ **Unexpected Error**")
         st.error(f"An unexpected error occurred: {str(e)}")
-        with st.expander("Technical Details"):
+        with st.expander("🔧 Technical Details"):
             st.code(f"""
 Error Type: {type(e).__name__}
 Error Message: {str(e)}
@@ -989,18 +817,19 @@ def deduct_credits_for_analysis(email: str) -> tuple[bool, str, dict]:
 
 def display_insufficient_credits():
     """Display message when user has insufficient credits with loading states"""
-    st.error("Insufficient Credits")
-    st.markdown(
-        "You don't have enough credits to run this analysis. Each analysis requires **1 credit**.\n\n"
-        "**New users get 1 free credit** to try our service!"
-    )
+    st.error("🔴 **Insufficient Credits**")
+    st.markdown("""
+    You don't have enough credits to run this analysis. Each analysis requires **1 credit**.
+    
+    **New users get 1 free credit** to try our service!
+    """)
     
     col1, col2 = st.columns(2)
     
     with col1:
         # Enhanced buy credits button with loading state
         buy_clicked, buy_button_placeholder = create_loading_button(
-            "Buy Credits", 
+            "🛒 Buy Credits", 
             key="insufficient_buy_credits",
             use_container_width=True
         )
@@ -1020,7 +849,7 @@ def display_insufficient_credits():
     with col2:
         # Enhanced view pricing button with loading state
         pricing_clicked, pricing_button_placeholder = create_loading_button(
-            "View Pricing", 
+            "📊 View Pricing", 
             key="insufficient_view_pricing",
             use_container_width=True
         )
@@ -1062,7 +891,7 @@ def display_free_trial_welcome(email: str):
         # Get the actual number of free trial credits from environment
         free_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
         
-        st.success(f"Welcome! You've received {free_credits} free trial credit{'s' if free_credits != 1 else ''}!")
+        st.success(f"🎉 **Welcome! You've received {free_credits} free trial credit{'s' if free_credits != 1 else ''}!**")
         st.info("Each NOI analysis uses 1 credit. Try our service risk-free!")
         
         # Store that we've shown this message for this email in this session
@@ -1070,7 +899,7 @@ def display_free_trial_welcome(email: str):
         st.balloons()
     elif is_returning_user:
         # Show returning user message
-        st.info(f"Welcome back! You have {credit_data.get('credits', 0)} credits remaining.")
+        st.info(f"👋 **Welcome back!** You have {credit_data.get('credits', 0)} credits remaining.")
         
         # Store that we've shown this message for this email in this session
         st.session_state[welcome_key] = True
