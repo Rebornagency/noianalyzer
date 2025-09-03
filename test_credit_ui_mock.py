@@ -19,7 +19,7 @@ def display_credit_store():
             Purchase credits to unlock NOI analysis capabilities
         </p>
         <p style="color: #FACC15; font-size: 1.1rem; font-weight: 600;">
-            ⏱ Save <span style="font-weight: 800;">up to 3 hours</span> of manual spreadsheet work per analysis
+            Save <span style="font-weight: 800;">up to 3 hours</span> of manual spreadsheet work per analysis
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -207,7 +207,7 @@ def display_credit_store():
             
             # Package title with special highlighting for popular package
             if idx == 1 and len(packages) > 2:  # Middle package in 3+ packages
-                st.markdown(f'<h3>🌟 {package["name"]} (Popular)</h3>', unsafe_allow_html=True)
+                st.markdown(f'<h3>{package["name"]} (Popular)</h3>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<h3>{package["name"]}</h3>', unsafe_allow_html=True)
             
@@ -226,12 +226,12 @@ def display_credit_store():
             elif len(packages) > 1:
                 # For the best value package (first one), show a different badge
                 if idx == 0:
-                    st.markdown('<div class="savings-badge">Best Value! 🚀</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="savings-badge">Best Value!</div>', unsafe_allow_html=True)
             
             # Time savings calculation
             hours_saved = int(round(package['credits'] * 1.75))
             st.markdown(
-                f'<div class="time-savings">⏱ Save ~{hours_saved} hours of work!</div>',
+                f'<div class="time-savings">Save ~{hours_saved} hours of work!</div>',
                 unsafe_allow_html=True,
             )
             

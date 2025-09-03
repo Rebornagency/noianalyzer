@@ -174,19 +174,19 @@ def display_credit_balance_header(email: str):
     # Color coding based on credit level
     if credits >= 10:
         color = "#22C55E"  # Green
-        emoji = "🟢"
+        color = "#22C55E"  # Green
         status = "Good"
     elif credits >= 3:
         color = "#F59E0B"  # Amber
-        emoji = "🟡"
+        color = "#F59E0B"  # Amber
         status = "Low"
     elif credits > 0:
         color = "#EF4444"  # Red
-        emoji = "🔴"
+        color = "#EF4444"  # Red
         status = "Very Low"
     else:
         color = "#6B7280"  # Gray
-        emoji = "⚫"
+        color = "#6B7280"  # Gray
         status = "Empty"
     
     # Compact header display
@@ -204,7 +204,6 @@ def display_credit_balance_header(email: str):
             justify-content: center;
             gap: 0.5rem;
         ">
-            <div style="font-size: 1.2rem;">{emoji}</div>
             <div style="font-size: 1.1rem; font-weight: bold; color: {color};">{credits}</div>
             <div style="color: #ffffff; font-size: 0.9rem;">Credits</div>
             <div style="color: #ffffff; font-size: 0.8rem;">({status})</div>
@@ -260,7 +259,6 @@ def display_credit_balance(email: str):
             text-align: center;
             margin-bottom: 1rem;
         ">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">{emoji}</div>
             <div style="font-size: 1.5rem; font-weight: bold; color: {color};">{credits}</div>
             <div style="color: #ffffff; font-size: 0.9rem;">Credits Available</div>
         </div>
@@ -311,26 +309,22 @@ def display_credit_balance(email: str):
                 
                 # Format transaction display
                 if tx_type == "purchase":
-                    icon = "💰"
                     color_style = "color: #22C55E;"
                     amount_str = f"+{amount}"
                 elif tx_type == "usage":
-                    icon = "📊"
                     color_style = "color: #EF4444;"
                     amount_str = f"{amount}"  # Already negative
                 elif tx_type == "bonus":
-                    icon = "🎁"
                     color_style = "color: #3B82F6;"
                     amount_str = f"+{amount}"
                 else:
-                    icon = "📝"
                     color_style = "color: #6B7280;"
                     amount_str = f"{amount:+d}"
                 
                 st.markdown(
                     f"""
                     <div style="font-size: 0.8rem; margin-bottom: 0.5rem; padding: 0.25rem; border-left: 2px solid #E5E7EB;">
-                        {icon} <span style="{color_style}">{amount_str}</span><br/>
+                        <span style="{color_style}">{amount_str}</span><br/>
                         <span style="color: #6B7280;">{description}</span>
                     </div>
                     """,
@@ -371,7 +365,7 @@ def display_credit_store():
     st.markdown(
         """
         <div style="text-align: center; font-size: 1.15rem; color: #FACC15; margin-bottom: 2.5rem; font-weight: 600;">
-            ⏱ Save <span style="font-weight: 800;">up to 3 hours</span> of manual spreadsheet work per analysis.
+            Save <span style="font-weight: 800;">up to 3 hours</span> of manual spreadsheet work per analysis.
         </div>
         """,
         unsafe_allow_html=True,
@@ -706,7 +700,7 @@ def display_credit_store():
                 # For the best value package (first one), show a different badge
                 if idx == 0:
                     # Use st.success to create identical styling to other badges
-                    st.success("Best Value! 🚀")
+                    st.success("Best Value!")
             
             # Realistic estimate: on average, each NOI analysis takes ~2 hours when done manually.
             # With the tool, most of that labour is automated, leaving only review/adjustment (~15 min).
@@ -715,7 +709,7 @@ def display_credit_store():
             st.markdown(
                 f"""
                 <div style='color:#FACC15; font-weight:600; text-align:center; margin-top:0.5rem;'>
-                    ⏱ Save ~{hours_saved} hours of work!
+                    Save ~{hours_saved} hours of work!
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -835,8 +829,8 @@ def purchase_credits(email: str, package_id: str, package_name: str):
                 # Show payment redirect with inline loading
                 with st.container():
                     display_inline_loading(
-                        "🔄 Redirecting to secure Stripe checkout...",
-                        "💳"
+                        "Redirecting to secure Stripe checkout...",
+                        "Payment"
                     )
                     
                     # Brief delay to show the redirect message
@@ -854,15 +848,15 @@ def purchase_credits(email: str, package_id: str, package_name: str):
                     st.markdown(f"<small>If you are not redirected, <a href='{checkout_url}' target='_blank'>click here to continue to Stripe.</a></small>", unsafe_allow_html=True)
             else:
                 loading_container.empty()
-                st.error("❌ Failed to create checkout session.")
+                st.error("Failed to create checkout session.")
                 st.info(f"Server response: {result}")
         else:
             loading_container.empty()
             error_msg = f"Failed to initiate purchase: {response.text}"
-            st.error(f"❌ {error_msg}")
+            st.error(f"Failed to initiate purchase: {response.text}")
             
             # Show detailed error info
-            with st.expander("🔧 Debug Information"):
+            with st.expander("Debug Information"):
                 st.code(f"""
 Status Code: {response.status_code}
 URL: {url}
@@ -881,9 +875,9 @@ Response: {response.text}
             
     except requests.exceptions.ConnectionError as e:
         loading_container.empty()
-        st.error("❌ **Connection Error**")
+        st.error("Connection Error")
         st.error("Cannot connect to the backend API server.")
-        with st.expander("🔧 Technical Details"):
+        with st.expander("Technical Details"):
             st.code(f"""
 Backend URL: {BACKEND_URL}
 Error: {str(e)}
@@ -897,16 +891,16 @@ Error: {str(e)}
         
     except requests.exceptions.Timeout as e:
         loading_container.empty()
-        st.error("❌ **Request Timeout**")
+        st.error("Request Timeout")
         st.error("The request took too long to complete.")
         st.info("Please try again. If the problem persists, contact support.")
         
     except Exception as e:
         loading_container.empty()
         logger.error(f"Unexpected error during purchase: {str(e)}", exc_info=True)
-        st.error(f"❌ **Unexpected Error**")
+        st.error(f"Unexpected Error")
         st.error(f"An unexpected error occurred: {str(e)}")
-        with st.expander("🔧 Technical Details"):
+        with st.expander("Technical Details"):
             st.code(f"""
 Error Type: {type(e).__name__}
 Error Message: {str(e)}
@@ -995,7 +989,7 @@ def deduct_credits_for_analysis(email: str) -> tuple[bool, str, dict]:
 
 def display_insufficient_credits():
     """Display message when user has insufficient credits with loading states"""
-    st.error("🔴 **Insufficient Credits**")
+    st.error("Insufficient Credits")
     st.markdown("""
     You don't have enough credits to run this analysis. Each analysis requires **1 credit**.
     
@@ -1007,7 +1001,7 @@ def display_insufficient_credits():
     with col1:
         # Enhanced buy credits button with loading state
         buy_clicked, buy_button_placeholder = create_loading_button(
-            "🛒 Buy Credits", 
+            "Buy Credits", 
             key="insufficient_buy_credits",
             use_container_width=True
         )
@@ -1027,7 +1021,7 @@ def display_insufficient_credits():
     with col2:
         # Enhanced view pricing button with loading state
         pricing_clicked, pricing_button_placeholder = create_loading_button(
-            "📊 View Pricing", 
+            "View Pricing", 
             key="insufficient_view_pricing",
             use_container_width=True
         )
@@ -1069,7 +1063,7 @@ def display_free_trial_welcome(email: str):
         # Get the actual number of free trial credits from environment
         free_credits = int(os.getenv("FREE_TRIAL_CREDITS", "1"))
         
-        st.success(f"🎉 **Welcome! You've received {free_credits} free trial credit{'s' if free_credits != 1 else ''}!**")
+        st.success(f"Welcome! You've received {free_credits} free trial credit{'s' if free_credits != 1 else ''}!")
         st.info("Each NOI analysis uses 1 credit. Try our service risk-free!")
         
         # Store that we've shown this message for this email in this session
@@ -1077,7 +1071,7 @@ def display_free_trial_welcome(email: str):
         st.balloons()
     elif is_returning_user:
         # Show returning user message
-        st.info(f"👋 **Welcome back!** You have {credit_data.get('credits', 0)} credits remaining.")
+        st.info(f"Welcome back! You have {credit_data.get('credits', 0)} credits remaining.")
         
         # Store that we've shown this message for this email in this session
         st.session_state[welcome_key] = True
