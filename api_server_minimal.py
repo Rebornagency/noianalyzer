@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 import uvicorn
 
 # Import only the core credit system modules without pipeline dependencies
-from pay_per_use.models import CreditPackage
+from pay_per_use.models import CreditPackage, TransactionType
 from pay_per_use.stripe_integration import create_credit_checkout_session, verify_webhook
 from pay_per_use.credit_service import credit_service
 from pay_per_use.database import db_service
@@ -52,6 +52,40 @@ async def health_check():
         "timestamp": datetime.datetime.now().isoformat()
     }
 
+@app.get("/debug/credits-health")
+async def debug_credits_health():
+    """Debug endpoint to check credit system health"""
+    try:
+        # Check if Stripe is configured
+        stripe_enabled = os.getenv("STRIPE_ENABLED", "false").lower() == "true"
+        stripe_secret_key = "SET" if os.getenv("STRIPE_SECRET_KEY") else "MISSING"
+        stripe_webhook_secret = "SET" if os.getenv("STRIPE_WEBHOOK_SECRET") else "MISSING"
+        
+        # Check database connection
+        db_connected = False
+        try:
+            db_service.get_active_packages()
+            db_connected = True
+        except Exception:
+            db_connected = False
+        
+        return {
+            "credits_page": True,
+            "stripe_enabled": stripe_enabled,
+            "stripe_keys": {
+                "STRIPE_SECRET_KEY": stripe_secret_key,
+                "STRIPE_WEBHOOK_SECRET": stripe_webhook_secret
+            },
+            "database_connected": db_connected,
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "credits_page": True,
+            "error": str(e),
+            "timestamp": datetime.datetime.now().isoformat()
+        }
+
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -73,7 +107,7 @@ async def get_user_credits(email: str, request: Request):
     """Get user's current credit balance and info"""
     try:
         # Get IP address and user agent for tracking
-        ip_address = request.client.host if request.client else None
+        ip_address = request.client.host if request.client else ""
         user_agent = request.headers.get("user-agent", "")
         
         # Pass IP info when getting user data
@@ -100,53 +134,6 @@ async def get_user_credits(email: str, request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/pay-per-use/packages")
-async def get_credit_packages():
-    """Get available credit packages"""
-    try:
-        packages = credit_service.get_credit_packages()
-        return [
-            {
-                "package_id": pkg.package_id,
-                "name": pkg.name,
-                "credits": pkg.credits,
-                "price_cents": pkg.price_cents,
-                "price_dollars": pkg.price_cents / 100,
-                "description": pkg.description,
-                "per_credit_cost": pkg.price_cents / pkg.credits / 100
-            } for pkg in packages
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/pay-per-use/credits/purchase")
-async def purchase_credits(
-    request: Request,
-    email: str = Form(...),
-    package_id: str = Form(...)
-):
-    """Create checkout session for credit purchase"""
-    try:
-        # Get IP address for tracking
-        ip_address = request.client.host if request.client else None
-        user_agent = request.headers.get("user-agent", "")
-        
-        # Verify package exists
-        package = db_service.get_package_by_id(package_id)
-        if not package:
-            raise HTTPException(status_code=404, detail="Package not found")
-        
-        # Create or get user (this will track IP if it's a new user)
-        user = credit_service.get_user_by_email(email, ip_address, user_agent)
-        
-        checkout_url = create_credit_checkout_session(email, package_id)
-        return {"checkout_url": checkout_url, "package": package.name}
-        
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.post("/pay-per-use/check-credits")
 async def check_user_credits_for_analysis(
     request: Request,
@@ -155,7 +142,7 @@ async def check_user_credits_for_analysis(
     """Check if user has enough credits for analysis"""
     try:
         # Get IP address for tracking
-        ip_address = request.client.host if request.client else None
+        ip_address = request.client.host if request.client else ""
         user_agent = request.headers.get("user-agent", "")
         
         # Create or get user with IP tracking for abuse prevention
@@ -192,11 +179,19 @@ async def check_user_credits_for_analysis(
 
 @app.post("/pay-per-use/use-credits")
 async def use_credits_for_analysis(
+    request: Request,
     email: str = Form(...),
     analysis_id: str = Form(...)
 ):
     """Deduct credits for an analysis"""
     try:
+        # Get IP address for tracking
+        ip_address = request.client.host if request.client else ""
+        user_agent = request.headers.get("user-agent", "")
+        
+        # Create or get user with IP tracking
+        user = credit_service.get_user_by_email(email, ip_address, user_agent)
+        
         success, message = credit_service.use_credits_for_analysis(email, analysis_id)
         if success:
             return {
@@ -211,55 +206,65 @@ async def use_credits_for_analysis(
 
 @app.post("/pay-per-use/stripe/webhook")
 async def stripe_webhook(request: Request):
-    """Handle Stripe webhooks for credit purchases only"""
-    logger.info("🎯 WEBHOOK RECEIVED - Processing Stripe webhook")
-    
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-    
-    logger.info(f"Webhook payload size: {len(payload)} bytes")
-    logger.info(f"Stripe signature header present: {bool(sig_header)}")
-    
+    """Handle Stripe webhook events"""
     try:
+        payload = await request.body()
+        sig_header = request.headers.get("stripe-signature")
+        
+        # Handle case where sig_header might be None
+        if not sig_header:
+            logger.warning("Missing stripe-signature header in webhook request")
+            raise HTTPException(status_code=400, detail="Missing stripe-signature header")
+        
         event = verify_webhook(payload, sig_header)
-        logger.info(f"✅ Webhook verified successfully - Event type: {event['type']}")
-    except ValueError as e:
-        logger.error(f"❌ Webhook verification failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-
-    if event["type"] == "checkout.session.completed":
-        logger.info("💳 Processing checkout.session.completed event")
-        session = event["data"]["object"]
-        metadata = session.get("metadata", {})
-        session_type = metadata.get("type", "credit_purchase")
         
-        logger.info(f"Session metadata: {metadata}")
-        
-        if session_type == "credit_purchase":
-            # Handle credit purchase
-            user_id = metadata.get("user_id")
-            package_id = metadata.get("package_id")
-            email = metadata.get("email")
+        # Handle the event
+        if event.type == "checkout.session.completed":
+            session = event.data.object
             
-            logger.info(f"Credit purchase - user_id: {user_id}, package_id: {package_id}, email: {email}")
+            # Access session ID correctly for dict objects
+            session_id = session.get("id") if isinstance(session, dict) else getattr(session, "id", None)
             
-            if not user_id or not package_id:
-                logger.error(f"❌ Missing metadata - user_id: {user_id}, package_id: {package_id}")
-                return JSONResponse(status_code=400, content={"error": "Missing credit purchase metadata"})
+            metadata = session.get("metadata", {}) if isinstance(session, dict) else getattr(session, "metadata", {})
             
-            # Add credits to user account
-            logger.info(f"🏦 Adding credits to user {user_id} from package {package_id}")
-            success = credit_service.add_credits_from_purchase(user_id, package_id, session["id"])
-            if success:
-                logger.info(f"✅ Credits successfully added to user {user_id}")
-                return JSONResponse(status_code=200, content={"received": True, "credits_added": True})
+            if metadata.get("type") == "credit_purchase":
+                # Handle credit purchase completion
+                user_id = metadata.get("user_id")
+                package_id = metadata.get("package_id")
+                email = metadata.get("email")
+                
+                if user_id and package_id and email:
+                    # Get package info
+                    package = db_service.get_package_by_id(package_id)
+                    if package:
+                        # Add credits to user
+                        success = db_service.update_user_credits(
+                            user_id, 
+                            package.credits, 
+                            TransactionType.purchase, 
+                            f"Purchase of {package.name} ({package.credits} credits)",
+                            session_id  # Prevent duplicate processing
+                        )
+                        
+                        if success:
+                            logger.info(f"✅ Successfully added {package.credits} credits to user {email}")
+                        else:
+                            logger.error(f"❌ Failed to add credits to user {email}")
+                    else:
+                        logger.error(f"❌ Package {package_id} not found for webhook processing")
+                else:
+                    logger.error("❌ Missing required metadata in webhook event")
             else:
-                logger.error(f"❌ Failed to add credits to user {user_id}")
-                return JSONResponse(status_code=500, content={"error": "Failed to add credits"})
-    else:
-        logger.info(f"ℹ️ Received webhook event type: {event['type']} (not processed)")
-
-    return JSONResponse(status_code=200, content={"received": True})
+                logger.info(f"Received checkout.session.completed for non-credit purchase: {session_id}")
+        
+        return {"status": "success"}
+        
+    except ValueError as e:
+        logger.error(f"Webhook verification failed: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error processing webhook: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Payment success/cancel pages
 @app.get("/credit-success", response_class=HTMLResponse)

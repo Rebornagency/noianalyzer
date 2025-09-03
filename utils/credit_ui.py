@@ -15,18 +15,21 @@ try:
     )
 except ImportError:
     # Fallback functions if ui_helpers is not available
-    def display_loading_spinner(message, subtitle=None):
+    def display_loading_spinner(message: str = "Processing...", subtitle: str = ""):
         st.info(f"{message} {subtitle or ''}")
-    def display_inline_loading(message, icon="⏳"):
+    def display_inline_loading(message: str = "Loading...", icon: str = "⏳"):
         st.info(f"{icon} {message}")
-    def get_loading_message_for_action(action, file_count=1):
-        return "Processing...", "Please wait..."
-    def create_loading_button(label, key=None, **kwargs):
-        return st.button(label, key=key, **kwargs), st.empty()
-    def show_button_loading(placeholder, label):
-        placeholder.button(label, disabled=True)
-    def restore_button(placeholder, label, key=None, **kwargs):
-        placeholder.button(label, key=key, **kwargs)
+    def get_loading_message_for_action(action: str, file_count: int = 1) -> tuple:
+        return ("Processing...", "Please wait...")
+    def create_loading_button(label: str, key: str = "", help_text: str = "", **kwargs):
+        # Handle help parameter conflicts - prefer explicit help_text over kwargs help
+        if help_text:
+            kwargs['help'] = help_text
+        return st.button(label, key=key or None, **kwargs), st.empty()
+    def show_button_loading(button_placeholder, label: str = "Processing..."):
+        button_placeholder.button(label, disabled=True)
+    def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
+        button_placeholder.button(label, key=key or None, **kwargs)
 
 # Configure logging with better formatting for Render and Sentry
 logging.basicConfig(
@@ -345,9 +348,21 @@ def display_credit_store():
     log_credit_ui_debug("Starting display_credit_store function")
     log_credit_ui_debug(f"Session state keys: {list(st.session_state.keys())}")
     
-    # Remove the yellow debug header as requested
-    # Only add logging to track execution
-    log_credit_ui_debug("Credit store UI rendering started")
+    # Client-side debug logging
+    st.markdown("""
+    <script>
+    console.info("[CREDITS] mounted", { 
+        timestamp: new Date().toISOString(), 
+        route: window.location.pathname 
+    });
+    </script>
+    """, unsafe_allow_html=True)
+    
+    # Server-side debug logging
+    logger.info("[CREDITS] GET /credits requested", { 
+        "path": "/credits",
+        "function": "display_credit_store"
+    })
     
     packages = get_credit_packages()
     log_credit_ui_debug(f"Retrieved {len(packages)} credit packages")
@@ -372,9 +387,16 @@ def display_credit_store():
     </div>
     """, unsafe_allow_html=True)
     
-    # Enhanced CSS for modern, clean package cards
+    # Enhanced CSS for modern, clean package cards with proper centering
     st.markdown("""
     <style>
+    /* Container for all credit packages */
+    #credit-store-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
     /* Modern Credit Package Cards */
     div.credit-package-card {
         background: linear-gradient(145deg, #1a2436, #0f1722);
@@ -388,6 +410,8 @@ def display_credit_store():
         height: 100%;
         display: flex;
         flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
     }
     
     div.credit-package-card:hover {
@@ -403,6 +427,8 @@ def display_credit_store():
         margin: 0 0 1.5rem 0;
         padding-bottom: 1rem;
         border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        width: 100%;
     }
     
     div.credit-package-card .credits-amount {
@@ -410,6 +436,8 @@ def display_credit_store():
         font-size: 1.3rem;
         font-weight: 600;
         margin: 1rem 0;
+        text-align: center;
+        width: 100%;
     }
     
     div.credit-package-card .price {
@@ -418,6 +446,8 @@ def display_credit_store():
         font-weight: 800;
         margin: 1rem 0;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        width: 100%;
     }
     
     div.credit-package-card .per-credit {
@@ -425,6 +455,8 @@ def display_credit_store():
         font-size: 1rem;
         font-style: italic;
         margin: 0.5rem 0 1.5rem 0;
+        text-align: center;
+        width: 100%;
     }
     
     div.credit-package-card .savings-badge {
@@ -437,6 +469,7 @@ def display_credit_store():
         margin: 1rem auto;
         width: fit-content;
         box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        text-align: center;
     }
     
     div.credit-package-card .description {
@@ -445,6 +478,8 @@ def display_credit_store():
         line-height: 1.6;
         margin: 1.5rem 0;
         flex-grow: 1;
+        text-align: center;
+        width: 100%;
     }
     
     div.credit-package-card .time-savings {
@@ -452,6 +487,8 @@ def display_credit_store():
         font-weight: 700;
         font-size: 1.1rem;
         margin: 1rem 0;
+        text-align: center;
+        width: 100%;
     }
     
     div.credit-package-card .purchase-button {
@@ -462,11 +499,14 @@ def display_credit_store():
         padding: 1rem;
         font-size: 1.1rem;
         font-weight: 700;
-        width: 100%;
+        width: calc(100% - 2rem);
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 4px 20px rgba(37, 99, 235, 0.5);
         margin-top: auto;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
     }
     
     div.credit-package-card .purchase-button:hover {
@@ -500,6 +540,9 @@ def display_credit_store():
     </style>
     """, unsafe_allow_html=True)
     
+    # Container div for all packages
+    st.markdown('<div id="credit-store-container">', unsafe_allow_html=True)
+    
     # Display packages in a responsive grid
     num_packages = len(packages)
     if num_packages == 1:
@@ -513,6 +556,14 @@ def display_credit_store():
     
     for idx, package in enumerate(packages):
         log_credit_ui_debug(f"Rendering package {idx}: {package.get('name', 'Unknown')}")
+        
+        # Client-side debug logging for each pack render
+        st.markdown(f"""
+        <script>
+        console.info("[CREDITS] render pack", {{ packId: "{package.get('package_id', 'unknown')}" }});
+        </script>
+        """, unsafe_allow_html=True)
+        
         col = cols[idx % len(cols)]
         
         with col:
@@ -572,8 +623,18 @@ def display_credit_store():
                 # Create unique key for each button
                 button_key = f"buy_{package['package_id']}_{int(time.time())}"
                 
-                # Use HTML button for better styling control
+                # Use HTML button with proper CSS class for better styling control
                 if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True):
+                    # Client-side debug logging for CTA click
+                    st.markdown(f"""
+                    <script>
+                    console.info("[CREDITS] CTA click", {{ 
+                        pack: "{package['name']}",
+                        elementTop: document.elementFromPoint(event.clientX, event.clientY)?.tagName || 'unknown'
+                    }});
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
                     logger.info(f"Purchase button clicked for package {package['name']}")
                     log_credit_ui_debug(f"Purchase button clicked for package {package['name']}")
                     
@@ -583,6 +644,9 @@ def display_credit_store():
                         purchase_credits(email, package['package_id'], package['name'])
             
             st.markdown('</div>', unsafe_allow_html=True)  # Close card div
+    
+    # Close the container div
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Add proper spacing after all cards are displayed
     st.markdown("<br><br>", unsafe_allow_html=True)
