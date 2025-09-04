@@ -275,12 +275,12 @@ def display_credit_store():
             </div>
             """, unsafe_allow_html=True)
             
-            # Purchase button - Improved styling
+            # Purchase button - Using Streamlit's native button styling to match "Buy More Credits"
             email = st.session_state.get('user_email', '')
             if not email:
                 st.warning("Please enter your email in the main app to purchase credits.")
                 st.markdown("""
-                <button disabled style="
+                <div style="
                     background: linear-gradient(135deg, #6b7280, #4b5563);
                     color: #FFFFFF;
                     border: none;
@@ -289,25 +289,20 @@ def display_credit_store():
                     font-size: 1.1rem;
                     font-weight: 700;
                     width: calc(100% - 2rem);
-                    cursor: not-allowed;
-                    margin: 0.5rem auto;
-                    display: block;
                     text-align: center;
                     height: auto;
                     box-sizing: border-box;
                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                ">Enter Email to Buy</button>
+                    margin: 0.5rem auto;
+                ">Enter Email to Buy</div>
                 """, unsafe_allow_html=True)
             else:
                 button_key = f"buy_{package['package_id']}"
                 
-                # Create a container for the button to improve styling
-                button_container = st.container()
-                with button_container:
-                    # Use a more modern button style
-                    if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True):
-                        # Call purchase function directly
-                        purchase_credits(email, package['package_id'], package['name'])
+                # Use Streamlit's native button with primary styling to match "Buy More Credits"
+                if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary"):
+                    # Call purchase function directly
+                    purchase_credits(email, package['package_id'], package['name'])
             
             # Close card div
             st.markdown("</div>", unsafe_allow_html=True)
