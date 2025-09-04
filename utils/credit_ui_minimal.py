@@ -1,12 +1,25 @@
-"""
-Minimal Credit UI Implementation
-This implementation avoids complex dependencies and focuses purely on UI rendering.
-"""
 import streamlit as st
 import requests
 import os
 import logging
 import time
+
+# Import loading functions
+try:
+    from .ui_helpers import (
+        create_loading_button, show_button_loading, restore_button
+    )
+except ImportError:
+    # Fallback functions if ui_helpers is not available
+    def create_loading_button(label: str, key: str = "", help_text: str = "", **kwargs):
+        # Handle help parameter conflicts - prefer explicit help_text over kwargs help
+        if help_text:
+            kwargs['help'] = help_text
+        return st.button(label, key=key or None, **kwargs), st.empty()
+    def show_button_loading(button_placeholder, label: str = "Processing..."):
+        button_placeholder.button(label, disabled=True)
+    def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
+        button_placeholder.button(label, key=key or None, **kwargs)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -284,7 +297,7 @@ def display_credit_store():
                 </div>
             """, unsafe_allow_html=True)
             
-            # Purchase button
+            # Purchase button with loading state
             email = st.session_state.get('user_email', '')
             
             if not email:
@@ -312,14 +325,22 @@ def display_credit_store():
                 # Create unique key for each button
                 button_key = f"buy_{package['package_id']}"
                 
-                # Use Streamlit button
-                clicked = st.button(
+                # Use loading button to match "Buy More Credits" styling
+                clicked, button_placeholder = create_loading_button(
                     f"Buy {package['name']}", 
                     key=button_key, 
                     use_container_width=True
                 )
                 
                 if clicked:
+                    logger.info(f"Purchase button clicked for package {package['name']} (ID: {package['package_id']})")
+                    
+                    # Show loading state
+                    show_button_loading(button_placeholder, "Setting up payment...")
+                    
+                    # Brief loading to show feedback
+                    time.sleep(0.5)
+                    
                     # Call purchase function
                     purchase_credits(email, package['package_id'], package['name'])
             
