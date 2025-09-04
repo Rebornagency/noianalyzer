@@ -90,15 +90,6 @@ def display_credit_store():
     </div>
     """, unsafe_allow_html=True)
     
-    # Debug information
-    st.markdown(f"""
-    <div style="background-color: #1a2436; border: 1px solid #2a3a50; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-        <h3 style="color: #FFFFFF; margin-top: 0;">🔍 Debug Information</h3>
-        <p style="color: #A0A0A0; margin-bottom: 0;">Minimal implementation active</p>
-        <p style="color: #FACC15; margin-bottom: 0;">If you see red outlines, CSS is working</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
     # Get packages
     packages = get_credit_packages()
     
@@ -243,69 +234,97 @@ def display_credit_store():
                     {savings_text}
                 </div>
                 """, unsafe_allow_html=True)
+            # Show "Best Value!" for the first package (original logic as fallback)
+            elif len(packages) > 1 and idx == 0:
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    text-align: center;
+                ">
+                    Best Value! 🚀
+                </div>
+                """, unsafe_allow_html=True)
             
-            # Time savings
+            # Time savings calculation
             hours_saved = int(round(package['credits'] * 1.75))
             st.markdown(f"""
-            <div style="
-                color: #FACC15;
-                font-weight: 700;
-                font-size: 1.1rem;
-                margin: 1rem 0;
-                width: 100%;
-                text-align: center;
-            ">
-                ⏱ Save ~{hours_saved} hours of work!
-            </div>
+                <div style="
+                    color: #FACC15;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    margin: 1rem 0;
+                    width: 100%;
+                    text-align: center;
+                ">
+                    ⏱ Save ~{hours_saved} hours of work!
+                </div>
             """, unsafe_allow_html=True)
             
             # Description
             description_text = package.get('description', f"Top up {package['credits']} credits")
             st.markdown(f"""
-            <div style="
-                color: #D0D0D0;
-                font-size: 1rem;
-                line-height: 1.6;
-                margin: 1.5rem 0;
-                flex-grow: 1;
-                width: 100%;
-                text-align: center;
-            ">
-                {description_text}
-            </div>
+                <div style="
+                    color: #D0D0D0;
+                    font-size: 1rem;
+                    line-height: 1.6;
+                    margin: 1.5rem 0;
+                    flex-grow: 1;
+                    width: 100%;
+                    text-align: center;
+                ">
+                    {description_text}
+                </div>
             """, unsafe_allow_html=True)
             
-            # Purchase button - Using Streamlit's native button styling to match "Buy More Credits"
+            # Purchase button
             email = st.session_state.get('user_email', '')
+            
             if not email:
                 st.warning("Please enter your email in the main app to purchase credits.")
-                st.markdown("""
-                <div style="
-                    background: linear-gradient(135deg, #6b7280, #4b5563);
-                    color: #FFFFFF;
-                    border: none;
-                    border-radius: 12px;
-                    padding: 1rem 1.5rem;
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    width: calc(100% - 2rem);
-                    text-align: center;
-                    height: auto;
-                    box-sizing: border-box;
-                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                    margin: 0.5rem auto;
-                ">Enter Email to Buy</div>
-                """, unsafe_allow_html=True)
+                st.markdown(
+                    '<button class="purchase-button" disabled style="'
+                    'background: #6b7280; '
+                    'color: #FFFFFF; '
+                    'border: none; '
+                    'border-radius: 12px; '
+                    'padding: 1rem 1.5rem; '
+                    'font-size: 1.1rem; '
+                    'font-weight: 700; '
+                    'width: calc(100% - 2rem); '
+                    'cursor: not-allowed; '
+                    'margin: 0.5rem auto; '
+                    'display: block; '
+                    'text-align: center; '
+                    'height: auto; '
+                    'box-sizing: border-box; '
+                    '">Enter Email to Buy</button>',
+                    unsafe_allow_html=True
+                )
             else:
+                # Create unique key for each button
                 button_key = f"buy_{package['package_id']}"
                 
-                # Use Streamlit's native button with primary styling to match "Buy More Credits"
-                if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary"):
-                    # Call purchase function directly
+                # Use Streamlit button
+                clicked = st.button(
+                    f"Buy {package['name']}", 
+                    key=button_key, 
+                    use_container_width=True
+                )
+                
+                if clicked:
+                    # Call purchase function
                     purchase_credits(email, package['package_id'], package['name'])
             
             # Close card div
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
     
-    # Add spacing
+    # Add proper spacing after all cards are displayed
     st.markdown("<br><br>", unsafe_allow_html=True)
