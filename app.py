@@ -80,20 +80,28 @@ except ImportError:
 
 # Try to import credit system modules
 try:
-    from utils.credit_ui import (
+    from utils.credit_ui_fresh import (
         display_credit_balance, display_credit_balance_header, display_credit_store, check_credits_for_analysis,
         display_insufficient_credits, display_free_trial_welcome, init_credit_system
     )
     CREDIT_SYSTEM_AVAILABLE = True
 except ImportError:
-    CREDIT_SYSTEM_AVAILABLE = False
-    def display_credit_balance(*args, **kwargs): pass
-    def display_credit_balance_header(*args, **kwargs): pass
-    def display_credit_store(*args, **kwargs): st.error("Credit system not available")
-    def check_credits_for_analysis(*args, **kwargs): return True, "Credit check unavailable"
-    def display_insufficient_credits(*args, **kwargs): pass
-    def display_free_trial_welcome(*args, **kwargs): pass
-    def init_credit_system(*args, **kwargs): pass
+    # Fallback to original credit_ui if fresh implementation is not available
+    try:
+        from utils.credit_ui import (
+            display_credit_balance, display_credit_balance_header, display_credit_store, check_credits_for_analysis,
+            display_insufficient_credits, display_free_trial_welcome, init_credit_system
+        )
+        CREDIT_SYSTEM_AVAILABLE = True
+    except ImportError:
+        CREDIT_SYSTEM_AVAILABLE = False
+        def display_credit_balance(*args, **kwargs): pass
+        def display_credit_balance_header(*args, **kwargs): pass
+        def display_credit_store(*args, **kwargs): st.error("Credit system not available")
+        def check_credits_for_analysis(*args, **kwargs): return True, "Credit check unavailable"
+        def display_insufficient_credits(*args, **kwargs): pass
+        def display_free_trial_welcome(*args, **kwargs): pass
+        def init_credit_system(*args, **kwargs): pass
 
 # Import mock data generators for testing mode
 try:

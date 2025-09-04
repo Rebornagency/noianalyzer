@@ -245,7 +245,7 @@ div[data-baseweb="input"] {
 }
 
 /* Credit Store Specific Styles - Prevent conflicts with global styles */
-/* More specific selectors for credit package cards */
+/* Ultra-specific selectors for credit package cards */
 #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
     background: linear-gradient(145deg, #1a2436, #0f1722) !important;
     border: 1px solid #2a3a50 !important;
@@ -254,9 +254,10 @@ div[data-baseweb="input"] {
     padding: 2rem !important;
     margin: 1.5rem 0 !important;
     text-align: center !important;
+    color: #FFFFFF !important;
 }
 
-/* More specific selectors for CTA buttons */
+/* Ultra-specific selectors for CTA buttons */
 #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"] {
     background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
     color: #FFFFFF !important;
@@ -272,6 +273,7 @@ div[data-baseweb="input"] {
     margin: 0.5rem auto !important;
     display: block !important;
     text-align: center !important;
+    height: auto !important;
 }
 
 #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
@@ -280,7 +282,7 @@ div[data-baseweb="input"] {
     box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7) !important;
 }
 
-/* More specific selectors for savings badges */
+/* Ultra-specific selectors for savings badges */
 #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] {
     background: linear-gradient(135deg, #10b981, #059669) !important;
     color: #FFFFFF !important;
@@ -295,15 +297,27 @@ div[data-baseweb="input"] {
     text-align: center !important;
 }
 
-/* Text alignment fixes for credit store */
+/* Ultra-specific text alignment fixes for credit store */
 #credit-store-container div[data-testid="column"] h3,
 #credit-store-container div[data-testid="column"] .credits-amount,
 #credit-store-container div[data-testid="column"] .price,
 #credit-store-container div[data-testid="column"] .per-credit,
 #credit-store-container div[data-testid="column"] .description,
-#credit-store-container div[data-testid="column"] .time-savings {
+#credit-store-container div[data-testid="column"] .time-savings,
+#credit-store-container div[data-testid="column"] .savings-badge {
     text-align: center !important;
     width: 100% !important;
+    color: #FFFFFF !important;
+    display: block !important;
+}
+
+/* Nuclear override for any conflicting styles */
+#credit-store-container [data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 /* Remove or override any constraints for Browse Files button */
