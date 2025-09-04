@@ -895,13 +895,83 @@ def display_credit_store():
             # Per credit cost
             st.markdown(f'<div class="per-credit">${package["per_credit_cost"]:.2f} per credit</div>', unsafe_allow_html=True)
 
-            # Savings badge
-            if savings_text:
-                st.markdown(f'<div class="savings-badge">{savings_text}</div>', unsafe_allow_html=True)
-            elif len(packages) > 1:
-                # For the best value package (first one), show a different badge
-                if idx == 0:
-                    st.markdown('<div class="savings-badge">Best Value! 🚀</div>', unsafe_allow_html=True)
+            # Savings badge - Updated logic
+            # Show "5 Credits!" for the Starter pack (first package)
+            if idx == 0 and len(packages) > 1:
+                st.markdown("""
+                <div class="savings-badge" style="
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+                    text-align: center;
+                    display: inline-block;
+                ">
+                    5 Credits!
+                </div>
+                """, unsafe_allow_html=True)
+            # Show "Best Value!" for the Professional pack (middle package)
+            elif idx == 1 and len(packages) > 2:
+                st.markdown("""
+                <div class="savings-badge" style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    text-align: center;
+                    display: inline-block;
+                ">
+                    Best Value! 🚀
+                </div>
+                """, unsafe_allow_html=True)
+            # Show savings percentage for other packages
+            elif savings_text:
+                st.markdown(f"""
+                <div class="savings-badge" style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    text-align: center;
+                    display: inline-block;
+                ">
+                    {savings_text}
+                </div>
+                """, unsafe_allow_html=True)
+            # Show "Best Value!" for the first package (original logic as fallback)
+            elif len(packages) > 1 and idx == 0:
+                st.markdown("""
+                <div class="savings-badge" style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    text-align: center;
+                    display: inline-block;
+                ">
+                    Best Value! 🚀
+                </div>
+                """, unsafe_allow_html=True)
             
             # Time savings calculation
             hours_saved = int(round(package['credits'] * 1.75))
@@ -914,18 +984,34 @@ def display_credit_store():
             description_text = package.get('description', f"Top up {package['credits']} credits")
             st.markdown(f'<div class="description">{description_text}</div>', unsafe_allow_html=True)
             
-            # Purchase button with loading state
+            # Purchase button with loading state - Using Streamlit's native button styling to match "Buy More Credits"
             email = st.session_state.get('user_email', '')
             
             if not email:
                 st.warning("Please enter your email in the main app to purchase credits.")
-                st.markdown('<button class="purchase-button" disabled>Enter Email to Buy</button>', unsafe_allow_html=True)
+                st.markdown("""
+                <div style="
+                    background: linear-gradient(135deg, #6b7280, #4b5563);
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 1rem 1.5rem;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    width: calc(100% - 2rem);
+                    text-align: center;
+                    height: auto;
+                    box-sizing: border-box;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    margin: 0.5rem auto;
+                ">Enter Email to Buy</div>
+                """, unsafe_allow_html=True)
             else:
                 # Create unique key for each button (simplified)
                 button_key = f"buy_{package['package_id']}"
                 
-                # Use Streamlit button with custom styling through CSS
-                clicked = st.button(f"Buy {package['name']}", key=button_key, use_container_width=True)
+                # Use Streamlit button with primary styling to match "Buy More Credits"
+                clicked = st.button(f"Buy {package['name']}", key=button_key, use_container_width=True, type="primary")
                 
                 if clicked:
                     logger.info(f"Purchase button clicked for package {package['name']} (ID: {package['package_id']})")
