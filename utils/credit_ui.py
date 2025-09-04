@@ -377,53 +377,39 @@ def display_credit_store():
     </div>
     """, unsafe_allow_html=True)
     
-    # Client-side debug logging for page mount
-    st.markdown("""
-    <script>
-    console.info("[CREDITS] mounted", { 
-        timestamp: new Date().toISOString(), 
-        route: window.location.pathname 
-    });
-    
-    // Add a small debug overlay for development
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.search.includes('debug=1'))) {
-        const debugOverlay = document.createElement('div');
-        debugOverlay.id = 'credits-debug-overlay';
-        debugOverlay.style.position = 'fixed';
-        debugOverlay.style.top = '10px';
-        debugOverlay.style.right = '10px';
-        debugOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        debugOverlay.style.color = '#00ff00';
-        debugOverlay.style.padding = '10px';
-        debugOverlay.style.borderRadius = '5px';
-        debugOverlay.style.zIndex = '9999';
-        debugOverlay.style.fontSize = '12px';
-        debugOverlay.style.fontFamily = 'monospace';
-        debugOverlay.innerHTML = 'Credits: mounted ✓';
-        document.body.appendChild(debugOverlay);
-        
-        // Update overlay with last click info
-        window.addEventListener('click', function(e) {
-            if (e.target.closest('.credit-package-card')) {
-                debugOverlay.innerHTML = 'Credits: mounted ✓<br>Last CTA click: ' + new Date().toLocaleTimeString();
-            }
-        });
-    }
-    </script>
-    """, unsafe_allow_html=True)
-    
     # Enhanced CSS for modern, clean package cards with proper centering
     st.markdown("""
     <style>
-    /* Container for all credit packages */
-    #credit-store-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1rem;
+    /* COMPLETE RESET for credit store to override all global styles */
+    
+    /* Reset everything inside our container */
+    #credit-store-container,
+    #credit-store-container * {
+        box-sizing: border-box !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
     }
     
-    /* Modern Credit Package Cards - Highly specific selectors to override global styles */
-    #credit-store-container div.credit-package-card {
+    /* Container styling */
+    #credit-store-container {
+        max-width: 1200px !important;
+        margin: 0 auto !important;
+        padding: 0 1rem !important;
+        width: 100% !important;
+        color: #FFFFFF !important;
+    }
+    
+    /* Column layout fix */
+    #credit-store-container [data-testid="column"] {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Credit package cards with maximum specificity */
+    #credit-store-container [data-testid="column"] > div:not([data-testid="stVerticalBlockBorderWrapper"]) {
         background: linear-gradient(145deg, #1a2436, #0f1722) !important;
         border: 1px solid #2a3a50 !important;
         border-radius: 16px !important;
@@ -437,55 +423,66 @@ def display_credit_store():
         flex-direction: column !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        box-sizing: border-box !important;
+        width: 100% !important;
+        position: relative !important;
     }
     
-    #credit-store-container div.credit-package-card:hover {
+    /* Hover effect */
+    #credit-store-container [data-testid="column"] > div:not([data-testid="stVerticalBlockBorderWrapper"]):hover {
         transform: translateY(-5px) !important;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
         border-color: #3b82f6 !important;
     }
     
-    #credit-store-container div.credit-package-card h3 {
+    /* Text elements - ensure centering */
+    #credit-store-container h3,
+    #credit-store-container .credits-amount,
+    #credit-store-container .price,
+    #credit-store-container .per-credit,
+    #credit-store-container .savings-badge,
+    #credit-store-container .description,
+    #credit-store-container .time-savings {
+        text-align: center !important;
+        width: 100% !important;
+        display: block !important;
+        color: #FFFFFF !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Specific text styling */
+    #credit-store-container h3 {
         color: #FFFFFF !important;
         font-size: 1.8rem !important;
         font-weight: 700 !important;
         margin: 0 0 1.5rem 0 !important;
         padding-bottom: 1rem !important;
         border-bottom: 2px solid rgba(255, 255, 255, 0.1) !important;
-        text-align: center !important;
-        width: 100% !important;
     }
     
-    #credit-store-container div.credit-package-card .credits-amount {
+    #credit-store-container .credits-amount {
         color: #FFFFFF !important;
         font-size: 1.3rem !important;
         font-weight: 600 !important;
         margin: 1rem 0 !important;
-        text-align: center !important;
-        width: 100% !important;
     }
     
-    #credit-store-container div.credit-package-card .price {
+    #credit-store-container .price {
         color: #FFFFFF !important;
         font-size: 2.5rem !important;
         font-weight: 800 !important;
         margin: 1rem 0 !important;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-        text-align: center !important;
-        width: 100% !important;
     }
     
-    #credit-store-container div.credit-package-card .per-credit {
+    #credit-store-container .per-credit {
         color: #A0A0A0 !important;
         font-size: 1rem !important;
         font-style: italic !important;
         margin: 0.5rem 0 1.5rem 0 !important;
-        text-align: center !important;
-        width: 100% !important;
     }
     
-    #credit-store-container div.credit-package-card .savings-badge {
+    #credit-store-container .savings-badge {
         background: linear-gradient(135deg, #10b981, #059669) !important;
         color: #FFFFFF !important;
         font-weight: 700 !important;
@@ -495,177 +492,139 @@ def display_credit_store():
         margin: 1rem auto !important;
         width: fit-content !important;
         box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
-        text-align: center !important;
+        display: inline-block !important;
     }
     
-    #credit-store-container div.credit-package-card .description {
+    #credit-store-container .description {
         color: #D0D0D0 !important;
         font-size: 1rem !important;
         line-height: 1.6 !important;
         margin: 1.5rem 0 !important;
         flex-grow: 1 !important;
-        text-align: center !important;
-        width: 100% !important;
     }
     
-    #credit-store-container div.credit-package-card .time-savings {
+    #credit-store-container .time-savings {
         color: #FACC15 !important;
         font-weight: 700 !important;
         font-size: 1.1rem !important;
         margin: 1rem 0 !important;
-        text-align: center !important;
-        width: 100% !important;
     }
     
-    /* Streamlit button styling within credit package cards */
-    #credit-store-container div.credit-package-card .stButton > button {
+    /* Button styling with maximum specificity */
+    #credit-store-container .stButton {
+        width: 100% !important;
+        margin-top: auto !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+    
+    #credit-store-container .stButton > button {
         background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
         color: #FFFFFF !important;
         border: none !important;
         border-radius: 12px !important;
-        padding: 1rem !important;
+        padding: 1rem 1.5rem !important;
         font-size: 1.1rem !important;
         font-weight: 700 !important;
         width: calc(100% - 2rem) !important;
         cursor: pointer !important;
         transition: all 0.3s ease !important;
         box-shadow: 0 4px 20px rgba(37, 99, 235, 0.5) !important;
-        margin-top: auto !important;
+        margin: 0.5rem auto !important;
         display: block !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        margin-bottom: 0.5rem !important;
+        text-align: center !important;
+        height: auto !important;
     }
     
-    #credit-store-container div.credit-package-card .stButton > button:hover {
+    #credit-store-container .stButton > button:hover {
         background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
         transform: translateY(-2px) !important;
         box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7) !important;
     }
     
-    #credit-store-container div.credit-package-card .stButton > button:disabled {
+    #credit-store-container .stButton > button:disabled {
         background: #6b7280 !important;
         cursor: not-allowed !important;
         transform: none !important;
         box-shadow: none !important;
-    }
-    
-    /* Final override to ensure our styles take precedence - using !important and highly specific selectors */
-    #credit-store-container div[data-testid="column"] > div.credit-package-card,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card {
-        background: linear-gradient(145deg, #1a2436, #0f1722) !important;
-        border: 1px solid #2a3a50 !important;
-        border-radius: 16px !important;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
-        padding: 2rem !important;
-        margin: 1.5rem 0 !important;
-        text-align: center !important;
-    }
-    
-    #credit-store-container div[data-testid="column"] > div.credit-package-card h3,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card h3 {
-        color: #FFFFFF !important;
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    #credit-store-container div[data-testid="column"] > div.credit-package-card .credits-amount,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card .credits-amount {
-        color: #FFFFFF !important;
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    #credit-store-container div[data-testid="column"] > div.credit-package-card .price,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card .price {
-        color: #FFFFFF !important;
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    #credit-store-container div[data-testid="column"] > div.credit-package-card .per-credit,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card .per-credit {
-        color: #A0A0A0 !important;
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    #credit-store-container div[data-testid="column"] > div.credit-package-card .savings-badge,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card .savings-badge {
-        background: linear-gradient(135deg, #10b981, #059669) !important;
-        color: #FFFFFF !important;
-        text-align: center !important;
-    }
-    
-    #credit-store-container div[data-testid="column"] > div.credit-package-card .description,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card .description {
-        color: #D0D0D0 !important;
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    #credit-store-container div[data-testid="column"] > div.credit-package-card .time-savings,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card .time-savings {
-        color: #FACC15 !important;
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    /* Streamlit button final override */
-    #credit-store-container div[data-testid="column"] > div.credit-package-card .stButton > button,
-    #credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] > div.credit-package-card .stButton > button {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 12px !important;
-        width: calc(100% - 2rem) !important;
-        display: block !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
+        opacity: 0.7 !important;
     }
     
     /* Responsive adjustments */
     @media (max-width: 768px) {
-        #credit-store-container div.credit-package-card {
+        #credit-store-container [data-testid="column"] > div:not([data-testid="stVerticalBlockBorderWrapper"]) {
             padding: 1.5rem !important;
             margin: 1rem 0 !important;
         }
         
-        #credit-store-container div.credit-package-card h3 {
+        #credit-store-container h3 {
             font-size: 1.5rem !important;
         }
         
-        #credit-store-container div.credit-package-card .price {
+        #credit-store-container .price {
             font-size: 2rem !important;
         }
         
-        #credit-store-container div.credit-package-card .stButton > button {
+        #credit-store-container .stButton > button {
             padding: 0.8rem !important;
             font-size: 1rem !important;
         }
     }
+    
+    /* Override any global Streamlit interference */
+    #credit-store-container [data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
     </style>
+    """, unsafe_allow_html=True)
+    
+    # Client-side debug logging for page mount
+    st.markdown("""
+    <script>
+    console.info("[CREDITS] mounted", { 
+        timestamp: new Date().toISOString(), 
+        route: window.location.pathname 
+    });
+    
+    // Add a small debug overlay for development
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.search.includes('debug=1'))) {
+        // Remove existing overlay if present
+        const existingOverlay = document.getElementById('credits-debug-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+        
+        const debugOverlay = document.createElement('div');
+        debugOverlay.id = 'credits-debug-overlay';
+        debugOverlay.style.position = 'fixed';
+        debugOverlay.style.top = '10px';
+        debugOverlay.style.right = '10px';
+        debugOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        debugOverlay.style.color = '#00ff00';
+        debugOverlay.style.padding = '10px';
+        debugOverlay.style.borderRadius = '5px';
+        debugOverlay.style.zIndex = '9999';
+        debugOverlay.style.fontSize = '12px';
+        debugOverlay.style.fontFamily = 'monospace';
+        debugOverlay.innerHTML = 'Credits: mounted ✓ (final)';
+        document.body.appendChild(debugOverlay);
+        
+        // Update overlay with last click info
+        window.addEventListener('click', function(e) {
+            if (e.target.closest('[data-testid="stButton"] button')) {
+                debugOverlay.innerHTML = 'Credits: mounted ✓ (final)<br>Last CTA click: ' + new Date().toLocaleTimeString();
+            }
+        });
+    }
+    </script>
     """, unsafe_allow_html=True)
     
     # Container div for all packages
     st.markdown('<div id="credit-store-container">', unsafe_allow_html=True)
-    
-    # Add client-side verification that our container is present
-    st.markdown("""
-    <script>
-    // Verify that our credit store container is present
-    document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('credit-store-container');
-        if (container) {
-            console.info("[CREDITS] Container found and styles applied");
-            // Add a data attribute to verify our styles are working
-            container.setAttribute('data-credits-ui-version', 'fixed');
-        } else {
-            console.warn("[CREDITS] Container not found");
-        }
-    });
-    </script>
-    """, unsafe_allow_html=True)
     
     # Display packages in a responsive grid
     num_packages = len(packages)
@@ -680,13 +639,6 @@ def display_credit_store():
     
     for idx, package in enumerate(packages):
         log_credit_ui_debug(f"Rendering package {idx}: {package.get('name', 'Unknown')}")
-        
-        # Client-side debug logging for each pack render
-        st.markdown(f"""
-        <script>
-        console.info("[CREDITS] render pack", {{ packId: "{package.get('package_id', 'unknown')}" }});
-        </script>
-        """, unsafe_allow_html=True)
         
         col = cols[idx % len(cols)]
         
@@ -744,23 +696,15 @@ def display_credit_store():
                 st.warning("Please enter your email in the main app to purchase credits.")
                 st.markdown('<button class="purchase-button" disabled>Enter Email to Buy</button>', unsafe_allow_html=True)
             else:
-                # Create unique key for each button
-                button_key = f"buy_{package['package_id']}_{int(time.time())}"
+                # Create unique key for each button (simplified)
+                button_key = f"buy_{package['package_id']}"
                 
                 # Use Streamlit button with custom styling through CSS
                 clicked = st.button(f"Buy {package['name']}", key=button_key, use_container_width=True)
+                
                 if clicked:
-                    # Client-side debug logging for CTA click
-                    st.markdown(f"""
-                    <script>
-                    console.info("[CREDITS] CTA click", {{ 
-                        pack: "{package['name']}"
-                    }});
-                    </script>
-                    """, unsafe_allow_html=True)
-                    
-                    logger.info(f"Purchase button clicked for package {package['name']}")
-                    log_credit_ui_debug(f"Purchase button clicked for package {package['name']}")
+                    logger.info(f"Purchase button clicked for package {package['name']} (ID: {package['package_id']})")
+                    log_credit_ui_debug(f"Purchase button clicked for package {package['name']} (ID: {package['package_id']})")
                     
                     # Show loading state using Streamlit button
                     with st.spinner("Setting up secure payment..."):
@@ -774,50 +718,6 @@ def display_credit_store():
     
     # Add proper spacing after all cards are displayed
     st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    # Final CSS override to ensure our styles take precedence over any global styles
-    st.markdown("""
-    <style>
-    /* Final override block - injected at the end to ensure maximum specificity */
-    #credit-store-container div.credit-package-card {
-        background: linear-gradient(145deg, #1a2436, #0f1722) !important;
-        border: 1px solid #2a3a50 !important;
-        border-radius: 16px !important;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
-    }
-    
-    #credit-store-container div.credit-package-card h3,
-    #credit-store-container div.credit-package-card .credits-amount,
-    #credit-store-container div.credit-package-card .price,
-    #credit-store-container div.credit-package-card .per-credit,
-    #credit-store-container div.credit-package-card .description,
-    #credit-store-container div.credit-package-card .time-savings {
-        text-align: center !important;
-        width: 100% !important;
-    }
-    
-    #credit-store-container div.credit-package-card .savings-badge {
-        background: linear-gradient(135deg, #10b981, #059669) !important;
-        color: #FFFFFF !important;
-    }
-    
-    #credit-store-container div.credit-package-card .stButton > button {
-        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 12px !important;
-        width: calc(100% - 2rem) !important;
-        display: block !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
-    
-    #credit-store-container div.credit-package-card .stButton > button:hover {
-        background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-        transform: translateY(-2px) !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
     
     log_credit_ui_debug("Finished display_credit_store function")
 

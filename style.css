@@ -246,28 +246,64 @@ div[data-baseweb="input"] {
 
 /* Credit Store Specific Styles - Prevent conflicts with global styles */
 /* More specific selectors for credit package cards */
-div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
-    background: #101922 !important;
-    border: 1px solid #1f2a36 !important;
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+    background: linear-gradient(145deg, #1a2436, #0f1722) !important;
+    border: 1px solid #2a3a50 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+    padding: 2rem !important;
+    margin: 1.5rem 0 !important;
+    text-align: center !important;
 }
 
 /* More specific selectors for CTA buttons */
-div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"] {
-    background: linear-gradient(135deg, #0E4DE3 0%, #1C5CF5 100%) !important;
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"] {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
     color: #FFFFFF !important;
     border: none !important;
+    border-radius: 12px !important;
+    padding: 1rem 1.5rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    width: calc(100% - 2rem) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.5) !important;
+    margin: 0.5rem auto !important;
+    display: block !important;
+    text-align: center !important;
 }
 
-div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #1C5CF5 0%, #2563EB 100%) !important;
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
     transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7) !important;
 }
 
 /* More specific selectors for savings badges */
-div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] {
-    background: linear-gradient(135deg, #22C55E, #16A34A) !important;
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
     color: #FFFFFF !important;
     border: none !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    padding: 0.8rem 1.5rem !important;
+    border-radius: 50px !important;
+    margin: 1rem auto !important;
+    width: fit-content !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+    text-align: center !important;
+}
+
+/* Text alignment fixes for credit store */
+#credit-store-container div[data-testid="column"] h3,
+#credit-store-container div[data-testid="column"] .credits-amount,
+#credit-store-container div[data-testid="column"] .price,
+#credit-store-container div[data-testid="column"] .per-credit,
+#credit-store-container div[data-testid="column"] .description,
+#credit-store-container div[data-testid="column"] .time-savings {
+    text-align: center !important;
+    width: 100% !important;
 }
 
 /* Remove or override any constraints for Browse Files button */
