@@ -6,6 +6,7 @@ import streamlit as st
 import requests
 import os
 import logging
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,10 +19,11 @@ def get_backend_url():
         return backend_url
     return "https://noianalyzer-1.onrender.com"
 
+BACKEND_URL = get_backend_url()
+
 def get_credit_packages():
     """Get available credit packages with minimal dependencies"""
     try:
-        BACKEND_URL = get_backend_url()
         response = requests.get(f"{BACKEND_URL}/pay-per-use/packages", timeout=10)
         if response.status_code == 200:
             return response.json()
@@ -29,6 +31,48 @@ def get_credit_packages():
     except Exception as e:
         logger.error(f"Error getting packages: {e}")
         return []
+
+def purchase_credits(email: str, package_id: str, package_name: str):
+    """Handle credit purchase with loading states - minimal implementation"""
+    try:
+        # Show loading indicator
+        with st.spinner("Setting up secure payment..."):
+            # Make the purchase request
+            url = f"{BACKEND_URL}/pay-per-use/credits/purchase"
+            data = {"email": email, "package_id": package_id}
+            
+            response = requests.post(
+                url,
+                data=data,
+                timeout=30,
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                checkout_url = result.get('checkout_url')
+                
+                if checkout_url:
+                    # Immediate redirect via meta refresh and JS fallback
+                    st.markdown(f"""
+                    <meta http-equiv='refresh' content='0; url={checkout_url}' />
+                    <script>
+                        window.location.href = '{checkout_url}';
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
+                    # Provide manual link only if redirect fails (rare)
+                    st.markdown(f"<small>If you are not redirected, <a href='{checkout_url}' target='_blank'>click here to continue to Stripe.</a></small>", unsafe_allow_html=True)
+                else:
+                    st.error("❌ Failed to create checkout session.")
+            else:
+                error_msg = f"Failed to initiate purchase: {response.text}"
+                st.error(f"❌ {error_msg}")
+                
+    except Exception as e:
+        logger.error(f"Unexpected error during purchase: {str(e)}", exc_info=True)
+        st.error(f"❌ **Unexpected Error**")
+        st.error(f"An unexpected error occurred: {str(e)}")
 
 def display_credit_store():
     """Display credit purchase interface with minimal, robust styling"""
@@ -106,7 +150,7 @@ def display_credit_store():
                     width: 100%;
                     text-align: center;
                 ">
-                    {package["name"] + " (Popular)" if idx == 1 and len(packages) > 2 else package["name"]}
+                    {("🌟 " + package["name"] + " (Popular)") if idx == 1 and len(packages) > 2 else package["name"]}
                 </h3>
                 
                 <div style="
@@ -144,11 +188,12 @@ def display_credit_store():
                 </div>
             """, unsafe_allow_html=True)
             
-            # Savings badge
-            if savings_text:
-                st.markdown(f"""
+            # Savings badge - Updated logic
+            # Show "5 Credits!" for the Starter pack (first package)
+            if idx == 0 and len(packages) > 1:
+                st.markdown("""
                 <div style="
-                    background: linear-gradient(135deg, #10b981, #059669);
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
                     color: #FFFFFF;
                     font-weight: 700;
                     font-size: 1.1rem;
@@ -156,13 +201,14 @@ def display_credit_store():
                     border-radius: 50px;
                     margin: 1rem auto;
                     width: fit-content;
-                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
                     text-align: center;
                 ">
-                    {savings_text}
+                    5 Credits!
                 </div>
                 """, unsafe_allow_html=True)
-            elif len(packages) > 1 and idx == 0:
+            # Show "Best Value!" for the Professional pack (middle package)
+            elif idx == 1 and len(packages) > 2:
                 st.markdown("""
                 <div style="
                     background: linear-gradient(135deg, #10b981, #059669);
@@ -177,6 +223,24 @@ def display_credit_store():
                     text-align: center;
                 ">
                     Best Value! 🚀
+                </div>
+                """, unsafe_allow_html=True)
+            # Show savings percentage for other packages
+            elif savings_text:
+                st.markdown(f"""
+                <div style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    text-align: center;
+                ">
+                    {savings_text}
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -211,13 +275,13 @@ def display_credit_store():
             </div>
             """, unsafe_allow_html=True)
             
-            # Purchase button
+            # Purchase button - Improved styling
             email = st.session_state.get('user_email', '')
             if not email:
                 st.warning("Please enter your email in the main app to purchase credits.")
                 st.markdown("""
                 <button disabled style="
-                    background: #6b7280;
+                    background: linear-gradient(135deg, #6b7280, #4b5563);
                     color: #FFFFFF;
                     border: none;
                     border-radius: 12px;
@@ -231,13 +295,19 @@ def display_credit_store():
                     text-align: center;
                     height: auto;
                     box-sizing: border-box;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 ">Enter Email to Buy</button>
                 """, unsafe_allow_html=True)
             else:
                 button_key = f"buy_{package['package_id']}"
-                if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True):
-                    # In a real implementation, this would redirect to Stripe
-                    st.info(f"Would purchase {package['name']} for {email}")
+                
+                # Create a container for the button to improve styling
+                button_container = st.container()
+                with button_container:
+                    # Use a more modern button style
+                    if st.button(f"Buy {package['name']}", key=button_key, use_container_width=True):
+                        # Call purchase function directly
+                        purchase_credits(email, package['package_id'], package['name'])
             
             # Close card div
             st.markdown("</div>", unsafe_allow_html=True)

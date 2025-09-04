@@ -8,12 +8,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.credit_ui_minimal import display_credit_store
 
 st.set_page_config(
-    page_title="Credit Store Test - Final",
+    page_title="Credit Store Test - Updated",
     page_icon="💳",
     layout="wide"
 )
 
-st.title("Credit Store UI Test - Final Implementation")
+st.title("Credit Store UI Test - Updated Implementation")
 
 # Set a test email
 if 'user_email' not in st.session_state:
@@ -22,7 +22,7 @@ if 'user_email' not in st.session_state:
 # Add debug info
 st.markdown("""
 <div style="background-color: #1a2436; border: 1px solid #2a3a50; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-    <h3 style="color: #FFFFFF; margin-top: 0;">🧪 Testing Final Credit Store UI</h3>
+    <h3 style="color: #FFFFFF; margin-top: 0;">🧪 Testing Updated Credit Store UI</h3>
     <p style="color: #A0A0A0; margin-bottom: 0;">This test page should show the credit store with:</p>
     <ul style="color: #A0A0A0;">
         <li>Modern card-based layout</li>
