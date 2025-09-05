@@ -1,3 +1,93 @@
+import streamlit as st
+import requests
+import os
+import logging
+import time
+
+# Import loading functions
+try:
+    from .ui_helpers import (
+        create_loading_button, show_button_loading, restore_button
+    )
+except ImportError:
+    # Fallback functions if ui_helpers is not available
+    def create_loading_button(label: str, key: str = "", help_text: str = "", **kwargs):
+        # Handle help parameter conflicts - prefer explicit help_text over kwargs help
+        if help_text:
+            kwargs['help'] = help_text
+        return st.button(label, key=key or None, **kwargs), st.empty()
+    def show_button_loading(button_placeholder, label: str = "Processing..."):
+        button_placeholder.button(label, disabled=True)
+    def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
+        button_placeholder.button(label, key=key or None, **kwargs)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def get_backend_url():
+    """Get the correct backend URL"""
+    backend_url = os.getenv("BACKEND_URL")
+    if backend_url:
+        return backend_url
+    return "https://noianalyzer-1.onrender.com"
+
+BACKEND_URL = get_backend_url()
+
+def get_credit_packages():
+    """Get available credit packages with minimal dependencies"""
+    try:
+        response = requests.get(f"{BACKEND_URL}/pay-per-use/packages", timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        return []
+    except Exception as e:
+        logger.error(f"Error getting packages: {e}")
+        return []
+
+def purchase_credits(email: str, package_id: str, package_name: str):
+    """Handle credit purchase with loading states - minimal implementation"""
+    try:
+        # Show loading indicator
+        with st.spinner("Setting up secure payment..."):
+            # Make the purchase request
+            url = f"{BACKEND_URL}/pay-per-use/credits/purchase"
+            data = {"email": email, "package_id": package_id}
+            
+            response = requests.post(
+                url,
+                data=data,
+                timeout=30,
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                checkout_url = result.get('checkout_url')
+                
+                if checkout_url:
+                    # Immediate redirect via meta refresh and JS fallback
+                    st.markdown(f"""
+                    <meta http-equiv='refresh' content='0; url={checkout_url}' />
+                    <script>
+                        window.location.href = '{checkout_url}';
+                    </script>
+                    """, unsafe_allow_html=True)
+                    
+                    # Provide manual link only if redirect fails (rare)
+                    st.markdown(f"<small>If you are not redirected, <a href='{checkout_url}' target='_blank'>click here to continue to Stripe.</a></small>", unsafe_allow_html=True)
+                else:
+                    st.error("❌ Failed to create checkout session.")
+            else:
+                error_msg = f"Failed to initiate purchase: {response.text}"
+                st.error(f"❌ {error_msg}")
+                
+    except Exception as e:
+        logger.error(f"Unexpected error during purchase: {str(e)}", exc_info=True)
+        st.error(f"❌ **Unexpected Error**")
+        st.error(f"An unexpected error occurred: {str(e)}")
+
+
 def display_credit_store():
     """Display credit purchase interface with minimal, robust styling"""
     st.markdown("""
