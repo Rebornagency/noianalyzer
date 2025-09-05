@@ -414,31 +414,6 @@ def display_credit_store():
     
     log_credit_ui_debug(f"Created {len(cols)} columns for packages")
     
-    # Define common styles as variables for consistency
-    card_style = {
-        "background": "linear-gradient(145deg, #1a2436, #0f1722)",
-        "border": "1px solid #2a3a50",
-        "border_radius": "16px",
-        "box_shadow": "0 10px 25px rgba(0, 0, 0, 0.4)",
-        "padding": "2rem",
-        "margin": "1.5rem 0",
-        "text_align": "center",
-        "transition": "all 0.3s ease",
-        "height": "100%",
-        "display": "flex",
-        "flex_direction": "column",
-        "align_items": "center",
-        "justify_content": "flex-start",
-        "width": "100%",
-        "position": "relative",
-        "box_sizing": "border-box",
-        "color": "#FFFFFF",
-        "outline": "2px solid #ff0000"  # RED OUTLINE FOR DEBUGGING - should be visible now
-    }
-    
-    # Convert card style to inline CSS string
-    card_css = "; ".join([f"{k.replace('_', '-')}: {v}" for k, v in card_style.items()])
-    
     for idx, package in enumerate(packages):
         log_credit_ui_debug(f"Rendering package {idx}: {package.get('name', 'Unknown')}")
         
@@ -454,143 +429,144 @@ def display_credit_store():
                 if savings_percent > 0:
                     savings_text = f"Save {savings_percent:.0f}%!"
             
-            # Create the card container with inline styles
-            st.markdown(
-                f"""
-                <div style="{card_css}">
-                    <h3 style="
-                        color: #FFFFFF;
-                        font-size: 1.8rem;
-                        font-weight: 700;
-                        margin: 0 0 1.5rem 0;
-                        padding-bottom: 1rem;
-                        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-                        display: block;
-                        width: 100%;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        {"🌟 " + package["name"] + " (Popular)" if idx == 1 and len(packages) > 2 else package["name"]}
-                    </h3>
-                    
-                    <div style="
-                        color: #FFFFFF;
-                        font-size: 1.3rem;
-                        font-weight: 600;
-                        margin: 1rem 0;
-                        display: block;
-                        width: 100%;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        {package["credits"]} Credits
-                    </div>
-                    
-                    <div style="
-                        color: #FFFFFF;
-                        font-size: 2.5rem;
-                        font-weight: 800;
-                        margin: 1rem 0;
-                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                        display: block;
-                        width: 100%;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        ${package["price_dollars"]:.2f}
-                    </div>
-                    
-                    <div style="
-                        color: #A0A0A0;
-                        font-size: 1rem;
-                        font-style: italic;
-                        margin: 0.5rem 0 1.5rem 0;
-                        display: block;
-                        width: 100%;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        ${package["per_credit_cost"]:.2f} per credit
-                    </div>
-                """,
-                unsafe_allow_html=True
-            )
+            # Calculate time savings
+            hours_saved = int(round(package['credits'] * 1.75))
             
-            # Savings badge - Updated logic
+            # Description text
+            description_text = package.get('description', f"Top up {package['credits']} credits")
+            
+            # Build the complete card HTML in one piece to avoid rendering issues
+            card_html = f"""
+            <div style="
+                background: linear-gradient(145deg, #1a2436, #0f1722);
+                border: 1px solid #2a3a50;
+                border-radius: 16px;
+                padding: 2rem;
+                margin: 1.5rem 0;
+                text-align: center;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                width: 100%;
+                box-sizing: border-box;
+                color: #FFFFFF;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            ">
+                <h3 style="
+                    color: #FFFFFF;
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    margin: 0 0 1.5rem 0;
+                    padding-bottom: 1rem;
+                    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                ">
+                    {("🌟 " + package["name"] + " (Popular)") if idx == 1 and len(packages) > 2 else package["name"]}
+                </h3>
+                
+                <div style="
+                    color: #FFFFFF;
+                    font-size: 1.3rem;
+                    font-weight: 600;
+                    margin: 1rem 0;
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                ">
+                    {package["credits"]} Credits
+                </div>
+                
+                <div style="
+                    color: #FFFFFF;
+                    font-size: 2.5rem;
+                    font-weight: 800;
+                    margin: 1rem 0;
+                    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                ">
+                    ${package["price_dollars"]:.2f}
+                </div>
+                
+                <div style="
+                    color: #A0A0A0;
+                    font-size: 1rem;
+                    font-style: italic;
+                    margin: 0.5rem 0 1.5rem 0;
+                    display: block;
+                    width: 100%;
+                    text-align: center;
+                ">
+                    ${package["per_credit_cost"]:.2f} per credit
+                </div>
+            """
+            
+            # Add savings badge based on package position
             # Show "5 Credits!" for the Starter pack (first package) when there are multiple packages
             if idx == 0 and len(packages) > 1:
-                st.markdown(
-                    f"""
-                    <div style="
-                        background: linear-gradient(135deg, #3b82f6, #2563eb);
-                        color: #FFFFFF;
-                        font-weight: 700;
-                        font-size: 1.1rem;
-                        padding: 0.8rem 1.5rem;
-                        border-radius: 50px;
-                        margin: 1rem auto;
-                        width: fit-content;
-                        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-                        display: inline-block;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        5 Credits!
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                card_html += f"""
+                <div style="
+                    background: linear-gradient(135deg, #3b82f6, #2563eb);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+                    display: inline-block;
+                    text-align: center;
+                ">
+                    5 Credits!
+                </div>
+                """
             # Show "Best Value!" for the Professional pack (second package when there are 3+ packages, or first package when there are only 2)
             elif (len(packages) > 2 and idx == 1) or (len(packages) == 2 and idx == 1):
-                st.markdown(
-                    f"""
-                    <div style="
-                        background: linear-gradient(135deg, #10b981, #059669);
-                        color: #FFFFFF;
-                        font-weight: 700;
-                        font-size: 1.1rem;
-                        padding: 0.8rem 1.5rem;
-                        border-radius: 50px;
-                        margin: 1rem auto;
-                        width: fit-content;
-                        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-                        display: inline-block;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        Best Value! 🚀
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                card_html += f"""
+                <div style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    display: inline-block;
+                    text-align: center;
+                ">
+                    Best Value! 🚀
+                </div>
+                """
             # Show savings percentage for other packages (third package and beyond when there are 3+ packages)
             elif savings_text and idx > 1:
-                st.markdown(
-                    f"""
-                    <div style="
-                        background: linear-gradient(135deg, #10b981, #059669);
-                        color: #FFFFFF;
-                        font-weight: 700;
-                        font-size: 1.1rem;
-                        padding: 0.8rem 1.5rem;
-                        border-radius: 50px;
-                        margin: 1rem auto;
-                        width: fit-content;
-                        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-                        display: inline-block;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        {savings_text}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                card_html += f"""
+                <div style="
+                    background: linear-gradient(135deg, #10b981, #059669);
+                    color: #FFFFFF;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    padding: 0.8rem 1.5rem;
+                    border-radius: 50px;
+                    margin: 1rem auto;
+                    width: fit-content;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+                    display: inline-block;
+                    text-align: center;
+                ">
+                    {savings_text}
+                </div>
+                """
             
-            # Time savings calculation
-            hours_saved = int(round(package['credits'] * 1.75))
-            st.markdown(
-                f"""
+            # Add time savings and description
+            card_html += f"""
                 <div style="
                     color: #FACC15;
                     font-weight: 700;
@@ -599,18 +575,10 @@ def display_credit_store():
                     display: block;
                     width: 100%;
                     text-align: center;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
                 ">
                     ⏱ Save ~{hours_saved} hours of work!
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
-            
-            # Description
-            description_text = package.get('description', f"Top up {package['credits']} credits")
-            st.markdown(
-                f"""
+                
                 <div style="
                     color: #D0D0D0;
                     font-size: 1rem;
@@ -620,47 +588,49 @@ def display_credit_store():
                     display: block;
                     width: 100%;
                     text-align: center;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
                 ">
                     {description_text}
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
+            """
             
-            # Purchase button with loading state
+            # Add purchase button section
             email = st.session_state.get('user_email', '')
-            
             if not email:
-                st.warning("Please enter your email in the main app to purchase credits.")
-                st.markdown(
-                    '<button class="purchase-button" disabled style="'
-                    'background: #6b7280; '
-                    'color: #FFFFFF; '
-                    'border: none; '
-                    'border-radius: 12px; '
-                    'padding: 1rem 1.5rem; '
-                    'font-size: 1.1rem; '
-                    'font-weight: 700; '
-                    'width: calc(100% - 2rem); '
-                    'cursor: not-allowed; '
-                    'margin: 0.5rem auto; '
-                    'display: block; '
-                    'text-align: center; '
-                    'height: auto; '
-                    'box-sizing: border-box; '
-                    '">Enter Email to Buy</button>',
-                    unsafe_allow_html=True
-                )
+                card_html += """
+                <button disabled style="
+                    background: #6b7280;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 1rem 1.5rem;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    width: calc(100% - 2rem);
+                    cursor: not-allowed;
+                    margin: 0.5rem auto;
+                    display: block;
+                    text-align: center;
+                    height: auto;
+                    box-sizing: border-box;
+                ">Enter Email to Buy</button>
+                """
             else:
-                # Create unique key for each button (simplified)
+                # Close the card div but we'll add the button separately using Streamlit
+                card_html += "</div>"
+                
+                # Display the card
+                st.markdown(card_html, unsafe_allow_html=True)
+                
+                # Create unique key for each button
                 button_key = f"buy_{package['package_id']}"
                 
                 # Use loading button to match "Buy More Credits" styling
                 clicked, button_placeholder = create_loading_button(
                     f"Buy {package['name']}", 
                     key=button_key, 
-                    use_container_width=True
+                    use_container_width=True,
+                    # Add styling to match the homepage "Buy More Credits" button
+                    type="primary"
                 )
                 
                 if clicked:
@@ -675,9 +645,15 @@ def display_credit_store():
                     
                     # Call purchase function
                     purchase_credits(email, package['package_id'], package['name'])
+                
+                # Skip to next iteration since we already closed the card
+                continue
             
-            # Close card div
-            st.markdown('</div>', unsafe_allow_html=True)
+            # Close the card div for cases where email is not provided
+            card_html += "</div>"
+            
+            # Display the complete card
+            st.markdown(card_html, unsafe_allow_html=True)
     
     # Add proper spacing after all cards are displayed
     st.markdown("<br><br>", unsafe_allow_html=True)
