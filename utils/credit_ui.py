@@ -517,7 +517,7 @@ def display_credit_store():
             )
             
             # Savings badge - Updated logic
-            # Show "5 Credits!" for the Starter pack (first package)
+            # Show "5 Credits!" for the Starter pack (first package) when there are multiple packages
             if idx == 0 and len(packages) > 1:
                 st.markdown(
                     f"""
@@ -540,8 +540,8 @@ def display_credit_store():
                     """,
                     unsafe_allow_html=True
                 )
-            # Show "Best Value!" for the Professional pack (middle package)
-            elif idx == 1 and len(packages) > 2:
+            # Show "Best Value!" for the Professional pack (second package when there are 3+ packages, or first package when there are only 2)
+            elif (len(packages) > 2 and idx == 1) or (len(packages) == 2 and idx == 1):
                 st.markdown(
                     f"""
                     <div style="
@@ -563,8 +563,8 @@ def display_credit_store():
                     """,
                     unsafe_allow_html=True
                 )
-            # Show savings percentage for other packages
-            elif savings_text:
+            # Show savings percentage for other packages (third package and beyond when there are 3+ packages)
+            elif savings_text and idx > 1:
                 st.markdown(
                     f"""
                     <div style="
@@ -582,29 +582,6 @@ def display_credit_store():
                         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
                     ">
                         {savings_text}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-            # Show "Best Value!" for the first package (original logic as fallback)
-            elif len(packages) > 1 and idx == 0:
-                st.markdown(
-                    f"""
-                    <div style="
-                        background: linear-gradient(135deg, #10b981, #059669);
-                        color: #FFFFFF;
-                        font-weight: 700;
-                        font-size: 1.1rem;
-                        padding: 0.8rem 1.5rem;
-                        border-radius: 50px;
-                        margin: 1rem auto;
-                        width: fit-content;
-                        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-                        display: inline-block;
-                        text-align: center;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-                    ">
-                        Best Value! 🚀
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -679,8 +656,8 @@ def display_credit_store():
                 # Create unique key for each button (simplified)
                 button_key = f"buy_{package['package_id']}"
                 
-                # Use Streamlit button with custom styling through CSS
-                clicked = st.button(
+                # Use loading button to match "Buy More Credits" styling
+                clicked, button_placeholder = create_loading_button(
                     f"Buy {package['name']}", 
                     key=button_key, 
                     use_container_width=True
@@ -690,10 +667,14 @@ def display_credit_store():
                     logger.info(f"Purchase button clicked for package {package['name']} (ID: {package['package_id']})")
                     log_credit_ui_debug(f"Purchase button clicked for package {package['name']} (ID: {package['package_id']})")
                     
-                    # Show loading state using Streamlit button
-                    with st.spinner("Setting up secure payment..."):
-                        # Call purchase function
-                        purchase_credits(email, package['package_id'], package['name'])
+                    # Show loading state
+                    show_button_loading(button_placeholder, "Setting up payment...")
+                    
+                    # Brief loading to show feedback
+                    time.sleep(0.5)
+                    
+                    # Call purchase function
+                    purchase_credits(email, package['package_id'], package['name'])
             
             # Close card div
             st.markdown('</div>', unsafe_allow_html=True)
