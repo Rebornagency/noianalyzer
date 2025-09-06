@@ -907,6 +907,10 @@ def restore_button(button_placeholder, label: str, key: str = None, **kwargs):
         key (str): Button key
         **kwargs: Additional button arguments
     """
+    # Ensure the button maintains the primary type for consistent styling
+    if "type" not in kwargs:
+        kwargs["type"] = "primary"
+    
     with button_placeholder.container():
         st.button(label, key=f"{key}_restored" if key else None, **kwargs)
 

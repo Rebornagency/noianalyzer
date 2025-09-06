@@ -4583,6 +4583,7 @@ def main():
             )
             
             if process_clicked:
+                logger.info("Process Documents button was clicked")
                 # NEW: Check if email is provided before proceeding
                 user_email = st.session_state.get('user_email', '').strip()
                 if not user_email:
@@ -4659,9 +4660,8 @@ def main():
                     if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
                     
                     logger.info("Main page 'Process Documents' clicked in TESTING MODE.")
-                    add_breadcrumb("Process Documents button clicked (Testing Mode)", "user_action", "info",
-                                   {"property_name": st.session_state.mock_property_name,
-                                    "scenario": st.session_state.mock_scenario})
+                    add_breadcrumb("Process Documents button clicked (Testing Mode)", "user_action", "info")
+                    logger.info(f"Process Documents clicked in testing mode, property: {st.session_state.mock_property_name}, scenario: {st.session_state.mock_scenario}")
                     
                     # Update loading message for testing mode
                     with loading_container.container():
@@ -4679,7 +4679,9 @@ def main():
                     # The UI will update naturally on the next render cycle
                 else:
                     # Check if Terms of Service have been accepted
+                    logger.info(f"Checking terms acceptance: {st.session_state.get('terms_accepted', False)}")
                     if not st.session_state.get('terms_accepted', False):
+                        logger.info("Terms not accepted, showing error message")
                         st.session_state.show_tos_error = True
                         # Clear loading states before showing error
                         loading_container.empty()
@@ -4688,6 +4690,8 @@ def main():
                         # The error message will be displayed on the next render cycle
                         return  # Exit the function to prevent further processing
                     
+                    # Terms accepted, continue with processing
+                    logger.info("Terms accepted, continuing with document processing")
                     # Production mode - check credits
                     user_email = st.session_state.get('user_email', '').strip()
                     if not user_email:
@@ -4716,9 +4720,8 @@ def main():
                             if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
                             if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
                             logger.info(f"Main page 'Process Documents' clicked for {user_email} with sufficient credits.")
-                            add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info",
-                                           {"email": user_email,
-                                            "property_name": st.session_state.get('property_name', 'Unknown')})
+                            add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info")
+                            logger.info(f"Process Documents clicked for {user_email}, property: {st.session_state.get('property_name', 'Unknown')}")
                             
                             # Update to document processing phase
                             with loading_container.container():
@@ -4778,13 +4781,9 @@ def main():
                         add_breadcrumb(
                             "Redirecting to Stripe payment (fallback)", 
                             "payment", 
-                            "info",
-                            {
-                                "email": user_email,
-                                "files_count": len(files_to_upload),
-                                "property_name": st.session_state.get('property_name', 'Unknown')
-                            }
+                            "info"
                         )
+                        logger.info(f"Redirecting to Stripe for {user_email}, files: {len(files_to_upload)}, property: {st.session_state.get('property_name', 'Unknown')}")
                         create_stripe_job_and_redirect(user_email, list(files_to_upload.values()), list(files_to_upload.keys()))
 
         with col2:
