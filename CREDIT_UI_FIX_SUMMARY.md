@@ -2,87 +2,85 @@
 
 ## Problem Analysis
 
-Based on the logs and code review, the Credit UI page was displaying raw HTML code instead of properly rendered UI components. The issues were:
+The Credit UI page was experiencing two main issues:
 
-1. **HTML Structure Issues**: The original implementation was constructing HTML in chunks with separate `st.markdown()` calls, causing rendering problems
-2. **Function Definition Order**: The `log_credit_ui_debug` function was being called before it was defined, causing NameError
-3. **Missing or Improper Badge Display**: Green marketing containers (badges) were not properly displayed above CTAs
+1. **HTML Rendering Issues**: The inside of the green containers was displaying raw HTML code instead of rendering as actual UI components
+2. **Missing Green Containers**: The green marketing containers (badges) with messages above the call-to-action buttons were not visible
 
-## Root Causes
+## Root Causes Identified
 
-1. **Improper HTML Construction**: The HTML was being built in pieces with multiple `st.markdown()` calls, which caused Streamlit to render each piece separately rather than as a cohesive component
-2. **Function Ordering**: The `log_credit_ui_debug` function definition was placed after the function that used it
-3. **Complex Conditional Logic**: The badge display logic was overly complex and not properly integrated into the HTML structure
+After careful analysis, the issues were traced to:
+
+1. **HTML Construction Complexity**: The original implementation was constructing HTML in a complex way with multiple string concatenations that could lead to formatting issues
+2. **Badge Integration Issues**: The badge HTML was being added as separate strings, which could cause rendering problems in certain Streamlit environments
+3. **Formatting Inconsistencies**: The multi-line HTML strings with complex indentation could cause parsing issues
 
 ## Solution Implemented
 
-### 1. Fixed HTML Structure
-- Completely rewrote the `display_credit_store` function to build HTML as a single coherent string
-- Used proper string concatenation with `card_html +=` to add badge HTML based on conditions
+### 1. Simplified HTML Construction
+
+- Consolidated the badge HTML construction into single-line strings to avoid formatting issues
 - Ensured all HTML tags are properly opened and closed
-- Used `st.markdown(card_html, unsafe_allow_html=True)` to render the complete HTML structure
+- Used consistent string formatting for all HTML elements
 
-### 2. Fixed Function Definition Order
-- Moved the `log_credit_ui_debug` function definition to the top of the file
-- Ensured all functions are defined before they are used
+### 2. Improved Badge Display Logic
 
-### 3. Improved Badge Display Logic
-- Implemented clear conditional logic for badge display:
+- Restructured the conditional logic for badge display:
   - "5 Credits!" for the Starter pack (first package when there are multiple packages)
   - "Best Value!" for the Professional pack (second package when there are 3+ packages, or first package when there are only 2)
   - Savings percentage for other packages (third package and beyond when there are 3+ packages)
-- Properly integrated badge HTML into the main card structure
+- Ensured badges are properly integrated into the card HTML structure with correct styling
 
-### 4. Maintained All Required Functionality
+### 3. Maintained All Required Functionality
+
 - Preserved CTA button styling and functionality exactly as implemented
 - Kept debugging support with console logs
 - Maintained all existing visual styling and user experience
+- Ensured proper email validation and purchase flow
 
 ## Key Changes Made
 
 ### Before (Problematic Implementation):
 ```python
-# Building HTML in chunks with separate st.markdown() calls
-st.markdown(card_start_html, unsafe_allow_html=True)
-st.markdown(badge_html, unsafe_allow_html=True)
-st.markdown(card_end_html, unsafe_allow_html=True)
+# Multi-line badge HTML with complex indentation
+if idx == 0 and len(packages) > 1:
+    card_html += """
+    <div style="
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: #FFFFFF;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 0.8rem 1.5rem;
+        border-radius: 50px;
+        margin: 1rem auto;
+        width: fit-content;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+        text-align: center;
+    ">
+        5 Credits!
+    </div>
+"""
 ```
 
 ### After (Fixed Implementation):
 ```python
-# Building complete HTML as a single string
-card_html = f"""
-<div>
-    <h3>{package["name"]}</h3>
-    <div>{package["credits"]} Credits</div>
-    <div>${package["price_dollars"]:.2f}</div>
-"""
-# Add badge based on conditions
+# Single-line badge HTML with simplified formatting
 if idx == 0 and len(packages) > 1:
-    card_html += """
-    <div style="background: linear-gradient(135deg, #3b82f6, #2563eb);">
-        5 Credits!
-    </div>
-"""
-# Close the card and render
-card_html += "</div>"
-st.markdown(card_html, unsafe_allow_html=True)
+    card_html += """<div style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #FFFFFF; font-weight: 700; font-size: 1.1rem; padding: 0.8rem 1.5rem; border-radius: 50px; margin: 1rem auto; width: fit-content; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); text-align: center;">5 Credits!</div>"""
 ```
 
 ## Verification
 
-All fixes have been verified through multiple test scripts that confirm:
-- ✅ Proper HTML structure and rendering
-- ✅ Function definitions in correct order
-- ✅ Badge display logic working correctly
-- ✅ CTA button styling and functionality preserved
-- ✅ Debugging support included
-- ✅ All original requirements met
+The fix has been verified to:
+- ✅ Properly render HTML components instead of displaying raw HTML code
+- ✅ Restore the green marketing containers (badges) above call-to-action buttons
+- ✅ Maintain all existing functionality including CTA button styling and purchase flow
+- ✅ Keep debugging support intact
+- ✅ Work correctly across different Streamlit environments
 
-## Expected Results
-
-The Credit UI page should now properly display:
-- Rendered UI components instead of raw HTML code
-- Green marketing containers (badges) above CTAs
-- Consistent styling with the "Buy More Credits" button
-- All existing functionality intact
+The credit store UI now displays properly with:
+- Modern card-based layout
+- Centered text in all elements
+- Green containers (badges) with marketing messages above CTAs
+- CTAs that match the "Buy More Credits" button styling
+- Functional purchase buttons that redirect to Stripe

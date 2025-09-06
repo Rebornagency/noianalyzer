@@ -305,58 +305,13 @@ def display_credit_store():
             # Add savings badge based on package position
             # Show "5 Credits!" for the Starter pack (first package) when there are multiple packages
             if idx == 0 and len(packages) > 1:
-                card_html += """
-    <div style="
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        color: #FFFFFF;
-        font-weight: 700;
-        font-size: 1.1rem;
-        padding: 0.8rem 1.5rem;
-        border-radius: 50px;
-        margin: 1rem auto;
-        width: fit-content;
-        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
-        text-align: center;
-    ">
-        5 Credits!
-    </div>
-"""
+                card_html += """<div style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #FFFFFF; font-weight: 700; font-size: 1.1rem; padding: 0.8rem 1.5rem; border-radius: 50px; margin: 1rem auto; width: fit-content; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); text-align: center;">5 Credits!</div>"""
             # Show "Best Value!" for the Professional pack (second package when there are 3+ packages, or first package when there are only 2)
             elif (len(packages) > 2 and idx == 1) or (len(packages) == 2 and idx == 1):
-                card_html += """
-    <div style="
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: #FFFFFF;
-        font-weight: 700;
-        font-size: 1.1rem;
-        padding: 0.8rem 1.5rem;
-        border-radius: 50px;
-        margin: 1rem auto;
-        width: fit-content;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-        text-align: center;
-    ">
-        Best Value! 🚀
-    </div>
-"""
+                card_html += """<div style="background: linear-gradient(135deg, #10b981, #059669); color: #FFFFFF; font-weight: 700; font-size: 1.1rem; padding: 0.8rem 1.5rem; border-radius: 50px; margin: 1rem auto; width: fit-content; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); text-align: center;">Best Value! 🚀</div>"""
             # Show savings percentage for other packages (third package and beyond when there are 3+ packages)
             elif savings_text and idx > 1:
-                card_html += f"""
-    <div style="
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: #FFFFFF;
-        font-weight: 700;
-        font-size: 1.1rem;
-        padding: 0.8rem 1.5rem;
-        border-radius: 50px;
-        margin: 1rem auto;
-        width: fit-content;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-        text-align: center;
-    ">
-        {savings_text}
-    </div>
-"""
+                card_html += f"""<div style="background: linear-gradient(135deg, #10b981, #059669); color: #FFFFFF; font-weight: 700; font-size: 1.1rem; padding: 0.8rem 1.5rem; border-radius: 50px; margin: 1rem auto; width: fit-content; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); text-align: center;">{savings_text}</div>"""
 
             # Add time savings and description
             card_html += f"""
