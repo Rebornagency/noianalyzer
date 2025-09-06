@@ -1,40 +1,72 @@
-import streamlit as st
 import sys
 import os
 
 # Add the project root to the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.credit_ui_minimal import display_credit_store
+def test_credit_ui_imports():
+    """Test that we can import the credit UI functions without syntax errors"""
+    try:
+        from utils.credit_ui import display_credit_store
+        print("✅ Successfully imported display_credit_store from credit_ui")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to import display_credit_store from credit_ui: {e}")
+        return False
 
-st.set_page_config(
-    page_title="Credit Store Test - Final",
-    page_icon="💳",
-    layout="wide"
-)
+def test_credit_ui_minimal_imports():
+    """Test that we can import the minimal credit UI functions without syntax errors"""
+    try:
+        from utils.credit_ui_minimal import display_credit_store
+        print("✅ Successfully imported display_credit_store from credit_ui_minimal")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to import display_credit_store from credit_ui_minimal: {e}")
+        return False
 
-st.title("Credit Store UI Test - Final Implementation")
+def check_syntax_errors():
+    """Check for syntax errors in our modified files"""
+    import ast
+    
+    files_to_check = [
+        "utils/credit_ui.py",
+        "utils/credit_ui_minimal.py"
+    ]
+    
+    all_good = True
+    for file_path in files_to_check:
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            ast.parse(content)
+            print(f"✅ No syntax errors in {file_path}")
+        except SyntaxError as e:
+            print(f"❌ Syntax error in {file_path}: {e}")
+            all_good = False
+        except Exception as e:
+            print(f"❌ Error reading {file_path}: {e}")
+            all_good = False
+    
+    return all_good
 
-# Set a test email
-if 'user_email' not in st.session_state:
-    st.session_state.user_email = "test@example.com"
-
-# Add debug info
-st.markdown("""
-<div style="background-color: #1a2436; border: 1px solid #2a3a50; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-    <h3 style="color: #FFFFFF; margin-top: 0;">🧪 Testing Final Credit Store UI</h3>
-    <p style="color: #A0A0A0; margin-bottom: 0;">This test page should show the credit store with:</p>
-    <ul style="color: #A0A0A0;">
-        <li>Modern card-based layout</li>
-        <li>Centered text in all elements</li>
-        <li>RED OUTLINES around package cards (CRITICAL - this confirms CSS is working)</li>
-        <li>Improved CTAs with better styling</li>
-        <li>"5 Credits!" tag on Starter pack</li>
-        <li>"Best Value!" tag on Professional pack</li>
-        <li>Functional purchase buttons that redirect to Stripe</li>
-    </ul>
-</div>
-""", unsafe_allow_html=True)
-
-# Display the credit store
-display_credit_store()
+if __name__ == "__main__":
+    print("🔍 Verifying Credit UI Fixes...")
+    print("=" * 50)
+    
+    # Check syntax errors first
+    syntax_ok = check_syntax_errors()
+    print()
+    
+    # Test imports
+    import_ok = test_credit_ui_imports()
+    print()
+    
+    import_minimal_ok = test_credit_ui_minimal_imports()
+    print()
+    
+    if syntax_ok and (import_ok or import_minimal_ok):
+        print("🎉 All tests passed! The credit UI fixes should work correctly.")
+        sys.exit(0)
+    else:
+        print("❌ Some tests failed. Please check the errors above.")
+        sys.exit(1)

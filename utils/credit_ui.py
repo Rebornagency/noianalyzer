@@ -597,29 +597,42 @@ def display_credit_store():
             email = st.session_state.get('user_email', '')
             if not email:
                 card_html += """
-                <button disabled style="
-                    background: #6b7280;
-                    color: #FFFFFF;
-                    border: none;
-                    border-radius: 12px;
-                    padding: 1rem 1.5rem;
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    width: calc(100% - 2rem);
-                    cursor: not-allowed;
-                    margin: 0.5rem auto;
-                    display: block;
-                    text-align: center;
-                    height: auto;
-                    box-sizing: border-box;
-                ">Enter Email to Buy</button>
-                """
+    <button disabled style="
+        background: #6b7280;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        width: calc(100% - 2rem);
+        cursor: not-allowed;
+        margin: 0.5rem auto;
+        display: block;
+        text-align: center;
+        height: auto;
+        box-sizing: border-box;
+    ">Enter Email to Buy</button>
+</div>
+"""
+                # Display the complete card
+                st.markdown(card_html, unsafe_allow_html=True)
             else:
                 # Close the card div but we'll add the button separately using Streamlit
                 card_html += "</div>"
                 
                 # Display the card
                 st.markdown(card_html, unsafe_allow_html=True)
+                
+                # Add debug logging if enabled
+                if os.getenv('DEBUG_CREDITS', 'false').lower() == 'true':
+                    st.markdown(f"""
+<script>
+console.info("[CREDITS] mounted");
+console.info("[CREDITS] pack render", "{package['package_id']}");
+console.info("[CREDITS] pack body type", typeof "{card_html[:50]}...", {{ length: "{len(card_html)}" }});
+</script>
+""", unsafe_allow_html=True)
                 
                 # Create unique key for each button
                 button_key = f"buy_{package['package_id']}"
@@ -645,15 +658,6 @@ def display_credit_store():
                     
                     # Call purchase function
                     purchase_credits(email, package['package_id'], package['name'])
-                
-                # Skip to next iteration since we already closed the card
-                continue
-            
-            # Close the card div for cases where email is not provided
-            card_html += "</div>"
-            
-            # Display the complete card
-            st.markdown(card_html, unsafe_allow_html=True)
     
     # Add proper spacing after all cards are displayed
     st.markdown("<br><br>", unsafe_allow_html=True)
