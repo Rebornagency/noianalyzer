@@ -5,6 +5,24 @@ from typing import Dict, Any, Optional
 import logging
 import time
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()  # This ensures logs go to stdout which Render captures
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Add specific logging for credit UI debugging
+credit_ui_logger = logging.getLogger("credit_ui_debug")
+credit_ui_logger.setLevel(logging.DEBUG)
+
+def log_credit_ui_debug(message):
+    """Log debug messages specifically for credit UI issues"""
+    credit_ui_logger.debug(f"[CREDIT_UI_DEBUG] {message}")
+
 # Import loading functions
 try:
     from .ui_helpers import (
@@ -29,24 +47,6 @@ except ImportError:
         button_placeholder.button(label, disabled=True)
     def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
         button_placeholder.button(label, key=key or None, **kwargs)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler()  # This ensures logs go to stdout which Render captures
-    ]
-)
-logger = logging.getLogger(__name__)
-
-# Add specific logging for credit UI debugging
-credit_ui_logger = logging.getLogger("credit_ui_debug")
-credit_ui_logger.setLevel(logging.DEBUG)
-
-def log_credit_ui_debug(message):
-    """Log debug messages specifically for credit UI issues"""
-    credit_ui_logger.debug(f"[CREDIT_UI_DEBUG] {message}")
 
 def get_backend_url():
     """Get the correct backend URL by testing available options"""
@@ -235,8 +235,7 @@ def display_credit_store():
             # Description text
             description_text = package.get('description', f"Top up {package['credits']} credits")
             
-            # Build the complete card HTML in one piece
-            # Start with the main card container
+            # Build the complete card HTML in one piece to avoid rendering issues
             card_html = f"""
 <div style="
     background: linear-gradient(145deg, #1a2436, #0f1722);
@@ -302,9 +301,9 @@ def display_credit_store():
         ${package["per_credit_cost"]:.2f} per credit
     </div>
 """
-            
+
             # Add savings badge based on package position
-            # Show "5 Credits!" for the Starter pack (first package)
+            # Show "5 Credits!" for the Starter pack (first package) when there are multiple packages
             if idx == 0 and len(packages) > 1:
                 card_html += """
     <div style="
@@ -322,8 +321,8 @@ def display_credit_store():
         5 Credits!
     </div>
 """
-            # Show "Best Value!" for the Professional pack (middle package)
-            elif idx == 1 and len(packages) > 2:
+            # Show "Best Value!" for the Professional pack (second package when there are 3+ packages, or first package when there are only 2)
+            elif (len(packages) > 2 and idx == 1) or (len(packages) == 2 and idx == 1):
                 card_html += """
     <div style="
         background: linear-gradient(135deg, #10b981, #059669);
@@ -340,8 +339,8 @@ def display_credit_store():
         Best Value! 🚀
     </div>
 """
-            # Show savings percentage for other packages
-            elif savings_text:
+            # Show savings percentage for other packages (third package and beyond when there are 3+ packages)
+            elif savings_text and idx > 1:
                 card_html += f"""
     <div style="
         background: linear-gradient(135deg, #10b981, #059669);
@@ -358,25 +357,7 @@ def display_credit_store():
         {savings_text}
     </div>
 """
-            # Show "Best Value!" for the first package (original logic as fallback)
-            elif len(packages) > 1 and idx == 0:
-                card_html += """
-    <div style="
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: #FFFFFF;
-        font-weight: 700;
-        font-size: 1.1rem;
-        padding: 0.8rem 1.5rem;
-        border-radius: 50px;
-        margin: 1rem auto;
-        width: fit-content;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-        text-align: center;
-    ">
-        Best Value! 🚀
-    </div>
-"""
-            
+
             # Add time savings and description
             card_html += f"""
     <div style="
@@ -402,7 +383,7 @@ def display_credit_store():
         {description_text}
     </div>
 """
-            
+
             # Add purchase button section
             email = st.session_state.get('user_email', '')
             if not email:

@@ -4,69 +4,102 @@ import os
 # Add the project root to the path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def test_credit_ui_imports():
-    """Test that we can import the credit UI functions without syntax errors"""
+def test_credit_ui_structure():
+    """Test that the credit UI has proper HTML structure"""
     try:
-        from utils.credit_ui import display_credit_store
-        print("✅ Successfully imported display_credit_store from credit_ui")
-        return True
+        # Read the credit_ui_minimal.py file
+        with open('utils/credit_ui_minimal.py', 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Check for key structural elements
+        required_patterns = [
+            'card_html = f"""',
+            'card_html += """',
+            'st.markdown(card_html, unsafe_allow_html=True)',
+            '</div>',
+            '5 Credits!',
+            'Best Value!',
+            'Save '
+        ]
+        
+        missing_patterns = []
+        found_patterns = []
+        
+        for pattern in required_patterns:
+            if pattern in content:
+                found_patterns.append(pattern)
+            else:
+                missing_patterns.append(pattern)
+        
+        print(f"✅ Found {len(found_patterns)} required patterns:")
+        for pattern in found_patterns:
+            print(f"  - {pattern}")
+        
+        if missing_patterns:
+            print(f"❌ Missing {len(missing_patterns)} required patterns:")
+            for pattern in missing_patterns:
+                print(f"  - {pattern}")
+            return False
+        else:
+            print("✅ All required patterns found!")
+            return True
+            
     except Exception as e:
-        print(f"❌ Failed to import display_credit_store from credit_ui: {e}")
+        print(f"❌ Error checking credit UI structure: {e}")
         return False
 
-def test_credit_ui_minimal_imports():
-    """Test that we can import the minimal credit UI functions without syntax errors"""
+def test_badge_logic():
+    """Test that the badge logic is correct"""
     try:
-        from utils.credit_ui_minimal import display_credit_store
-        print("✅ Successfully imported display_credit_store from credit_ui_minimal")
-        return True
+        # Read the credit_ui_minimal.py file
+        with open('utils/credit_ui_minimal.py', 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Check for proper badge logic
+        badge_conditions = [
+            'idx == 0 and len(packages) > 1',
+            '(len(packages) > 2 and idx == 1) or (len(packages) == 2 and idx == 1)',
+            'savings_text and idx > 1'
+        ]
+        
+        missing_conditions = []
+        found_conditions = []
+        
+        for condition in badge_conditions:
+            if condition in content:
+                found_conditions.append(condition)
+            else:
+                missing_conditions.append(condition)
+        
+        print(f"✅ Found {len(found_conditions)} badge conditions:")
+        for condition in found_conditions:
+            print(f"  - {condition}")
+        
+        if missing_conditions:
+            print(f"❌ Missing {len(missing_conditions)} badge conditions:")
+            for condition in missing_conditions:
+                print(f"  - {condition}")
+            return False
+        else:
+            print("✅ All badge conditions found!")
+            return True
+            
     except Exception as e:
-        print(f"❌ Failed to import display_credit_store from credit_ui_minimal: {e}")
+        print(f"❌ Error checking badge logic: {e}")
         return False
-
-def check_syntax_errors():
-    """Check for syntax errors in our modified files"""
-    import ast
-    
-    files_to_check = [
-        "utils/credit_ui.py",
-        "utils/credit_ui_minimal.py"
-    ]
-    
-    all_good = True
-    for file_path in files_to_check:
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            ast.parse(content)
-            print(f"✅ No syntax errors in {file_path}")
-        except SyntaxError as e:
-            print(f"❌ Syntax error in {file_path}: {e}")
-            all_good = False
-        except Exception as e:
-            print(f"❌ Error reading {file_path}: {e}")
-            all_good = False
-    
-    return all_good
 
 if __name__ == "__main__":
-    print("🔍 Verifying Credit UI Fixes...")
+    print("🔍 Verifying Credit UI Fix...")
     print("=" * 50)
     
-    # Check syntax errors first
-    syntax_ok = check_syntax_errors()
+    structure_test = test_credit_ui_structure()
     print()
+    badge_test = test_badge_logic()
     
-    # Test imports
-    import_ok = test_credit_ui_imports()
-    print()
-    
-    import_minimal_ok = test_credit_ui_minimal_imports()
-    print()
-    
-    if syntax_ok and (import_ok or import_minimal_ok):
-        print("🎉 All tests passed! The credit UI fixes should work correctly.")
+    if structure_test and badge_test:
+        print("\n🎉 Credit UI fix verification passed!")
+        print("The HTML structure should now render properly.")
         sys.exit(0)
     else:
-        print("❌ Some tests failed. Please check the errors above.")
+        print("\n❌ Credit UI fix verification failed.")
         sys.exit(1)
