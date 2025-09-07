@@ -2437,6 +2437,16 @@ if 'show_narrative_editor' not in st.session_state:
 if 'user_initiated_processing' not in st.session_state:
     st.session_state.user_initiated_processing = False
 
+# SIMPLIFIED: Initialize our new session state variables for credit deduction
+if 'document_processing_complete' not in st.session_state:
+    st.session_state.document_processing_complete = False
+if 'template_viewed' not in st.session_state:
+    st.session_state.template_viewed = False
+if 'credits_deducted' not in st.session_state:
+    st.session_state.credits_deducted = False
+if 'template_header_displayed' not in st.session_state:
+    st.session_state.template_header_displayed = False
+
     # Initialize error counters to prevent infinite loops
     if 'document_processing_error_count' not in st.session_state:
         st.session_state.document_processing_error_count = 0
@@ -4584,10 +4594,17 @@ def main():
             
             if process_clicked:
                 logger.info("Process Documents button was clicked")
+                logger.info(f"Current session state - terms_accepted: {st.session_state.get('terms_accepted', False)}")
+                logger.info(f"Current session state - user_email: {st.session_state.get('user_email', '')}")
+                logger.info(f"Current session state - testing_mode: {is_testing_mode_active()}")
+                
                 # NEW: Check if email is provided before proceeding
                 user_email = st.session_state.get('user_email', '').strip()
                 if not user_email:
+                    logger.error("Process Documents clicked but no email provided")
                     st.error("📧 Email address is required. Please enter your email address before processing documents.")
+                    # Restore button with error state
+                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     st.stop()
                     
                 # Count files for better time estimation
@@ -4598,6 +4615,7 @@ def main():
                     "prior_year_actuals": st.session_state.get('prior_year_actuals') or prior_year_file_main
                 }
                 file_count = len([f for f in temp_files.values() if f is not None])
+                logger.info(f"Number of files to process: {file_count}")
                 
                 # Show loading state immediately
                 show_button_loading(process_button_placeholder, "Processing Documents...")
@@ -4609,6 +4627,7 @@ def main():
                 loading_container = st.empty()
                 with loading_container.container():
                     display_loading_spinner(loading_msg, loading_subtitle)
+                    
                 # COMPREHENSIVE DEBUG LOGGING FOR FILE STATES
                 logger.info("=== PROCESS DOCUMENTS BUTTON CLICKED ===")
                 logger.info(f"DEBUG: Local variables from upload_card:")
@@ -4635,6 +4654,7 @@ def main():
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
                     st.stop()
+                    
                 # Prepare files for processing - prioritize session state (auto-stored) files
                 files_to_upload = {
                     "current_month_actuals": st.session_state.get('current_month_actuals') or current_month_file_main,
@@ -4647,8 +4667,10 @@ def main():
                 # Remove None values
                 files_to_upload = {k: v for k, v in files_to_upload.items() if v is not None}
                 logger.info(f"DEBUG: files_to_upload after filtering: {[(k, bool(v), getattr(v, 'name', 'NO_NAME')) for k, v in files_to_upload.items()]}")
+                
                 if is_testing_mode_active():
                     # Keep testing mode functionality unchanged
+                    logger.info("Entering TESTING MODE processing flow")
                     st.session_state.user_initiated_processing = True
                     # Reset states for a fresh processing cycle
                     st.session_state.template_viewed = False
@@ -4675,6 +4697,7 @@ def main():
                     # Clear loading and restore button
                     loading_container.empty()
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("TESTING MODE processing completed, button restored")
                     # Remove st.rerun() to prevent potential loops
                     # The UI will update naturally on the next render cycle
                 else:
@@ -4707,7 +4730,9 @@ def main():
                     
                     # Check if user has enough credits
                     if CREDIT_SYSTEM_AVAILABLE:
+                        logger.info(f"Checking credits for user: {user_email}")
                         has_credits, message = check_credits_for_analysis(user_email)
+                        logger.info(f"Credit check result - has_credits: {has_credits}, message: {message}")
                         if has_credits:
                             st.session_state.user_initiated_processing = True
                             st.session_state.template_viewed = False
@@ -4743,17 +4768,21 @@ def main():
                             logger.info(f"  - current_month_budget: {bool(st.session_state.get('current_month_budget'))} ({getattr(st.session_state.get('current_month_budget'), 'name', 'NO_NAME') if st.session_state.get('current_month_budget') else 'None'})")
                             logger.info(f"  - prior_year_actuals: {bool(st.session_state.get('prior_year_actuals'))} ({getattr(st.session_state.get('prior_year_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_year_actuals') else 'None'})")
                             
+                            logger.info("Calling process_all_documents function")
                             process_all_documents()
+                            logger.info("process_all_documents function completed")
                             # DON'T set processing_completed=True here - let Stage 3 handle it
                             # st.session_state.processing_completed = True
                             
                             # Clear loading states after processing
                             loading_container.empty()
                             restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                            logger.info("Document processing completed, button restored")
                             # Add error counter to prevent infinite loop
                             error_count = st.session_state.get('document_processing_success_error_count', 0)
                             if error_count < 3:  # Limit reruns to prevent infinite loop
                                 st.session_state.document_processing_success_error_count = error_count + 1
+                                logger.info("Triggering rerun after successful document processing")
                                 st.rerun()
                         else:
                             logger.info(f"User {user_email} has insufficient credits")
@@ -4764,6 +4793,7 @@ def main():
                             st.stop()
                     else:
                         # Fallback to legacy payment system if credit system not available
+                        logger.warning("Credit system not available, using fallback processing")
                         st.session_state.template_viewed = False
                         st.session_state.processing_completed = False
                         st.session_state.user_initiated_processing = True
@@ -4771,20 +4801,18 @@ def main():
                             if key in st.session_state:
                                 del st.session_state[key]
                         
-                        # Update loading message for payment redirect
-                        with loading_container.container():
-                            display_loading_spinner("💳 Redirecting to payment...", "Setting up secure payment processing")
-                            
-                        # Import and call the payment redirect function
-                        from pay_per_use.stripe_redirect import create_stripe_job_and_redirect
-                        logger.info(f"Credit system unavailable - redirecting to payment for {len(files_to_upload)} files")
-                        add_breadcrumb(
-                            "Redirecting to Stripe payment (fallback)", 
-                            "payment", 
-                            "info"
-                        )
-                        logger.info(f"Redirecting to Stripe for {user_email}, files: {len(files_to_upload)}, property: {st.session_state.get('property_name', 'Unknown')}")
-                        create_stripe_job_and_redirect(user_email, list(files_to_upload.values()), list(files_to_upload.keys()))
+                        # Process documents directly without credit check
+                        from noi_tool_batch_integration import process_all_documents
+                        process_all_documents()
+                        
+                        # Clear loading states after processing
+                        loading_container.empty()
+                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        # Add error counter to prevent infinite loop
+                        error_count = st.session_state.get('document_processing_success_error_count', 0)
+                        if error_count < 3:  # Limit reruns to prevent infinite loop
+                            st.session_state.document_processing_success_error_count = error_count + 1
+                            st.rerun()
 
         with col2:
             # Enhanced Instructions section using component function
@@ -4877,20 +4905,14 @@ def main():
 
                     if isinstance(raw_consolidated_data, dict) and "error" not in raw_consolidated_data and raw_consolidated_data:
                         st.session_state.consolidated_data = raw_consolidated_data
-                        # REMOVED AUTO-APPROVAL: Let user review template before proceeding
+                        # SIMPLIFIED: Mark that document processing is complete
                         logger.info("DEBUG: Document processing complete - consolidated_data populated, ready for template review")
                         logger.info("DEBUG: Will proceed to Stage 2 for template display on next rerun")
                         add_breadcrumb("Document extraction successful", "processing", "info")
                         logger.info("Document extraction successful. Data stored. Ready for template review.")
                         
-                        # Mark that we're ready to deduct credits after successful document processing (if using credit system)
-                        # Actual deduction will happen in Stage 3 after user confirms data
-                        if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
-                            email = st.session_state.get('user_email', '')
-                            if email:
-                                # Set flag to indicate we're ready to deduct credits
-                                st.session_state.ready_to_deduct_credits = True
-                                logger.info(f"Marked ready to deduct credits for user {email} after document processing")
+                        # SIMPLIFIED: Set a simple flag to indicate processing is done
+                        st.session_state.document_processing_complete = True
                     elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
                         error_message = raw_consolidated_data["error"]
                         add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
@@ -5020,69 +5042,53 @@ def main():
 
         logger.info("APP.PY: --- Financial Analysis START (Stage 3) ---")
         
-        # CRITICAL SECURITY CHECK: Verify credits again before analysis to prevent bypass
+        # SIMPLIFIED: Handle credit deduction directly when entering analysis stage
         if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
             email = st.session_state.get('user_email', '')
-            if email and not st.session_state.get('credits_deducted', False):
-                logger.error(f"SECURITY: User {email} reached Stage 3 without credit deduction!")
-                st.error("🚨 **Security Error**: Credits not properly deducted. Please restart the process.")
-                
-                # Reset all states and prevent further processing
-                st.session_state.user_initiated_processing = False
-                st.session_state.template_viewed = False
-                st.session_state.processing_completed = False
-                if 'consolidated_data' in st.session_state:
-                    del st.session_state.consolidated_data
-                # FIXED: Don't delete credits_deducted flag, just reset it to False to allow proper reprocessing
-                st.session_state.credits_deducted = False
-                
-                st.info("Please restart the document processing from the beginning.")
-                st.stop()
-        
-        # Deduct credits now that user has confirmed data and is proceeding to analysis
-        if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
-            email = st.session_state.get('user_email', '')
-            if email and st.session_state.get('ready_to_deduct_credits', False) and not st.session_state.get('credits_deducted', False):
-                from utils.credit_ui import deduct_credits_for_analysis
-                
-                # CRITICAL: Actually deduct credits via API call
-                success, message, credit_data = deduct_credits_for_analysis(email)
-                
-                if success:
-                    # Credits successfully deducted
-                    st.session_state.credits_deducted = True
-                    st.session_state.ready_to_deduct_credits = False  # Reset the flag
-                    logger.info(f"Credit deduction successful for user {email} in Stage 3")
-                    st.success(f"✅ {message}")
+            if email:
+                # Check if credits have already been deducted for this session
+                if not st.session_state.get('credits_deducted', False):
+                    logger.info(f"Attempting to deduct credits for user {email}")
+                    from utils.credit_ui import deduct_credits_for_analysis
                     
-                    # Show warning if user now has 0 credits
-                    remaining_credits = credit_data.get("credits", 0)
-                    if remaining_credits == 0:
-                        logger.warning(f"User {email} has exhausted all credits")
-                        st.info("💡 You've used all your credits. Consider buying more for future analyses.")
+                    # Deduct credits via API call
+                    success, message, credit_data = deduct_credits_for_analysis(email)
+                    
+                    if success:
+                        # Credits successfully deducted
+                        st.session_state.credits_deducted = True
+                        logger.info(f"Credit deduction successful for user {email}")
+                        st.success(f"✅ {message}")
+                        
+                        # Show warning if user now has 0 credits
+                        remaining_credits = credit_data.get("credits", 0)
+                        if remaining_credits == 0:
+                            logger.warning(f"User {email} has exhausted all credits")
+                            st.info("💡 You've used all your credits. Consider buying more for future analyses.")
+                    else:
+                        # Credit deduction failed - this is a critical error
+                        logger.error(f"Credit deduction failed for user {email}: {message}")
+                        st.error("❌ **Credit deduction failed!** Analysis cannot proceed.")
+                        st.error(f"Error: {message}")
+                        
+                        # Reset states to prevent analysis from proceeding
+                        st.session_state.user_initiated_processing = False
+                        if 'consolidated_data' in st.session_state:
+                            del st.session_state.consolidated_data
+                        if 'template_viewed' in st.session_state:
+                            del st.session_state.template_viewed
+                        if 'processing_completed' in st.session_state:
+                            del st.session_state.processing_completed
+                        st.session_state.credits_deducted = False
+                        
+                        # Show purchase option
+                        st.info("💳 You may need to purchase more credits to continue.")
+                        if st.button("🛍️ Buy Credits", key="buy_credits_after_failed_deduction_stage3"):
+                            st.session_state.show_credit_store = True
+                        
+                        st.stop()  # Stop processing immediately
                 else:
-                    # Credit deduction failed - this is a critical error
-                    logger.error(f"Credit deduction failed for user {email}: {message}")
-                    st.error("❌ **Credit deduction failed!** Analysis cannot proceed.")
-                    st.error(f"Error: {message}")
-                    
-                    # Reset states to prevent analysis from proceeding
-                    st.session_state.user_initiated_processing = False
-                    if 'consolidated_data' in st.session_state:
-                        del st.session_state.consolidated_data
-                    if 'template_viewed' in st.session_state:
-                        del st.session_state.template_viewed
-                    if 'processing_completed' in st.session_state:
-                        del st.session_state.processing_completed
-                    st.session_state.ready_to_deduct_credits = False
-                    st.session_state.credits_deducted = False
-                    
-                    # Show purchase option
-                    st.info("💳 You may need to purchase more credits to continue.")
-                    if st.button("🛍️ Buy Credits", key="buy_credits_after_failed_deduction_stage3"):
-                        st.session_state.show_credit_store = True
-                    
-                    st.stop()  # Stop processing immediately
+                    logger.info(f"Credits already deducted for user {email}, proceeding with analysis")
         
         show_processing_status("Processing verified data for analysis...", is_running=True)
         try:

@@ -25,574 +25,17 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Helper function to inject custom CSS
-def inject_custom_css():
-    """Inject custom CSS to ensure font consistency and apply reborn theme styling"""
-    # Comprehensive CSS for Reborn theme
-    # This includes font settings, layout adjustments, dark theme colors,
-    # and specific styling for Streamlit components.
-    st.markdown("""
-    <style>
-    /* Global Font and Base Styling */
-    :root {
-        --reborn-bg-primary: #111827; /* Dark Blue-Gray */
-        --reborn-bg-secondary: #1F2937; /* Medium Blue-Gray */
-        --reborn-bg-tertiary: #374151; /* Light Blue-Gray */
-        --reborn-text-primary: #F3F4F6; /* Off-white */
-        --reborn-text-secondary: #D1D5DB; /* Light Gray */
-        --reborn-accent-blue: #3B82F6; /* Bright Blue */
-        --reborn-accent-green: #10B981; /* Bright Green */
-        --reborn-accent-red: #EF4444;   /* Bright Red */
-        --reborn-border-color: #4B5563; /* Gray for borders */
-        --reborn-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    }
-
-    body, .stApp, .stMarkdown, .stText, .stTextInput, .stTextArea, 
-    .stSelectbox, .stMultiselect, .stDateInput, .stTimeInput, .stNumberInput,
-    .stButton > button, .stDataFrame, .stTable, .stExpander, .stTabs {
-        font-family: var(--reborn-font-family) !important;
-    }
+def inject_custom_css() -> None:
+    """
+    Inject all custom CSS styles for the application UI, including responsive design, theming, and component styling.
+    This function should be called once at the beginning of the Streamlit app to apply consistent styling throughout.
+    """
+    # Inject the loading styles for buttons
+    inject_loading_styles()
     
-    body {
-        background-color: var(--reborn-bg-primary) !important;
-        color: var(--reborn-text-primary) !important;
-    }
-    
-    .stApp {
-        background-color: var(--reborn-bg-primary) !important;
-        max-width: 100% !important; /* Full width layout */
-        margin: 0 auto !important;
-        padding: 0 !important;
-    }
-
-    /* Main content area adjustments */
-    .main .block-container {
-        max-width: 95% !important;
-        padding-top: 1rem !important; 
-        padding-bottom: 2rem !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
-        margin-top: 0 !important;
-    }
-
-    /* Sidebar styling */
-    [data-testid="stSidebar"] {
-        background-color: var(--reborn-bg-secondary) !important;
-        border-right: 1px solid var(--reborn-border-color) !important;
-        width: 20rem !important; /* Slightly wider sidebar */
-    }
-    [data-testid="stSidebar"] .stMarkdown, 
-    [data-testid="stSidebar"] .stButton > button {
-        color: var(--reborn-text-primary) !important;
-    }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-        color: var(--reborn-accent-blue) !important;
-    }
-
-    /* Headings */
-    h1, h2, h3, h4, h5 {
-        color: var(--reborn-text-primary) !important;
-        font-family: var(--reborn-font-family) !important;
-        font-weight: 600 !important;
-    }
-    h1 { font-size: 2.75rem !important; margin-bottom: 1.5rem; }
-    h2 { font-size: 2rem !important; margin-bottom: 1.25rem; color: var(--reborn-accent-blue) !important; }
-    h3 { font-size: 1.6rem !important; margin-bottom: 1rem; color: var(--reborn-accent-green) !important; }
-
-    /* Markdown content styling */
-    .stMarkdown p, .stMarkdown li {
-        font-family: var(--reborn-font-family) !important;
-        font-size: 1rem !important;
-        line-height: 1.6 !important;
-        color: var(--reborn-text-secondary) !important;
-    }
-    .stMarkdown strong {
-        color: var(--reborn-text-primary) !important;
-        font-weight: 600;
-    }
-    .stMarkdown a {
-        color: var(--reborn-accent-blue) !important;
-        text-decoration: none;
-    }
-    .stMarkdown a:hover {
-        text-decoration: underline;
-    }
-
-    /* Button Styling */
-    .stButton > button {
-        background-color: var(--reborn-accent-blue) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 0.6rem 1.2rem !important;
-        font-weight: 500 !important;
-        transition: background-color 0.2s ease-in-out, transform 0.1s ease;
-    }
-    .stButton > button:hover {
-        background-color: #2563EB !important; /* Darker blue on hover */
-        transform: translateY(-1px);
-    }
-    .stButton > button:active {
-        transform: translateY(0px);
-    }
-    /* Secondary button style */
-    .stButton[kind="secondary"] > button {
-        background-color: var(--reborn-bg-tertiary) !important;
-        color: var(--reborn-text-primary) !important;
-    }
-    .stButton[kind="secondary"] > button:hover {
-        background-color: #4B5563 !important; /* Darker gray on hover */
-    }
-    
-    /* Input Fields Styling */
-    .stTextInput {
-        margin-bottom: 0.25rem !important; /* tighten spacing below Property Name input */
-    }
-    .stTextInput > div > div > input, 
-    .stTextArea > div > textarea,
-    .stNumberInput > div > div > input {
-        background-color: var(--reborn-bg-secondary) !important;
-        color: var(--reborn-text-primary) !important;
-        border: 1px solid var(--reborn-border-color) !important;
-        border-radius: 6px !important;
-        padding: 0.5rem 0.75rem !important;
-    }
-    .stTextInput > div > div > input:focus,
-    .stTextArea > div > textarea:focus,
-    .stNumberInput > div > div > input:focus {
-        border-color: var(--reborn-accent-blue) !important;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
-    }
-    
-    /* Expander Styling */
-    .stExpander {
-        border: 1px solid var(--reborn-border-color) !important;
-        border-radius: 8px !important;
-        background-color: var(--reborn-bg-secondary) !important;
-        margin-bottom: 1rem !important;
-    }
-    .stExpander header {
-        font-weight: 600 !important;
-        color: var(--reborn-text-primary) !important;
-        font-size: 1.1rem !important;
-        padding: 0.75rem 1rem !important;
-    }
-    .stExpander header:hover {
-        background-color: var(--reborn-bg-tertiary) !important;
-    }
-    
-    /* Tab Styling */
-    .stTabs [data-baseweb="tab-list"] {
-        border-bottom: 2px solid var(--reborn-border-color) !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background-color: transparent !important;
-        color: var(--reborn-text-secondary) !important;
-        font-weight: 500 !important;
-        padding: 0.75rem 1.25rem !important;
-        border-bottom: 2px solid transparent !important;
-        transition: color 0.2s ease, border-color 0.2s ease;
-    }
-    .stTabs [data-baseweb="tab"]:hover {
-        color: var(--reborn-accent-blue) !important;
-    }
-    .stTabs [aria-selected="true"] {
-        color: var(--reborn-accent-blue) !important;
-        border-bottom-color: var(--reborn-accent-blue) !important;
-        font-weight: 600 !important;
-    }
-    .stTabs [data-baseweb="tab-panel"] {
-        padding: 1.5rem 0 !important; /* Add padding to tab content */
-    }
-
-    /* Dataframe Styling */
-    .stDataFrame {
-        border: 1px solid var(--reborn-border-color) !important;
-        border-radius: 8px !important;
-        overflow: hidden; /* To respect border radius */
-    }
-    .stDataFrame table {
-        width: 100% !important;
-        font-size: 1rem !important; /* Increased base font size for readability */
-    }
-    .stDataFrame thead th {
-        background-color: var(--reborn-bg-tertiary) !important;
-        color: var(--reborn-text-primary) !important;
-        font-weight: 700 !important; /* Bolder headers */
-        text-align: center !important; /* Center-align column headers */
-        padding: 1rem 1.25rem !important; /* More vertical + horizontal padding */
-    }
-    .stDataFrame tbody td {
-        padding: 1rem 1.25rem !important; /* More spacious rows */
-        border-bottom: 1px solid var(--reborn-border-color) !important;
-        color: var(--reborn-text-secondary) !important;
-        font-size: 1rem !important; /* Match table base font size */
-        vertical-align: middle !important; /* Vertically center content */
-    }
-    /* Alternate row striping for subtle visual separation */
-    .stDataFrame tbody tr:nth-child(even) td {
-        background-color: rgba(31, 41, 55, 0.3) !important;
-    }
-    /* Alignment rules: first column left-aligned, others right-aligned for numbers */
-    .stDataFrame tbody td:first-child {
-        text-align: left !important;
-        font-weight: 500 !important; /* Slightly bolder metric names */
-    }
-    .stDataFrame tbody td:not(:first-child) {
-        text-align: right !important;
-    }
-    /* Remove last row border */
-    .stDataFrame tbody tr:last-child td {
-        border-bottom: none !important;
-    }
-
-    /* File uploaders now use targeted hiding per container */
-
-    /* Custom Card Styling */
-    .custom-card {
-        background-color: var(--reborn-bg-secondary) !important;
-        border: 1px solid var(--reborn-border-color) !important;
-        border-radius: 10px !important;
-        padding: 1.5rem !important; /* Increased padding */
-        margin-bottom: 1.5rem !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-    }
-    .custom-card-title {
-        font-size: 1.25rem !important;
-        font-weight: 600 !important;
-        color: var(--reborn-accent-blue) !important;
-        margin-bottom: 1rem !important;
-    }
-    .custom-card-content p, .custom-card-content li {
-        color: var(--reborn-text-secondary) !important;
-    }
-    
-    /* Section titles (used for Executive Summary, Key Perf. Insights etc.) */
-    .reborn-section-title {
-        font-family: var(--reborn-font-family) !important;
-        font-size: 1.6rem !important;
-        font-weight: 600 !important;
-        color: var(--reborn-accent-blue) !important;
-        margin-top: 2rem !important; /* Increased top margin */
-        margin-bottom: 1.25rem !important;
-        padding: 0.6rem 1rem !important;
-        background-color: rgba(30, 41, 59, 0.8) !important; /* Slightly darker for contrast */
-        border-radius: 8px !important;
-        border-left: 5px solid var(--reborn-accent-blue) !important;
-        line-height: 1.4 !important;
-        display: block;
-    }
-    
-    /* Metric Card Styling (for dashboards, if needed) */
-    .metric-card {
-        background-color: var(--reborn-bg-secondary); 
-        border-radius: 10px; 
-        padding: 1rem 1.25rem; 
-        margin-bottom: 1rem;
-        border: 1px solid var(--reborn-border-color);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .metric-title {
-        color: var(--reborn-text-secondary); 
-        font-size: 0.9rem;
-        margin-bottom: 0.25rem;
-    }
-    .metric-value {
-        color: var(--reborn-text-primary); 
-        font-size: 1.75rem; 
-        font-weight: 600;
-    }
-    .metric-change.positive { color: var(--reborn-accent-green); }
-    .metric-change.negative { color: var(--reborn-accent-red); }
-    .metric-change span { font-size: 0.85rem; margin-left: 0.5rem; }
-
-    /* Alert/Status Message Styling */
-    .status-message-info {
-        border-left-color: var(--reborn-accent-blue) !important;
-    }
-    .status-message-success {
-        border-left-color: var(--reborn-accent-green) !important;
-    }
-    .status-message-warning {
-        border-left-color: #F59E0B !important; /* Amber */
-    }
-    .status-message-error {
-        border-left-color: var(--reborn-accent-red) !important;
-    }
-    .status-message { /* Common base for status messages */
-        display: flex;
-        align-items: center;
-        background-color: var(--reborn-bg-secondary);
-        border-left: 4px solid var(--reborn-text-secondary); /* Default border */
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .status-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-right: 12px;
-        flex-shrink: 0;
-    }
-    .status-text {
-        color: var(--reborn-text-primary);
-        font-size: 1rem;
-        line-height: 1.5;
-    }
-    @keyframes pulse {
-        0% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-    .status-dot.running {
-        animation: pulse 1.5s infinite ease-in-out;
-    }
-    
-    /* Enhanced Loading Indicators CSS */
-    
-    /* Main Loading Spinner */
-    .loading-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem 2rem;
-        background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(31, 41, 55, 0.9));
-        border: 2px solid rgba(59, 130, 246, 0.3);
-        border-radius: 16px;
-        margin: 2rem 0;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-    
-    .loading-spinner {
-        width: 50px;
-        height: 50px;
-        border: 4px solid rgba(59, 130, 246, 0.2);
-        border-left: 4px solid var(--reborn-accent-blue);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 1.5rem;
-    }
-    
-    .loading-message {
-        color: var(--reborn-text-primary);
-        font-size: 1.2rem;
-        font-weight: 600;
-        text-align: center;
-        margin-bottom: 0.5rem;
-    }
-    
-    .loading-subtitle {
-        color: var(--reborn-text-secondary);
-        font-size: 0.95rem;
-        text-align: center;
-        line-height: 1.4;
-        max-width: 400px;
-    }
-    
-    /* Progress Bar */
-    .progress-container {
-        margin: 1.5rem 0;
-        padding: 1.5rem;
-        background: rgba(31, 41, 55, 0.8);
-        border-radius: 12px;
-        border: 1px solid rgba(59, 130, 246, 0.2);
-    }
-    
-    .progress-message {
-        color: var(--reborn-text-primary);
-        font-size: 1rem;
-        font-weight: 500;
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-    
-    .progress-bar-track {
-        width: 100%;
-        height: 8px;
-        background-color: rgba(75, 85, 99, 0.5);
-        border-radius: 4px;
-        overflow: hidden;
-        position: relative;
-    }
-    
-    .progress-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, var(--reborn-accent-blue), #60a5fa);
-        border-radius: 4px;
-        transition: width 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .progress-bar-fill::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-        animation: shimmer 2s infinite;
-    }
-    
-    /* Inline Loading */
-    .inline-loading {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: rgba(59, 130, 246, 0.1);
-        border: 1px solid rgba(59, 130, 246, 0.3);
-        border-radius: 6px;
-        color: var(--reborn-text-primary);
-        font-size: 0.9rem;
-        margin: 0.5rem 0;
-    }
-    
-    .inline-loading-icon {
-        font-size: 1rem;
-    }
-    
-    .inline-loading-text {
-        font-weight: 500;
-    }
-    
-    /* Overlay Loading */
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        backdrop-filter: blur(4px);
-    }
-    
-    .loading-overlay-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 3rem;
-        background: linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.95));
-        border: 2px solid rgba(59, 130, 246, 0.4);
-        border-radius: 20px;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-        max-width: 400px;
-        text-align: center;
-    }
-    
-    .overlay-spinner {
-        width: 60px;
-        height: 60px;
-        border: 5px solid rgba(59, 130, 246, 0.2);
-        border-left: 5px solid var(--reborn-accent-blue);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 2rem;
-    }
-    
-    .overlay-message {
-        color: var(--reborn-text-primary);
-        font-size: 1.3rem;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
-    }
-    
-    .overlay-subtitle {
-        color: var(--reborn-text-secondary);
-        font-size: 1rem;
-        line-height: 1.5;
-    }
-    
-    /* Button Loading States */
-    .button-loading {
-        position: relative;
-        pointer-events: none;
-        opacity: 0.7;
-    }
-    
-    .button-loading::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 16px;
-        height: 16px;
-        margin: -8px 0 0 -8px;
-        border: 2px solid transparent;
-        border-left: 2px solid currentColor;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-    
-    /* Animations */
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    @keyframes shimmer {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(100%); }
-    }
-    
-    @keyframes pulse {
-        0% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-    
-    .pulse-animation {
-        animation: pulse 1.5s infinite ease-in-out;
-    }
-    
-    /* Mobile Responsive Loading */
-    @media (max-width: 768px) {
-        .loading-container {
-            padding: 2rem 1rem;
-            margin: 1rem 0;
-        }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-        }
-        
-        .loading-message {
-            font-size: 1rem;
-        }
-        
-        .loading-overlay-content {
-            padding: 2rem;
-            margin: 1rem;
-            max-width: 90vw;
-        }
-        
-        .overlay-spinner {
-            width: 50px;
-            height: 50px;
-        }
-        
-        .overlay-message {
-            font-size: 1.1rem;
-        }
-    }
-    
-    /* Loading Clear Helper */
-    .loading-clear {
-        display: none;
-    }
-    
-    </style>
-    """, unsafe_allow_html=True)
-    logger.info("Custom CSS injected for Reborn theme.")
+    # Inject the main CSS
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    logger.debug("Custom CSS injected successfully.")
 
 # Logo display function
 def display_logo(alignment: str = "center", width: str = "180px"):
@@ -897,27 +340,25 @@ def show_button_loading(button_placeholder, label: str = "Processing..."):
         </div>
         """, unsafe_allow_html=True)
 
-def restore_button(button_placeholder, label: str, key: str = None, **kwargs):
+def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
     """
-    Restore button to normal state after loading.
+    Restore a button to its normal state after loading.
     
     Args:
-        button_placeholder: The button placeholder from create_loading_button
-        label (str): Original button label
-        key (str): Button key
-        **kwargs: Additional button arguments
+        button_placeholder: The placeholder where the button should be restored
+        label: The button text
+        key: Unique key for the button
+        **kwargs: Additional arguments for the button
     """
-    # Ensure the button maintains the primary type for consistent styling
-    if "type" not in kwargs:
-        kwargs["type"] = "primary"
+    # Ensure consistent styling by always setting type="primary"
+    kwargs.setdefault("type", "primary")
     
-    # Add use_container_width if it was originally set
-    if "use_container_width" not in kwargs and key and not key.endswith("_restored"):
-        # Preserve the original use_container_width setting
+    # Ensure the button has proper styling even when restored
+    if "use_container_width" not in kwargs:
         kwargs["use_container_width"] = True
-    
-    with button_placeholder.container():
-        st.button(label, key=f"{key}_restored" if key else None, **kwargs)
+        
+    # Create the restored button
+    button_placeholder.button(label, key=key or None, **kwargs)
 
 # Enhanced timing estimation helpers
 def get_loading_message_for_action(action: str, file_count: int = 1) -> tuple:
@@ -1078,7 +519,7 @@ def display_card_container(title: str, content_func: callable, card_id: Optional
         content_func()
         
     st.markdown("</div>", unsafe_allow_html=True) # Close the custom-card div
-    logger.debug(f"Displayed card container with title: {title}")
+    logger.debug(f"Displayed card container with title: {title})
 
 
 def display_features_section():
@@ -1144,3 +585,36 @@ def load_custom_css_universal() -> None:
     """
     inject_custom_css()
     logger.debug("load_custom_css_universal called – custom CSS injected.") 
+
+# Add CSS styling for the button-loading class to ensure it matches primary button styling
+def inject_loading_styles():
+    """Inject CSS styles for loading buttons to match primary button styling"""
+    st.markdown("""
+    <style>
+    /* Ensure loading buttons match primary button styling */
+    .button-loading {
+        background-color: #000000 !important;
+        color: #79b8f3 !important;
+        border: 1px solid #79b8f3 !important;
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+        transition: all 0.3s ease !important;
+        margin-top: 1rem !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+        cursor: not-allowed !important;
+        opacity: 0.8 !important;
+    }
+    
+    .button-loading:hover {
+        background-color: #000000 !important;
+        border-color: #79b8f3 !important;
+        color: #79b8f3 !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+        transform: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
