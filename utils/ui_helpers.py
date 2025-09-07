@@ -519,7 +519,7 @@ def display_card_container(title: str, content_func: callable, card_id: Optional
         content_func()
         
     st.markdown("</div>", unsafe_allow_html=True) # Close the custom-card div
-    logger.debug(f"Displayed card container with title: {title})
+    logger.debug(f"Displayed card container with title: {title}")
 
 
 def display_features_section():
