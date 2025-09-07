@@ -65,15 +65,18 @@ input[type="text"] {
 
 /* Loading button styling to match primary buttons */
 .stButton .button-loading {
-    background-color: #0e4de3;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-weight: 500;
-    transition: all 0.3s;
+    background-color: #000000 !important;
+    color: #79b8f3 !important;
+    border: 1px solid #79b8f3 !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
     cursor: not-allowed;
     opacity: 0.8;
+    width: 100% !important;
+    box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
 }
 
 /* Checkbox styling */

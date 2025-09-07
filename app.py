@@ -4883,52 +4883,14 @@ def main():
                         add_breadcrumb("Document extraction successful", "processing", "info")
                         logger.info("Document extraction successful. Data stored. Ready for template review.")
                         
-                        # Deduct credits after successful document processing (if using credit system)
+                        # Mark that we're ready to deduct credits after successful document processing (if using credit system)
+                        # Actual deduction will happen in Stage 3 after user confirms data
                         if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
                             email = st.session_state.get('user_email', '')
-                            if email and not st.session_state.get('credits_deducted', False):
-                                from utils.credit_ui import deduct_credits_for_analysis
-                                
-                                # CRITICAL: Actually deduct credits via API call
-                                success, message, credit_data = deduct_credits_for_analysis(email)
-                                
-                                if success:
-                                    # Credits successfully deducted
-                                    st.session_state.credits_deducted = True
-                                    logger.info(f"Credit deduction successful for user {email}")
-                                    st.success(f"✅ {message}")
-                                    
-                                    # Show warning if user now has 0 credits
-                                    remaining_credits = credit_data.get("credits", 0)
-                                    if remaining_credits == 0:
-                                        logger.warning(f"User {email} has exhausted all credits")
-                                        st.info("💡 You've used all your credits. Consider buying more for future analyses.")
-                                else:
-                                    # Credit deduction failed - this is a critical error
-                                    logger.error(f"Credit deduction failed for user {email}: {message}")
-                                    st.error("❌ **Credit deduction failed!** Analysis cannot proceed.")
-                                    st.error(f"Error: {message}")
-                                    
-                                    # Reset states to prevent analysis from proceeding
-                                    st.session_state.user_initiated_processing = False
-                                    if 'consolidated_data' in st.session_state:
-                                        del st.session_state.consolidated_data
-                                    if 'template_viewed' in st.session_state:
-                                        del st.session_state.template_viewed
-                                    if 'processing_completed' in st.session_state:
-                                        del st.session_state.processing_completed
-                                        
-                                    # Show purchase option
-                                    st.info("💳 You may need to purchase more credits to continue.")
-                                    if st.button("🛍️ Buy Credits", key="buy_credits_after_failed_deduction"):
-                                        st.session_state.show_credit_store = True
-                                        # Add error counter to prevent infinite loop
-                                        error_count = st.session_state.get('credit_deduction_error_count', 0)
-                                        if error_count < 3:  # Limit reruns to prevent infinite loop
-                                            st.session_state.credit_deduction_error_count = error_count + 1
-                                            st.rerun()
-                                        
-                                    st.stop()  # Stop processing immediately
+                            if email:
+                                # Set flag to indicate we're ready to deduct credits
+                                st.session_state.ready_to_deduct_credits = True
+                                logger.info(f"Marked ready to deduct credits for user {email} after document processing")
                     elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
                         error_message = raw_consolidated_data["error"]
                         add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
@@ -5071,11 +5033,56 @@ def main():
                 st.session_state.processing_completed = False
                 if 'consolidated_data' in st.session_state:
                     del st.session_state.consolidated_data
-                if 'credits_deducted' in st.session_state:
-                    del st.session_state.credits_deducted
-                    
+                # FIXED: Don't delete credits_deducted flag, just reset it to False to allow proper reprocessing
+                st.session_state.credits_deducted = False
+                
                 st.info("Please restart the document processing from the beginning.")
                 st.stop()
+        
+        # Deduct credits now that user has confirmed data and is proceeding to analysis
+        if CREDIT_SYSTEM_AVAILABLE and not is_testing_mode_active():
+            email = st.session_state.get('user_email', '')
+            if email and st.session_state.get('ready_to_deduct_credits', False) and not st.session_state.get('credits_deducted', False):
+                from utils.credit_ui import deduct_credits_for_analysis
+                
+                # CRITICAL: Actually deduct credits via API call
+                success, message, credit_data = deduct_credits_for_analysis(email)
+                
+                if success:
+                    # Credits successfully deducted
+                    st.session_state.credits_deducted = True
+                    st.session_state.ready_to_deduct_credits = False  # Reset the flag
+                    logger.info(f"Credit deduction successful for user {email} in Stage 3")
+                    st.success(f"✅ {message}")
+                    
+                    # Show warning if user now has 0 credits
+                    remaining_credits = credit_data.get("credits", 0)
+                    if remaining_credits == 0:
+                        logger.warning(f"User {email} has exhausted all credits")
+                        st.info("💡 You've used all your credits. Consider buying more for future analyses.")
+                else:
+                    # Credit deduction failed - this is a critical error
+                    logger.error(f"Credit deduction failed for user {email}: {message}")
+                    st.error("❌ **Credit deduction failed!** Analysis cannot proceed.")
+                    st.error(f"Error: {message}")
+                    
+                    # Reset states to prevent analysis from proceeding
+                    st.session_state.user_initiated_processing = False
+                    if 'consolidated_data' in st.session_state:
+                        del st.session_state.consolidated_data
+                    if 'template_viewed' in st.session_state:
+                        del st.session_state.template_viewed
+                    if 'processing_completed' in st.session_state:
+                        del st.session_state.processing_completed
+                    st.session_state.ready_to_deduct_credits = False
+                    st.session_state.credits_deducted = False
+                    
+                    # Show purchase option
+                    st.info("💳 You may need to purchase more credits to continue.")
+                    if st.button("🛍️ Buy Credits", key="buy_credits_after_failed_deduction_stage3"):
+                        st.session_state.show_credit_store = True
+                    
+                    st.stop()  # Stop processing immediately
         
         show_processing_status("Processing verified data for analysis...", is_running=True)
         try:

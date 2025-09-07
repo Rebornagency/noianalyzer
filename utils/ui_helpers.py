@@ -911,6 +911,11 @@ def restore_button(button_placeholder, label: str, key: str = None, **kwargs):
     if "type" not in kwargs:
         kwargs["type"] = "primary"
     
+    # Add use_container_width if it was originally set
+    if "use_container_width" not in kwargs and key and not key.endswith("_restored"):
+        # Preserve the original use_container_width setting
+        kwargs["use_container_width"] = True
+    
     with button_placeholder.container():
         st.button(label, key=f"{key}_restored" if key else None, **kwargs)
 
