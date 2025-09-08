@@ -4811,109 +4811,109 @@ def main():
                     
                 # Terms accepted, continue with processing (moved to earlier in the function)
                 logger.info("Terms accepted, continuing with document processing")
-                    # Production mode - check credits
-                    user_email = st.session_state.get('user_email', '').strip()
-                    if not user_email:
-                        # Clear loading states before showing error
-                        loading_container.empty()
-                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                        st.error("Please enter your email address to proceed.")
-                        st.stop()
-                        
-                    # Update loading message for credit checking
-                    with loading_container.container():
-                        display_loading_spinner("💳 Checking credits...", "Verifying your account status")
+                # Production mode - check credits
+                user_email = st.session_state.get('user_email', '').strip()
+                if not user_email:
+                    # Clear loading states before showing error
+                    loading_container.empty()
+                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    st.error("Please enter your email address to proceed.")
+                    st.stop()
                     
-                    # Check if user has enough credits
-                    if CREDIT_SYSTEM_AVAILABLE:
-                        logger.info(f"Checking credits for user: {user_email}")
-                        has_credits, message = check_credits_for_analysis(user_email)
-                        logger.info(f"Credit check result - has_credits: {has_credits}, message: {message}")
-                        if has_credits:
-                            st.session_state.user_initiated_processing = True
-                            st.session_state.template_viewed = False
-                            st.session_state.processing_completed = False
-                            if 'template_header_displayed' in st.session_state: del st.session_state.template_header_displayed
-                            if 'results_header_displayed' in st.session_state: del st.session_state.results_header_displayed
-                            if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
-                            if 'comparison_results' in st.session_state: del st.session_state.comparison_results
-                            if 'insights' in st.session_state: del st.session_state.insights
-                            if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
-                            if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
-                            logger.info(f"Main page 'Process Documents' clicked for {user_email} with sufficient credits.")
-                            add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info")
-                            logger.info(f"Process Documents clicked for {user_email}, property: {st.session_state.get('property_name', 'Unknown')}")
-                            
-                            # Update to document processing phase
-                            with loading_container.container():
-                                display_loading_spinner(loading_msg, f"{loading_subtitle} {message}")
-                            # Call the document processing function directly with files
-                            st.session_state.processing_completed = False
-                            from noi_tool_batch_integration import process_all_documents
-                            
-                            # Ensure all files are properly set in session state for process_all_documents
-                            logger.info(f"DEBUG: Setting session state files for processing...")
-                            for key, file_obj in files_to_upload.items():
-                                session_key = key  # The keys already match session state keys
-                                setattr(st.session_state, session_key, file_obj)
-                                logger.info(f"DEBUG: Set st.session_state.{session_key} = {getattr(file_obj, 'name', 'NO_NAME')}")
-                            
-                            logger.info(f"DEBUG: Session state verification after setting:")
-                            logger.info(f"  - current_month_actuals: {bool(st.session_state.get('current_month_actuals'))} ({getattr(st.session_state.get('current_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('current_month_actuals') else 'None'})")
-                            logger.info(f"  - prior_month_actuals: {bool(st.session_state.get('prior_month_actuals'))} ({getattr(st.session_state.get('prior_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_month_actuals') else 'None'})")
-                            logger.info(f"  - current_month_budget: {bool(st.session_state.get('current_month_budget'))} ({getattr(st.session_state.get('current_month_budget'), 'name', 'NO_NAME') if st.session_state.get('current_month_budget') else 'None'})")
-                            logger.info(f"  - prior_year_actuals: {bool(st.session_state.get('prior_year_actuals'))} ({getattr(st.session_state.get('prior_year_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_year_actuals') else 'None'})")
-                            
-                            logger.info("Calling process_all_documents function")
-                            process_all_documents()
-                            logger.info("process_all_documents function completed")
-                            # DON'T set processing_completed=True here - let Stage 3 handle it
-                            # st.session_state.processing_completed = True
-                            
-                            # Clear loading states
-                            logger.info("=== RESTORE BUTTON AFTER DOCUMENT PROCESSING ===")
-                            logger.info("Clearing loading container after document processing")
-                            loading_container.empty()
-                            logger.info("Restoring Process Documents button after document processing with key=main_process_button")
-                            restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                            logger.info("=== DOCUMENT PROCESSING BUTTON RESTORED ===")
-                            logger.info("Document processing completed, button restored")
-                            # Add error counter to prevent infinite loop
-                            error_count = st.session_state.get('document_processing_success_error_count', 0)
-                            if error_count < 3:  # Limit reruns to prevent infinite loop
-                                st.session_state.document_processing_success_error_count = error_count + 1
-                                logger.info("Triggering rerun after successful document processing")
-                                st.rerun()
-                        else:
-                            logger.info(f"User {user_email} has insufficient credits")
-                            # Clear loading states before showing credit UI
-                            loading_container.empty()
-                            restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                            display_insufficient_credits()
-                            st.stop()
-                    else:
-                        # Fallback to legacy payment system if credit system not available
-                        logger.warning("Credit system not available, using fallback processing")
+                # Update loading message for credit checking
+                with loading_container.container():
+                    display_loading_spinner("💳 Checking credits...", "Verifying your account status")
+                
+                # Check if user has enough credits
+                if CREDIT_SYSTEM_AVAILABLE:
+                    logger.info(f"Checking credits for user: {user_email}")
+                    has_credits, message = check_credits_for_analysis(user_email)
+                    logger.info(f"Credit check result - has_credits: {has_credits}, message: {message}")
+                    if has_credits:
+                        st.session_state.user_initiated_processing = True
                         st.session_state.template_viewed = False
                         st.session_state.processing_completed = False
-                        st.session_state.user_initiated_processing = True
-                        for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
-                            if key in st.session_state:
-                                del st.session_state[key]
+                        if 'template_header_displayed' in st.session_state: del st.session_state.template_header_displayed
+                        if 'results_header_displayed' in st.session_state: del st.session_state.results_header_displayed
+                        if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                        if 'comparison_results' in st.session_state: del st.session_state.comparison_results
+                        if 'insights' in st.session_state: del st.session_state.insights
+                        if 'generated_narrative' in st.session_state: del st.session_state.generated_narrative
+                        if 'edited_narrative' in st.session_state: del st.session_state.edited_narrative
+                        logger.info(f"Main page 'Process Documents' clicked for {user_email} with sufficient credits.")
+                        add_breadcrumb("Process Documents button clicked (Credit-based)", "user_action", "info")
+                        logger.info(f"Process Documents clicked for {user_email}, property: {st.session_state.get('property_name', 'Unknown')}")
                         
-                        # Process documents directly without credit check
+                        # Update to document processing phase
+                        with loading_container.container():
+                            display_loading_spinner(loading_msg, f"{loading_subtitle} {message}")
+                        # Call the document processing function directly with files
+                        st.session_state.processing_completed = False
                         from noi_tool_batch_integration import process_all_documents
-                        process_all_documents()
                         
-                        # Clear loading states after processing
-                        logger.info("=== RESTORE BUTTON IN CREDIT SYSTEM FALLBACK ===")
-                        logger.info("Clearing loading container in credit system fallback")
+                        # Ensure all files are properly set in session state for process_all_documents
+                        logger.info(f"DEBUG: Setting session state files for processing...")
+                        for key, file_obj in files_to_upload.items():
+                            session_key = key  # The keys already match session state keys
+                            setattr(st.session_state, session_key, file_obj)
+                            logger.info(f"DEBUG: Set st.session_state.{session_key} = {getattr(file_obj, 'name', 'NO_NAME')}")
+                        
+                        logger.info(f"DEBUG: Session state verification after setting:")
+                        logger.info(f"  - current_month_actuals: {bool(st.session_state.get('current_month_actuals'))} ({getattr(st.session_state.get('current_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('current_month_actuals') else 'None'})")
+                        logger.info(f"  - prior_month_actuals: {bool(st.session_state.get('prior_month_actuals'))} ({getattr(st.session_state.get('prior_month_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_month_actuals') else 'None'})")
+                        logger.info(f"  - current_month_budget: {bool(st.session_state.get('current_month_budget'))} ({getattr(st.session_state.get('current_month_budget'), 'name', 'NO_NAME') if st.session_state.get('current_month_budget') else 'None'})")
+                        logger.info(f"  - prior_year_actuals: {bool(st.session_state.get('prior_year_actuals'))} ({getattr(st.session_state.get('prior_year_actuals'), 'name', 'NO_NAME') if st.session_state.get('prior_year_actuals') else 'None'})")
+                        
+                        logger.info("Calling process_all_documents function")
+                        process_all_documents()
+                        logger.info("process_all_documents function completed")
+                        # DON'T set processing_completed=True here - let Stage 3 handle it
+                        # st.session_state.processing_completed = True
+                        
+                        # Clear loading states
+                        logger.info("=== RESTORE BUTTON AFTER DOCUMENT PROCESSING ===")
+                        logger.info("Clearing loading container after document processing")
                         loading_container.empty()
-                        logger.info("Restoring Process Documents button in credit system fallback with key=main_process_button")
+                        logger.info("Restoring Process Documents button after document processing with key=main_process_button")
                         restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                        logger.info("=== CREDIT SYSTEM FALLBACK BUTTON RESTORED ===")
+                        logger.info("=== DOCUMENT PROCESSING BUTTON RESTORED ===")
+                        logger.info("Document processing completed, button restored")
+                        # Add error counter to prevent infinite loop
+                        error_count = st.session_state.get('document_processing_success_error_count', 0)
+                        if error_count < 3:  # Limit reruns to prevent infinite loop
+                            st.session_state.document_processing_success_error_count = error_count + 1
+                            logger.info("Triggering rerun after successful document processing")
+                            st.rerun()
+                    else:
+                        logger.info(f"User {user_email} has insufficient credits")
+                        # Clear loading states before showing credit UI
+                        loading_container.empty()
                         restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                        st.rerun()
+                        display_insufficient_credits()
+                        st.stop()
+                else:
+                    # Fallback to legacy payment system if credit system not available
+                    logger.warning("Credit system not available, using fallback processing")
+                    st.session_state.template_viewed = False
+                    st.session_state.processing_completed = False
+                    st.session_state.user_initiated_processing = True
+                    for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    
+                    # Process documents directly without credit check
+                    from noi_tool_batch_integration import process_all_documents
+                    process_all_documents()
+                    
+                    # Clear loading states after processing
+                    logger.info("=== RESTORE BUTTON IN CREDIT SYSTEM FALLBACK ===")
+                    logger.info("Clearing loading container in credit system fallback")
+                    loading_container.empty()
+                    logger.info("Restoring Process Documents button in credit system fallback with key=main_process_button")
+                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("=== CREDIT SYSTEM FALLBACK BUTTON RESTORED ===")
+                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    st.rerun()
 
         with col2:
             # Enhanced Instructions section using component function
