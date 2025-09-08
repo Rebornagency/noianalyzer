@@ -3,6 +3,374 @@ import os
 import logging
 from typing import Dict, Any, Optional
 
+# Define CUSTOM_CSS variable
+CUSTOM_CSS = """
+/* Custom CSS for Reborn NOI Analyzer */
+/* Main container and background */
+.main {
+    background-color: #0d1117;
+    color: #ffffff;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+}
+
+/* Logo container */
+.header-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0px;
+}
+
+.logo-container {
+    margin-right: 15px;
+}
+
+/* Input fields styling */
+input[type="text"] {
+    background-color: #1a1f29;
+    color: #ffffff;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* File uploader styling */
+.st-c7 {
+    background-color: #1a1f29;
+    border: 1px dashed #30363d;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+/* Fix for Budget file uploader spacing */
+[data-testid="stSubheader"]:has(+ div [data-testid="stFileUploader"]) {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Button styling */
+.stButton>button {
+    background-color: #0e4de3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.stButton>button:hover {
+    background-color: #1c5cf5;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading button styling to match primary buttons */
+.stButton .button-loading {
+    background-color: #000000 !important;
+    color: #79b8f3 !important;
+    border: 1px solid #79b8f3 !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+    width: 100% !important;
+    box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+}
+
+/* Checkbox styling */
+.stCheckbox>div {
+    color: #ffffff;
+}
+
+/* Typography */
+body {
+    font-family: 'Inter', sans-serif;
+    color: #ffffff;
+}
+
+p, div {
+    color: #ffffff;
+}
+
+/* Ensure white text for key UI elements */
+.stButton>button,
+.stButton>button div {
+    color: #ffffff !important;
+}
+
+.stCheckbox label,
+.stCheckbox label span {
+    color: #ffffff !important;
+}
+
+.stAlert p,
+.stAlert span {
+    color: #ffffff !important;
+}
+
+/* Restore original white text for buttons */
+.stButton>button,
+.stButton>button div {
+    color: #ffffff !important;
+}
+
+.stCheckbox label,
+.stCheckbox>div,
+.stCheckbox>label {
+    color: #ffffff !important;
+}
+
+.stAlert,
+.stAlert p {
+    color: #ffffff !important;
+}
+
+/* Ensure white text for success alerts (discount badges) */
+.stAlert-success,
+.stAlert-success p,
+.stAlert-success span {
+    color: #ffffff !important;
+}
+
+/* Lighter blue background for info alerts */
+.stAlert-info {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Ensure info alert text is light blue for readability */
+.stAlert-info,
+.stAlert-info p,
+.stAlert-info span {
+    color: #93c5fd !important;
+}
+
+/* Section labels */
+.section-label {
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+
+/* File uploaders now use targeted hiding per container */
+
+/* Original file upload area (kept for compatibility) */
+.upload-area {
+    background-color: #1a1f29;
+    border: 1px dashed #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+/* Primary action button */
+.primary-button {
+    background-color: #0e4de3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+/* Document type label */
+.document-label {
+    background-color: #1a1f29;
+    padding: 10px;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+}
+
+/* Card styling */
+.card {
+    background-color: #1a1f29;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+/* Sidebar styling */
+.css-1d391kg {
+    background-color: #161b22;
+}
+
+/* Custom widget styling */
+.widget-label {
+    font-weight: 500;
+    color: #ffffff;
+}
+
+/* Text field styling */
+div[data-baseweb="input"] {
+    background-color: #1a1f29;
+}
+
+/* Chart area styling */
+.stPlotlyChart {
+    background-color: #1a1f29;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* Fix for Amount ($) label in charts - move it down to prevent overlap */
+.js-plotly-plot .ytitle {
+    transform: translateY(25px) !important;
+}
+
+/* Table styling */
+.stDataFrame {
+    background-color: #1a1f29;
+}
+
+/* Expander styling */
+.streamlit-expanderHeader {
+    background-color: #1a1f29;
+    border-radius: 8px;
+}
+
+/* Fix for Executive Summary, Key Performance Insights, and Recommendations */
+.insight-section-title {
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    color: #4DB6AC !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+    padding: 8px 12px !important;
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    border-radius: 6px !important;
+    border-left: 4px solid #4DB6AC !important;
+}
+
+.insight-content {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    padding: 10px 16px !important;
+    font-family: 'Inter', sans-serif !important;
+    margin-bottom: 5px !important;
+}
+
+.insights-summary {
+    background-color: rgba(30, 41, 59, 0.8) !important;
+    padding: 15px !important;
+    border-radius: 8px !important;
+    border-left: 4px solid #4DB6AC !important;
+    margin-bottom: 10px !important;
+    text-align: center !important;
+}
+
+/* Credit Store Specific Styles - Prevent conflicts with global styles */
+/* Ultra-specific selectors for credit package cards */
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+    background: linear-gradient(145deg, #1a2436, #0f1722) !important;
+    border: 1px solid #2a3a50 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+    padding: 2rem !important;
+    margin: 1.5rem 0 !important;
+    text-align: center !important;
+    color: #FFFFFF !important;
+}
+
+/* Ultra-specific selectors for CTA buttons */
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"] {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 1rem 1.5rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    width: calc(100% - 2rem) !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.5) !important;
+    margin: 0.5rem auto !important;
+    display: block !important;
+    text-align: center !important;
+    height: auto !important;
+}
+
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(37, 99, 235, 0.7) !important;
+}
+
+/* Ultra-specific selectors for savings badges */
+#credit-store-container div[data-testid="column"] > div[data-testid="stVerticalBlock"] [data-testid="stAlert"] {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+    padding: 0.8rem 1.5rem !important;
+    border-radius: 50px !important;
+    margin: 1rem auto !important;
+    width: fit-content !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+    text-align: center !important;
+}
+
+/* Ultra-specific text alignment fixes for credit store */
+#credit-store-container div[data-testid="column"] h3,
+#credit-store-container div[data-testid="column"] .credits-amount,
+#credit-store-container div[data-testid="column"] .price,
+#credit-store-container div[data-testid="column"] .per-credit,
+#credit-store-container div[data-testid="column"] .description,
+#credit-store-container div[data-testid="column"] .time-savings,
+#credit-store-container div[data-testid="column"] .savings-badge {
+    text-align: center !important;
+    width: 100% !important;
+    color: #FFFFFF !important;
+    display: block !important;
+}
+
+/* Nuclear override for any conflicting styles */
+#credit-store-container [data-testid="stVerticalBlock"]:not([data-testid="stVerticalBlockBorderWrapper"]) {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Remove or override any constraints for Browse Files button */
+/*
+[data-testid="stFileUploader"] label span,
+[data-testid="stFileUploader"] label div span,
+[data-testid="stFileUploader"] > div > div > button {
+    min-width: 160px !important;
+    min-height: 48px !important;
+    padding: 0.5rem 2.2rem !important;
+    font-size: 1.08rem !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    white-space: nowrap !important;
+    width: 180px !important;
+    max-width: 100% !important;
+}
+*/
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .stApp {
+        background-color: #0d1117;
+    }
+}
+"""
+
 # Attempt to import from reborn_logo, handle potential ImportError if structure changes
 try:
     from reborn_logo import get_reborn_logo_base64
@@ -31,7 +399,35 @@ def inject_custom_css() -> None:
     This function should be called once at the beginning of the Streamlit app to apply consistent styling throughout.
     """
     # Inject the loading styles for buttons
-    inject_loading_styles()
+    st.markdown("""
+    <style>
+    /* Ensure loading buttons match primary button styling */
+    .button-loading {
+        background-color: #000000 !important;
+        color: #79b8f3 !important;
+        border: 1px solid #79b8f3 !important;
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+        transition: all 0.3s ease !important;
+        margin-top: 1rem !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+        cursor: not-allowed !important;
+        opacity: 0.8 !important;
+    }
+    
+    .button-loading:hover {
+        background-color: #000000 !important;
+        border-color: #79b8f3 !important;
+        color: #79b8f3 !important;
+        box-shadow: 0 2px 8px rgba(121, 184, 243, 0.3) !important;
+        transform: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     # Inject the main CSS
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -166,7 +562,7 @@ def show_processing_status(message: str, is_running: bool = False, status_type: 
     logger.info(f"Displayed processing status: {message} (type: {status_type}, running: {is_running})")
 
 # Enhanced loading indicator functions
-def display_loading_spinner(message: str = "Processing...", subtitle: str = None):
+def display_loading_spinner(message: str = "Processing...", subtitle: str = ""):
     """
     Display a prominent loading spinner with message.
     
@@ -226,7 +622,7 @@ def display_inline_loading(message: str = "Loading...", icon: str = "⏳"):
     st.markdown(inline_html, unsafe_allow_html=True)
     logger.debug(f"Displayed inline loading: {message}")
 
-def display_overlay_loading(message: str = "Processing your request...", subtitle: str = None):
+def display_overlay_loading(message: str = "Processing your request...", subtitle: str = ""):
     """
     Display a full-screen overlay loading indicator (use sparingly).
     
@@ -248,14 +644,6 @@ def display_overlay_loading(message: str = "Processing your request...", subtitl
     st.markdown(overlay_html, unsafe_allow_html=True)
     logger.info(f"Displayed overlay loading: {message}")
 
-def clear_loading_indicators():
-    """
-    Clear all loading indicators by rendering empty content.
-    Call this when loading is complete.
-    """
-    st.markdown("<div class='loading-clear'></div>", unsafe_allow_html=True)
-    logger.debug("Cleared loading indicators")
-
 # Context manager for loading states
 class LoadingContext:
     """
@@ -266,7 +654,7 @@ class LoadingContext:
             # Your processing code here
             result = some_long_running_function()
     """
-    def __init__(self, message: str, subtitle: str = None, loading_type: str = "spinner"):
+    def __init__(self, message: str, subtitle: str = "", loading_type: str = "spinner"):
         self.message = message
         self.subtitle = subtitle
         self.loading_type = loading_type
@@ -288,7 +676,7 @@ class LoadingContext:
             self.container.empty()
         logger.debug(f"LoadingContext completed: {self.message}")
     
-    def update_message(self, new_message: str, subtitle: str = None):
+    def update_message(self, new_message: str, subtitle: str = ""):
         """Update the loading message while in context."""
         if self.container:
             with self.container.container():
@@ -298,7 +686,7 @@ class LoadingContext:
                     display_inline_loading(new_message)
 
 # Helper functions for button loading states
-def create_loading_button(label: str, key: str = None, help_text: str = None, **kwargs):
+def create_loading_button(label: str, key: str = "", help_text: str = "", **kwargs):
     """
     Create a button that shows loading state when clicked.
     Returns a tuple of (clicked, button_placeholder) for manual loading management.
@@ -312,6 +700,14 @@ def create_loading_button(label: str, key: str = None, help_text: str = None, **
     Returns:
         tuple: (clicked, button_placeholder)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== CREATE_LOADING_BUTTON CALLED ===")
+    logger.info(f"Label: {label}")
+    logger.info(f"Key: {key}")
+    logger.info(f"Help text: {help_text}")
+    logger.info(f"Kwargs: {kwargs}")
+    
     button_placeholder = st.empty()
     
     # Handle help parameter conflicts - prefer explicit help_text over kwargs help
@@ -331,6 +727,11 @@ def show_button_loading(button_placeholder, label: str = "Processing..."):
         button_placeholder: The button placeholder from create_loading_button
         label (str): Loading label to display
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== SHOW_BUTTON_LOADING CALLED ===")
+    logger.info(f"Label: {label}")
+    
     with button_placeholder.container():
         st.markdown(f"""
         <div class="stButton">
@@ -361,6 +762,14 @@ def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
     if not key:
         import uuid
         key = f"button_{uuid.uuid4().hex[:8]}"
+        
+    # Add logging to help debug button rendering
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"=== RESTORE_BUTTON CALLED ===")
+    logger.info(f"Label: {label}")
+    logger.info(f"Key: {key}")
+    logger.info(f"Kwargs: {kwargs}")
         
     # Create the restored button
     button_placeholder.button(label, key=key, **kwargs)
@@ -504,7 +913,7 @@ def show_file_info(file_name: str, file_size: Optional[str] = None, file_type: O
 # For now, `load_css` from app.py is not moved as `inject_custom_css` seems more comprehensive.
 
 # Function to create styled cards for content display
-def display_card_container(title: str, content_func: callable, card_id: Optional[str] = None):
+def display_card_container(title: str, content_func: callable, card_id: Optional[str] = ""):
     """
     Display content in a consistently styled card container.
     
@@ -524,7 +933,7 @@ def display_card_container(title: str, content_func: callable, card_id: Optional
         content_func()
         
     st.markdown("</div>", unsafe_allow_html=True) # Close the custom-card div
-    logger.debug(f"Displayed card container with title: {title}")
+    logger.debug(f"Displayed card container with title: {title})
 
 
 def display_features_section():

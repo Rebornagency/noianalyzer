@@ -1,49 +1,33 @@
 import streamlit as st
 
-# Initialize session state for terms acceptance
-if 'terms_accepted' not in st.session_state:
-    st.session_state.terms_accepted = False
-
-# Initialize session state for error display
-if 'show_tos_error' not in st.session_state:
-    st.session_state.show_tos_error = False
-
-st.title("Terms of Service Fix Test")
-
-# Terms of Service acceptance checkbox
-st.markdown(
-    '<div class="tos-checkbox-label">🔒 By processing documents, you agree to our <a href="/terms-of-service" target="_blank" class="tos-link">Terms of Service</a> and <a href="/privacy-policy" target="_blank" class="tos-link">Privacy Policy</a></div>',
-    unsafe_allow_html=True
-)
-terms_accepted = st.checkbox(
-    "I have read and accept the Terms of Service and Privacy Policy",
-    value=st.session_state.get('terms_accepted', False),
-    key="terms_acceptance"
-)
-
-# Update session state with terms acceptance
-st.session_state.terms_accepted = terms_accepted
-
-# Display error message if terms were not accepted on previous attempt
-if st.session_state.get('show_tos_error', False):
-    st.markdown(
-        '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
-        unsafe_allow_html=True
-    )
-    # Reset the error flag after displaying the message
-    st.session_state.show_tos_error = False
-
-# Process button
-if st.button("Process Documents", key="main_process_button"):
-    st.write(f"Process button clicked. Terms accepted: {st.session_state.terms_accepted}")
+def test_terms_flow():
+    """Test the terms of service flow to ensure no duplicate widget ID errors"""
     
-    if not st.session_state.terms_accepted:
-        st.session_state.show_tos_error = True
-        st.markdown(
-            '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
-            unsafe_allow_html=True
-        )
-        # Reset the error flag after displaying the message
-        st.session_state.show_tos_error = False
-    else:
-        st.success("Processing documents...")
+    st.title("Terms of Service Flow Test")
+    
+    # Initialize session state
+    if 'terms_accepted' not in st.session_state:
+        st.session_state.terms_accepted = False
+    
+    # Terms of Service acceptance checkbox
+    st.session_state.terms_accepted = st.checkbox(
+        "I have read and accept the Terms of Service and Privacy Policy",
+        value=st.session_state.terms_accepted,
+        key="terms_checkbox"
+    )
+    
+    # Process button
+    process_clicked = st.button("Process Documents", key="test_process_button")
+    
+    if process_clicked:
+        # Check if Terms of Service have been accepted BEFORE any processing
+        if not st.session_state.terms_accepted:
+            st.error("⚠️ You must accept the Terms of Service and Privacy Policy to process documents.")
+            return  # Exit the function to prevent further processing
+        
+        # If terms are accepted, continue with processing
+        st.success("Terms accepted! Continuing with document processing...")
+        # Add your document processing logic here
+
+if __name__ == "__main__":
+    test_terms_flow()

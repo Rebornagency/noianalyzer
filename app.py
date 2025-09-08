@@ -20,11 +20,14 @@ try:
 except ImportError:
     WEASYPRINT_AVAILABLE = False
     # Create dummy HTML class for fallback
-    class HTML:
+    class HTMLFallback:
         def __init__(self, *args, **kwargs):
             pass
         def write_pdf(self, *args, **kwargs):
             raise ImportError("WeasyPrint not available - PDF generation disabled")
+
+    # Assign the fallback class to HTML only when weasyprint is not available
+    HTML = HTMLFallback
 
 import tempfile
 import jinja2
@@ -62,7 +65,7 @@ try:
     from storyteller_display import display_financial_narrative, display_narrative_in_tabs
 except ImportError:
     # Create dummy functions if not available
-    def create_narrative(*args, **kwargs):
+    def create_narrative(comparison_results: Dict[str, Any], property_name: str = "") -> str:
         return "Narrative generation not available - module not found."
     def display_financial_narrative(*args, **kwargs):
         pass
@@ -82,44 +85,88 @@ except ImportError:
 try:
     from utils.credit_ui_minimal import display_credit_store
     # Import other functions from original credit_ui as fallback for other functions
-    from utils.credit_ui import (
-        display_credit_balance, display_credit_balance_header, check_credits_for_analysis,
-        display_insufficient_credits, display_free_trial_welcome, init_credit_system
-    )
+    from utils.credit_ui import display_credit_balance, display_credit_balance_header, check_credits_for_analysis
+    # Try to import optional functions, provide fallbacks if not available
+    try:
+        from utils.credit_ui import display_insufficient_credits
+    except ImportError:
+        def display_insufficient_credits(): pass
+    try:
+        from utils.credit_ui import display_free_trial_welcome
+    except ImportError:
+        def display_free_trial_welcome(email: str): pass
+    try:
+        from utils.credit_ui import init_credit_system
+    except ImportError:
+        def init_credit_system(): pass
     CREDIT_SYSTEM_AVAILABLE = True
 except ImportError:
     # Fallback to robust implementation if minimal is not available
     try:
-        from utils.credit_ui_robust import (
-            display_credit_balance, display_credit_balance_header, display_credit_store, check_credits_for_analysis,
-            display_insufficient_credits, display_free_trial_welcome, init_credit_system
-        )
+        from utils.credit_ui_robust import display_credit_store
+        # Import other functions from original credit_ui as fallback
+        from utils.credit_ui import display_credit_balance, display_credit_balance_header, check_credits_for_analysis
+        # Try to import optional functions, provide fallbacks if not available
+        try:
+            from utils.credit_ui import display_insufficient_credits
+        except ImportError:
+            def display_insufficient_credits(): pass
+        try:
+            from utils.credit_ui import display_free_trial_welcome
+        except ImportError:
+            def display_free_trial_welcome(email: str): pass
+        try:
+            from utils.credit_ui import init_credit_system
+        except ImportError:
+            def init_credit_system(): pass
         CREDIT_SYSTEM_AVAILABLE = True
     except ImportError:
         # Fallback to fresh implementation if robust is not available
         try:
-            from utils.credit_ui_fresh import (
-                display_credit_balance, display_credit_balance_header, display_credit_store, check_credits_for_analysis,
-                display_insufficient_credits, display_free_trial_welcome, init_credit_system
-            )
+            from utils.credit_ui_fresh import display_credit_store
+            # Import other functions from original credit_ui as fallback
+            from utils.credit_ui import display_credit_balance, display_credit_balance_header, check_credits_for_analysis
+            # Try to import optional functions, provide fallbacks if not available
+            try:
+                from utils.credit_ui import display_insufficient_credits
+            except ImportError:
+                def display_insufficient_credits(): pass
+            try:
+                from utils.credit_ui import display_free_trial_welcome
+            except ImportError:
+                def display_free_trial_welcome(email: str): pass
+            try:
+                from utils.credit_ui import init_credit_system
+            except ImportError:
+                def init_credit_system(): pass
             CREDIT_SYSTEM_AVAILABLE = True
         except ImportError:
             # Fallback to original credit_ui if fresh implementation is not available
             try:
-                from utils.credit_ui import (
-                    display_credit_balance, display_credit_balance_header, display_credit_store, check_credits_for_analysis,
-                    display_insufficient_credits, display_free_trial_welcome, init_credit_system
-                )
+                from utils.credit_ui import display_credit_balance, display_credit_balance_header, display_credit_store, check_credits_for_analysis
+                # Try to import optional functions, provide fallbacks if not available
+                try:
+                    from utils.credit_ui import display_insufficient_credits
+                except ImportError:
+                    def display_insufficient_credits(): pass
+                try:
+                    from utils.credit_ui import display_free_trial_welcome
+                except ImportError:
+                    def display_free_trial_welcome(email: str): pass
+                try:
+                    from utils.credit_ui import init_credit_system
+                except ImportError:
+                    def init_credit_system(): pass
                 CREDIT_SYSTEM_AVAILABLE = True
             except ImportError:
                 CREDIT_SYSTEM_AVAILABLE = False
-                def display_credit_balance(*args, **kwargs): pass
-                def display_credit_balance_header(*args, **kwargs): pass
-                def display_credit_store(*args, **kwargs): st.error("Credit system not available")
-                def check_credits_for_analysis(*args, **kwargs): return True, "Credit check unavailable"
-                def display_insufficient_credits(*args, **kwargs): pass
-                def display_free_trial_welcome(*args, **kwargs): pass
-                def init_credit_system(*args, **kwargs): pass
+                def display_credit_balance(email: str): pass
+                def display_credit_balance_header(email: str): pass
+                def display_credit_store(): st.error("Credit system not available")
+                def check_credits_for_analysis(email: str) -> tuple[bool, str]: return True, "Credit check unavailable"
+                def display_insufficient_credits(): pass
+                def display_free_trial_welcome(email: str): pass
+                def init_credit_system(): pass
 
 # Import mock data generators for testing mode
 try:
@@ -131,11 +178,11 @@ try:
     MOCK_DATA_AVAILABLE = True
 except ImportError:
     MOCK_DATA_AVAILABLE = False
-    def generate_mock_consolidated_data(*args, **kwargs):
+    def generate_mock_consolidated_data(property_name: str = "Test Property", scenario: str = "Standard Performance") -> Dict[str, Any]:
         return {"error": "Mock data module not available"}
-    def generate_mock_insights(*args, **kwargs):
+    def generate_mock_insights(scenario: str = "Standard Performance") -> Dict[str, Any]:
         return {"summary": "Mock insights not available", "performance": [], "recommendations": []}
-    def generate_mock_narrative(*args, **kwargs):
+    def generate_mock_narrative(scenario: str = "Standard Performance") -> str:
         return "Mock narrative not available"
 
 from config import get_openai_api_key, get_extraction_api_url, get_api_key, save_api_settings
@@ -354,6 +401,7 @@ def process_documents_testing_mode():
         logger.error(f"Error generating mock data: {str(e)}", exc_info=True)
         st.error("An error occurred while generating mock data. Please check the logs.")
         return False
+
 
 def run_testing_mode_diagnostics():
     """Run diagnostics on testing mode functionality"""
@@ -2700,18 +2748,18 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                        tab_data.get(f"{key}_{prior_key_suffix}", 
                                        tab_data.get(f"{key}_compare", 0.0)))
 
-                    current_val = float(current_val_raw) if pd.notna(current_val_raw) else 0.0
-                    prior_val = float(prior_val_raw) if pd.notna(prior_val_raw) else 0.0
+                    current_val = float(current_val_raw) if (current_val_raw is not None and not (isinstance(current_val_raw, float) and pd.isna(current_val_raw))) else 0.0
+                    prior_val = float(prior_val_raw) if (prior_val_raw is not None and not (isinstance(prior_val_raw, float) and pd.isna(prior_val_raw))) else 0.0
 
                     # Prefer pre-calculated change values if available and valid, otherwise calculate
                     change_val_raw = tab_data.get(f"{key}_change", tab_data.get(f"{key}_variance"))
-                    if pd.notna(change_val_raw):
+                    if change_val_raw is not None and not (isinstance(change_val_raw, float) and pd.isna(change_val_raw)):
                         change_val = float(change_val_raw)
                     else:
                         change_val = current_val - prior_val
 
                     percent_change_raw = tab_data.get(f"{key}_percent_change", tab_data.get(f"{key}_percent_variance"))
-                    if pd.notna(percent_change_raw):
+                    if percent_change_raw is not None and not (isinstance(percent_change_raw, float) and pd.isna(percent_change_raw)):
                         percent_change = float(percent_change_raw)
                     else:
                         percent_change = (change_val / prior_val * 100) if prior_val != 0 else 0.0
@@ -2753,7 +2801,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         name_suffix: "{:}",
                         "Change ($)": "{:}",
                         "Change (%)": "{:}"
-                    }).hide(axis="index").set_table_styles([
+                    }).hide_index().set_table_styles([
                         {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'center')]},
                         {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
                     ]), use_container_width=True)
@@ -3049,9 +3097,12 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         # Create horizontal bar chart for comparing current vs prior
                         comp_data = income_df.copy()
                         
-                        # Sort by current value
+                        # Sort by current value - ensure column exists and has numeric data
                         comp_data = comp_data[comp_data["Income Category"] != "Total Other Income"]
-                        comp_data = comp_data.sort_values(by="Current", ascending=True)
+                        if "Current" in comp_data.columns and not comp_data.empty:
+                            # Ensure Current column is numeric before sorting
+                            comp_data["Current"] = pd.to_numeric(comp_data["Current"], errors='coerce').fillna(0)
+                            comp_data = comp_data.sort_values(by="Current", ascending=True)
                         
                         # Only show top 6 categories to avoid chart getting too crowded
                         if len(comp_data) > 6:
@@ -3333,7 +3384,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             fig.update_yaxes(tickprefix="$", tickformat=",.0f")
             
             # Safety: ensure no stray title text remains (avoids 'undefined' render)
-            if fig.layout.title and (fig.layout.title.text is None or str(fig.layout.title.text).lower() == 'undefined'):
+            if hasattr(fig, 'layout') and hasattr(fig.layout, 'title') and fig.layout.title and \
+               hasattr(fig.layout.title, 'text') and (fig.layout.title.text is None or str(fig.layout.title.text).lower() == 'undefined'):
                 fig.update_layout(title_text='')
             
             # Wrap the chart display in the container div
@@ -3684,10 +3736,11 @@ def display_noi_coach():
         else:
             try:
                 # Call the ask_noi_coach function from app.py
+                context = st.session_state.noi_coach_selected_context if isinstance(st.session_state.noi_coach_selected_context, str) else 'budget'
                 response = ask_noi_coach(
                     user_question,
                     st.session_state.comparison_results,
-                    st.session_state.noi_coach_selected_context
+                    context
                 )
             except Exception as e:
                 logger.error(f"Error generating NOI Coach response in app.py: {str(e)}", exc_info=True)
@@ -3983,7 +4036,7 @@ def main():
                 if 'email' in query_params:
                     returned_email = query_params['email']
                     # Only set email if it's a valid email (not None, empty, or "None")
-                    if returned_email and returned_email.lower() != 'none' and '@' in returned_email:
+                    if returned_email and isinstance(returned_email, str) and returned_email.lower() != 'none' and '@' in returned_email:
                         st.session_state.user_email = returned_email
                         logger.info(f"Pre-filled email from successful purchase: {returned_email}")
                     else:
@@ -4213,7 +4266,7 @@ def main():
             "Budget Variance": "Significant variance from budgeted amounts"
         }
         
-        st.sidebar.info(f"**{mock_scenario}:** {scenario_descriptions.get(mock_scenario, 'No description available')}")
+        st.sidebar.info(f"**{mock_scenario}:** {scenario_descriptions.get(mock_scenario, 'No description available') if isinstance(mock_scenario, str) else 'No description available'}")
         
         # Testing diagnostics
         if st.sidebar.button("Run Testing Diagnostics", help="Test mock data generation"):
@@ -4308,7 +4361,8 @@ def main():
         and not st.session_state.get('consolidated_data')
     ):
         # Center the credit display
-        display_credit_balance_header(st.session_state.user_email)
+        user_email = st.session_state.user_email if isinstance(st.session_state.user_email, str) else ''
+        display_credit_balance_header(user_email)
         
         # Add buy more credits button centered below
         col1, col2, col3 = st.columns([1, 1, 1])
@@ -4575,6 +4629,11 @@ def main():
             st.session_state.terms_accepted = terms_accepted
             
             # Enhanced Process Documents button with loading state
+            logger.info("=== RENDERING PROCESS DOCUMENTS BUTTON ===")
+            logger.info(f"Button key: main_process_button")
+            logger.info(f"Button type: primary")
+            logger.info(f"Button width: use_container_width=True")
+            
             process_clicked, process_button_placeholder = create_loading_button(
                 "Process Documents",
                 key="main_process_button",
@@ -4582,6 +4641,9 @@ def main():
                 type="primary",
                 use_container_width=True
             )
+            
+            logger.info(f"Button created successfully. Clicked state: {process_clicked}")
+            logger.info("=== END PROCESS DOCUMENTS BUTTON RENDERING ===")
             
             # Display error message if terms were not accepted on previous attempt
             # This needs to be here to ensure the message is displayed after button click
@@ -4599,13 +4661,37 @@ def main():
                 logger.info(f"Current session state - user_email: {st.session_state.get('user_email', '')}")
                 logger.info(f"Current session state - testing_mode: {is_testing_mode_active()}")
                 
+                # Check if Terms of Service have been accepted BEFORE any processing
+                logger.info(f"Checking terms acceptance: {st.session_state.get('terms_accepted', False)}")
+                logger.info("=== TERMS CHECK BEFORE PROCESSING ===")
+                logger.info(f"Terms accepted: {st.session_state.get('terms_accepted', False)}")
+                logger.info(f"Show TOS error flag: {st.session_state.get('show_tos_error', False)}")
+                if not st.session_state.get('terms_accepted', False):
+                    logger.info("Terms not accepted, showing error message")
+                    logger.info("Button restoration context: Terms not accepted")
+                    st.session_state.show_tos_error = True
+                    st.markdown(
+                        '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
+                        unsafe_allow_html=True
+                    )
+                    # Don't proceed with processing - just show the error and return
+                    logger.info("=== RETURNING EARLY DUE TO TERMS NOT ACCEPTED ===")
+                    return  # Exit the function to prevent further processing
+                
                 # NEW: Check if email is provided before proceeding
                 user_email = st.session_state.get('user_email', '').strip()
+                logger.info("=== EMAIL CHECK ===")
+                logger.info(f"User email: '{user_email}'")
+                logger.info(f"Email length: {len(user_email)}")
                 if not user_email:
                     logger.error("Process Documents clicked but no email provided")
+                    logger.info("Button restoration context: Email missing")
                     st.error("📧 Email address is required. Please enter your email address before processing documents.")
                     # Restore button with consistent key
+                    logger.info("=== RESTORE BUTTON WHEN EMAIL MISSING ===")
+                    logger.info("Restoring Process Documents button when email is missing with key=main_process_button")
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("=== EMAIL MISSING BUTTON RESTORED ===")
                     st.stop()
                     
                 # Count files for better time estimation
@@ -4651,8 +4737,13 @@ def main():
                 if not effective_current_month:
                     logger.warning("DEBUG: No current month file available in either session state or local variables")
                     # Clear loading states before showing error
+                    logger.info("=== RESTORE BUTTON AFTER ERROR - NO CURRENT MONTH FILE ===")
+                    logger.info("Clearing loading container")
                     loading_container.empty()
+                    logger.info("Restoring Process Documents button with key=main_process_button")
+                    logger.info("Button restoration context: No current month file available")
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("=== BUTTON RESTORED ===")
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
                     st.stop()
                     
@@ -4696,8 +4787,12 @@ def main():
                     save_testing_config() # Save current testing config
                     
                     # Clear loading and restore button
+                    logger.info("=== RESTORE BUTTON IN TESTING MODE ===")
+                    logger.info("Clearing loading container in testing mode")
                     loading_container.empty()
+                    logger.info("Restoring Process Documents button in testing mode with key=main_process_button")
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("=== TESTING MODE BUTTON RESTORED ===")
                     logger.info("TESTING MODE processing completed, button restored")
                     # Remove st.rerun() to prevent potential loops
                     # The UI will update naturally on the next render cycle
@@ -4714,8 +4809,8 @@ def main():
                         # The error message will be displayed on the next render cycle
                         return  # Exit the function to prevent further processing
                     
-                    # Terms accepted, continue with processing
-                    logger.info("Terms accepted, continuing with document processing")
+                # Terms accepted, continue with processing (moved to earlier in the function)
+                logger.info("Terms accepted, continuing with document processing")
                     # Production mode - check credits
                     user_email = st.session_state.get('user_email', '').strip()
                     if not user_email:
@@ -4776,8 +4871,12 @@ def main():
                             # st.session_state.processing_completed = True
                             
                             # Clear loading states
+                            logger.info("=== RESTORE BUTTON AFTER DOCUMENT PROCESSING ===")
+                            logger.info("Clearing loading container after document processing")
                             loading_container.empty()
+                            logger.info("Restoring Process Documents button after document processing with key=main_process_button")
                             restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                            logger.info("=== DOCUMENT PROCESSING BUTTON RESTORED ===")
                             logger.info("Document processing completed, button restored")
                             # Add error counter to prevent infinite loop
                             error_count = st.session_state.get('document_processing_success_error_count', 0)
@@ -4807,7 +4906,12 @@ def main():
                         process_all_documents()
                         
                         # Clear loading states after processing
+                        logger.info("=== RESTORE BUTTON IN CREDIT SYSTEM FALLBACK ===")
+                        logger.info("Clearing loading container in credit system fallback")
                         loading_container.empty()
+                        logger.info("Restoring Process Documents button in credit system fallback with key=main_process_button")
+                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        logger.info("=== CREDIT SYSTEM FALLBACK BUTTON RESTORED ===")
                         restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                         st.rerun()
 
@@ -4822,6 +4926,19 @@ def main():
                 'Confirm data to view the analysis results',
                 'Export your results as PDF or Excel using the export options'
             ])
+
+            # Create the main process button with enhanced logging
+            logger.info("=== CREATING PROCESS DOCUMENTS BUTTON ===")
+            logger.info("Creating Process Documents button with key=main_process_button")
+            process_clicked = st.button(
+                "Process Documents",
+                key="main_process_button",
+                type="primary",
+                use_container_width=True,
+                help="Analyze your uploaded financial documents"
+            )
+            logger.info(f"Process Documents button created. Clicked state: {process_clicked}")
+            logger.info(f"Button key: main_process_button")
             
             st.markdown('<p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>', unsafe_allow_html=True)
             
@@ -4912,7 +5029,7 @@ def main():
                         st.session_state.document_processing_complete = True
                     elif isinstance(raw_consolidated_data, dict) and "error" in raw_consolidated_data:
                         error_message = raw_consolidated_data["error"]
-                        add_breadcrumb("Document processing error", "processing", "error", {"error": error_message})
+                        add_breadcrumb(f"Document processing error: {error_message}", "processing", "error")
                         capture_message_with_context(
                             f"Document processing error: {error_message}",
                             level="error",
@@ -4947,7 +5064,7 @@ def main():
                     st.rerun() # Rerun to move to template display or show error
 
                 except Exception as e_extract:
-                    add_breadcrumb("Exception during document extraction", "processing", "error", {"exception": str(e_extract)})
+                    add_breadcrumb(f"Exception during document extraction: {str(e_extract)}", "processing", "error")
                     capture_exception_with_context(
                         e_extract,
                         context={
@@ -4979,7 +5096,8 @@ def main():
             CREDIT_SYSTEM_AVAILABLE and 
             not st.session_state.get('template_header_displayed', False)):
             # Center the credit display
-            display_credit_balance_header(st.session_state.user_email)
+            user_email = st.session_state.user_email if isinstance(st.session_state.user_email, str) else ''
+            display_credit_balance_header(user_email)
             
             # Add buy more credits button centered below
             col1, col2, col3 = st.columns([1, 1, 1])
@@ -5228,7 +5346,8 @@ def main():
             CREDIT_SYSTEM_AVAILABLE and 
             not st.session_state.get('results_header_displayed', False)):
             # Center the credit display
-            display_credit_balance_header(st.session_state.user_email)
+            user_email = st.session_state.user_email if isinstance(st.session_state.user_email, str) else ''
+            display_credit_balance_header(user_email)
             
             # Add buy more credits button centered below
             col1, col2, col3 = st.columns([1, 1, 1])
@@ -6083,7 +6202,7 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
         comparison_type: "{:}",
         "Change ($)": "{:}",
         "Change (%)": "{:}"
-    }).hide(axis="index").set_table_styles([
+    }).hide_index().set_table_styles([
         {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
         {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
         {'selector': '.col_heading', 'props': [('text-align', 'center')]} # Center-align column headings to improve readability
