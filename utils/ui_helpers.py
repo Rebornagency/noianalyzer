@@ -347,7 +347,7 @@ def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
     Args:
         button_placeholder: The placeholder where the button should be restored
         label: The button text
-        key: Unique key for the button
+        key: Unique key for the button. If empty, a unique key will be generated
         **kwargs: Additional arguments for the button
     """
     # Ensure consistent styling by always setting type="primary"
@@ -357,8 +357,13 @@ def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
     if "use_container_width" not in kwargs:
         kwargs["use_container_width"] = True
         
+    # If no key is provided, generate a unique key to prevent DuplicateWidgetID errors
+    if not key:
+        import uuid
+        key = f"button_{uuid.uuid4().hex[:8]}"
+        
     # Create the restored button
-    button_placeholder.button(label, key=key or None, **kwargs)
+    button_placeholder.button(label, key=key, **kwargs)
 
 # Enhanced timing estimation helpers
 def get_loading_message_for_action(action: str, file_count: int = 1) -> tuple:

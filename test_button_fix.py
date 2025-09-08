@@ -64,11 +64,11 @@ if process_clicked:
     if not st.session_state.terms_accepted:
         st.warning("⚠️ You must accept the Terms of Service and Privacy Policy to process documents.")
         # Restore button with correct styling
-        restore_button(process_button_placeholder, "Process Documents", key="test_process_button", type="primary", use_container_width=True)
+        restore_button(process_button_placeholder, "Process Documents", key="test_process_button_warning", type="primary", use_container_width=True)
     else:
         st.success("✅ Terms accepted! Processing would begin here.")
         # Restore button with correct styling
-        restore_button(process_button_placeholder, "Process Documents", key="test_process_button", type="primary", use_container_width=True)
+        restore_button(process_button_placeholder, "Process Documents", key="test_process_button_success", type="primary", use_container_width=True)
 
 st.write("---")
 st.write("✅ All tests completed. Check that:")

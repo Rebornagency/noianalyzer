@@ -842,7 +842,7 @@ def display_data_template(consolidated_data: Dict[str, Any]) -> Optional[Dict[st
             
             # Clear loading states
             loading_container.empty()
-            restore_button(confirm_button_placeholder, "Confirm Data and Proceed with Analysis", key="confirm_data_button", type="primary", use_container_width=True)
+            restore_button(confirm_button_placeholder, "Confirm Data and Proceed with Analysis", key="confirm_data_button_restored", type="primary", use_container_width=True)
             
             return edited_data
     
@@ -4213,7 +4213,7 @@ def main():
             "Budget Variance": "Significant variance from budgeted amounts"
         }
         
-        st.sidebar.info(f"**{mock_scenario}:** {scenario_descriptions[mock_scenario]}")
+        st.sidebar.info(f"**{mock_scenario}:** {scenario_descriptions.get(mock_scenario, 'No description available')}")
         
         # Testing diagnostics
         if st.sidebar.button("Run Testing Diagnostics", help="Test mock data generation"):
@@ -4574,15 +4574,6 @@ def main():
             # Update session state with terms acceptance
             st.session_state.terms_accepted = terms_accepted
             
-            # Display error message if terms were not accepted on previous attempt
-            if st.session_state.get('show_tos_error', False):
-                st.markdown(
-                    '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
-                    unsafe_allow_html=True
-                )
-                # Reset the error flag after displaying the message
-                st.session_state.show_tos_error = False
-            
             # Enhanced Process Documents button with loading state
             process_clicked, process_button_placeholder = create_loading_button(
                 "Process Documents",
@@ -4591,6 +4582,16 @@ def main():
                 type="primary",
                 use_container_width=True
             )
+            
+            # Display error message if terms were not accepted on previous attempt
+            # This needs to be here to ensure the message is displayed after button click
+            if st.session_state.get('show_tos_error', False):
+                st.markdown(
+                    '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
+                    unsafe_allow_html=True
+                )
+                # Reset the error flag after displaying the message
+                st.session_state.show_tos_error = False
             
             if process_clicked:
                 logger.info("Process Documents button was clicked")
@@ -4603,7 +4604,7 @@ def main():
                 if not user_email:
                     logger.error("Process Documents clicked but no email provided")
                     st.error("📧 Email address is required. Please enter your email address before processing documents.")
-                    # Restore button with error state
+                    # Restore button with consistent key
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     st.stop()
                     
@@ -4774,7 +4775,7 @@ def main():
                             # DON'T set processing_completed=True here - let Stage 3 handle it
                             # st.session_state.processing_completed = True
                             
-                            # Clear loading states after processing
+                            # Clear loading states
                             loading_container.empty()
                             restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                             logger.info("Document processing completed, button restored")
@@ -4808,11 +4809,7 @@ def main():
                         # Clear loading states after processing
                         loading_container.empty()
                         restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
-                        # Add error counter to prevent infinite loop
-                        error_count = st.session_state.get('document_processing_success_error_count', 0)
-                        if error_count < 3:  # Limit reruns to prevent infinite loop
-                            st.session_state.document_processing_success_error_count = error_count + 1
-                            st.rerun()
+                        st.rerun()
 
         with col2:
             # Enhanced Instructions section using component function
@@ -4897,9 +4894,9 @@ def main():
                             st.session_state.document_processing_error_count = error_count + 1
                             st.rerun() # Rerun to show the error and stop
                         return # Explicitly return to prevent further execution
-
                     # Pass file objects from session state to process_all_documents
                     # process_all_documents internally uses st.session_state to get file objects
+                    from noi_tool_batch_integration import process_all_documents
                     raw_consolidated_data = process_all_documents()
                     logger.info(f"APP.PY: raw_consolidated_data received. Type: {type(raw_consolidated_data)}. Keys: {list(raw_consolidated_data.keys()) if isinstance(raw_consolidated_data, dict) else 'Not a dict'}. Has error: {raw_consolidated_data.get('error') if isinstance(raw_consolidated_data, dict) else 'N/A'}")
 
@@ -4936,7 +4933,8 @@ def main():
                         st.warning("No data was extracted from the documents or the extracted data is empty. Please check the files or try again.")
                         st.session_state.user_initiated_processing = False # Reset flag
                     else:
-                        add_breadcrumb("Unknown document processing error", "processing", "error")
+                        add_breadcrumb("Document processing error", "processing", "error")
+
                         capture_message_with_context(
                             f"Unknown error during document processing. Data: {str(raw_consolidated_data)[:200]}",
                             level="error",
@@ -4986,7 +4984,7 @@ def main():
             # Add buy more credits button centered below
             col1, col2, col3 = st.columns([1, 1, 1])
             with col2:
-                if st.button("🛒 Buy More Credits", key="template_header_buy_credits", use_container_width=True, type="primary"):
+                if st.button("🛒 Buy More Credits", key="template_header_buy_credits_stage3", use_container_width=True, type="primary"):
                     logger.info("🛒 Template Buy More Credits button clicked - showing credit store")
                     st.session_state.show_credit_store = True
                     # Clear any conflicting flags
@@ -5207,7 +5205,8 @@ def main():
     if st.session_state.get('user_initiated_processing', False):
         if st.session_state.get('document_stage', None) == 'extract':
             try:
-                document = extract_document(st.session_state.document_data)
+                from ai_extraction import extract_noi_data
+                document = extract_noi_data(st.session_state.document_data)
                 st.session_state.document_stage = 'analyze'
                 st.session_state.document_stage_description = 'Analyzing document...'
                 st.session_state.document_stage_progress = 0.2
@@ -5677,7 +5676,7 @@ def main():
                         
                         # Clear loading states
                         loading_container.empty()
-                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export")
+                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_success")
                         
                         # Display download button
                         st.download_button(
@@ -5692,7 +5691,7 @@ def main():
                     else:
                         # Clear loading states on failure
                         loading_container.empty()
-                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export")
+                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_failure")
                         st.info("📄 **PDF generation is currently unavailable**, but your analysis is complete!\n\n"
                                "📊 **You can still access all your results:**\n"
                                "• View all charts and analysis above\n"
@@ -5700,9 +5699,9 @@ def main():
                                "• Copy any text or insights you need\n\n"
                                "*All your analysis data is ready to use!*")
                 except Exception as e:
-                    # Clear loading states on error
+                    # Clear loading states on failure
                     loading_container.empty()
-                    restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export")
+                    restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_error")
                     st.info("🔧 **PDF generation encountered an issue**, but don't worry!\n\n"
                            "📈 **Your analysis is complete and available:**\n"
                            "• All charts and insights are displayed above\n"

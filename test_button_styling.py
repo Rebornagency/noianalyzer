@@ -30,7 +30,7 @@ if process_clicked:
     
     # Restore the button
     st.write("Restoring button...")
-    restore_button(process_button_placeholder, "Process Documents", key="test_process", type="primary")
+    restore_button(process_button_placeholder, "Process Documents", key="test_process_restored", type="primary")
 
 st.markdown("---")
 
@@ -51,7 +51,7 @@ if buy_clicked:
     
     # Restore the button
     st.write("Restoring button...")
-    restore_button(buy_button_placeholder, "🛒 Buy More Credits", key="test_buy")
+    restore_button(buy_button_placeholder, "🛒 Buy More Credits", key="test_buy_restored")
 
 st.markdown("---")
 st.write("✅ Both buttons should have consistent styling throughout their lifecycle.")
