@@ -2513,6 +2513,40 @@ if 'template_header_displayed' not in st.session_state:
     if 'document_processing_success_error_count' not in st.session_state:
         st.session_state.document_processing_success_error_count = 0
     if 'template_confirmation_error_count' not in st.session_state:
+def main():
+    """Main Streamlit application function."""
+    try:
+        # Initialize session state variables if not already set
+        if 'show_credit_store' not in st.session_state:
+            st.session_state.show_credit_store = False
+        if 'user_email' not in st.session_state:
+            st.session_state.user_email = ""
+        if 'property_name' not in st.session_state:
+            st.session_state.property_name = "Sample Property"
+        if 'show_zero_values' not in st.session_state:
+            st.session_state.show_zero_values = False
+        if 'processing_completed' not in st.session_state:
+            st.session_state.processing_completed = False
+        if 'template_viewed' not in st.session_state:
+            st.session_state.template_viewed = False
+        if 'show_credit_success' not in st.session_state:
+            st.session_state.show_credit_success = False
+        if 'terms_accepted' not in st.session_state:
+            st.session_state.terms_accepted = False
+        if 'show_tos_error' not in st.session_state:
+            st.session_state.show_tos_error = False
+        if 'user_initiated_processing' not in st.session_state:
+            st.session_state.user_initiated_processing = False
+        if 'testing_mode' not in st.session_state:
+            st.session_state.testing_mode = DEFAULT_TESTING_MODE
+        if 'mock_property_name' not in st.session_state:
+            st.session_state.mock_property_name = "Test Property"
+        if 'mock_scenario' not in st.session_state:
+            st.session_state.mock_scenario = "Standard Performance"
+        # Initialize the process button creation flag to prevent duplicates
+        if 'process_button_created' not in st.session_state:
+            st.session_state.process_button_created = False
+
         st.session_state.template_confirmation_error_count = 0
     if 'template_error_count' not in st.session_state:
         st.session_state.template_error_count = 0
@@ -4165,6 +4199,11 @@ def main():
         # Display logo at the very top of the app
         display_logo()
         
+        # Only reset the process button creation flag when we're starting fresh
+        # This prevents duplicate button creation while still allowing button recreation when needed
+        if not st.session_state.get('processing_completed', False) and not st.session_state.get('user_initiated_processing', False):
+            st.session_state.process_button_created = False
+        
         # Log session state at the beginning of a run for debugging narrative
         logger.info(f"APP.PY (main start): st.session_state.generated_narrative is: {st.session_state.get('generated_narrative')}")
         logger.info(f"APP.PY (main start): st.session_state.edited_narrative is: {st.session_state.get('edited_narrative')}")
@@ -4628,22 +4667,36 @@ def main():
             # Update session state with terms acceptance
             st.session_state.terms_accepted = terms_accepted
             
-            # Enhanced Process Documents button with loading state
+            # Create the main process button using the loading button approach for consistency
+            # This ensures we don't have duplicate buttons with the same key
             logger.info("=== RENDERING PROCESS DOCUMENTS BUTTON ===")
             logger.info(f"Button key: main_process_button")
             logger.info(f"Button type: primary")
             logger.info(f"Button width: use_container_width=True")
             
-            process_clicked, process_button_placeholder = create_loading_button(
-                "Process Documents",
-                key="main_process_button",
-                help="Process the uploaded documents to generate NOI analysis",
-                type="primary",
-                use_container_width=True
-            )
+            # Check if we've already created the button with loading functionality
+            if hasattr(st.session_state, 'process_button_placeholder'):
+                # Button already exists, just get its state
+                process_clicked = False  # Actual click state is handled by the loading button
+                process_button_placeholder = st.session_state.process_button_placeholder
+                logger.info("Process Documents button already created, using existing placeholder")
+            else:
+                # Create the button with loading functionality
+                process_clicked, process_button_placeholder = create_loading_button(
+                    "Process Documents",
+                    key="main_process_button",
+                    help="Process the uploaded documents to generate NOI analysis",
+                    type="primary",
+                    use_container_width=True
+                )
+                
+                # Store the button placeholder in session state for later use
+                st.session_state.process_button_placeholder = process_button_placeholder
+                logger.info(f"Button created successfully. Clicked state: {process_clicked}")
             
-            logger.info(f"Button created successfully. Clicked state: {process_clicked}")
             logger.info("=== END PROCESS DOCUMENTS BUTTON RENDERING ===")
+            
+            st.markdown('<p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>', unsafe_allow_html=True)
             
             # Display error message if terms were not accepted on previous attempt
             # This needs to be here to ensure the message is displayed after button click
@@ -4927,18 +4980,28 @@ def main():
                 'Export your results as PDF or Excel using the export options'
             ])
 
-            # Create the main process button with enhanced logging
-            logger.info("=== CREATING PROCESS DOCUMENTS BUTTON ===")
-            logger.info("Creating Process Documents button with key=main_process_button")
-            process_clicked = st.button(
-                "Process Documents",
-                key="main_process_button",
-                type="primary",
-                use_container_width=True,
-                help="Analyze your uploaded financial documents"
-            )
-            logger.info(f"Process Documents button created. Clicked state: {process_clicked}")
-            logger.info(f"Button key: main_process_button")
+            # Only create the process button if we haven't already created one with loading functionality
+            # Check if we've already created the button by looking for the session state flag
+            if not st.session_state.get('process_button_created', False):
+                # Create the main process button with enhanced logging
+                logger.info("=== CREATING PROCESS DOCUMENTS BUTTON ===")
+                logger.info("Creating Process Documents button with key=main_process_button")
+                process_clicked = st.button(
+                    "Process Documents",
+                    key="main_process_button",
+                    type="primary",
+                    use_container_width=True,
+                    help="Analyze your uploaded financial documents"
+                )
+                logger.info(f"Process Documents button created. Clicked state: {process_clicked}")
+                logger.info(f"Button key: main_process_button")
+                
+                # Mark that we've created the button to prevent duplicates
+                st.session_state.process_button_created = True
+            else:
+                # Button already exists, get its state
+                process_clicked = False  # Default to False, actual state is handled by the loading button
+                logger.info("Process Documents button already created, skipping duplicate creation")
             
             st.markdown('<p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>', unsafe_allow_html=True)
             
