@@ -4972,7 +4972,6 @@ def main():
                     logger.info("Restoring Process Documents button in credit system fallback with key=main_process_button")
                     restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     logger.info("=== CREDIT SYSTEM FALLBACK BUTTON RESTORED ===")
-                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
                     st.rerun()
 
         with col2:
@@ -4987,28 +4986,8 @@ def main():
                 'Export your results as PDF or Excel using the export options'
             ])
 
-            # Only create the process button if we haven't already created one with loading functionality
-            # Check if we've already created the button by looking for the session state flag
-            if not st.session_state.get('process_button_created', False):
-                # Create the main process button with enhanced logging
-                logger.info("=== CREATING PROCESS DOCUMENTS BUTTON ===")
-                logger.info("Creating Process Documents button with key=main_process_button")
-                process_clicked = st.button(
-                    "Process Documents",
-                    key="main_process_button",
-                    type="primary",
-                    use_container_width=True,
-                    help="Analyze your uploaded financial documents"
-                )
-                logger.info(f"Process Documents button created. Clicked state: {process_clicked}")
-                logger.info(f"Button key: main_process_button")
-                
-                # Mark that we've created the button to prevent duplicates
-                st.session_state.process_button_created = True
-            else:
-                # Button already exists, get its state
-                process_clicked = False  # Default to False, actual state is handled by the loading button
-                logger.info("Process Documents button already created, skipping duplicate creation")
+            # REMOVED: Duplicate Process Documents button that was causing the issue
+            # The button is already created in col1 with proper loading functionality
             
             st.markdown('<p style="color: #e6edf3; font-style: italic; font-size: 0.9rem; background-color: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 6px; margin-top: 1rem;">Note: Supported file formats include Excel (.xlsx, .xls), CSV, and PDF</p>', unsafe_allow_html=True)
             
