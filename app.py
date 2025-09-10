@@ -2550,6 +2550,11 @@ def main():
             st.session_state.process_button_created = False
 
         st.session_state.template_confirmation_error_count = 0
+    except Exception as e:
+        logger.error(f"Error in main function initialization: {str(e)}")
+        st.error("An error occurred during application initialization. Please refresh the page.")
+        return
+    
     if 'template_error_count' not in st.session_state:
         st.session_state.template_error_count = 0
     if 'document_processing_exception_count' not in st.session_state:
