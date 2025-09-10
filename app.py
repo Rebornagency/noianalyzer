@@ -4743,8 +4743,8 @@ def main():
                     st.error("📧 Email address is required. Please enter your email address before processing documents.")
                     # Restore button with consistent key
                     logger.info("=== RESTORE BUTTON WHEN EMAIL MISSING ===")
-                    logger.info("Restoring Process Documents button when email is missing with key=main_process_button")
-                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("Restoring Process Documents button when email is missing with unique key")
+                    restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                     logger.info("=== EMAIL MISSING BUTTON RESTORED ===")
                     st.stop()
                     
@@ -4794,9 +4794,9 @@ def main():
                     logger.info("=== RESTORE BUTTON AFTER ERROR - NO CURRENT MONTH FILE ===")
                     logger.info("Clearing loading container")
                     loading_container.empty()
-                    logger.info("Restoring Process Documents button with key=main_process_button")
+                    logger.info("Restoring Process Documents button with unique key")
                     logger.info("Button restoration context: No current month file available")
-                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                     logger.info("=== BUTTON RESTORED ===")
                     st.error("Please upload at least the Current Month Actuals document to proceed.")
                     st.stop()
@@ -4844,8 +4844,8 @@ def main():
                     logger.info("=== RESTORE BUTTON IN TESTING MODE ===")
                     logger.info("Clearing loading container in testing mode")
                     loading_container.empty()
-                    logger.info("Restoring Process Documents button in testing mode with key=main_process_button")
-                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("Restoring Process Documents button in testing mode with unique key")
+                    restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                     logger.info("=== TESTING MODE BUTTON RESTORED ===")
                     logger.info("TESTING MODE processing completed, button restored")
                     # Remove st.rerun() to prevent potential loops
@@ -4858,7 +4858,7 @@ def main():
                         st.session_state.show_tos_error = True
                         # Clear loading states before showing error
                         loading_container.empty()
-                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                         # Don't call st.rerun() here to prevent infinite loop
                         # The error message will be displayed on the next render cycle
                         return  # Exit the function to prevent further processing
@@ -4870,7 +4870,7 @@ def main():
                 if not user_email:
                     # Clear loading states before showing error
                     loading_container.empty()
-                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                     st.error("Please enter your email address to proceed.")
                     st.stop()
                     
@@ -4928,8 +4928,8 @@ def main():
                         logger.info("=== RESTORE BUTTON AFTER DOCUMENT PROCESSING ===")
                         logger.info("Clearing loading container after document processing")
                         loading_container.empty()
-                        logger.info("Restoring Process Documents button after document processing with key=main_process_button")
-                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        logger.info("Restoring Process Documents button after document processing with unique key")
+                        restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                         logger.info("=== DOCUMENT PROCESSING BUTTON RESTORED ===")
                         logger.info("Document processing completed, button restored")
                         # Add error counter to prevent infinite loop
@@ -4942,7 +4942,7 @@ def main():
                         logger.info(f"User {user_email} has insufficient credits")
                         # Clear loading states before showing credit UI
                         loading_container.empty()
-                        restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                        restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                         display_insufficient_credits()
                         st.stop()
                 else:
@@ -4963,8 +4963,8 @@ def main():
                     logger.info("=== RESTORE BUTTON IN CREDIT SYSTEM FALLBACK ===")
                     logger.info("Clearing loading container in credit system fallback")
                     loading_container.empty()
-                    logger.info("Restoring Process Documents button in credit system fallback with key=main_process_button")
-                    restore_button(process_button_placeholder, "Process Documents", key="main_process_button", type="primary", use_container_width=True)
+                    logger.info("Restoring Process Documents button in credit system fallback with unique key")
+                    restore_button(process_button_placeholder, "Process Documents", type="primary", use_container_width=True)
                     logger.info("=== CREDIT SYSTEM FALLBACK BUTTON RESTORED ===")
                     st.rerun()
 
