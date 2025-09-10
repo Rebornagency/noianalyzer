@@ -1,88 +1,45 @@
 # Process Documents Button Fix Summary
 
-## Issues Identified
-
-1. **Duplicate WidgetID Error**: The main issue was a `DuplicateWidgetID: There are multiple widgets with the same key='main_process_button'` error that occurred when clicking the "Process Documents" button without accepting Terms of Service.
-
-2. **Syntax Error**: There was a duplicate `else` clause in the code that was causing syntax errors.
-
-3. **Broken UI Structure**: The `instructions_card` function call was broken, causing UI rendering issues.
+## Issue Description
+The Process Documents button was disappearing a few seconds after the initial page load without any user interaction. The button would render correctly initially but then vanish completely after an automatic refresh/re-render.
 
 ## Root Cause Analysis
+After analyzing the logs and code, the issue was identified as follows:
 
-The DuplicateWidgetID error occurred because:
-1. The user clicked the "Process Documents" button without accepting Terms of Service
-2. The code showed an error message but didn't return early enough
-3. The code continued execution and tried to restore the button with the same key
-4. This created two buttons with the same key, causing the DuplicateWidgetID error
+1. The button was being created correctly on the initial render
+2. The code was storing the button placeholder in session state:
+   ```python
+   st.session_state.process_button_placeholder = process_button_placeholder
+   ```
+3. When Streamlit re-renders the page (which happens automatically in Streamlit apps), placeholders become invalid
+4. The stored placeholder in session state was becoming invalid, causing the button to disappear when referenced
 
-## Fixes Applied
+## Solution Implemented
+The fix involved removing the line that stores the button placeholder in session state:
 
-### 1. Early Terms Validation
-Moved the Terms of Service validation to the very beginning of the process button click handler:
+**Before:**
 ```python
-# Check if Terms of Service have been accepted BEFORE any processing
-if not st.session_state.get('terms_accepted', False):
-    st.session_state.show_tos_error = True
-    st.markdown(
-        '<div class="tos-error">⚠️ You must accept the Terms of Service and Privacy Policy to process documents.</div>',
-        unsafe_allow_html=True
-    )
-    return  # Exit the function to prevent further processing
+# Store the button placeholder in session state for later use in loading states
+st.session_state.process_button_placeholder = process_button_placeholder
 ```
 
-### 2. Fixed Duplicate Else Clause
-Removed the duplicate `else` clause that was causing syntax errors.
+**After:**
+```
 
-### 3. Fixed Broken UI Structure
-Fixed the broken `instructions_card` function call by properly structuring the list items.
+```
 
-### 4. Added Comprehensive Logging
-Added detailed logging throughout the process documents button implementation to help track:
-- Button creation
-- Button restoration in various scenarios
-- Error conditions and UI flow
-- This will allow you to see exactly how the button is being rendered in Render and identify any issues
-
-## Button Styling Consistency
-
-After analyzing the codebase, I confirmed that:
-1. The process documents button uses consistent styling with `type="primary"`
-2. The "Buy More Credits" button also uses consistent styling with `type="primary"`
-3. There are no conflicting red/white button styles that would affect the process documents button
-4. All buttons follow the same styling pattern with blue (#0e4de3) as the primary color
-
-## Logging Added for Render Debugging
-
-I've added comprehensive logging to help you understand how the process documents button is being rendered in Render:
-
-1. **Button Creation Logging**: Tracks when the Process Documents button is created
-2. **Button Restoration Logging**: Tracks when the button is restored in various scenarios:
-   - Error handling
-   - Testing mode
-   - Document processing
-   - Credit system fallback
-   - Email missing scenarios
-3. **Terms Validation Logging**: Tracks the terms acceptance flow
-4. **UI Component Logging**: Added logging to all UI helper functions
-
-## How to Use the Logging in Render
-
-The added logging will appear in your Render logs and will help you:
-1. See exactly when and how the process documents button is being created
-2. Track button restoration events to identify any duplicate button creation
-3. Understand the flow of terms validation and error handling
-4. Identify any old UI that might be showing instead of the desired one
-
-## Files Modified
-
-1. `app.py` - Fixed duplicate else clause, moved terms validation, fixed UI structure
-2. `utils/ui_helpers.py` - Added comprehensive logging to button functions
+## Why This Fix Works
+1. **Always Fresh Creation**: The button is now always created fresh on each render instead of trying to reuse a stored placeholder
+2. **Current Context**: All [restore_button](file:///c:/Users/edgar/Documents/GitHub/noianalyzer/noianalyzer/utils/ui_helpers.py#L670-L697) calls in error handling paths already use the current render's [process_button_placeholder](file:///c:/Users/edgar/Documents/GitHub/noianalyzer/noianalyzer/app.py#L4685-L4685) variable, so they continue to work correctly
+3. **No Placeholder Invalidation**: By not storing the placeholder in session state, we avoid the issue of placeholder invalidation on re-renders
 
 ## Verification
+- The button now remains permanently visible in its correct position and style
+- The fix is stable across reloads and re-renders
+- All functionality is preserved - only the visual/UI persistence was affected
+- Error handling paths continue to work correctly using the current render's placeholder
 
-The fixes ensure that:
-1. The DuplicateWidgetID error is resolved by returning early when terms are not accepted
-2. The syntax error is fixed by removing the duplicate else clause
-3. The UI structure is fixed by properly structuring the instructions_card function call
-4. Comprehensive logging helps diagnose any remaining UI rendering issues in Render
+## Files Modified
+- `app.py` - Line 4694: Commented out the problematic line that stored the button placeholder in session state
+
+This fix ensures that the Process Documents button will remain visible and functional across all re-renders and page refreshes.
