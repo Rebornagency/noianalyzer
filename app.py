@@ -2832,20 +2832,26 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
                     )
                     
-    styled_df = opex_df_display.style.map(
-                        highlight_changes, 
-                        subset=['Change ($)', 'Change (%)']
-                    )
-                    
-                    st.dataframe(styled_opex_df.format({
-                        "Current": "{:}",
-                        name_suffix: "{:}",
-                        "Change ($)": "{:}",
-                        "Change (%)": "{:}"
-                    }).hide(axis="index").set_table_styles([
-                        {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'center')]},
-                        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
-                    ]), use_container_width=True)
+                    # Wrap the styling in a try-except block to handle potential errors
+                    try:
+                        styled_df = opex_df_display.style.map(
+                            highlight_changes, 
+                            subset=['Change ($)', 'Change (%)']
+                        )
+                        
+                        st.dataframe(styled_df.format({
+                            "Current": "{:}",
+                            name_suffix: "{:}",
+                            "Change ($)": "{:}",
+                            "Change (%)": "{:}"
+                        }).hide(axis="index").set_table_styles([
+                            {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'center')]},
+                            {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
+                        ]), use_container_width=True)
+                    except Exception as e:
+                        logger.warning(f"Error styling OpEx dataframe: {str(e)}")
+                        # Fallback to simple dataframe display
+                        st.dataframe(opex_df_display, use_container_width=True)
 
                     # Create columns for charts with enhanced styling
                     col1, col2 = st.columns(2)
@@ -2856,45 +2862,49 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         st.markdown(chart_container_html, unsafe_allow_html=True)
                         
                         # Filter out zero values for the pie chart
-                        pie_data = opex_df[opex_df["Current"] > 0]
-                        if not pie_data.empty:
-                            # Create a custom color map based on our category colors
-                            color_map = {row["Expense Category"]: row["Color"] for _, row in pie_data.iterrows()}
-                            
-                            # Suppress pandas FutureWarnings for plotly express
-                            import warnings
-                            with warnings.catch_warnings():
-                                warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                        try:
+                            pie_data = opex_df[opex_df["Current"] > 0]
+                            if not pie_data.empty:
+                                # Create a custom color map based on our category colors
+                                color_map = {row["Expense Category"]: row["Color"] for _, row in pie_data.iterrows()}
                                 
-                                fig = px.pie(
-                                    pie_data, 
-                                    values="Current", 
-                                    names="Expense Category",
-                                    color="Expense Category",
-                                    color_discrete_map=color_map,
-                                    hole=0.4
+                                # Suppress pandas FutureWarnings for plotly express
+                                import warnings
+                                with warnings.catch_warnings():
+                                    warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                                    
+                                    fig = px.pie(
+                                        pie_data, 
+                                        values="Current", 
+                                        names="Expense Category",
+                                        color="Expense Category",
+                                        color_discrete_map=color_map,
+                                        hole=0.4
+                                    )
+                                fig.update_layout(
+                                    template="plotly_dark",
+                                    plot_bgcolor='rgba(13, 17, 23, 0)',
+                                    paper_bgcolor='rgba(13, 17, 23, 0)',
+                                    font=dict(
+                                        family="Inter, sans-serif",
+                                        size=14,
+                                        color="#e6edf3"
+                                    ),
+                                    margin=dict(l=20, r=20, t=20, b=20),
+                                    legend=dict(
+                                        orientation="h",
+                                        yanchor="bottom",
+                                        y=-0.2,
+                                        xanchor="center",
+                                        x=0.5,
+                                        font=dict(size=12, color="#e6edf3")
+                                    ),
+                                    showlegend=False  # Hide legend as we have colored indicators in the table
                                 )
-                            fig.update_layout(
-                                template="plotly_dark",
-                                plot_bgcolor='rgba(13, 17, 23, 0)',
-                                paper_bgcolor='rgba(13, 17, 23, 0)',
-                                font=dict(
-                                    family="Inter, sans-serif",
-                                    size=14,
-                                    color="#e6edf3"
-                                ),
-                                margin=dict(l=20, r=20, t=20, b=20),
-                                legend=dict(
-                                    orientation="h",
-                                    yanchor="bottom",
-                                    y=-0.2,
-                                    xanchor="center",
-                                    x=0.5,
-                                    font=dict(size=12, color="#e6edf3")
-                                ),
-                                showlegend=False  # Hide legend as we have colored indicators in the table
-                            )
-                            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                        except Exception as e:
+                            logger.warning(f"Error displaying pie chart: {str(e)}")
+                            st.info("Chart display temporarily unavailable.")
                         
                         # Close the chart container
                         st.markdown('</div>', unsafe_allow_html=True)
@@ -2905,65 +2915,69 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         st.markdown(chart_container_html, unsafe_allow_html=True)
                         
                         # Create a horizontal bar chart for comparison
-                        if not opex_df.empty:
-                            # Prepare the data in a format suitable for the horizontal bar chart
-                            bar_data = []
-                            for _, row in opex_df.iterrows(): # Use the original opex_df with numerical data for charts
-                                bar_data.append({
-                                    "Expense Category": row["Expense Category"],
-                                    "Amount": row["Current"], # Use numerical "Current"
-                                    "Period": "Current",
-                                    "Color": row["Color"]
-                                })
-                                bar_data.append({
-                                    "Expense Category": row["Expense Category"],
-                                    "Amount": row[name_suffix], # Use numerical column for prior/budget
-                                    "Period": name_suffix,
-                                    "Color": row["Color"] # Can be used if you map colors per category
-                                })
-                            
-                            bar_df = pd.DataFrame(bar_data)
-                            
-                            # Create the bar chart with improved styling
-                            # Suppress pandas FutureWarnings for plotly express
-                            import warnings
-                            with warnings.catch_warnings():
-                                warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                        try:
+                            if not opex_df.empty:
+                                # Prepare the data in a format suitable for the horizontal bar chart
+                                bar_data = []
+                                for _, row in opex_df.iterrows(): # Use the original opex_df with numerical data for charts
+                                    bar_data.append({
+                                        "Expense Category": row["Expense Category"],
+                                        "Amount": row["Current"], # Use numerical "Current"
+                                        "Period": "Current",
+                                        "Color": row["Color"]
+                                    })
+                                    bar_data.append({
+                                        "Expense Category": row["Expense Category"],
+                                        "Amount": row[name_suffix], # Use numerical column for prior/budget
+                                        "Period": name_suffix,
+                                        "Color": row["Color"] # Can be used if you map colors per category
+                                    })
                                 
-                                comp_fig = px.bar(
-                                    bar_df,
-                                    x="Amount",
-                                    y="Expense Category",
-                                    color="Period",
-                                    barmode="group",
-                                    orientation="h",
-                                    color_discrete_map={
-                                        "Current": "#1e88e5", # Blue for Current
-                                        name_suffix: "#4ecdc4"  # Teal for Prior/Budget (can be dynamic based on name_suffix if needed)
-                                    },
-                                    labels={"Amount": "Amount ($)", "Expense Category": ""},
-                                    height=len(opex_df["Expense Category"].unique()) * 60 + 100 # Dynamic height
+                                bar_df = pd.DataFrame(bar_data)
+                                
+                                # Create the bar chart with improved styling
+                                # Suppress pandas FutureWarnings for plotly express
+                                import warnings
+                                with warnings.catch_warnings():
+                                    warnings.filterwarnings("ignore", category=FutureWarning, module="plotly")
+                                    
+                                    comp_fig = px.bar(
+                                        bar_df,
+                                        x="Amount",
+                                        y="Expense Category",
+                                        color="Period",
+                                        barmode="group",
+                                        orientation="h",
+                                        color_discrete_map={
+                                            "Current": "#1e88e5", # Blue for Current
+                                            name_suffix: "#4ecdc4"  # Teal for Prior/Budget (can be dynamic based on name_suffix if needed)
+                                        },
+                                        labels={"Amount": "Amount ($)", "Expense Category": ""},
+                                        height=len(opex_df["Expense Category"].unique()) * 60 + 100 # Dynamic height
+                                    )
+                                
+                                # Update layout for modern appearance
+                                comp_fig.update_layout(
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(0,0,0,0)',
+                                    font=dict(color='#e6edf3', family="Inter"),
+                                    legend=dict(
+                                        orientation="h", 
+                                        yanchor="bottom", y=1.02, 
+                                        xanchor="right", x=1,
+                                        bgcolor='rgba(30, 41, 59, 0.7)', 
+                                        bordercolor='rgba(56, 139, 253, 0.15)'
+                                    ),
+                                    xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
+                                    yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
+                                    margin=dict(t=0, b=20, l=0, r=0) # Adjust top margin for title
                                 )
-                            
-                            # Update layout for modern appearance
-                            comp_fig.update_layout(
-                                paper_bgcolor='rgba(0,0,0,0)',
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#e6edf3', family="Inter"),
-                                legend=dict(
-                                    orientation="h", 
-                                    yanchor="bottom", y=1.02, 
-                                    xanchor="right", x=1,
-                                    bgcolor='rgba(30, 41, 59, 0.7)', 
-                                    bordercolor='rgba(56, 139, 253, 0.15)'
-                                ),
-                                xaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-                                yaxis=dict(gridcolor='rgba(255,255,255,0.1)'),
-                                margin=dict(t=0, b=20, l=0, r=0) # Adjust top margin for title
-                            )
-                            st.plotly_chart(comp_fig, use_container_width=True)
-                        else:
-                            st.info("No OpEx data to display in bar chart.")
+                                st.plotly_chart(comp_fig, use_container_width=True)
+                            else:
+                                st.info("No OpEx data to display in bar chart.")
+                        except Exception as e:
+                            logger.warning(f"Error displaying bar chart: {str(e)}")
+                            st.info("Chart display temporarily unavailable.")
                 else:
                     # We have components but no data to display after filtering
                     st.info("No operating expense details available for this period based on current filters.")
