@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 import logging
@@ -2844,8 +2845,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             name_suffix: "{:}",
                             "Change ($)": "{:}",
                             "Change (%)": "{:}"
-                        }).hide(axis="index").set_table_styles([
-                            {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'center')]},
+                        }).set_table_styles([
+                            {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
                             {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
                         ]), use_container_width=True)
                     except Exception as e:
@@ -3157,7 +3158,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         if "Current" in comp_data.columns and not comp_data.empty:
                             # Ensure Current column is numeric before sorting
                             comp_data["Current"] = pd.to_numeric(comp_data["Current"], errors='coerce').fillna(0)
-                            comp_data = comp_data.sort_values(by="Current", ascending=True)
+                            if not comp_data.empty and "Current" in comp_data.columns:
+                                comp_data = comp_data.sort_values(by="Current", ascending=True)
                         
                         # Only show top 6 categories to avoid chart getting too crowded
                         if len(comp_data) > 6:
@@ -4046,204 +4048,7 @@ def generate_comprehensive_pdf():
         logger.error(f"PDF EXPORT: Error generating comprehensive PDF: {str(e)}", exc_info=True)
         return None
 
-# Main function for the NOI Analyzer application
-def main():
-    """
-    Main function for the NOI Analyzer Enhanced application.
-    Sets up the UI and coordinates all functionality.
-    """
-    try:
-        # Initialize credit system
-        if CREDIT_SYSTEM_AVAILABLE:
-            init_credit_system()
-            logger.info("Credit system initialized successfully")
-        else:
-            logger.warning("Credit system not available - check utils.credit_ui import")
-        
-        # Add Sentry breadcrumb for main function start
-        add_breadcrumb("Main function started", "app", "info")
-        
-        # Set user context for Sentry
-        session_id = st.session_state.get('session_id')
-        if not session_id:
-            import uuid
-            session_id = str(uuid.uuid4())
-            st.session_state['session_id'] = session_id
-        
-        property_name = st.session_state.get('property_name', 'Unknown Property')
-        set_user_context(
-            session_id=session_id,
-            property_name=property_name
-        )
-        
-        # Inject custom CSS to ensure font consistency
-        inject_custom_css()
-        
-        # Handle page routing for credit system
-        if CREDIT_SYSTEM_AVAILABLE:
-            # Handle successful credit purchase return
-            query_params = get_url_params()
-            if query_params and 'credit_success' in query_params:
-                st.session_state.show_credit_store = False
-                st.session_state.clear_credit_store = False
-                
-                # Pre-fill email if provided in URL
-                if 'email' in query_params:
-                    returned_email = query_params['email']
-                    # Only set email if it's a valid email (not None, empty, or "None")
-                    if returned_email and isinstance(returned_email, str) and returned_email.lower() != 'none' and '@' in returned_email:
-                        st.session_state.user_email = returned_email
-                        logger.info(f"Pre-filled email from successful purchase: {returned_email}")
-                    else:
-                        logger.warning(f"Invalid email parameter received: {returned_email}")
-                
-                # Show success notification
-                st.session_state.show_credit_success = True
-                
-                # Clear the query params flag to allow normal credit store functionality
-                st.session_state.purchase_return_handled = True
-                logger.info("User returned from successful credit purchase")
-                
-                # Clear URL parameters to prevent repeated processing
-                clear_url_params()
-            
-            # Clear credit store flag if needed
-            elif st.session_state.get('clear_credit_store', False):
-                st.session_state.show_credit_store = False
-                st.session_state.clear_credit_store = False
-                logger.info("Cleared credit store flag")
-            
-            # Check if we should show credit store (prioritize this over other flows)
-            if st.session_state.get('show_credit_store', False):
-                # Add debug logging
-                logger.info("APP: Showing credit store - show_credit_store flag is True")
-                
-                # Clear any purchase return flags when entering credit store
-                if 'purchase_return_handled' in st.session_state:
-                    del st.session_state.purchase_return_handled
-                if 'show_credit_success' in st.session_state:
-                    del st.session_state.show_credit_success
-                    
-                display_credit_store()
-                
-                # Back to main app button
-                if st.button("← Back to NOI Analyzer", use_container_width=True):
-                    st.session_state.show_credit_store = False
-                    st.rerun()
-                return
-            else:
-                logger.info("APP: Not showing credit store - show_credit_store flag is False")
 
-        # Load custom CSS
-        inject_custom_css()
-        
-        # JavaScript function for theme toggling
-        st.markdown("""
-        <script>
-        function toggleTheme() {
-            const root = document.documentElement;
-            const currentTheme = root.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            root.setAttribute('data-theme', newTheme);
-            
-            // Store theme preference in localStorage
-            localStorage.setItem('preferred-theme', newTheme);
-        }
-
-        function initTheme() {
-            const root = document.documentElement;
-            const savedTheme = localStorage.getItem('preferred-theme') || 'dark';
-            root.setAttribute('data-theme', savedTheme);
-        }
-
-        // Initialize theme on page load
-        document.addEventListener('DOMContentLoaded', initTheme);
-        
-        // Also initialize if DOM is already ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initTheme);
-        } else {
-            initTheme();
-        }
-        </script>
-        """, unsafe_allow_html=True)
-        
-        # Add CSS to maintain scroll position and prevent auto-scroll to bottom
-        st.markdown(
-            """
-            <style>
-            /* Prevent auto-scroll on rerun and maintain smooth scrolling */
-            html {
-                scroll-behavior: smooth;
-            }
-            
-            /* Maintain scroll position during Streamlit reruns */
-            .main .block-container {
-                scroll-behavior: smooth;
-            }
-            
-            /* Ensure file upload areas stay in view */
-            [data-testid="stFileUploader"] {
-                scroll-margin-top: 100px;
-            }
-            
-            /* Smooth transitions for upload cards */
-            .upload-card {
-                transition: all 0.3s ease;
-            }
-            </style>
-            
-            <script>
-            // Maintain scroll position across Streamlit reruns
-            window.addEventListener('DOMContentLoaded', function() {
-                // Store scroll position before rerun
-                if (window.sessionStorage) {
-                    const savedPosition = sessionStorage.getItem('scrollPosition');
-                    if (savedPosition) {
-                        window.scrollTo(0, parseInt(savedPosition));
-                        sessionStorage.removeItem('scrollPosition');
-                    }
-                }
-                
-                // Save scroll position before page unload/rerun
-                window.addEventListener('beforeunload', function() {
-                    if (window.sessionStorage) {
-                        sessionStorage.setItem('scrollPosition', window.scrollY.toString());
-                    }
-                });
-            });
-            </script>
-            """,
-            unsafe_allow_html=True
-        )
-        
-        # Display logo at the very top of the app
-        display_logo()
-        
-        # Only reset the process button creation flag when we're starting fresh
-        # This prevents duplicate button creation while still allowing button recreation when needed
-        if not st.session_state.get('processing_completed', False) and not st.session_state.get('user_initiated_processing', False):
-            st.session_state.process_button_created = False
-        
-        # Log session state at the beginning of a run for debugging narrative
-        logger.info(f"APP.PY (main start): st.session_state.generated_narrative is: {st.session_state.get('generated_narrative')}")
-        logger.info(f"APP.PY (main start): st.session_state.edited_narrative is: {st.session_state.get('edited_narrative')}")
-        
-    except Exception as e:
-        # Capture any errors in main function initialization
-        capture_exception_with_context(
-            e,
-            context={"function": "main", "stage": "initialization"},
-            tags={"severity": "high"}
-        )
-        logger.error(f"Error in main function initialization: {str(e)}", exc_info=True)
-        st.error("An error occurred during application initialization. Please refresh the page.")
-        return
-
-    # Load testing configuration at startup
-    if not st.session_state.get('testing_config_loaded', False):
-        load_testing_config()
-        st.session_state.testing_config_loaded = True
 
     # Display testing mode indicator if active
     if is_testing_mode_active():
@@ -6282,10 +6087,10 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
         comparison_type: "{:}",
         "Change ($)": "{:}",
         "Change (%)": "{:}"
-    }).hide(axis="index").set_table_styles([
+    }).set_table_styles([
         {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
         {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
-        {'selector': '.col_heading', 'props': [('text-align', 'center')]} // Center-align column headings to improve readability
+        {'selector': '.col_heading', 'props': [('text-align', 'center')]}  # Center-align column headings to improve readability
     ]), use_container_width=True)
 
     # Remove the old HTML and style block as it's no longer used by this function.
@@ -6623,17 +6428,6 @@ def clear_url_params():
     
     # If all methods fail, log warning
     logger.warning("Unable to clear URL parameters - feature not available in this Streamlit version")
-
-# Helper function to summarize data structures for logging
-def summarize_data_for_log(data_dict, max_items=3):
-    """Summarize a data structure for more concise logging"""
-    if not isinstance(data_dict, dict):
-        return str(data_dict)
-    keys = list(data_dict.keys())
-    summary = {k: data_dict[k] for k in keys[:max_items]}
-    if len(keys) > max_items:
-        summary[f"...and {len(keys) - max_items} more keys"] = "..."
-    return summary
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
