@@ -10,13 +10,14 @@ numpy==1.24.3
 
 # API and web requests
 requests==2.31.0
+httpx==0.27.2
 
 # File processing (minimal set)
 pdfplumber==0.9.0
 chardet==5.2.0
 
 # AI and language models
-openai==1.3.0
+openai==1.55.3
 
 # Visualization (without kaleido to avoid Rust issues)
 plotly==5.15.0
