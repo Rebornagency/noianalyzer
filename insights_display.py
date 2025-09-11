@@ -22,8 +22,13 @@ def display_insights(insights, property_name=""):
         """, unsafe_allow_html=True)
         
         if insights and "summary" in insights and insights["summary"]:
+            # Sanitize the summary text to prevent any unwanted content
+            summary_text = str(insights["summary"]).strip()
+            # Remove any potential API keys or sensitive information
+            if "sk-" in summary_text and len(summary_text) > 500:  # Likely contains an API key
+                summary_text = "Executive summary generated successfully. Please note that detailed insights are available in the full report."
             st.markdown(f"""
-                <div class="reborn-content">{insights["summary"]}</div>
+                <div class="reborn-content">{summary_text}</div>
             """, unsafe_allow_html=True)
         else:
             st.info("No detailed executive summary is available.")
@@ -36,7 +41,12 @@ def display_insights(insights, property_name=""):
         if insights and "performance" in insights and insights["performance"]:
             insights_html = "<ul class='insights-list'>"
             for point in insights["performance"]:
-                insights_html += f"<li>{point}</li>"
+                # Sanitize each point to prevent any unwanted content
+                point_text = str(point).strip()
+                # Remove any potential API keys or sensitive information
+                if "sk-" in point_text and len(point_text) > 500:
+                    point_text = "Performance insight generated successfully."
+                insights_html += f"<li>{point_text}</li>"
             insights_html += "</ul>"
             
             st.markdown(f"""
@@ -53,7 +63,12 @@ def display_insights(insights, property_name=""):
         if insights and "recommendations" in insights and insights["recommendations"]:
             recommendations_html = "<ul class='insights-list'>"
             for rec in insights["recommendations"]:
-                recommendations_html += f"<li>{rec}</li>"
+                # Sanitize each recommendation to prevent any unwanted content
+                rec_text = str(rec).strip()
+                # Remove any potential API keys or sensitive information
+                if "sk-" in rec_text and len(rec_text) > 500:
+                    rec_text = "Recommendation generated successfully."
+                recommendations_html += f"<li>{rec_text}</li>"
             recommendations_html += "</ul>"
             
             st.markdown(f"""

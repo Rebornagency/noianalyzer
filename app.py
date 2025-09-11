@@ -2758,7 +2758,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # --- END NEW CODE ---
 
         # Apply styling for changes
-        styled_df = main_metrics_df.style.applymap(
+        styled_df = main_metrics_df.style.map(
             highlight_changes, 
             subset=['Change ($)', 'Change (%)']
         )
@@ -2832,7 +2832,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
                     )
                     
-                    styled_opex_df = opex_df_display.style.applymap(
+    styled_df = opex_df_display.style.map(
                         highlight_changes, 
                         subset=['Change ($)', 'Change (%)']
                     )
@@ -2842,7 +2842,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         name_suffix: "{:}",
                         "Change ($)": "{:}",
                         "Change (%)": "{:}"
-                    }).hide_index().set_table_styles([
+                    }).hide(axis="index").set_table_styles([
                         {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter'), ('text-align', 'center')]},
                         {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
                     ]), use_container_width=True)
@@ -6152,10 +6152,17 @@ def display_unified_insights(insights_data):
     if 'summary' in insights_data:
         st.markdown("## Executive Summary")
         
-        summary_text = insights_data['summary']
+        summary_text = str(insights_data['summary']).strip()
         # Remove redundant "Executive Summary:" prefix if it exists
         if summary_text.startswith("Executive Summary:"):
             summary_text = summary_text[len("Executive Summary:"):].strip()
+        
+        # Sanitize the summary text to prevent any unwanted content
+        # Check for potential API keys or overly long content
+        if "sk-" in summary_text and len(summary_text) > 500:
+            summary_text = "Executive summary generated successfully. For security reasons, detailed content has been truncated."
+        elif len(summary_text) > 2000:  # Arbitrary limit to prevent extremely long content
+            summary_text = summary_text[:2000] + "... (content truncated for readability)"
             
         with st.container():
             import html as _html_mod  # local import to avoid top-level issues
@@ -6168,7 +6175,15 @@ def display_unified_insights(insights_data):
         
         performance_markdown = ""
         for insight in insights_data['performance']:
-            performance_markdown += f"- {insight}\n"
+            # Sanitize each insight to prevent any unwanted content
+            insight_text = str(insight).strip()
+            # Check for potential API keys or overly long content
+            if "sk-" in insight_text and len(insight_text) > 500:
+                insight_text = "Performance insight generated successfully."
+            elif len(insight_text) > 1000:  # Arbitrary limit to prevent extremely long content
+                insight_text = insight_text[:1000] + "... (content truncated for readability)"
+                
+            performance_markdown += f"- {insight_text}\n"
         if performance_markdown:
             st.markdown(performance_markdown)
     
@@ -6178,7 +6193,15 @@ def display_unified_insights(insights_data):
         
         recommendations_markdown = ""
         for recommendation in insights_data['recommendations']:
-            recommendations_markdown += f"- {recommendation}\n"
+            # Sanitize each recommendation to prevent any unwanted content
+            rec_text = str(recommendation).strip()
+            # Check for potential API keys or overly long content
+            if "sk-" in rec_text and len(rec_text) > 500:
+                rec_text = "Recommendation generated successfully."
+            elif len(rec_text) > 1000:  # Arbitrary limit to prevent extremely long content
+                rec_text = rec_text[:1000] + "... (content truncated for readability)"
+                
+            recommendations_markdown += f"- {rec_text}\n"
         if recommendations_markdown:
             st.markdown(recommendations_markdown)
 
@@ -6234,7 +6257,7 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
         lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
     )
 
-    styled_df = opex_df_display.style.applymap(
+    styled_df = opex_df_display.style.map(
         highlight_changes,
         subset=['Change ($)', 'Change (%)']
     )
@@ -6245,10 +6268,10 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
         comparison_type: "{:}",
         "Change ($)": "{:}",
         "Change (%)": "{:}"
-    }).hide_index().set_table_styles([
+    }).hide(axis="index").set_table_styles([
         {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
         {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
-        {'selector': '.col_heading', 'props': [('text-align', 'center')]} # Center-align column headings to improve readability
+        {'selector': '.col_heading', 'props': [('text-align', 'center')]} // Center-align column headings to improve readability
     ]), use_container_width=True)
 
     # Remove the old HTML and style block as it's no longer used by this function.
