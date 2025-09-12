@@ -2596,6 +2596,15 @@ def main():
         st.session_state.testing_mode_clear_success_error_count = 0
         st.session_state.tos_error_count = 0
 
+    # Main application UI
+    try:
+        # Display the main application interface
+        st.title("NOI Analyzer Enhanced")
+        st.markdown("Welcome to the NOI Analyzer application.")
+        # Add more UI elements as needed
+    except Exception as e:
+        logger.error(f"Error in main application UI: {str(e)}")
+        st.error("An error occurred while loading the application interface.")
 
 # Testing mode initialization
 if 'testing_mode' not in st.session_state:
@@ -6432,3 +6441,4 @@ def clear_url_params():
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
     main()
+
