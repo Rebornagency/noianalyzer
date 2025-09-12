@@ -6289,13 +6289,12 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
     
     with st.container():
         # Create a visual container with styling
-        st.markdown("""        <div style="background-color: rgba(22, 27, 34, 0.8); 
+        st.markdown("""<div style="background-color: rgba(22, 27, 34, 0.8); 
                     border: 1px solid rgba(56, 68, 77, 0.5); 
                     border-radius: 8px; 
                     padding: 16px; 
                     margin-bottom: 20px;">
-        </div>
-        """, unsafe_allow_html=True)
+        </div>""", unsafe_allow_html=True)
         
         # This is a trick - we're creating an empty styled container above,
         # then putting the actual content below it in a Streamlit container
