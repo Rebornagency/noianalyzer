@@ -1566,8 +1566,24 @@ def main():
                         st.info("Prior year comparison data not available.")
                 
                 # Export to PDF button
+                # Export to PDF button
                 if st.button("📄 Export to PDF Report"):
-                    st.info("PDF generation is not currently available. This feature will be implemented in a future update.")
+                    try:
+                        st.info("PDF generation is not currently available. This feature will be implemented in a future update.")
+                    except Exception as e:
+                        logger.error(f"Error with PDF feature: {str(e)}", exc_info=True)
+                        st.error(f"An error occurred with the PDF feature: {str(e)}")
+
+                                    mime="application/pdf"
+                                )
+                            else:
+                                st.info("PDF generation is not available at this time. Please try again later.")
+                        else:
+                            st.info("PDF generation is not available in this environment.")
+                            
+                    except Exception as e:
+                        logger.error(f"Error generating PDF report: {str(e)}", exc_info=True)
+                        st.error(f"An error occurred while generating the PDF report: {str(e)}")
             else:
                 st.info("Please upload and process documents to see results.")
                 
