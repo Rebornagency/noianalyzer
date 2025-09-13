@@ -2758,10 +2758,18 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # --- END NEW CODE ---
 
         # Apply styling for changes
-        styled_df = main_metrics_df.style.map(
-            highlight_changes, 
-            subset=['Change ($)', 'Change (%)']
-        )
+        try:
+            # Try using map() method first (pandas >= 1.3.0)
+            styled_df = main_metrics_df.style.map(
+                highlight_changes, 
+                subset=['Change ($)', 'Change (%)']
+            )
+        except AttributeError:
+            # Fallback to applymap() for older pandas versions
+            styled_df = main_metrics_df.style.applymap(
+                highlight_changes, 
+                subset=['Change ($)', 'Change (%)']
+            )
             
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
@@ -2834,20 +2842,38 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     
                     # Wrap the styling in a try-except block to handle potential errors
                     try:
+                        # Try using map() method first (pandas >= 1.3.0)
                         styled_df = opex_df_display.style.map(
                             highlight_changes, 
                             subset=['Change ($)', 'Change (%)']
                         )
+                    except AttributeError:
+                        # Fallback to applymap() for older pandas versions
+                        styled_df = opex_df_display.style.applymap(
+                            highlight_changes, 
+                            subset=['Change ($)', 'Change (%)']
+                        )
                         
-                        st.dataframe(styled_df.format({
+                    # Apply formatting and styling
+                    try:
+                        formatted_df = styled_df.format({
                             "Current": "{:}",
-                            comparison_type: "{:}",
+                            name_suffix: "{:}",
                             "Change ($)": "{:}",
                             "Change (%)": "{:}"
-                        }).set_table_styles([
-                            {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
-                            {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
-                        ]), use_container_width=True)
+                        })
+                        
+                        # Apply table styles if the method is available
+                        try:
+                            styled_final = formatted_df.set_table_styles([
+                                {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
+                                {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
+                            ])
+                        except AttributeError:
+                            # Fallback if set_table_styles is not available
+                            styled_final = formatted_df
+                        
+                        st.dataframe(styled_final, use_container_width=True)
                     except Exception as e:
                         logger.warning(f"Error styling OpEx dataframe: {str(e)}")
                         # Fallback to simple dataframe display
@@ -6271,21 +6297,28 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
         lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
     )
 
-    styled_df = opex_df_display.style.map(
-        highlight_changes,
-        subset=['Change ($)', 'Change (%)']
-    )
-
-    st.markdown("#### Operating Expenses Breakdown")
+    # Wrap the styling in a try-except block to handle potential errors
+    try:
+        # Try using map() method first (pandas >= 1.3.0)
+        styled_df = opex_df_display.style.map(
+            highlight_changes, 
+            subset=['Change ($)', 'Change (%)']
+        )
+    except AttributeError:
+        # Fallback to applymap() for older pandas versions
+        styled_df = opex_df_display.style.applymap(
+            highlight_changes, 
+            subset=['Change ($)', 'Change (%)']
+        )
+        
     st.dataframe(styled_df.format({
         "Current": "{:}",
         comparison_type: "{:}",
         "Change ($)": "{:}",
         "Change (%)": "{:}"
-    }).hide(axis="index").set_table_styles([
+    }).set_table_styles([
         {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
-        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
-        {'selector': '.col_heading', 'props': [('text-align', 'center')]}  # Center-align column headings to improve readability
+        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
     ]), use_container_width=True)
 
     # Remove the old HTML and style block as it's no longer used by this function.
