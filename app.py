@@ -9590,22 +9590,22 @@ def upload_card(title, required=False, key=None, file_types=None, help_text=None
 f"""
 <style>
 /* Enhanced upload card styling */
-.upload-card-{uploader_id} {{
+.upload-card-{uploader_id} {{{{
     background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(31, 41, 55, 0.9)) !important;
     border: 2px solid rgba(79, 109, 245, 0.3) !important;
     border-radius: 12px !important;
     padding: 1.5rem !important;
     margin-bottom: 1rem !important;
     transition: all 0.3s ease !important;
-}}
+}}}}
 
-.upload-card-{uploader_id}:hover {{
+.upload-card-{uploader_id}:hover {{{{
     border-color: rgba(79, 109, 245, 0.6) !important;
     box-shadow: 0 8px 25px rgba(79, 109, 245, 0.15) !important;
     transform: translateY(-2px) !important;
-}}
+}}}}
 
-.upload-title-{uploader_id} {{
+.upload-title-{uploader_id} {{{{
     color: #ffffff !important;
     font-size: 1.1rem !important;
     font-weight: 600 !important;
@@ -9613,9 +9613,9 @@ f"""
     display: flex !important;
     align-items: center !important;
     gap: 0.5rem !important;
-}}
+}}}}
 
-.required-badge-{uploader_id} {{
+.required-badge-{uploader_id} {{{{
     background: linear-gradient(135deg, #ef4444, #dc2626) !important;
     color: white !important;
     padding: 0.2rem 0.6rem !important;
@@ -9624,30 +9624,30 @@ f"""
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
-}}
+}}}}
 
 /* Style the Streamlit file uploader */
-.upload-card-{uploader_id} [data-testid="stFileUploader"] {{
+.upload-card-{uploader_id} [data-testid="stFileUploader"] {{{{
     background: rgba(17, 24, 39, 0.8) !important;
     border: 2px dashed rgba(156, 163, 175, 0.5) !important;
     border-radius: 8px !important;
     padding: 1rem !important;
-}}
+}}}}
 
-.upload-card-{uploader_id} [data-testid="stFileUploader"] > div {{
+.upload-card-{uploader_id} [data-testid="stFileUploader"] > div {{{{
     background: transparent !important;
-}}
+}}}}
 
-.upload-card-{uploader_id} [data-testid="stFileUploader"] label {{
+.upload-card-{uploader_id} [data-testid="stFileUploader"] label {{{{
     color: #ffffff !important;
     font-weight: 500 !important;
-}}
+}}}}
 
-.upload-card-{uploader_id} [data-testid="stFileUploader"] small {{
+.upload-card-{uploader_id} [data-testid="stFileUploader"] small {{{{
     color: #9ca3af !important;
-}}
+}}}}
 
-.upload-card-{uploader_id} [data-testid="stFileUploader"] button {{
+.upload-card-{uploader_id} [data-testid="stFileUploader"] button {{{{
     background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
     color: white !important;
     border: none !important;
@@ -9655,15 +9655,15 @@ f"""
     padding: 0.5rem 1rem !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
-}}
+}}}}
 
-.upload-card-{uploader_id} [data-testid="stFileUploader"] button:hover {{
+.upload-card-{uploader_id} [data-testid="stFileUploader"] button:hover {{{{
     background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
     transform: translateY(-1px) !important;
-}}
+}}}}
 
 /* File success state */
-.file-success-{uploader_id} {{
+.file-success-{uploader_id} {{{{
     background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1)) !important;
     border: 2px solid rgba(34, 197, 94, 0.3) !important;
     border-radius: 8px !important;
@@ -9672,29 +9672,29 @@ f"""
     align-items: center !important;
     gap: 0.75rem !important;
     margin-top: 0.5rem !important;
-}}
+}}}}
 
-.file-success-{uploader_id} .file-icon {{
+.file-success-{uploader_id} .file-icon {{{{
     font-size: 1.5rem !important;
-}}
+}}}}
 
-.file-success-{uploader_id} .file-details {{
+.file-success-{uploader_id} .file-details {{{{
     flex: 1 !important;
-}}
+}}}}
 
-.file-success-{uploader_id} .file-name {{
+.file-success-{uploader_id} .file-name {{{{
     color: #ffffff !important;
     font-weight: 600 !important;
     font-size: 0.95rem !important;
     margin-bottom: 0.25rem !important;
-}}
+}}}}
 
-.file-success-{uploader_id} .file-meta {{
+.file-success-{uploader_id} .file-meta {{{{
     color: #9ca3af !important;
     font-size: 0.8rem !important;
-}}
+}}}}
 
-.file-success-{uploader_id} .file-status {{
+.file-success-{uploader_id} .file-status {{{{
     background: linear-gradient(135deg, #22c55e, #16a34a) !important;
     color: white !important;
     padding: 0.3rem 0.8rem !important;
@@ -9703,7 +9703,7 @@ f"""
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
-}}
+}}}}
 </style>
 """,
 unsafe_allow_html=True
