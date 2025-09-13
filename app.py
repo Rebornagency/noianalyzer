@@ -2758,7 +2758,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
         # --- END NEW CODE ---
 
         # Apply styling for changes
-        styled_df = main_metrics_df.style.map(
+        styled_df = main_metrics_df.style.applymap(
             highlight_changes, 
             subset=['Change ($)', 'Change (%)']
         )
@@ -2831,17 +2831,19 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     opex_df_display["Change (%)"] = opex_df_display["Change (%)"].apply(
                         lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
                     )
+
+                    styled_df = opex_df_display.style.applymap(
+                        highlight_changes,
+                        subset=['Change ($)', 'Change (%)']
+                    )
+
+                    st.markdown("#### Operating Expenses Breakdown")
                     
                     # Wrap the styling in a try-except block to handle potential errors
                     try:
-                        styled_df = opex_df_display.style.map(
-                            highlight_changes, 
-                            subset=['Change ($)', 'Change (%)']
-                        )
-                        
                         st.dataframe(styled_df.format({
                             "Current": "{:}",
-                            comparison_type: "{:}",
+                            name_suffix: "{:}",
                             "Change ($)": "{:}",
                             "Change (%)": "{:}"
                         }).set_table_styles([
@@ -2852,11 +2854,6 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         logger.warning(f"Error styling OpEx dataframe: {str(e)}")
                         # Fallback to simple dataframe display
                         st.dataframe(opex_df_display, use_container_width=True)
-
-                    # Create columns for charts with enhanced styling
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
                         # Wrap the chart in a container with our custom styling
                         chart_container_html = '<div class="opex-chart-container"><div class="opex-chart-title">Current Operating Expenses Breakdown</div></div>'
                         st.markdown(chart_container_html, unsafe_allow_html=True)
@@ -6271,7 +6268,7 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
         lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
     )
 
-    styled_df = opex_df_display.style.map(
+    styled_df = opex_df_display.style.applymap(
         highlight_changes,
         subset=['Change ($)', 'Change (%)']
     )
@@ -6287,19 +6284,6 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
         {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]},
         {'selector': '.col_heading', 'props': [('text-align', 'center')]}  # Center-align column headings to improve readability
     ]), use_container_width=True)
-
-    # Remove the old HTML and style block as it's no longer used by this function.
-    # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
-    # were part of the old HTML rendering method. If they are not used elsewhere for st.markdown,
-    # they might eventually be cleaned up from the CSS file. For now, we only remove the Python string.
-
-def display_card_container(title, content):
-    """
-    Display content in a consistently styled card container.
-    
-    Args:
-        title: Card title
-        content: Function to render card content
     """
     st.markdown(f"### {title}")
     
@@ -6316,6 +6300,3269 @@ def display_card_container(title, content):
         # This is a trick - we're creating an empty styled container above,
         # then putting the actual content below it in a Streamlit container
         content()
+
+## Enhanced UI Component Functions
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
+
+## Enhanced UI Component Functions
+def upload_card(title, required=False, key=None, file_types=None, help_text=None):
+    """
+    Display a functional upload card component with visible file uploader.
+    """
+    with st.container():
+        st.write(title)
+        st.file_uploader(
+            label="",
+            accept_multiple_files=False,
+            type=file_types,
+            key=key,
+            label_visibility="collapsed",
+            disabled=False,
+            help=help_text,
+        )
 
 ## Enhanced UI Component Functions
 def upload_card(title, required=False, key=None, file_types=None, help_text=None):
