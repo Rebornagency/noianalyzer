@@ -4052,13 +4052,9 @@ def generate_comprehensive_pdf():
                 return None
         else:
             logger.warning("PDF EXPORT: WeasyPrint not available - PDF generation disabled")
-            st.info("💡 **Good news!** Your analysis is ready, but PDF download is currently unavailable on this server.\n\n"
-                   "**Here's what you can do instead:**\n"
-                   "• ✅ **Download Excel Report** - Get all your data in a spreadsheet format\n"
-                   "• ✅ **Copy Analysis Text** - Copy the insights and narrative to use elsewhere\n"
-                   "• ✅ **View Full Results** - All charts and data are available on screen\n\n"
-                   "*Your analysis results are complete and ready to use!*")
-            return None
+            # Instead of returning None, we'll create a simple HTML report that can be printed
+            # This provides a functional alternative to PDF generation
+            return create_printable_html_report(html_content)
         
         # Clean up temporary file
         try:
@@ -4071,6 +4067,91 @@ def generate_comprehensive_pdf():
     except Exception as e:
         logger.error(f"PDF EXPORT: Error generating comprehensive PDF: {str(e)}", exc_info=True)
         return None
+
+def create_printable_html_report(html_content):
+    """
+    Create a simplified HTML report that can be printed as PDF by the browser.
+    This is a fallback when WeasyPrint is not available.
+    
+    Args:
+        html_content (str): The full HTML content
+        
+    Returns:
+        bytes: HTML content as bytes for download
+    """
+    logger.info("PDF EXPORT: Creating printable HTML report as fallback")
+    
+    # Add print-specific CSS to make it look better when printed
+    print_css = """
+    <style>
+        @media print {
+            body {
+                font-size: 12pt;
+                margin: 0.5in;
+            }
+            .no-print {
+                display: none !important;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            table {
+                page-break-inside: avoid;
+            }
+            tr {
+                page-break-inside: avoid;
+            }
+        }
+        .print-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .print-instructions {
+            background-color: #f0f8ff;
+            border: 1px solid #add8e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+    """
+    
+    # Add a print button and instructions
+    print_controls = """
+    <div class="no-print">
+        <button class="print-button" onclick="window.print()">🖨️ Print Report as PDF</button>
+        <div class="print-instructions">
+            <h3>How to save as PDF:</h3>
+            <ol>
+                <li>Click the "Print Report as PDF" button above</li>
+                <li>In the print dialog, select "Save as PDF" or "Microsoft Print to PDF" as your printer</li>
+                <li>Click "Save" and choose where to save your PDF file</li>
+            </ol>
+        </div>
+    </div>
+    """
+    
+    # Inject the print CSS and controls into the HTML
+    if '</head>' in html_content:
+        html_content = html_content.replace('</head>', print_css + '</head>')
+    else:
+        html_content = print_css + html_content
+    
+    if '<body>' in html_content:
+        html_content = html_content.replace('<body>', '<body>' + print_controls)
+    else:
+        html_content = '<body>' + print_controls + html_content
+    
+    return html_content.encode('utf-8')
 
 # Main function for the NOI Analyzer application
 def main():
@@ -5874,22 +5955,38 @@ def main():
                         # Create a unique filename with timestamp
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
-                        pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
                         
                         # Clear loading states
                         loading_container.empty()
                         restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_success")
                         
-                        # Display download button
-                        st.download_button(
-                            label="Download Complete PDF Report",
-                            data=pdf_bytes,
-                            file_name=pdf_filename,
-                            mime="application/pdf",
-                            key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
-                        )
-                        # Show success message
-                        show_processing_status("PDF report generated successfully!", status_type="success")
+                        # Check if we have HTML content (fallback) or PDF content
+                        if WEASYPRINT_AVAILABLE or (pdf_bytes and b'<!DOCTYPE html>' in pdf_bytes[:50]):
+                            # We have HTML content (fallback case)
+                            html_filename = f"NOI_Analysis_{property_part}_{timestamp}.html"
+                            st.download_button(
+                                label="📥 Download Printable Report (HTML)",
+                                data=pdf_bytes,
+                                file_name=html_filename,
+                                mime="text/html",
+                                key=f"download_html_report_{timestamp}"
+                            )
+                            st.info("📄 **Printable Report Ready!**\n\n"
+                                   "📥 Download the HTML file above and open it in your browser.\n"
+                                   "🖨️ Use your browser's Print function (Ctrl+P) and select 'Save as PDF' to create a PDF.\n\n"
+                                   "*Your analysis data is complete and ready to use!*")
+                        else:
+                            # We have actual PDF content
+                            pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
+                            st.download_button(
+                                label="Download Complete PDF Report",
+                                data=pdf_bytes,
+                                file_name=pdf_filename,
+                                mime="application/pdf",
+                                key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
+                            )
+                            # Show success message
+                            show_processing_status("PDF report generated successfully!", status_type="success")
                     else:
                         # Clear loading states on failure
                         loading_container.empty()
