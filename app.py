@@ -3482,7 +3482,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             # --- Consolidated Insights, Executive Summary, and Recommendations Section ---
             st.markdown("---")
             st.markdown("""
-                <div class="results-main-title">Analysis and Recommendations</div>
+                < <div class="results-main-title">Analysis and Recommendations</div>
             """, unsafe_allow_html=True)
 
             insights_data = st.session_state.get("insights")
@@ -3497,15 +3497,13 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             else:
                 st.info(f"No overall insights data available to display for {name_suffix} context.")
 
-            # The old detailed breakdown of insights per comparison type within this tab is now handled by display_unified_insights.
-            # The recommendations and narrative sections (if they were part of the old structure here) are also covered 
-            # by display_unified_insights or by the main Financial Narrative tab.
-
             # Display OpEx breakdown if available
-            # if 'opex_components' in tab_data and tab_data['opex_components']:
-            #     display_opex_breakdown(tab_data['opex_components'], name_suffix)
-            # else:
-            #     logger.info(f"No OpEx components found for {name_suffix} comparison")
+            if 'opex_components' in tab_data and tab_data['opex_components']:
+                st.markdown("---")
+                st.markdown("### Operating Expense Breakdown")
+                display_opex_breakdown(tab_data['opex_components'], name_suffix)
+            else:
+                logger.info(f"No OpEx components found for {name_suffix} comparison")
 
         except Exception as e:
             logger.error(f"Error displaying comparison tab {name_suffix}: {str(e)}", exc_info=True)
@@ -4005,7 +4003,7 @@ def generate_comprehensive_pdf():
                     current_val = float(current_data_safe.get(comp, 0) or 0)
                     prior_val = float(prior_data_safe.get(comp, 0) or 0)
                     percent_of_total = (current_val / total_current * 100) if total_current else 0
-                    variance_pct = ((current_val - prior_val) / prior_val) if prior_val else 0
+                    variance_pct = ((current_val - prior_val) / prior_val * 100) if prior_val != 0 else 0
                     breakdown.append({
                         'category': comp.replace('_', ' ').title(),
                         'current': current_val,
@@ -4017,12 +4015,12 @@ def generate_comprehensive_pdf():
 
             # Operating Expenses breakdown
             opex_breakdown = build_breakdown(OPEX_COMPONENTS)
-            context['opex_breakdown_available'] = any(item['current'] for item in opex_breakdown)
+            context['opex_breakdown_available'] = any(item['current'] != 0 for item in opex_breakdown)
             context['opex_breakdown_data'] = opex_breakdown
 
             # Other Income breakdown
             income_breakdown = build_breakdown(INCOME_COMPONENTS)
-            context['income_breakdown_available'] = any(item['current'] for item in income_breakdown)
+            context['income_breakdown_available'] = any(item['current'] != 0 for item in income_breakdown)
             context['income_breakdown_data'] = income_breakdown
         except Exception as breakdown_err:
             logger.warning(f"PDF EXPORT: Failed to build breakdown data: {breakdown_err}")
@@ -4122,6 +4120,26 @@ def create_printable_html_report(html_content):
             padding: 15px;
             margin: 20px 0;
         }
+        /* Add styling for the new breakdown tables */
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .breakdown-table th, .breakdown-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .breakdown-table th {
+            background-color: #f2f2f2;
+        }
+        .positive-change {
+            color: green;
+        }
+        .negative-change {
+            color: red;
+        }
     </style>
     """
     
@@ -4136,6 +4154,8 @@ def create_printable_html_report(html_content):
                 <li>In the print dialog, select "Save as PDF" or "Microsoft Print to PDF" as your printer</li>
                 <li>Click "Save" and choose where to save your PDF file</li>
             </ol>
+            <p><strong>Note:</strong> For better PDF generation with proper formatting, you can install the WeasyPrint library:</p>
+            <code>pip install weasyprint</code>
         </div>
     </div>
     """

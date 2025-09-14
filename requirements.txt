@@ -29,6 +29,10 @@ python-dotenv==1.0.0
 jinja2==3.1.2
 xlsxwriter==3.1.2
 
+# PDF generation (optional - uncomment if you want native PDF support)
+# Note: Requires Rust toolchain for installation on some systems
+# weasyprint==62.3
+
 # Error tracking and monitoring (with Streamlit support)
 sentry-sdk==2.29.1
 
