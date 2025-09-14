@@ -99,7 +99,6 @@ def generate_response(prompt: str, context: str) -> str:
 
 def display_noi_coach():
     """Display the NOI Coach interface"""
-    st.success("Enhanced NOI Coach Loaded!") # Temporary message for testing
     st.markdown("## NOI Coach")
     
     # Initialize chat history if needed
@@ -173,8 +172,9 @@ def display_noi_coach():
                         loading_container.empty()
                         st.error(f"Error: {str(e)}")
                     
-                    # Rerun to update display
-                    st.rerun()
+                    # Instead of st.rerun(), we'll let the UI update naturally
+                    # This prevents the infinite cycle issue
+                    pass
         
         # Display chat history
         st.markdown("### Conversation")
@@ -270,5 +270,6 @@ def display_noi_coach():
                 st.error(f"Error generating response: {str(e)}")
                 logger.error(f"NOI Coach error: {str(e)}")
             
-            # Force a rerun to update the chat display
-            st.rerun() 
+            # Instead of st.rerun(), we'll let the UI update naturally
+            # This prevents the infinite cycle issue
+            pass

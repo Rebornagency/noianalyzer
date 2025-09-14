@@ -3829,7 +3829,8 @@ def display_noi_coach():
         loading_container.empty()
         
         st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
-        st.rerun()
+        # Removed st.rerun() to prevent infinite cycle issue
+        pass
 
 def display_unified_insights_no_html(insights_data):
     """
@@ -5950,11 +5951,13 @@ def main():
         col_pdf, col_spacer = st.columns([1,7])
         
         with col_pdf:
-            # PDF Export button with loading state
+            # PDF Export button with loading state - ensure consistent styling
             pdf_clicked, pdf_button_placeholder = create_loading_button(
                 "Try PDF Export",
                 key="global_pdf_export",
-                help="Attempt to generate PDF report (Excel export also available below)"
+                help="Attempt to generate PDF report (Excel export also available below)",
+                type="primary",
+                use_container_width=True
             )
             
             if pdf_clicked:
@@ -5978,10 +5981,10 @@ def main():
                         
                         # Clear loading states
                         loading_container.empty()
-                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_success")
+                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_success", type="primary", use_container_width=True)
                         
                         # Check if we have HTML content (fallback) or PDF content
-                        if WEASYPRINT_AVAILABLE or (pdf_bytes and b'<!DOCTYPE html>' in pdf_bytes[:50]):
+                        if not WEASYPRINT_AVAILABLE and pdf_bytes and b'<!DOCTYPE html>' in pdf_bytes[:50]:
                             # We have HTML content (fallback case)
                             html_filename = f"NOI_Analysis_{property_part}_{timestamp}.html"
                             st.download_button(
@@ -5989,28 +5992,35 @@ def main():
                                 data=pdf_bytes,
                                 file_name=html_filename,
                                 mime="text/html",
-                                key=f"download_html_report_{timestamp}"
+                                key=f"download_html_report_{timestamp}",
+                                type="primary",
+                                use_container_width=True
                             )
                             st.info("📄 **Printable Report Ready!**\n\n"
-                                   "📥 Download the HTML file above and open it in your browser.\n"
+                                   "📥 **Download the HTML file above** and open it in your browser.\n"
                                    "🖨️ Use your browser's Print function (Ctrl+P) and select 'Save as PDF' to create a PDF.\n\n"
                                    "*Your analysis data is complete and ready to use!*")
-                        else:
+                        elif WEASYPRINT_AVAILABLE and pdf_bytes:
                             # We have actual PDF content
                             pdf_filename = f"NOI_Analysis_{property_part}_{timestamp}.pdf"
                             st.download_button(
-                                label="Download Complete PDF Report",
+                                label="📥 Download Complete PDF Report",
                                 data=pdf_bytes,
                                 file_name=pdf_filename,
                                 mime="application/pdf",
-                                key=f"download_comprehensive_pdf_{timestamp}"  # Ensure unique key
+                                key=f"download_comprehensive_pdf_{timestamp}",  # Ensure unique key
+                                type="primary",
+                                use_container_width=True
                             )
                             # Show success message
                             show_processing_status("PDF report generated successfully!", status_type="success")
+                        else:
+                            # Handle case where pdf_bytes is None or empty
+                            st.error("❌ Failed to generate PDF report. Please try again or contact support.")
                     else:
                         # Clear loading states on failure
                         loading_container.empty()
-                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_failure")
+                        restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_failure", type="primary", use_container_width=True)
                         st.info("📄 **PDF generation is currently unavailable**, but your analysis is complete!\n\n"
                                "📊 **You can still access all your results:**\n"
                                "• View all charts and analysis above\n"
@@ -6020,7 +6030,7 @@ def main():
                 except Exception as e:
                     # Clear loading states on failure
                     loading_container.empty()
-                    restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_error")
+                    restore_button(pdf_button_placeholder, "Try PDF Export", key="global_pdf_export_error", type="primary", use_container_width=True)
                     st.info("🔧 **PDF generation encountered an issue**, but don't worry!\n\n"
                            "📈 **Your analysis is complete and available:**\n"
                            "• All charts and insights are displayed above\n"

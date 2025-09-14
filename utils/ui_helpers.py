@@ -755,8 +755,7 @@ def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
     kwargs.setdefault("type", "primary")
     
     # Ensure the button has proper styling even when restored
-    if "use_container_width" not in kwargs:
-        kwargs["use_container_width"] = True
+    kwargs.setdefault("use_container_width", True)
         
     # If no key is provided, generate a unique key to prevent DuplicateWidgetID errors
     if not key:
@@ -772,7 +771,8 @@ def restore_button(button_placeholder, label: str, key: str = "", **kwargs):
     logger.info(f"Kwargs: {kwargs}")
         
     # Create the restored button
-    button_placeholder.button(label, key=key, **kwargs)
+    with button_placeholder.container():
+        st.button(label, key=key, **kwargs)
 
 # Enhanced timing estimation helpers
 def get_loading_message_for_action(action: str, file_count: int = 1) -> tuple:
