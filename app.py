@@ -12,6 +12,7 @@ import base64
 from datetime import datetime
 import io
 from jinja2 import Environment, FileSystemLoader
+import xlsxwriter
 
 # Try to import weasyprint for PDF generation
 try:
@@ -193,6 +194,14 @@ from utils.ui_helpers import (
     display_inline_loading, LoadingContext, get_loading_message_for_action,
     create_loading_button, show_button_loading, restore_button
 )
+
+# Try to import Excel export function
+try:
+    from excel_export import generate_comparison_excel
+except ImportError:
+    def generate_comparison_excel():
+        st.error("Excel export functionality not available")
+        return None
 
 # Constants for testing mode
 TESTING_MODE_ENV_VAR = "NOI_ANALYZER_TESTING_MODE"
@@ -6038,6 +6047,63 @@ def main():
                            "• You can copy any text or data you need\n\n"
                            "*No data was lost - everything is ready to use!*")
                     logger.error(f"PDF generation error: {str(e)}")
+            # Add Excel Export button
+            st.markdown("---")
+            excel_clicked, excel_button_placeholder = create_loading_button(
+                "Export Excel",
+                key="global_excel_export",
+                help="Export comparison data to Excel format",
+                type="primary",
+                use_container_width=True
+            )
+            
+            if excel_clicked:
+                # Show loading state immediately
+                show_button_loading(excel_button_placeholder, "Generating Excel...")
+                
+                # Get loading message for Excel generation
+                loading_msg, loading_subtitle = get_loading_message_for_action("generate_excel")
+                
+                # Show loading indicator
+                loading_container = st.empty()
+                with loading_container.container():
+                    display_loading_spinner(loading_msg, loading_subtitle)
+                
+                try:
+                    excel_bytes = generate_comparison_excel()
+                    if excel_bytes:
+                        # Create a unique filename with timestamp
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        property_part = st.session_state.property_name.replace(" ", "_") if hasattr(st.session_state, 'property_name') and st.session_state.property_name else "Property"
+                        
+                        # Clear loading states
+                        loading_container.empty()
+                        restore_button(excel_button_placeholder, "Export Excel", key="global_excel_export_success", type="primary", use_container_width=True)
+                        
+                        # We have Excel content
+                        excel_filename = f"NOI_Comparison_{property_part}_{timestamp}.xlsx"
+                        st.download_button(
+                            label="📥 Download Excel Report",
+                            data=excel_bytes,
+                            file_name=excel_filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key=f"download_excel_report_{timestamp}",
+                            type="primary",
+                            use_container_width=True
+                        )
+                        # Show success message
+                        show_processing_status("Excel report generated successfully!", status_type="success")
+                    else:
+                        # Clear loading states on failure
+                        loading_container.empty()
+                        restore_button(excel_button_placeholder, "Export Excel", key="global_excel_export_failure", type="primary", use_container_width=True)
+                        st.error("❌ Failed to generate Excel report. Please try again or contact support.")
+                except Exception as e:
+                    # Clear loading states on failure
+                    loading_container.empty()
+                    restore_button(excel_button_placeholder, "Export Excel", key="global_excel_export_error", type="primary", use_container_width=True)
+                    st.error(f"🔧 Excel generation encountered an issue: {str(e)}")
+                    logger.error(f"Excel generation error: {str(e)}", exc_info=True)
 
     # Legal Footer - Terms of Service and Privacy Policy
     st.markdown("---")

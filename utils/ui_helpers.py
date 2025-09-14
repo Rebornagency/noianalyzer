@@ -805,6 +805,12 @@ def get_loading_message_for_action(action: str, file_count: int = 1) -> tuple:
             "per_file": 5,
             "icon": "📊"
         },
+        "generate_excel": {
+            "message": "Creating Excel report...",
+            "base_time": 10,
+            "per_file": 2,
+            "icon": "📊"
+        },
         "confirm_data": {
             "message": "Confirming and processing data...",
             "base_time": 10,
