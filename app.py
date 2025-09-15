@@ -3838,8 +3838,9 @@ def display_noi_coach():
         loading_container.empty()
         
         st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
-        # Removed st.rerun() to prevent infinite cycle issue
-        pass
+        # Add a conditional rerun to update the UI with the new response
+        # This avoids infinite loops by only rerunning when we've actually added new content
+        st.rerun()
 
 def display_unified_insights_no_html(insights_data):
     """
