@@ -207,6 +207,10 @@ except ImportError:
 TESTING_MODE_ENV_VAR = "NOI_ANALYZER_TESTING_MODE"
 DEFAULT_TESTING_MODE = os.getenv(TESTING_MODE_ENV_VAR, "false").lower() == "true"
 
+# New constant for controlling sidebar visibility
+SIDEBAR_VISIBLE_ENV_VAR = "NOI_ANALYZER_SIDEBAR_VISIBLE"
+DEFAULT_SIDEBAR_VISIBLE = os.getenv(SIDEBAR_VISIBLE_ENV_VAR, "true").lower() == "true"
+
 # Helper function to check if testing mode is active
 def is_testing_mode_active() -> bool:
     """
@@ -4388,111 +4392,113 @@ def main():
         display_testing_mode_indicator()
 
     # === TESTING MODE SIDEBAR CONTROLS ===
-    st.sidebar.markdown("---")
-    
-    # Debug: Show credit system status
-    if CREDIT_SYSTEM_AVAILABLE:
-        st.sidebar.success("💳 Credit System: Active")
-    else:
-        st.sidebar.error("💳 Credit System: Disabled")
-    st.sidebar.markdown("### 🧪 Testing Mode")
-    
-    # Testing mode toggle
-    testing_mode = st.sidebar.checkbox(
-        "Enable Testing Mode",
-        value=st.session_state.get("testing_mode", DEFAULT_TESTING_MODE),
-        help="Use mock data instead of uploading documents for testing interface"
-    )
-    
-    if testing_mode != st.session_state.get("testing_mode", DEFAULT_TESTING_MODE):
-        st.session_state.testing_mode = testing_mode
-        save_testing_config()
-        # Add error counter to prevent infinite loop
-        error_count = st.session_state.get('testing_mode_toggle_error_count', 0)
-        if error_count < 3:  # Limit reruns to prevent infinite loop
-            st.session_state.testing_mode_toggle_error_count = error_count + 1
-            st.rerun()
-    
-    if is_testing_mode_active():
-        st.sidebar.markdown("#### Testing Configuration")
+    # Only display sidebar controls if explicitly enabled via environment variable
+    if DEFAULT_SIDEBAR_VISIBLE:
+        st.sidebar.markdown("---")
         
-        # Property name input
-        mock_property_name = st.sidebar.text_input(
-            "Property Name",
-            value=st.session_state.get("mock_property_name", "Test Property"),
-            help="Name for the mock property"
+        # Debug: Show credit system status
+        if CREDIT_SYSTEM_AVAILABLE:
+            st.sidebar.success("💳 Credit System: Active")
+        else:
+            st.sidebar.error("💳 Credit System: Disabled")
+        st.sidebar.markdown("### 🧪 Testing Mode")
+        
+        # Testing mode toggle
+        testing_mode = st.sidebar.checkbox(
+            "Enable Testing Mode",
+            value=st.session_state.get("testing_mode", DEFAULT_TESTING_MODE),
+            help="Use mock data instead of uploading documents for testing interface"
         )
         
-        if mock_property_name != st.session_state.get("mock_property_name", "Test Property"):
-            st.session_state.mock_property_name = mock_property_name
+        if testing_mode != st.session_state.get("testing_mode", DEFAULT_TESTING_MODE):
+            st.session_state.testing_mode = testing_mode
             save_testing_config()
-        
-        # Scenario selector
-        scenarios = [
-            "Standard Performance",
-            "High Growth", 
-            "Declining Performance",
-            "Budget Variance"
-        ]
-        
-        current_scenario = st.session_state.get("mock_scenario", "Standard Performance")
-        mock_scenario = st.sidebar.selectbox(
-            "Testing Scenario",
-            scenarios,
-            index=scenarios.index(current_scenario),
-            help="Select financial performance scenario for testing"
-        )
-        
-        if mock_scenario != current_scenario:
-            st.session_state.mock_scenario = mock_scenario
-            save_testing_config()
-            # Clear any existing data when scenario changes
-            for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
-                if key in st.session_state:
-                    del st.session_state[key]
             # Add error counter to prevent infinite loop
-            error_count = st.session_state.get('testing_mode_scenario_error_count', 0)
+            error_count = st.session_state.get('testing_mode_toggle_error_count', 0)
             if error_count < 3:  # Limit reruns to prevent infinite loop
-                st.session_state.testing_mode_scenario_error_count = error_count + 1
+                st.session_state.testing_mode_toggle_error_count = error_count + 1
                 st.rerun()
         
-        # Scenario descriptions
-        scenario_descriptions = {
-            "Standard Performance": "Steady performance with modest growth",
-            "High Growth": "Strong revenue growth and improved NOI",
-            "Declining Performance": "Revenue decline and cost pressures", 
-            "Budget Variance": "Significant variance from budgeted amounts"
-        }
+        if is_testing_mode_active():
+            st.sidebar.markdown("#### Testing Configuration")
+            
+            # Property name input
+            mock_property_name = st.sidebar.text_input(
+                "Property Name",
+                value=st.session_state.get("mock_property_name", "Test Property"),
+                help="Name for the mock property"
+            )
+            
+            if mock_property_name != st.session_state.get("mock_property_name", "Test Property"):
+                st.session_state.mock_property_name = mock_property_name
+                save_testing_config()
+            
+            # Scenario selector
+            scenarios = [
+                "Standard Performance",
+                "High Growth", 
+                "Declining Performance",
+                "Budget Variance"
+            ]
+            
+            current_scenario = st.session_state.get("mock_scenario", "Standard Performance")
+            mock_scenario = st.sidebar.selectbox(
+                "Testing Scenario",
+                scenarios,
+                index=scenarios.index(current_scenario),
+                help="Select financial performance scenario for testing"
+            )
+            
+            if mock_scenario != current_scenario:
+                st.session_state.mock_scenario = mock_scenario
+                save_testing_config()
+                # Clear any existing data when scenario changes
+                for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                # Add error counter to prevent infinite loop
+                error_count = st.session_state.get('testing_mode_scenario_error_count', 0)
+                if error_count < 3:  # Limit reruns to prevent infinite loop
+                    st.session_state.testing_mode_scenario_error_count = error_count + 1
+                    st.rerun()
+            
+            # Scenario descriptions
+            scenario_descriptions = {
+                "Standard Performance": "Steady performance with modest growth",
+                "High Growth": "Strong revenue growth and improved NOI",
+                "Declining Performance": "Revenue decline and cost pressures", 
+                "Budget Variance": "Significant variance from budgeted amounts"
+            }
+            
+            st.sidebar.info(f"**{mock_scenario}:** {scenario_descriptions.get(mock_scenario, 'No description available') if isinstance(mock_scenario, str) else 'No description available'}")
+            
+            # Testing diagnostics
+            if st.sidebar.button("Run Testing Diagnostics", help="Test mock data generation"):
+                run_testing_mode_diagnostics()
+            
+            # Clear testing data button
+            if st.sidebar.button("Clear Testing Data", help="Reset all testing data"):
+                for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                # Reset states to allow user to restart
+                st.session_state.processing_completed = False
+                st.session_state.template_viewed = False
+                st.session_state.user_initiated_processing = False
+                if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
+                # Add error counter to prevent infinite loop
+                error_count = st.session_state.get('testing_mode_clear_error_count', 0)
+                if error_count < 3:  # Limit reruns to prevent infinite loop
+                    st.session_state.testing_mode_clear_error_count = error_count + 1
+                    st.rerun()
+                st.sidebar.success("Testing data cleared")
+                # Add error counter to prevent infinite loop for success message
+                success_error_count = st.session_state.get('testing_mode_clear_success_error_count', 0)
+                if success_error_count < 3:  # Limit reruns to prevent infinite loop
+                    st.session_state.testing_mode_clear_success_error_count = success_error_count + 1
+                    st.rerun()
         
-        st.sidebar.info(f"**{mock_scenario}:** {scenario_descriptions.get(mock_scenario, 'No description available') if isinstance(mock_scenario, str) else 'No description available'}")
-        
-        # Testing diagnostics
-        if st.sidebar.button("Run Testing Diagnostics", help="Test mock data generation"):
-            run_testing_mode_diagnostics()
-        
-        # Clear testing data button
-        if st.sidebar.button("Clear Testing Data", help="Reset all testing data"):
-            for key in ['consolidated_data', 'comparison_results', 'insights', 'generated_narrative', 'edited_narrative']:
-                if key in st.session_state:
-                    del st.session_state[key]
-            # Reset states to allow user to restart
-            st.session_state.processing_completed = False
-            st.session_state.template_viewed = False
-            st.session_state.user_initiated_processing = False
-            if 'consolidated_data' in st.session_state: del st.session_state.consolidated_data
-            # Add error counter to prevent infinite loop
-            error_count = st.session_state.get('testing_mode_clear_error_count', 0)
-            if error_count < 3:  # Limit reruns to prevent infinite loop
-                st.session_state.testing_mode_clear_error_count = error_count + 1
-                st.rerun()
-            st.sidebar.success("Testing data cleared")
-            # Add error counter to prevent infinite loop for success message
-            success_error_count = st.session_state.get('testing_mode_clear_success_error_count', 0)
-            if success_error_count < 3:  # Limit reruns to prevent infinite loop
-                st.session_state.testing_mode_clear_success_error_count = success_error_count + 1
-                st.rerun()
-    
-    st.sidebar.markdown("---")
+        st.sidebar.markdown("---")
 
     # Add email input field at the top level - ALWAYS visible
     st.sidebar.markdown("---")
