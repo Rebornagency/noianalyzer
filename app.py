@@ -4218,6 +4218,33 @@ def main():
             property_name=property_name
         )
         
+        # Session timeout logic
+        # Track last activity in session state
+        import time
+        current_time = time.time()
+        
+        # Get session timeout from environment variable (default 1 hour)
+        session_timeout_seconds = int(os.getenv("SESSION_TIMEOUT_SECONDS", 3600))
+        
+        # Update last activity timestamp
+        st.session_state['last_activity'] = current_time
+        
+        # Check if session has expired
+        if 'session_start_time' not in st.session_state:
+            st.session_state['session_start_time'] = current_time
+            
+        if 'last_activity' in st.session_state:
+            idle_time = current_time - st.session_state['last_activity']
+            if idle_time > session_timeout_seconds:
+                # Session expired - clear session state
+                st.session_state.clear()
+                st.session_state['session_expired'] = True
+                st.session_state['session_start_time'] = current_time
+                st.session_state['last_activity'] = current_time
+                st.session_state['session_id'] = session_id  # Keep the session ID
+                st.warning("Your session has expired due to inactivity. Please refresh the page to continue.")
+                st.stop()  # Stop execution to prevent further processing
+        
         # Inject custom CSS to ensure font consistency
         inject_custom_css()
         
@@ -4537,6 +4564,7 @@ def main():
         .required-badge-email {
             background: linear-gradient(135deg, #ef4444, #dc2626) !important;
             color: white !important;
+
             padding: 0.2rem 0.6rem !important;
             border-radius: 6px !important;
             font-size: 0.75rem !important;
