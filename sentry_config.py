@@ -55,6 +55,21 @@ except (ImportError, Exception) as e:
     FastApiIntegration = None
     logger.debug(f"FastAPI integration not available: {e}")
 
+# Import PII sanitization utility
+try:
+    from utils.pii_sanitizer import sanitize_dict, sanitize_text
+    HAS_PII_SANITIZER = True
+except ImportError:
+    HAS_PII_SANITIZER = False
+    logger.warning("PII sanitizer not available - using basic filtering")
+    
+    # Fallback functions
+    def sanitize_dict(data, max_depth=5):
+        return data
+    
+    def sanitize_text(text):
+        return text
+
 def init_sentry():
     """
     Initialize Sentry with comprehensive error tracking and performance monitoring.
@@ -166,7 +181,8 @@ def filter_sensitive_data(event, hint):
         env_vars = event.get('environment', {})
         sensitive_keys = [
             'OPENAI_API_KEY', 'SENTRY_DSN', 'PASSWORD', 'SECRET', 
-            'TOKEN', 'KEY', 'CREDENTIAL'
+            'TOKEN', 'KEY', 'CREDENTIAL', 'EMAIL', 'PHONE', 'ADDRESS',
+            'SSN', 'CREDIT_CARD', 'FINANCIAL'
         ]
         
         for key in list(env_vars.keys()):
@@ -180,20 +196,54 @@ def filter_sensitive_data(event, hint):
             # Remove financial data and personal information
             sensitive_fields = [
                 'property_name', 'financial_data', 'amount', 'revenue', 
-                'expense', 'noi', 'cash_flow', 'api_key'
+                'expense', 'noi', 'cash_flow', 'api_key', 'email', 'phone',
+                'phone_number', 'mobile', 'cell', 'ssn', 'social_security',
+                'credit_card', 'card_number', 'cc_number', 'address', 'street', 
+                'city', 'state', 'zip', 'zipcode', 'postal'
             ]
             
             for field in sensitive_fields:
                 if field in request['data']:
                     request['data'][field] = '[Filtered]'
+            
+            # Use PII sanitizer for additional protection
+            if HAS_PII_SANITIZER:
+                request['data'] = sanitize_dict(request['data'])
     
     # Filter extra context
     if 'extra' in event:
         extra = event['extra']
         for key in list(extra.keys()):
+            # Filter large datasets
             if 'financial' in key.lower() or 'data' in key.lower():
                 if isinstance(extra[key], dict) and len(str(extra[key])) > 1000:
                     extra[key] = '[Large dataset filtered]'
+                elif HAS_PII_SANITIZER:
+                    extra[key] = sanitize_dict(extra[key]) if isinstance(extra[key], dict) else sanitize_text(str(extra[key]))
+            elif HAS_PII_SANITIZER:
+                extra[key] = sanitize_dict(extra[key]) if isinstance(extra[key], dict) else sanitize_text(str(extra[key]))
+    
+    # Filter breadcrumbs for PII
+    if 'breadcrumbs' in event:
+        breadcrumbs = event['breadcrumbs']
+        if isinstance(breadcrumbs, dict) and 'values' in breadcrumbs:
+            for breadcrumb in breadcrumbs['values']:
+                if 'message' in breadcrumb:
+                    if HAS_PII_SANITIZER:
+                        breadcrumb['message'] = sanitize_text(breadcrumb['message'])
+                if 'data' in breadcrumb and isinstance(breadcrumb['data'], dict):
+                    if HAS_PII_SANITIZER:
+                        breadcrumb['data'] = sanitize_dict(breadcrumb['data'])
+    
+    # Filter user data
+    if 'user' in event:
+        user = event['user']
+        if isinstance(user, dict):
+            # Remove potentially sensitive user information
+            sensitive_user_fields = ['email', 'username', 'name', 'phone', 'ip_address']
+            for field in sensitive_user_fields:
+                if field in user:
+                    user[field] = '[Filtered]'
     
     return event
 
@@ -226,6 +276,10 @@ def add_breadcrumb(message, category="generic", level="info"):
         level (str): The level of the breadcrumb (info, warning, error)
     """
     try:
+        # Sanitize breadcrumb message if PII sanitizer is available
+        if HAS_PII_SANITIZER:
+            message = sanitize_text(message)
+            
         sentry_sdk.add_breadcrumb(
             message=message,
             category=category,
@@ -248,9 +302,17 @@ def capture_exception_with_context(error, context=None, **kwargs):
         **kwargs: Additional context to include
     """
     try:
+        # Sanitize context if PII sanitizer is available
+        if context and HAS_PII_SANITIZER:
+            context = sanitize_dict(context)
+        
         # Add context if provided
         if context:
             sentry_sdk.set_context("custom_context", context)
+        
+        # Sanitize kwargs if PII sanitizer is available
+        if kwargs and HAS_PII_SANITIZER:
+            kwargs = sanitize_dict(kwargs)
         
         # Add any additional kwargs as context
         if kwargs:
@@ -277,9 +339,21 @@ def capture_message_with_context(message, level="info", context=None, **kwargs):
         **kwargs: Additional context to include
     """
     try:
+        # Sanitize message if PII sanitizer is available
+        if HAS_PII_SANITIZER:
+            message = sanitize_text(message)
+        
+        # Sanitize context if PII sanitizer is available
+        if context and HAS_PII_SANITIZER:
+            context = sanitize_dict(context)
+        
         # Add context if provided
         if context:
             sentry_sdk.set_context("custom_context", context)
+        
+        # Sanitize kwargs if PII sanitizer is available
+        if kwargs and HAS_PII_SANITIZER:
+            kwargs = sanitize_dict(kwargs)
         
         # Add any additional kwargs as context
         if kwargs:
@@ -321,6 +395,10 @@ def monitor_performance(operation_name, operation_type="custom"):
     """
     try:
         from sentry_sdk import start_transaction
+        # Sanitize operation name if PII sanitizer is available
+        if HAS_PII_SANITIZER:
+            operation_name = sanitize_text(operation_name)
+            
         return start_transaction(op=operation_type, name=operation_name)
     except Exception:
         # If Sentry is not available, return a dummy context manager
