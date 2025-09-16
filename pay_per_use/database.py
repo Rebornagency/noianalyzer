@@ -464,15 +464,31 @@ class DatabaseService:
     
     # CREDIT PACKAGES
     def create_default_packages(self):
-        """Create default credit packages with placeholder Stripe IDs"""
-        # IMPORTANT: You need to replace these placeholder price IDs with real ones from Stripe!
+        """Create default credit packages with environment variables for Stripe IDs"""
+        # Get Stripe price IDs from environment variables
+        starter_price_id = os.getenv("STRIPE_STARTER_PRICE_ID")
+        professional_price_id = os.getenv("STRIPE_PROFESSIONAL_PRICE_ID")
+        business_price_id = os.getenv("STRIPE_BUSINESS_PRICE_ID")
+        
+        # Check if any are missing
+        missing_ids = []
+        if not starter_price_id:
+            missing_ids.append("STRIPE_STARTER_PRICE_ID")
+        if not professional_price_id:
+            missing_ids.append("STRIPE_PROFESSIONAL_PRICE_ID")
+        if not business_price_id:
+            missing_ids.append("STRIPE_BUSINESS_PRICE_ID")
+            
+        if missing_ids:
+            logger.warning(f"⚠️  Missing Stripe price ID environment variables: {', '.join(missing_ids)}. Checkout flow may not work properly.")
+        
         default_packages = [
             {
                 "package_id": "starter-3",
                 "name": "Starter Pack",
                 "credits": 3,
                 "price_cents": 1500,  # $15.00
-                "stripe_price_id": os.getenv("STRIPE_STARTER_PRICE_ID", ""),
+                "stripe_price_id": starter_price_id or "",  # Use empty string if not set
                 "description": "Perfect for trying out our service"
             },
             {
@@ -480,7 +496,7 @@ class DatabaseService:
                 "name": "Professional Pack",
                 "credits": 10,
                 "price_cents": 3000,  # $30.00
-                "stripe_price_id": os.getenv("STRIPE_PROFESSIONAL_PRICE_ID", ""),
+                "stripe_price_id": professional_price_id or "",  # Use empty string if not set
                 "description": "Great for regular users"
             },
             {
@@ -488,7 +504,7 @@ class DatabaseService:
                 "name": "Business Pack",
                 "credits": 40,
                 "price_cents": 7500,  # $75.00
-                "stripe_price_id": os.getenv("STRIPE_BUSINESS_PRICE_ID", ""),
+                "stripe_price_id": business_price_id or "",  # Use empty string if not set
                 "description": "Best value for power users"
             }
         ]
@@ -733,4 +749,4 @@ class DatabaseService:
             conn.close()
 
 # Global database service instance
-db_service = DatabaseService() 
+db_service = DatabaseService()
