@@ -3487,98 +3487,6 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     logger.info(f"--- display_comparison_tab END for {name_suffix} ---")
     return
 
-def display_opex_breakdown(opex_data, comparison_type="prior month"):
-    """
-    Display operating expense breakdown using Streamlit DataFrame.
-    
-    Args:
-        opex_data: Dictionary containing operating expense data. 
-                   Example: {"property_taxes": {"current": 100, "prior": 90}, ...}
-        comparison_type: Type of comparison (e.g., "Prior Month", "Budget")
-    """
-    if not opex_data or not isinstance(opex_data, dict):
-        st.info("No operating expense data provided for breakdown.")
-        return
-
-    opex_df_list = []
-    for category_key, data_values in opex_data.items():
-        if not data_values or not isinstance(data_values, dict):
-            logger.warning(f"Skipping invalid OpEx data for category: {category_key}")
-            continue
-            
-        current = data_values.get('current', 0.0)
-        prior = data_values.get('prior', 0.0) # Assuming 'prior' as the comparison key
-        
-        change = current - prior
-        percent_change = (change / prior * 100) if prior != 0 else 0.0
-        
-        display_name = category_key.replace('_', ' ').title()
-        
-        opex_df_list.append({
-            "Expense Category": display_name,
-            "Current": current,
-            comparison_type: prior, # Use the dynamic comparison_type for the column name
-            "Change ($)": change,
-            "Change (%)": percent_change
-        })
-
-    if not opex_df_list:
-        st.info("No valid operating expense items to display.")
-        return
-
-    opex_df = pd.DataFrame(opex_df_list)
-
-    # Format for display
-    opex_df_display = opex_df.copy()
-    opex_df_display["Current"] = opex_df_display["Current"].apply(lambda x: f"${x:,.2f}")
-    opex_df_display[comparison_type] = opex_df_display[comparison_type].apply(lambda x: f"${x:,.2f}")
-    opex_df_display["Change ($)"] = opex_df_display["Change ($)"] .apply(
-        lambda x: f"+${x:,.2f}" if x > 0 else (f"-${abs(x):,.2f}" if x < 0 else f"${x:,.2f}")
-    )
-    opex_df_display["Change (%)"] = opex_df_display["Change (%)"] .apply(
-        lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
-    )
-
-    # Wrap the styling in a try-except block to handle potential errors
-    try:
-        # Try using map() method first (pandas >= 1.3.0)
-        styled_df = opex_df_display.style.map(
-            highlight_changes, 
-            subset=['Change ($)', 'Change (%)']
-        )
-    except AttributeError:
-        # Fallback to applymap() for older pandas versions
-        styled_df = opex_df_display.style.applymap(
-            highlight_changes, 
-            subset=['Change ($)', 'Change (%)']
-        )
-        
-    # Add error handling for set_table_styles to prevent attribute errors
-    try:
-        styled_result = styled_df.format({
-            "Current": "{:}",
-            comparison_type: "{:}",
-            "Change ($)": "{:}",
-            "Change (%)": "{:}"
-        }).set_table_styles([  # type: ignore
-            {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
-            {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
-        ])
-    except AttributeError:
-        # Fallback if set_table_styles is not available
-        styled_result = styled_df.format({
-            "Current": "{:}",
-            comparison_type: "{:}",
-            "Change ($)": "{:}",
-            "Change (%)": "{:}"
-        })
-    st.dataframe(styled_result, use_container_width=True)
-
-    # Remove the old HTML and style block as it's no longer used by this function.
-    # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
-    # were part of the old HTML rendering method. If they are not used elsewhere for st.markdown,
-    # they might eventually be cleaned up from the CSS file. For now, we only remove the Python string.
-
 # Function to handle user questions about NOI data
 def ask_noi_coach(question: str, comparison_results: Dict[str, Any], context: str) -> str:
     """
@@ -3935,11 +3843,15 @@ def display_unified_insights_no_html(insights_data):
                     if isinstance(insight, str):
                         performance_markdown += f"- {insight}\n"
                     else:
-                        performance_markdown += f"- {insight_text}\n"
-        if performance_markdown:
-            st.markdown(performance_markdown)
-
-# Display comparison tab
+                        performance_markdown += f"- {str(insight)}\n"
+                        
+                if performance_markdown:
+                    st.markdown(performance_markdown)
+                else:
+                    st.info("No performance insights available.")
+            except Exception as e:
+                logger.error(f"Error displaying performance insights: {str(e)}")
+                st.error("Error displaying performance insights.")
         
         # Display Recommendations
         if 'recommendations' in insights_data and insights_data['recommendations']:
@@ -6351,7 +6263,83 @@ def ask_noi_coach(query):
         logger.error(f"Error in ask_noi_coach: {str(e)}")
         return f"I encountered an error while analyzing your data: {str(e)}"
 
+def display_unified_insights(insights_data):
+    """
+    Display unified insights using native Streamlit components.
+    
+    Args:
+        insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
+    """
+    logger.info("Displaying unified insights")
+    
+    if not insights_data or not isinstance(insights_data, dict):
+        st.warning("No insights data available to display.")
+        return
+    
+    logger.info(f"Insights data keys: {list(insights_data.keys())}")
+    
+    # Display Executive Summary
+    if 'summary' in insights_data:
+        st.markdown("## Executive Summary")
+        
+        summary_text = str(insights_data['summary']).strip()
+        # Remove redundant "Executive Summary:" prefix if it exists
+        if summary_text.startswith("Executive Summary:"):
+            summary_text = summary_text[len("Executive Summary:"):].strip()
+        
+        # Sanitize the summary text to prevent any unwanted content
+        # Check for potential API keys or overly long content
+        if "sk-" in summary_text and len(summary_text) > 500:
+            summary_text = "Executive summary generated successfully. For security reasons, detailed content has been truncated."
+        elif len(summary_text) > 2000:  # Arbitrary limit to prevent extremely long content
+            summary_text = summary_text[:2000] + "... (content truncated for readability)"
+            
+        with st.container():
+            import html as _html_mod  # local import to avoid top-level issues
+            escaped = _html_mod.escape(summary_text).replace("\n", "<br>")
+            st.markdown(f"<div class='results-text'>{escaped}</div>", unsafe_allow_html=True)
+    
+    # Display Key Performance Insights
+    if 'performance' in insights_data and insights_data['performance']:
+        st.markdown("## Key Performance Insights")
+        
+        performance_markdown = ""
+        for insight in insights_data['performance']:
+            # Sanitize each insight to prevent any unwanted content
+            insight_text = str(insight).strip()
+            # Check for potential API keys or overly long content
+            if "sk-" in insight_text and len(insight_text) > 500:
+                insight_text = "Performance insight generated successfully."
+            elif len(insight_text) > 1000:  # Arbitrary limit to prevent extremely long content
+                insight_text = insight_text[:1000] + "... (content truncated for readability)"
+                
+            performance_markdown += f"- {insight_text}\n"
+        if performance_markdown:
+            st.markdown(performance_markdown)
+    
+    # Display Recommendations
+    if 'recommendations' in insights_data and insights_data['recommendations']:
+        st.markdown("## Recommendations")
+        
+        recommendations_markdown = ""
+        for recommendation in insights_data['recommendations']:
+            # Sanitize each recommendation to prevent any unwanted content
+            rec_text = str(recommendation).strip()
+            # Check for potential API keys or overly long content
+            if "sk-" in rec_text and len(rec_text) > 500:
+                rec_text = "Recommendation generated successfully."
+            elif len(rec_text) > 1000:  # Arbitrary limit to prevent extremely long content
+                rec_text = rec_text[:1000] + "... (content truncated for readability)"
+                
+            recommendations_markdown += f"- {rec_text}\n"
+        if recommendations_markdown:
+            st.markdown(recommendations_markdown)
+
 # Function to display NOI Coach interface
+def display_noi_coach_interface():
+    st.markdown("## NOI Coach")
+    st.markdown("Ask questions about your financial data and get AI-powered insights")
+
 def display_opex_breakdown(opex_data, comparison_type="prior month"):
     """
     Display operating expense breakdown using Streamlit DataFrame.
@@ -6443,11 +6431,6 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
     # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
     # were part of the old HTML rendering method. If they are not used elsewhere for st.markdown,
     # they might eventually be cleaned up from the CSS file. For now, we only remove the Python string.
-
-# Function to display NOI Coach interface
-def display_noi_coach_interface():
-    st.markdown("## NOI Coach")
-    st.markdown("Ask questions about your financial data and get AI-powered insights")
 
 def display_card_container(title, content):
     """
