@@ -3844,7 +3844,12 @@ def display_noi_coach():
         st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
         # Add a conditional rerun to update the UI with the new response
         # This avoids infinite loops by only rerunning when we've actually added new content
-        st.rerun()
+        # TODO: Remove st.rerun() to prevent infinite loops. Instead, let Streamlit's natural re-execution update the UI.
+        # st.rerun()
+        
+        # Instead of forcing a rerun, we'll let Streamlit's natural re-execution update the UI
+        # This prevents the infinite cycle issue while preserving analysis data
+        pass
 
 def display_unified_insights_no_html(insights_data):
     """
