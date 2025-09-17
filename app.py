@@ -6255,14 +6255,6 @@ def display_features_section_no_html():
             st.markdown("### Export Options")
             st.markdown("Save results as PDF or Excel for sharing and reporting")
 
-def ask_noi_coach(query):
-    try:
-        response = ask_noi_coach_api(query)
-        return response
-    except Exception as e:
-        logger.error(f"Error in ask_noi_coach: {str(e)}")
-        return f"I encountered an error while analyzing your data: {str(e)}"
-
 def display_unified_insights(insights_data):
     """
     Display unified insights using native Streamlit components.
@@ -6334,11 +6326,6 @@ def display_unified_insights(insights_data):
             recommendations_markdown += f"- {rec_text}\n"
         if recommendations_markdown:
             st.markdown(recommendations_markdown)
-
-# Function to display NOI Coach interface
-def display_noi_coach_interface():
-    st.markdown("## NOI Coach")
-    st.markdown("Ask questions about your financial data and get AI-powered insights")
 
 def display_opex_breakdown(opex_data, comparison_type="prior month"):
     """
