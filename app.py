@@ -4264,7 +4264,7 @@ def main():
         inject_custom_css()
         
         # JavaScript function for theme toggling
-        st.markdown(""""""
+        st.markdown("""
         <script>
         function toggleTheme() {
             const root = document.documentElement;
@@ -4374,23 +4374,6 @@ def main():
     # Display testing mode indicator if active
     if is_testing_mode_active():
         display_testing_mode_indicator()
-
-    # Pre-fill email if user returned from successful purchase - moved declaration up for use in both locations
-    default_email = st.session_state.get('user_email', '')
-    
-    # Function to handle email input changes
-    def on_email_change():
-        email_input = st.session_state.get('user_email_input', '')
-        if email_input:
-            st.session_state.user_email = email_input
-            
-            # Display credit balance and free trial welcome in sidebar
-            if CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
-                display_free_trial_welcome(email_input)
-                display_credit_balance(email_input)
-            elif not CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
-                st.sidebar.error("💳 Credit System Unavailable")
-                st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
 
     # === TESTING MODE SIDEBAR CONTROLS ===
     # Only display sidebar controls if explicitly enabled via environment variable
@@ -4502,9 +4485,25 @@ def main():
         st.sidebar.markdown("---")
 
     # Add email input field at the top level - ALWAYS visible
-    if DEFAULT_SIDEBAR_VISIBLE:
-        st.sidebar.markdown("---")
+    st.sidebar.markdown("---")
 
+    # Pre-fill email if user returned from successful purchase - moved declaration up for use in both locations
+    default_email = st.session_state.get('user_email', '')
+    
+    # Function to handle email input changes
+    def on_email_change():
+        email_input = st.session_state.get('user_email_input', '')
+        if email_input:
+            st.session_state.user_email = email_input
+            
+            # Display credit balance and free trial welcome in sidebar
+            if CREDIT_SYSTEM_AVAILABLE:
+                display_free_trial_welcome(email_input)
+                display_credit_balance(email_input)
+            else:
+                st.sidebar.error("💳 Credit System Unavailable")
+                st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
+    
     # Custom email input with required indicator - move style definitions here so they're available globally
     st.markdown(
         """
@@ -4541,7 +4540,7 @@ def main():
         
         # Clear the success flag after showing - this prevents the infinite loop
         st.session_state.show_credit_success = False
-
+    
     # Add header credit display for main page (centered)
     if (
         st.session_state.get('user_email')
@@ -4613,12 +4612,117 @@ def main():
                 st.session_state.user_email = email_input
                 
                 # Display credit balance and free trial welcome in sidebar
-                if CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
+                if CREDIT_SYSTEM_AVAILABLE:
                     display_free_trial_welcome(email_input)
                     display_credit_balance(email_input)
-                elif not CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
+                else:
                     st.sidebar.error("💳 Credit System Unavailable")
                     st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
+            
+            # Add a small spacer for better visual separation
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+            
+            # Modern Upload Documents section
+            st.markdown('<h2 class="section-header">Upload Documents</h2>', unsafe_allow_html=True)
+            
+            # Enhanced upload cards using component functions
+            current_month_file_main = upload_card(
+                title="Current Month Actuals",
+                required=True,
+                key="main_current_month_upload_functional",
+                help_text="Upload your current month's financial data here or in the sidebar"
+            )
+            prior_month_file_main = upload_card(
+                title="Prior Month Actuals",
+                key="main_prior_month_upload_functional",
+                help_text="Upload your prior month's financial data here or in the sidebar"
+            )
+            budget_file_main = upload_card(
+                title="Current Month Budget",
+                key="main_budget_upload_functional",
+                help_text="Upload your budget data here or in the sidebar"
+            )
+            prior_year_file_main = upload_card(
+                title="Prior Year Same Month",
+                key="main_prior_year_upload_functional",
+                help_text="Upload the same month from prior year here or in the sidebar"
+            )
+            
+            # AUTO-STORE FILES IN SESSION STATE immediately upon upload
+            # This prevents race conditions where files might be lost during rerun
+            # We store files but avoid triggering immediate reruns to keep smooth UX
+            files_changed = False
+            
+            if current_month_file_main and not st.session_state.get('current_month_actuals'):
+                st.session_state.current_month_actuals = current_month_file_main
+                logger.info(f"DEBUG: Auto-stored current_month_actuals: {current_month_file_main.name}")
+                files_changed = True
+            
+            if prior_month_file_main and not st.session_state.get('prior_month_actuals'):
+                st.session_state.prior_month_actuals = prior_month_file_main
+                logger.info(f"DEBUG: Auto-stored prior_month_actuals: {prior_month_file_main.name}")
+                files_changed = True
+            
+            if budget_file_main and not st.session_state.get('current_month_budget'):
+                st.session_state.current_month_budget = budget_file_main
+                logger.info(f"DEBUG: Auto-stored current_month_budget: {budget_file_main.name}")
+                files_changed = True
+            
+            if prior_year_file_main and not st.session_state.get('prior_year_actuals'):
+                st.session_state.prior_year_actuals = prior_year_file_main
+                logger.info(f"DEBUG: Auto-stored prior_year_actuals: {prior_year_file_main.name}")
+                files_changed = True
+            
+            # Show a subtle success message when files are uploaded (without rerun)
+            if files_changed:
+                st.success("📄 File uploaded successfully! You can continue uploading more files or click 'Process Documents' when ready.")
+            
+            # Show current file status without triggering rerun
+            uploaded_files_status = []
+            if st.session_state.get('current_month_actuals'):
+                uploaded_files_status.append("✅ Current Month Actuals")
+            if st.session_state.get('prior_month_actuals'):
+                uploaded_files_status.append("✅ Prior Month Actuals")
+            if st.session_state.get('current_month_budget'):
+                uploaded_files_status.append("✅ Budget")
+            if st.session_state.get('prior_year_actuals'):
+                uploaded_files_status.append("✅ Prior Year")
+            
+            if uploaded_files_status:
+                st.info(f"📁 **Uploaded files:** {', '.join(uploaded_files_status)}")
+            
+            # Enhanced property input using component function
+            main_page_property_name_input = property_input(value=st.session_state.property_name)
+            if main_page_property_name_input != st.session_state.property_name:
+                st.session_state.property_name = main_page_property_name_input
+            
+            # Add options container after file uploaders
+            st.markdown('<div class="options-container">', unsafe_allow_html=True)
+            st.markdown('<h3 class="options-header">Display Options</h3>', unsafe_allow_html=True)
+
+            # Show Zero Values toggle (full width since theme toggle moved to header)
+            show_zero_values = st.checkbox(
+                "Show Zero Values", 
+                value=st.session_state.show_zero_values,
+                help="Show metrics with zero values in the comparison tables"
+            )
+            
+            # Update session state without triggering immediate rerun
+            if show_zero_values != st.session_state.show_zero_values:
+                st.session_state.show_zero_values = show_zero_values
+                # Note: We don't need st.rerun() here as the change will take effect on next interaction
+
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Enhanced Process Documents button
+            st.markdown(
+            '''
+            <style>
+            /* CSS Reset for button styles */
+            .stApp .stButton > button {
+                all: unset;
+                display: inline-flex;
+                align-items: center;
                 justify-content: center;
                 box-sizing: border-box;
                 cursor: pointer;
