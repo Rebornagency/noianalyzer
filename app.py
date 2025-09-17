@@ -199,7 +199,7 @@ from utils.ui_helpers import (
 try:
     from excel_export import generate_comparison_excel
 except ImportError:
-    def generate_comparison_excel():
+    def generate_comparison_excel() -> bytes | None:
         st.error("Excel export functionality not available")
         return None
 
@@ -2528,85 +2528,7 @@ if 'template_header_displayed' not in st.session_state:
     if 'template_confirmation_error_count' not in st.session_state:
         st.session_state.template_confirmation_error_count = 0
 
-def main():
-    """Main Streamlit application function."""
-    try:
-        # Initialize session state variables if not already set
-        if 'show_credit_store' not in st.session_state:
-            st.session_state.show_credit_store = False
-        if 'user_email' not in st.session_state:
-            st.session_state.user_email = ""
-        if 'property_name' not in st.session_state:
-            st.session_state.property_name = "Sample Property"
-        if 'show_zero_values' not in st.session_state:
-            st.session_state.show_zero_values = False
-        if 'processing_completed' not in st.session_state:
-            st.session_state.processing_completed = False
-        if 'template_viewed' not in st.session_state:
-            st.session_state.template_viewed = False
-        if 'show_credit_success' not in st.session_state:
-            st.session_state.show_credit_success = False
-        if 'terms_accepted' not in st.session_state:
-            st.session_state.terms_accepted = False
-        if 'show_tos_error' not in st.session_state:
-            st.session_state.show_tos_error = False
-        if 'user_initiated_processing' not in st.session_state:
-            st.session_state.user_initiated_processing = False
-        if 'testing_mode' not in st.session_state:
-            st.session_state.testing_mode = DEFAULT_TESTING_MODE
-        if 'mock_property_name' not in st.session_state:
-            st.session_state.mock_property_name = "Test Property"
-        if 'mock_scenario' not in st.session_state:
-            st.session_state.mock_scenario = "Standard Performance"
-        # Initialize the process button creation flag to prevent duplicates
-        if 'process_button_created' not in st.session_state:
-            st.session_state.process_button_created = False
 
-        st.session_state.template_confirmation_error_count = 0
-    except Exception as e:
-        logger.error(f"Error in main function initialization: {str(e)}")
-        st.error("An error occurred during application initialization. Please refresh the page.")
-        return
-    
-    if 'template_error_count' not in st.session_state:
-        st.session_state.template_error_count = 0
-    if 'document_processing_exception_count' not in st.session_state:
-        st.session_state.document_processing_exception_count = 0
-    if 'analysis_error_reset_count' not in st.session_state:
-        st.session_state.analysis_error_reset_count = 0
-    if 'noi_coach_error_count' not in st.session_state:
-        st.session_state.noi_coach_error_count = 0
-    if 'testing_mode_toggle_error_count' not in st.session_state:
-        st.session_state.testing_mode_toggle_error_count = 0
-    if 'testing_mode_scenario_error_count' not in st.session_state:
-        st.session_state.testing_mode_scenario_error_count = 0
-    if 'testing_mode_clear_error_count' not in st.session_state:
-        st.session_state.testing_mode_clear_error_count = 0
-    if 'testing_mode_clear_success_error_count' not in st.session_state:
-        st.session_state.testing_mode_clear_success_error_count = 0
-    if 'tos_error_count' not in st.session_state:
-        st.session_state.tos_error_count = 0
-    
-    # Reset error counters when processing starts successfully
-    if st.session_state.get('user_initiated_processing', False) and st.session_state.get('current_month_actuals'):
-        st.session_state.document_processing_error_count = 0
-        st.session_state.credit_deduction_error_count = 0
-        st.session_state.analysis_error_count = 0
-        st.session_state.analysis_exception_count = 0
-        st.session_state.analysis_exception_count_2 = 0
-        st.session_state.results_header_error_count = 0
-        st.session_state.template_header_error_count = 0
-        st.session_state.document_processing_success_error_count = 0
-        st.session_state.template_confirmation_error_count = 0
-        st.session_state.template_error_count = 0
-        st.session_state.document_processing_exception_count = 0
-        st.session_state.analysis_error_reset_count = 0
-        st.session_state.noi_coach_error_count = 0
-        st.session_state.testing_mode_toggle_error_count = 0
-        st.session_state.testing_mode_scenario_error_count = 0
-        st.session_state.testing_mode_clear_error_count = 0
-        st.session_state.testing_mode_clear_success_error_count = 0
-        st.session_state.tos_error_count = 0
 
 
 # Testing mode initialization
@@ -2875,22 +2797,27 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                             "Change ($)": "{:}",
                             "Change (%)": "{:}"
                         })
-                        
-                        # Apply table styles if the method is available
+                        # Add error handling for set_table_styles to prevent attribute errors in different pandas versions
                         try:
-                            styled_final = formatted_df.set_table_styles([
+                            styled_df = styled_df.set_table_styles([  # type: ignore
                                 {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
                                 {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
                             ])
                         except AttributeError:
-                            # Fallback if set_table_styles is not available
-                            styled_final = formatted_df
-                        
-                        st.dataframe(styled_final, use_container_width=True)
+                            # Fallback if set_table_styles is not available in this pandas version
+                            pass
+                        st.dataframe(styled_df, use_container_width=True)
                     except Exception as e:
                         logger.warning(f"Error styling OpEx dataframe: {str(e)}")
                         # Fallback to simple dataframe display
-                        st.dataframe(opex_df_display, use_container_width=True)
+                        # Ensure opex_df_display is defined before using it
+                        if 'opex_df_display' in locals():
+                            st.dataframe(opex_df_display, use_container_width=True)
+                        else:
+                            # If opex_df_display is not available, create a simple fallback
+                            if 'opex_df_data' in locals() and opex_df_data:
+                                fallback_df = pd.DataFrame(opex_df_data)
+                                st.dataframe(fallback_df, use_container_width=True)
 
                     # Create columns for charts with enhanced styling
                     col1, col2 = st.columns(2)
@@ -2992,7 +2919,7 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                                             name_suffix: "#4ecdc4"  # Teal for Prior/Budget (can be dynamic based on name_suffix if needed)
                                         },
                                         labels={"Amount": "Amount ($)", "Expense Category": ""},
-                                        height=len(opex_df["Expense Category"].unique()) * 60 + 100 # Dynamic height
+                                        height=len(opex_df["Expense Category"].unique()) * 60 + 100 if 'opex_df' in locals() and not opex_df.empty else 400 # Dynamic height with fallback
                                     )
                                 
                                 # Update layout for modern appearance
@@ -3195,8 +3122,23 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                         comp_data = comp_data[comp_data["Income Category"] != "Total Other Income"]
                         if "Current" in comp_data.columns and not comp_data.empty:
                             # Ensure Current column is numeric before sorting
-                            comp_data["Current"] = pd.to_numeric(comp_data["Current"], errors='coerce').fillna(0)
-                            comp_data = comp_data.sort_values(by="Current", ascending=True)
+                            # Handle different return types from pd.to_numeric to prevent attribute errors
+                            # Simple and safe approach: use numpy to handle the conversion and fillna
+                            import numpy as np
+                            comp_data["Current"] = pd.to_numeric(comp_data["Current"], errors='coerce')
+                            # Replace NaN values with 0 using numpy - safe for both Series and numpy arrays
+                            comp_data["Current"] = np.where(pd.isna(comp_data["Current"]), 0, comp_data["Current"])
+                            # TODO: Add error handling for sort_values to prevent errors with empty DataFrames or missing columns
+                            try:
+                                # Ensure comp_data is a DataFrame before calling sort_values
+                                if isinstance(comp_data, pd.DataFrame):
+                                    comp_data = comp_data.sort_values(by="Current", ascending=True)
+                                else:
+                                    # If comp_data is not a DataFrame, convert it to one
+                                    comp_data = pd.DataFrame(comp_data).sort_values(by="Current", ascending=True)
+                            except (TypeError, ValueError) as e:
+                                # If sorting fails, continue with unsorted data
+                                logger.warning(f"Failed to sort comp_data by Current column: {str(e)}, continuing with unsorted data")
                         
                         # Only show top 6 categories to avoid chart getting too crowded
                         if len(comp_data) > 6:
@@ -3478,9 +3420,20 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
             fig.update_yaxes(tickprefix="$", tickformat=",.0f")
             
             # Safety: ensure no stray title text remains (avoids 'undefined' render)
-            if hasattr(fig, 'layout') and hasattr(fig.layout, 'title') and fig.layout.title and \
-               hasattr(fig.layout.title, 'text') and (fig.layout.title.text is None or str(fig.layout.title.text).lower() == 'undefined'):
-                fig.update_layout(title_text='')
+            # TODO: Add proper error handling for figure attribute access to prevent attribute errors
+            try:
+                # Use a safer approach to access figure title attributes
+                layout = getattr(fig, 'layout', None)
+                if layout is not None:
+                    title = getattr(layout, 'title', None)
+                    if title:
+                        # Check if title has a text attribute and if it's 'undefined'
+                        title_text = getattr(title, 'text', None)
+                        if title_text is None or str(title_text).lower() == 'undefined':
+                            fig.update_layout(title_text='')
+            except (AttributeError, TypeError):
+                # If accessing figure attributes fails, continue without modifying the title
+                logger.warning("Failed to access figure title attributes, continuing without title modification")
             
             # Wrap the chart display in the container div
             st.plotly_chart(fig, use_container_width=True)
@@ -6545,15 +6498,26 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
             subset=['Change ($)', 'Change (%)']
         )
         
-    st.dataframe(styled_df.format({
-        "Current": "{:}",
-        comparison_type: "{:}",
-        "Change ($)": "{:}",
-        "Change (%)": "{:}"
-    }).set_table_styles([
-        {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
-        {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
-    ]), use_container_width=True)
+    # Add error handling for set_table_styles to prevent attribute errors
+    try:
+        styled_result = styled_df.format({
+            "Current": "{:}",
+            comparison_type: "{:}",
+            "Change ($)": "{:}",
+            "Change (%)": "{:}"
+        }).set_table_styles([  # type: ignore
+            {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
+            {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
+        ])
+    except AttributeError:
+        # Fallback if set_table_styles is not available
+        styled_result = styled_df.format({
+            "Current": "{:}",
+            comparison_type: "{:}",
+            "Change ($)": "{:}",
+            "Change (%)": "{:}"
+        })
+    st.dataframe(styled_result, use_container_width=True)
 
     # Remove the old HTML and style block as it's no longer used by this function.
     # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
@@ -6890,17 +6854,6 @@ def clear_url_params():
     
     # If all methods fail, log warning
     logger.warning("Unable to clear URL parameters - feature not available in this Streamlit version")
-
-# Helper function to summarize data structures for logging
-def summarize_data_for_log(data_dict, max_items=3):
-    """Summarize a data structure for more concise logging"""
-    if not isinstance(data_dict, dict):
-        return str(data_dict)
-    keys = list(data_dict.keys())
-    summary = {k: data_dict[k] for k in keys[:max_items]}
-    if len(keys) > max_items:
-        summary[f"...and {len(keys) - max_items} more keys"] = "..."
-    return summary
 
 # Run the main function when the script is executed directly
 if __name__ == "__main__":
