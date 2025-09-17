@@ -3894,16 +3894,6 @@ def display_noi_coach():
         # Rerun to update the UI with the new messages
         st.rerun()
 
-def display_unified_insights(insights_data):
-    """
-    Display unified insights using the HTML-based approach.
-    This is a wrapper for display_unified_insights_no_html for compatibility.
-    
-    Args:
-        insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
-    """
-    return display_unified_insights_no_html(insights_data)
-
 def display_unified_insights_no_html(insights_data):
     """
     Display unified insights using pure Streamlit components without HTML.
@@ -3945,12 +3935,11 @@ def display_unified_insights_no_html(insights_data):
                     if isinstance(insight, str):
                         performance_markdown += f"- {insight}\n"
                     else:
-                        performance_markdown += f"- {str(insight)}\n"
-                if performance_markdown:
-                    st.markdown(performance_markdown)
-            except Exception as e:
-                logger.error(f"Error displaying performance insights: {str(e)}")
-                st.error("Error displaying performance insights.")
+                        performance_markdown += f"- {insight_text}\n"
+        if performance_markdown:
+            st.markdown(performance_markdown)
+
+# Display comparison tab
         
         # Display Recommendations
         if 'recommendations' in insights_data and insights_data['recommendations']:
@@ -3971,6 +3960,7 @@ def display_unified_insights_no_html(insights_data):
                     st.info("No recommendations available.")
             except Exception as e:
                 logger.error(f"Error displaying recommendations: {str(e)}")
+
                 st.error("Error displaying recommendations.")
         
         # If no sections were displayed, show a message
