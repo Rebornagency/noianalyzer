@@ -34,10 +34,11 @@ from pydantic import BaseModel, validator
 import magic
 
 # Local imports
-from pay_per_use.api import pay_per_use_router
+from pay_per_use.api import router as pay_per_use_router
 from utils.helpers import format_for_noi_comparison
 from preprocessing_module import FilePreprocessor
-from ai_extraction import GPTDataExtractor
+# Import the extract_noi_data function from ai_extraction.py
+from ai_extraction import extract_noi_data
 
 # Configure logging
 logging.basicConfig(
@@ -187,13 +188,13 @@ async def extract_financials_v2(
             filename=file.filename or ''
         )
         
-        # Extract data
-        extractor = GPTDataExtractor(api_key=None)
-        extraction_result = extractor.extract_data(
-            preprocessed_data, 
-            document_type=request.document_type, 
-            period=request.period
-        )
+        # Extract data using the extract_noi_data function
+        # Create a file-like object for extract_noi_data
+        file_like = io.BytesIO(content)
+        file_like.name = file.filename or 'unknown'
+        # Remove invalid type attribute assignment
+        
+        extraction_result = extract_noi_data(file_like)
         
         # Add metadata
         extraction_result['metadata'] = {
@@ -238,6 +239,24 @@ async def root():
     """Root endpoint to check if API is running"""
     return {"message": "Data Extraction AI API is running"}
 
+def validate_and_format_data(extraction_result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate and format the extracted data for consistency
+    """
+    # Ensure we have the required fields with safe defaults
+    validated_result = {
+        "gpr": extraction_result.get("gpr", 0.0),
+        "vacancy_loss": extraction_result.get("vacancy_loss", 0.0),
+        "other_income": extraction_result.get("other_income", 0.0),
+        "egi": extraction_result.get("egi", 0.0),
+        "opex": extraction_result.get("opex", 0.0),
+        "noi": extraction_result.get("noi", 0.0),
+        "opex_breakdown": extraction_result.get("opex_breakdown", {}),
+        "extracted_data": extraction_result
+    }
+    
+    return validated_result
+
 @app.post("/extract")
 async def extract_data(
     file: UploadFile = File(...),
@@ -259,28 +278,33 @@ async def extract_data(
     
     # Create temp directory for file processing
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Save uploaded file to temp directory
-        temp_file_path = os.path.join(temp_dir, file.filename)
+        # Save uploaded file to temp directory with a default name if filename is None
+        filename = file.filename or "uploaded_file"
+        temp_file_path = os.path.join(temp_dir, filename)
         with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
         try:
             # Create instances of the necessary classes
             preprocessor = FilePreprocessor()
-            extractor = GPTDataExtractor(api_key=api_key)
+            # Use content_type and filename with safe defaults
+            content_type = file.content_type or ''
+            filename_for_preprocessing = file.filename or ''
             
             # Step 1: Preprocess the file
             preprocessed_data = preprocessor.preprocess(
                 temp_file_path, 
-                content_type=file.content_type, 
-                filename=file.filename
+                content_type=content_type, 
+                filename=filename_for_preprocessing
             )
             
-            # Step 2: Extract data using GPT
-            extraction_result = extractor.extract_data(
-                preprocessed_data,
-                document_type=document_type,
-            )
+            # Step 2: Extract data using the extract_noi_data function
+            file_content = open(temp_file_path, "rb").read()
+            file_like = io.BytesIO(file_content)
+            file_like.name = filename
+            # Remove invalid type attribute assignment
+            
+            extraction_result = extract_noi_data(file_like, document_type_hint=document_type)
             
             # Step 3: Validate and format the extracted data
             final_result = validate_and_format_data(extraction_result)
@@ -307,8 +331,8 @@ async def raise_error():
     try:
         # First level exception
         try:
-            # Second level exception
-            1 / 0
+            # Second level exception - replaced unused expression with explicit raise
+            raise ZeroDivisionError("division by zero")
         except ZeroDivisionError as zde:
             # Wrap the zero division error
             raise ValueError("Invalid calculation during test") from zde

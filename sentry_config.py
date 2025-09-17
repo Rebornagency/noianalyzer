@@ -199,7 +199,8 @@ def filter_sensitive_data(event, hint):
                 'expense', 'noi', 'cash_flow', 'api_key', 'email', 'phone',
                 'phone_number', 'mobile', 'cell', 'ssn', 'social_security',
                 'credit_card', 'card_number', 'cc_number', 'address', 'street', 
-                'city', 'state', 'zip', 'zipcode', 'postal'
+                'city', 'state', 'zip', 'zipcode', 'postal', 'document_content',
+                'file_content', 'extracted_data', 'consolidated_data', 'raw_data'
             ]
             
             for field in sensitive_fields:
@@ -210,20 +211,32 @@ def filter_sensitive_data(event, hint):
             if HAS_PII_SANITIZER:
                 request['data'] = sanitize_dict(request['data'])
     
-    # Filter extra context
+    # Filter extra context more thoroughly - enhanced filtering
     if 'extra' in event:
         extra = event['extra']
         for key in list(extra.keys()):
-            # Filter large datasets
-            if 'financial' in key.lower() or 'data' in key.lower():
-                if isinstance(extra[key], dict) and len(str(extra[key])) > 1000:
-                    extra[key] = '[Large dataset filtered]'
+            # Filter large datasets, document contents, and financial data
+            if ('financial' in key.lower() or 'data' in key.lower() or 
+                'document' in key.lower() or 'file' in key.lower() or
+                'content' in key.lower() or 'extract' in key.lower() or
+                'consolidated' in key.lower() or 'raw_data' in key.lower() or
+                'report' in key.lower() or 'analysis' in key.lower()):
+                if isinstance(extra[key], dict):
+                    # For dictionaries, check size and sanitize
+                    if len(str(extra[key])) > 1000:
+                        extra[key] = '[Large dataset filtered]'
+                    elif HAS_PII_SANITIZER:
+                        extra[key] = sanitize_dict(extra[key])
+                elif isinstance(extra[key], (list, str)) and len(str(extra[key])) > 500:
+                    # For large lists or strings, filter completely
+                    extra[key] = '[Large content filtered]'
                 elif HAS_PII_SANITIZER:
+                    # For smaller content, sanitize
                     extra[key] = sanitize_dict(extra[key]) if isinstance(extra[key], dict) else sanitize_text(str(extra[key]))
             elif HAS_PII_SANITIZER:
                 extra[key] = sanitize_dict(extra[key]) if isinstance(extra[key], dict) else sanitize_text(str(extra[key]))
     
-    # Filter breadcrumbs for PII
+    # Filter breadcrumbs for PII - enhanced filtering
     if 'breadcrumbs' in event:
         breadcrumbs = event['breadcrumbs']
         if isinstance(breadcrumbs, dict) and 'values' in breadcrumbs:
@@ -232,6 +245,14 @@ def filter_sensitive_data(event, hint):
                     if HAS_PII_SANITIZER:
                         breadcrumb['message'] = sanitize_text(breadcrumb['message'])
                 if 'data' in breadcrumb and isinstance(breadcrumb['data'], dict):
+                    # Enhanced breadcrumb data filtering
+                    sensitive_breadcrumb_fields = [
+                        'document_content', 'file_content', 'extracted_data', 
+                        'consolidated_data', 'raw_data', 'financial_data'
+                    ]
+                    for field in sensitive_breadcrumb_fields:
+                        if field in breadcrumb['data']:
+                            breadcrumb['data'][field] = '[Filtered]'
                     if HAS_PII_SANITIZER:
                         breadcrumb['data'] = sanitize_dict(breadcrumb['data'])
     

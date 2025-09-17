@@ -28,8 +28,17 @@ SENSITIVE_FIELD_NAMES = [
     'email', 'phone', 'phone_number', 'mobile', 'cell', 'ssn', 'social_security',
     'credit_card', 'card_number', 'cc_number', 'address', 'street', 'city', 'state',
     'zip', 'zipcode', 'postal', 'api_key', 'password', 'secret', 'token', 'credential',
-    'financial', 'revenue', 'expense', 'income', 'noi', 'cash_flow', 'property_name'
+    'financial', 'revenue', 'expense', 'income', 'noi', 'cash_flow', 'property_name',
+    'document_content', 'file_content', 'extracted_data', 'financial_data'
 ]
+
+# Additional patterns for financial document content
+FINANCIAL_CONTENT_PATTERNS = [
+    re.compile(r'\b(?:gpr|egi|opex|noi|vacancy|concession|turnover)\b', re.IGNORECASE),
+    re.compile(r'\b(?:rent|lease|tenant|unit|property|building)\b', re.IGNORECASE),
+    re.compile(r'\b(?:maintenance|utilities|insurance|tax|management|payroll)\b', re.IGNORECASE),
+]
+
 
 def sanitize_text(text: str) -> str:
     """
@@ -62,7 +71,16 @@ def sanitize_text(text: str) -> str:
     # Mask API keys
     text = API_KEY_PATTERN.sub('[API_KEY]', text)
     
+    # Mask financial amounts
+    for pattern in FINANCIAL_PATTERNS:
+        text = pattern.sub('[AMOUNT]', text)
+    
+    # Mask financial content terms
+    for pattern in FINANCIAL_CONTENT_PATTERNS:
+        text = pattern.sub('[FINANCIAL_TERM]', text)
+    
     return text
+
 
 def sanitize_dict(data: Dict[str, Any], max_depth: int = 5) -> Dict[str, Any]:
     """
@@ -87,7 +105,12 @@ def sanitize_dict(data: Dict[str, Any], max_depth: int = 5) -> Dict[str, Any]:
         key_lower = str(key).lower()
         is_sensitive_key = any(sensitive in key_lower for sensitive in SENSITIVE_FIELD_NAMES)
         
-        if is_sensitive_key:
+        # Enhanced check for financial document content
+        is_financial_content = ('financial' in key_lower or 'document' in key_lower or 
+                               'content' in key_lower or 'data' in key_lower or
+                               'consolidated' in key_lower or 'raw' in key_lower)
+        
+        if is_sensitive_key or is_financial_content:
             # Mask the entire value for sensitive keys
             sanitized[key] = '[FILTERED]'
         elif isinstance(value, dict):
@@ -99,8 +122,12 @@ def sanitize_dict(data: Dict[str, Any], max_depth: int = 5) -> Dict[str, Any]:
                              sanitize_text(str(item)) if isinstance(item, (str, int, float)) else 
                              item for item in value]
         elif isinstance(value, (str, int, float)):
-            # Sanitize string values
-            sanitized[key] = sanitize_text(str(value))
+            # Sanitize string values, with special handling for financial content
+            if is_financial_content and len(str(value)) > 100:
+                # For large financial content, just mark it as filtered
+                sanitized[key] = '[LARGE_FINANCIAL_CONTENT_FILTERED]'
+            else:
+                sanitized[key] = sanitize_text(str(value))
         else:
             # Keep other values as is
             sanitized[key] = value

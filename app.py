@@ -5262,7 +5262,7 @@ def main():
                         capture_message_with_context(
                             f"Document processing error: {error_message}",
                             level="error",
-                            context={"raw_data": str(raw_consolidated_data)[:500]},
+                            context={"error_details": str(raw_consolidated_data.get("details", ""))[:500]},
                             tags={"stage": "document_extraction"}
                         )
                         logger.error(f"Error during document processing: {error_message}")
@@ -5282,11 +5282,12 @@ def main():
                         add_breadcrumb("Document processing error", "processing", "error")
 
                         capture_message_with_context(
-                            f"Unknown error during document processing. Data: {str(raw_consolidated_data)[:200]}",
+                            "Unknown error during document processing",
                             level="error",
+                            context={"error_type": type(raw_consolidated_data).__name__},
                             tags={"stage": "document_extraction"}
                         )
-                        logger.error(f"Unknown error or invalid data structure after document processing. Data: {raw_consolidated_data}")
+                        logger.error(f"Unknown error or invalid data structure after document processing. Data type: {type(raw_consolidated_data)}")
                         st.error("An unknown error occurred or the data structure is invalid after processing.")
                         st.session_state.user_initiated_processing = False # Reset flag
                     

@@ -21,7 +21,7 @@ logger = setup_logger(__name__)
 @handle_errors(default_return={"error": "Failed to extract data from document"})
 def extract_noi_data(file: Any, document_type_hint: Optional[str] = None, 
                     api_url: Optional[str] = None, api_key: Optional[str] = None,
-                    max_retries: int = None, retry_delay: int = 5) -> Dict[str, Any]:
+                    max_retries: Optional[int] = None, retry_delay: int = 5) -> Dict[str, Any]:
     """
     Extract NOI data from a document using the extraction API with enhanced error handling.
     
@@ -111,7 +111,7 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
     
     # Retry logic with enhanced error handling
     last_error = None
-    for attempt in range(max_retries):
+    for attempt in range(max_retries):  # type: ignore
         try:
             attempt_start_time = time.time()
             
@@ -179,7 +179,7 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
                     last_error = APIError("API returned invalid JSON response")
                     
                     # Don't retry JSON decode errors
-                    if attempt == max_retries - 1:
+                    if attempt == max_retries - 1:  # type: ignore
                         # Return fallback data for invalid JSON
                         return create_fallback_extraction_result(file_name, document_type_hint, "Invalid API response format")
                     
@@ -239,7 +239,7 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
             last_error = APIError(error_msg)
         
         # Wait before retry (except on last attempt)
-        if attempt < max_retries - 1:
+        if attempt < max_retries - 1:  # type: ignore
             logger.info(f"Waiting {retry_delay} seconds before retry...")
             time.sleep(retry_delay)
             # Exponential backoff

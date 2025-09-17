@@ -11,11 +11,11 @@ try:
     )
 except ImportError:
     # Fallback functions if ui_helpers is not available
-    def display_loading_spinner(message, subtitle=None):
-        st.info(f"{message} {subtitle or ''}")
-    def display_inline_loading(message, icon="⏳"):
+    def display_loading_spinner(message: str, subtitle: str = "") -> None:
+        st.info(f"{message} {subtitle}")
+    def display_inline_loading(message: str, icon: str = "⏳") -> None:
         st.info(f"{icon} {message}")
-    def get_loading_message_for_action(action, file_count=1):
+    def get_loading_message_for_action(action: str, file_count: int = 1) -> tuple:
         return "Processing...", "Please wait..."
 
 # Configure logging
@@ -162,8 +162,10 @@ def display_noi_coach():
                         display_inline_loading("Generating advice...", "💭")
                     
                     try:
+                        # Ensure context is always a string
+                        context = st.session_state.noi_coach_context or "general"
                         # Generate and add the response
-                        response = generate_response(prompt, st.session_state.noi_coach_context)
+                        response = generate_response(prompt, context)
                         add_message("assistant", response)
                         
                         # Clear loading
@@ -247,8 +249,10 @@ def display_noi_coach():
                 display_loading_spinner(loading_msg, loading_subtitle)
             
             try:
+                # Ensure context is always a string
+                context = st.session_state.noi_coach_context or "general"
                 # Generate the response
-                response = generate_response(user_input, st.session_state.noi_coach_context)
+                response = generate_response(user_input, context)
                 add_message("assistant", response)
                 
                 # Clear loading indicator

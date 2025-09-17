@@ -16,6 +16,8 @@ class DatabaseService:
     def __init__(self, db_path: str = DATABASE_PATH):
         self.db_path = db_path
         self.init_database()
+        # Run data retention cleanup on initialization
+        self._run_periodic_cleanup()
     
     def get_connection(self):
         """Get database connection with row factory"""
@@ -100,8 +102,20 @@ class DatabaseService:
         finally:
             conn.close()
     
+    def _run_periodic_cleanup(self):
+        """Run periodic data retention cleanup"""
+        try:
+            # Import the data retention utility
+            from utils.data_retention import run_cleanup_if_needed
+            cleanup_result = run_cleanup_if_needed(self.db_path)
+            logger.info(f"Data retention cleanup result: {cleanup_result}")
+        except ImportError:
+            logger.warning("Data retention utility not available - skipping cleanup")
+        except Exception as e:
+            logger.error(f"Error during periodic cleanup: {e}")
+    
     # USER MANAGEMENT
-    def get_or_create_user(self, email: str, ip_address: str = None, user_agent: str = None) -> User:
+    def get_or_create_user(self, email: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> User:
         """Get existing user or create new one.  Reject disposable / invalid emails if enabled."""
         # Optional runtime toggle
         if os.getenv("BLOCK_DISPOSABLE_EMAILS", "true").lower() == "true":
@@ -123,6 +137,9 @@ class DatabaseService:
                 
                 logger.info(f"Retrieved existing user {email} with {row['credits']} credits")
                 
+                # Handle None case for last_active by using created_at if last_active is None
+                last_active = datetime.fromisoformat(row['last_active']) if row['last_active'] else datetime.fromisoformat(row['created_at'])
+                
                 return User(
                     user_id=row['user_id'],
                     email=row['email'],
@@ -131,7 +148,7 @@ class DatabaseService:
                     total_credits_used=row['total_credits_used'],
                     status=UserStatus(row['status']),
                     created_at=datetime.fromisoformat(row['created_at']),
-                    last_active=datetime.now(),
+                    last_active=last_active,
                     free_trial_used=bool(row['free_trial_used'])
                 )
             else:
@@ -200,7 +217,7 @@ class DatabaseService:
             count = cursor.fetchone()[0]
             return count > 0
         except Exception as e:
-            logger.error(f"Error checking stripe session: {e}")
+            logger.error(f"Error checking stripe session: {str(e)}")
             return False
         finally:
             conn.close()
@@ -308,6 +325,9 @@ class DatabaseService:
             
             users = []
             for row in cursor.fetchall():
+                # Handle None case for last_active by using created_at if last_active is None
+                last_active = datetime.fromisoformat(row['last_active']) if row['last_active'] else datetime.fromisoformat(row['created_at'])
+                
                 users.append(User(
                     user_id=row['user_id'],
                     email=row['email'],
@@ -316,7 +336,7 @@ class DatabaseService:
                     total_credits_used=row['total_credits_used'],
                     status=UserStatus(row['status']),
                     created_at=datetime.fromisoformat(row['created_at']),
-                    last_active=datetime.fromisoformat(row['last_active']) if row['last_active'] else None,
+                    last_active=last_active,
                     free_trial_used=bool(row['free_trial_used'])
                 ))
             
@@ -377,6 +397,9 @@ class DatabaseService:
             row = cursor.fetchone()
             
             if row:
+                # Handle None case for last_active by using created_at if last_active is None
+                last_active = datetime.fromisoformat(row['last_active']) if row['last_active'] else datetime.fromisoformat(row['created_at'])
+                
                 return User(
                     user_id=row['user_id'],
                     email=row['email'],
@@ -385,7 +408,7 @@ class DatabaseService:
                     total_credits_used=row['total_credits_used'],
                     status=UserStatus(row['status']),
                     created_at=datetime.fromisoformat(row['created_at']),
-                    last_active=datetime.fromisoformat(row['last_active']) if row['last_active'] else None,
+                    last_active=last_active,
                     free_trial_used=bool(row['free_trial_used'])
                 )
             return None
@@ -703,12 +726,12 @@ class DatabaseService:
         finally:
             conn.close()
     
-    def _generate_device_fingerprint(self, ip_address: str, user_agent: str) -> str:
+    def _generate_device_fingerprint(self, ip_address: Optional[str], user_agent: Optional[str]) -> str:
         """Generate a simple device fingerprint"""
         import hashlib
         
         # Combine IP and user agent to create a basic fingerprint
-        fingerprint_data = f"{ip_address}:{user_agent or 'unknown'}"
+        fingerprint_data = f"{ip_address or 'unknown'}:{user_agent or 'unknown'}"
         return hashlib.sha256(fingerprint_data.encode()).hexdigest()[:16]
     
     def block_ip_address(self, ip_address: str, reason: str):
