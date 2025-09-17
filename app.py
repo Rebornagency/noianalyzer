@@ -209,10 +209,12 @@ DEFAULT_TESTING_MODE = os.getenv(TESTING_MODE_ENV_VAR, "false").lower() == "true
 
 # New constant for controlling sidebar visibility
 SIDEBAR_VISIBLE_ENV_VAR = "NOI_ANALYZER_SIDEBAR_VISIBLE"
-DEFAULT_SIDEBAR_VISIBLE = os.getenv(SIDEBAR_VISIBLE_ENV_VAR, "true").lower() == "true"
+# Changed default to "false" to hide sidebar by default, but can be enabled via environment variable
+DEFAULT_SIDEBAR_VISIBLE = os.getenv(SIDEBAR_VISIBLE_ENV_VAR, "false").lower() == "true"
 
 # Helper function to check if testing mode is active
 def is_testing_mode_active() -> bool:
+
     """
     Determine if testing mode is currently active.
     
@@ -3485,6 +3487,98 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
     logger.info(f"--- display_comparison_tab END for {name_suffix} ---")
     return
 
+def display_opex_breakdown(opex_data, comparison_type="prior month"):
+    """
+    Display operating expense breakdown using Streamlit DataFrame.
+    
+    Args:
+        opex_data: Dictionary containing operating expense data. 
+                   Example: {"property_taxes": {"current": 100, "prior": 90}, ...}
+        comparison_type: Type of comparison (e.g., "Prior Month", "Budget")
+    """
+    if not opex_data or not isinstance(opex_data, dict):
+        st.info("No operating expense data provided for breakdown.")
+        return
+
+    opex_df_list = []
+    for category_key, data_values in opex_data.items():
+        if not data_values or not isinstance(data_values, dict):
+            logger.warning(f"Skipping invalid OpEx data for category: {category_key}")
+            continue
+            
+        current = data_values.get('current', 0.0)
+        prior = data_values.get('prior', 0.0) # Assuming 'prior' as the comparison key
+        
+        change = current - prior
+        percent_change = (change / prior * 100) if prior != 0 else 0.0
+        
+        display_name = category_key.replace('_', ' ').title()
+        
+        opex_df_list.append({
+            "Expense Category": display_name,
+            "Current": current,
+            comparison_type: prior, # Use the dynamic comparison_type for the column name
+            "Change ($)": change,
+            "Change (%)": percent_change
+        })
+
+    if not opex_df_list:
+        st.info("No valid operating expense items to display.")
+        return
+
+    opex_df = pd.DataFrame(opex_df_list)
+
+    # Format for display
+    opex_df_display = opex_df.copy()
+    opex_df_display["Current"] = opex_df_display["Current"].apply(lambda x: f"${x:,.2f}")
+    opex_df_display[comparison_type] = opex_df_display[comparison_type].apply(lambda x: f"${x:,.2f}")
+    opex_df_display["Change ($)"] = opex_df_display["Change ($)"] .apply(
+        lambda x: f"+${x:,.2f}" if x > 0 else (f"-${abs(x):,.2f}" if x < 0 else f"${x:,.2f}")
+    )
+    opex_df_display["Change (%)"] = opex_df_display["Change (%)"] .apply(
+        lambda x: f"+{x:.1f}%" if x > 0 else (f"{x:.1f}%" if x < 0 else f"{x:.1f}%") # Negative sign is inherent
+    )
+
+    # Wrap the styling in a try-except block to handle potential errors
+    try:
+        # Try using map() method first (pandas >= 1.3.0)
+        styled_df = opex_df_display.style.map(
+            highlight_changes, 
+            subset=['Change ($)', 'Change (%)']
+        )
+    except AttributeError:
+        # Fallback to applymap() for older pandas versions
+        styled_df = opex_df_display.style.applymap(
+            highlight_changes, 
+            subset=['Change ($)', 'Change (%)']
+        )
+        
+    # Add error handling for set_table_styles to prevent attribute errors
+    try:
+        styled_result = styled_df.format({
+            "Current": "{:}",
+            comparison_type: "{:}",
+            "Change ($)": "{:}",
+            "Change (%)": "{:}"
+        }).set_table_styles([  # type: ignore
+            {'selector': 'th', 'props': [('background-color', 'rgba(30, 41, 59, 0.7)'), ('color', '#e6edf3'), ('font-family', 'Inter')]},
+            {'selector': 'td', 'props': [('font-family', 'Inter'), ('color', '#e6edf3')]}
+        ])
+    except AttributeError:
+        # Fallback if set_table_styles is not available
+        styled_result = styled_df.format({
+            "Current": "{:}",
+            comparison_type: "{:}",
+            "Change ($)": "{:}",
+            "Change (%)": "{:}"
+        })
+    st.dataframe(styled_result, use_container_width=True)
+
+    # Remove the old HTML and style block as it's no longer used by this function.
+    # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
+    # were part of the old HTML rendering method. If they are not used elsewhere for st.markdown,
+    # they might eventually be cleaned up from the CSS file. For now, we only remove the Python string.
+
 # Function to handle user questions about NOI data
 def ask_noi_coach(question: str, comparison_results: Dict[str, Any], context: str) -> str:
     """
@@ -3764,6 +3858,7 @@ def display_noi_coach():
         with col_center:
             submit_button = st.form_submit_button("Ask NOI Coach")
     
+    # Handle form submission
     if submit_button and user_question:
         logger.info(f"NOI Coach (app.py) question: {user_question} with context: {st.session_state.noi_coach_selected_context}")
         
@@ -3773,9 +3868,7 @@ def display_noi_coach():
         with loading_container.container():
             display_loading_spinner(loading_msg, loading_subtitle)
         
-        # Add user message to history
-        st.session_state.noi_coach_history.append({"role": "user", "content": user_question})
-        
+        # Generate response before adding to history to avoid the "one question behind" issue
         if 'comparison_results' not in st.session_state or not st.session_state.comparison_results:
             response = "Please process financial documents first so I can analyze your data."
         else:
@@ -3794,15 +3887,22 @@ def display_noi_coach():
         # Clear loading state
         loading_container.empty()
         
+        # Add both user question and response to history at the same time
+        st.session_state.noi_coach_history.append({"role": "user", "content": user_question})
         st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
-        # Add a conditional rerun to update the UI with the new response
-        # This avoids infinite loops by only rerunning when we've actually added new content
-        # TODO: Remove st.rerun() to prevent infinite loops. Instead, let Streamlit's natural re-execution update the UI.
-        # st.rerun()
         
-        # Instead of forcing a rerun, we'll let Streamlit's natural re-execution update the UI
-        # This prevents the infinite cycle issue while preserving analysis data
-        pass
+        # Rerun to update the UI with the new messages
+        st.rerun()
+
+def display_unified_insights(insights_data):
+    """
+    Display unified insights using the HTML-based approach.
+    This is a wrapper for display_unified_insights_no_html for compatibility.
+    
+    Args:
+        insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
+    """
+    return display_unified_insights_no_html(insights_data)
 
 def display_unified_insights_no_html(insights_data):
     """
@@ -3846,11 +3946,8 @@ def display_unified_insights_no_html(insights_data):
                         performance_markdown += f"- {insight}\n"
                     else:
                         performance_markdown += f"- {str(insight)}\n"
-                        
                 if performance_markdown:
                     st.markdown(performance_markdown)
-                else:
-                    st.info("No performance insights available.")
             except Exception as e:
                 logger.error(f"Error displaying performance insights: {str(e)}")
                 st.error("Error displaying performance insights.")
@@ -4265,7 +4362,7 @@ def main():
         inject_custom_css()
         
         # JavaScript function for theme toggling
-        st.markdown("""
+        st.markdown(""""""
         <script>
         function toggleTheme() {
             const root = document.documentElement;
@@ -4375,6 +4472,23 @@ def main():
     # Display testing mode indicator if active
     if is_testing_mode_active():
         display_testing_mode_indicator()
+
+    # Pre-fill email if user returned from successful purchase - moved declaration up for use in both locations
+    default_email = st.session_state.get('user_email', '')
+    
+    # Function to handle email input changes
+    def on_email_change():
+        email_input = st.session_state.get('user_email_input', '')
+        if email_input:
+            st.session_state.user_email = email_input
+            
+            # Display credit balance and free trial welcome in sidebar
+            if CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
+                display_free_trial_welcome(email_input)
+                display_credit_balance(email_input)
+            elif not CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
+                st.sidebar.error("💳 Credit System Unavailable")
+                st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
 
     # === TESTING MODE SIDEBAR CONTROLS ===
     # Only display sidebar controls if explicitly enabled via environment variable
@@ -4486,25 +4600,9 @@ def main():
         st.sidebar.markdown("---")
 
     # Add email input field at the top level - ALWAYS visible
-    st.sidebar.markdown("---")
+    if DEFAULT_SIDEBAR_VISIBLE:
+        st.sidebar.markdown("---")
 
-    # Pre-fill email if user returned from successful purchase - moved declaration up for use in both locations
-    default_email = st.session_state.get('user_email', '')
-    
-    # Function to handle email input changes
-    def on_email_change():
-        email_input = st.session_state.get('user_email_input', '')
-        if email_input:
-            st.session_state.user_email = email_input
-            
-            # Display credit balance and free trial welcome in sidebar
-            if CREDIT_SYSTEM_AVAILABLE:
-                display_free_trial_welcome(email_input)
-                display_credit_balance(email_input)
-            else:
-                st.sidebar.error("💳 Credit System Unavailable")
-                st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
-    
     # Custom email input with required indicator - move style definitions here so they're available globally
     st.markdown(
         """
@@ -4541,7 +4639,7 @@ def main():
         
         # Clear the success flag after showing - this prevents the infinite loop
         st.session_state.show_credit_success = False
-    
+
     # Add header credit display for main page (centered)
     if (
         st.session_state.get('user_email')
@@ -4613,117 +4711,12 @@ def main():
                 st.session_state.user_email = email_input
                 
                 # Display credit balance and free trial welcome in sidebar
-                if CREDIT_SYSTEM_AVAILABLE:
+                if CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
                     display_free_trial_welcome(email_input)
                     display_credit_balance(email_input)
-                else:
+                elif not CREDIT_SYSTEM_AVAILABLE and DEFAULT_SIDEBAR_VISIBLE:
                     st.sidebar.error("💳 Credit System Unavailable")
                     st.sidebar.info("The credit system could not be loaded. Check that the backend API is running and `BACKEND_URL` environment variable is set correctly.")
-            
-            # Add a small spacer for better visual separation
-            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-            
-            # Modern Upload Documents section
-            st.markdown('<h2 class="section-header">Upload Documents</h2>', unsafe_allow_html=True)
-            
-            # Enhanced upload cards using component functions
-            current_month_file_main = upload_card(
-                title="Current Month Actuals",
-                required=True,
-                key="main_current_month_upload_functional",
-                help_text="Upload your current month's financial data here or in the sidebar"
-            )
-            prior_month_file_main = upload_card(
-                title="Prior Month Actuals",
-                key="main_prior_month_upload_functional",
-                help_text="Upload your prior month's financial data here or in the sidebar"
-            )
-            budget_file_main = upload_card(
-                title="Current Month Budget",
-                key="main_budget_upload_functional",
-                help_text="Upload your budget data here or in the sidebar"
-            )
-            prior_year_file_main = upload_card(
-                title="Prior Year Same Month",
-                key="main_prior_year_upload_functional",
-                help_text="Upload the same month from prior year here or in the sidebar"
-            )
-            
-            # AUTO-STORE FILES IN SESSION STATE immediately upon upload
-            # This prevents race conditions where files might be lost during rerun
-            # We store files but avoid triggering immediate reruns to keep smooth UX
-            files_changed = False
-            
-            if current_month_file_main and not st.session_state.get('current_month_actuals'):
-                st.session_state.current_month_actuals = current_month_file_main
-                logger.info(f"DEBUG: Auto-stored current_month_actuals: {current_month_file_main.name}")
-                files_changed = True
-            
-            if prior_month_file_main and not st.session_state.get('prior_month_actuals'):
-                st.session_state.prior_month_actuals = prior_month_file_main
-                logger.info(f"DEBUG: Auto-stored prior_month_actuals: {prior_month_file_main.name}")
-                files_changed = True
-            
-            if budget_file_main and not st.session_state.get('current_month_budget'):
-                st.session_state.current_month_budget = budget_file_main
-                logger.info(f"DEBUG: Auto-stored current_month_budget: {budget_file_main.name}")
-                files_changed = True
-            
-            if prior_year_file_main and not st.session_state.get('prior_year_actuals'):
-                st.session_state.prior_year_actuals = prior_year_file_main
-                logger.info(f"DEBUG: Auto-stored prior_year_actuals: {prior_year_file_main.name}")
-                files_changed = True
-            
-            # Show a subtle success message when files are uploaded (without rerun)
-            if files_changed:
-                st.success("📄 File uploaded successfully! You can continue uploading more files or click 'Process Documents' when ready.")
-            
-            # Show current file status without triggering rerun
-            uploaded_files_status = []
-            if st.session_state.get('current_month_actuals'):
-                uploaded_files_status.append("✅ Current Month Actuals")
-            if st.session_state.get('prior_month_actuals'):
-                uploaded_files_status.append("✅ Prior Month Actuals")
-            if st.session_state.get('current_month_budget'):
-                uploaded_files_status.append("✅ Budget")
-            if st.session_state.get('prior_year_actuals'):
-                uploaded_files_status.append("✅ Prior Year")
-            
-            if uploaded_files_status:
-                st.info(f"📁 **Uploaded files:** {', '.join(uploaded_files_status)}")
-            
-            # Enhanced property input using component function
-            main_page_property_name_input = property_input(value=st.session_state.property_name)
-            if main_page_property_name_input != st.session_state.property_name:
-                st.session_state.property_name = main_page_property_name_input
-            
-            # Add options container after file uploaders
-            st.markdown('<div class="options-container">', unsafe_allow_html=True)
-            st.markdown('<h3 class="options-header">Display Options</h3>', unsafe_allow_html=True)
-
-            # Show Zero Values toggle (full width since theme toggle moved to header)
-            show_zero_values = st.checkbox(
-                "Show Zero Values", 
-                value=st.session_state.show_zero_values,
-                help="Show metrics with zero values in the comparison tables"
-            )
-            
-            # Update session state without triggering immediate rerun
-            if show_zero_values != st.session_state.show_zero_values:
-                st.session_state.show_zero_values = show_zero_values
-                # Note: We don't need st.rerun() here as the change will take effect on next interaction
-
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Enhanced Process Documents button
-            st.markdown(
-            '''
-            <style>
-            /* CSS Reset for button styles */
-            .stApp .stButton > button {
-                all: unset;
-                display: inline-flex;
-                align-items: center;
                 justify-content: center;
                 box-sizing: border-box;
                 cursor: pointer;
@@ -6360,78 +6353,15 @@ def display_features_section_no_html():
             st.markdown("### Export Options")
             st.markdown("Save results as PDF or Excel for sharing and reporting")
 
-def display_unified_insights(insights_data):
-    """
-    Display unified insights using native Streamlit components.
-    
-    Args:
-        insights_data: Dictionary containing 'summary', 'performance', and 'recommendations' keys
-    """
-    logger.info("Displaying unified insights")
-    
-    if not insights_data or not isinstance(insights_data, dict):
-        st.warning("No insights data available to display.")
-        return
-    
-    logger.info(f"Insights data keys: {list(insights_data.keys())}")
-    
-    # Display Executive Summary
-    if 'summary' in insights_data:
-        st.markdown("## Executive Summary")
-        
-        summary_text = str(insights_data['summary']).strip()
-        # Remove redundant "Executive Summary:" prefix if it exists
-        if summary_text.startswith("Executive Summary:"):
-            summary_text = summary_text[len("Executive Summary:"):].strip()
-        
-        # Sanitize the summary text to prevent any unwanted content
-        # Check for potential API keys or overly long content
-        if "sk-" in summary_text and len(summary_text) > 500:
-            summary_text = "Executive summary generated successfully. For security reasons, detailed content has been truncated."
-        elif len(summary_text) > 2000:  # Arbitrary limit to prevent extremely long content
-            summary_text = summary_text[:2000] + "... (content truncated for readability)"
-            
-        with st.container():
-            import html as _html_mod  # local import to avoid top-level issues
-            escaped = _html_mod.escape(summary_text).replace("\n", "<br>")
-            st.markdown(f"<div class='results-text'>{escaped}</div>", unsafe_allow_html=True)
-    
-    # Display Key Performance Insights
-    if 'performance' in insights_data and insights_data['performance']:
-        st.markdown("## Key Performance Insights")
-        
-        performance_markdown = ""
-        for insight in insights_data['performance']:
-            # Sanitize each insight to prevent any unwanted content
-            insight_text = str(insight).strip()
-            # Check for potential API keys or overly long content
-            if "sk-" in insight_text and len(insight_text) > 500:
-                insight_text = "Performance insight generated successfully."
-            elif len(insight_text) > 1000:  # Arbitrary limit to prevent extremely long content
-                insight_text = insight_text[:1000] + "... (content truncated for readability)"
-                
-            performance_markdown += f"- {insight_text}\n"
-        if performance_markdown:
-            st.markdown(performance_markdown)
-    
-    # Display Recommendations
-    if 'recommendations' in insights_data and insights_data['recommendations']:
-        st.markdown("## Recommendations")
-        
-        recommendations_markdown = ""
-        for recommendation in insights_data['recommendations']:
-            # Sanitize each recommendation to prevent any unwanted content
-            rec_text = str(recommendation).strip()
-            # Check for potential API keys or overly long content
-            if "sk-" in rec_text and len(rec_text) > 500:
-                rec_text = "Recommendation generated successfully."
-            elif len(rec_text) > 1000:  # Arbitrary limit to prevent extremely long content
-                rec_text = rec_text[:1000] + "... (content truncated for readability)"
-                
-            recommendations_markdown += f"- {rec_text}\n"
-        if recommendations_markdown:
-            st.markdown(recommendations_markdown)
+def ask_noi_coach(query):
+    try:
+        response = ask_noi_coach_api(query)
+        return response
+    except Exception as e:
+        logger.error(f"Error in ask_noi_coach: {str(e)}")
+        return f"I encountered an error while analyzing your data: {str(e)}"
 
+# Function to display NOI Coach interface
 def display_opex_breakdown(opex_data, comparison_type="prior month"):
     """
     Display operating expense breakdown using Streamlit DataFrame.
@@ -6523,6 +6453,11 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
     # The custom CSS classes like .opex-breakdown-container, .opex-breakdown-table etc.
     # were part of the old HTML rendering method. If they are not used elsewhere for st.markdown,
     # they might eventually be cleaned up from the CSS file. For now, we only remove the Python string.
+
+# Function to display NOI Coach interface
+def display_noi_coach_interface():
+    st.markdown("## NOI Coach")
+    st.markdown("Ask questions about your financial data and get AI-powered insights")
 
 def display_card_container(title, content):
     """

@@ -383,7 +383,7 @@ except ImportError:
         from reborn_logo import get_reborn_logo_base64
     except ImportError:
         # If still not found, provide a dummy function to avoid crashing
-        def get_reborn_logo_base64():
+        def get_reborn_logo_base64() -> str:
             # This is a placeholder, actual base64 string should be used
             return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
         logging.getLogger(__name__).warning("Failed to import get_reborn_logo_base64. Using placeholder.")
@@ -919,13 +919,13 @@ def show_file_info(file_name: str, file_size: Optional[str] = None, file_type: O
 # For now, `load_css` from app.py is not moved as `inject_custom_css` seems more comprehensive.
 
 # Function to create styled cards for content display
-def display_card_container(title: str, content_func: callable, card_id: Optional[str] = ""):
+def display_card_container(title: str, content_func, card_id: Optional[str] = ""):
     """
     Display content in a consistently styled card container.
     
     Args:
         title (str): Card title.
-        content_func (callable): A function that renders the card's content using Streamlit elements.
+        content_func: A function that renders the card's content using Streamlit elements.
         card_id (str, optional): An optional ID for the card container div.
     """
     card_id_attr = f"id='{card_id}'" if card_id else ""
