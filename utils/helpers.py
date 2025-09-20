@@ -262,15 +262,34 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
             logger.info(f"Using flat other_income: {result['other_income']}")
     
     # Process direct mappings from field_mapping
+    # Only map fields that don't already have non-zero values to avoid overwriting
     for api_field, result_field in field_mapping.items():
         if api_field in financials:
-            result[result_field] = safe_float(financials[api_field])
-            logger.info(f"Mapped {api_field} -> {result_field}: {result[result_field]}")
+            # Check if the value is not None and not null before mapping
+            api_value = financials[api_field]
+            if api_value is not None and api_value != "null" and str(api_value).lower() != "null":
+                mapped_value = safe_float(api_value)
+                # Only update if the current result value is still the default (0.0) or if the new value is non-zero
+                if result[result_field] == 0.0 or mapped_value != 0.0:
+                    result[result_field] = mapped_value
+                    logger.info(f"Mapped {api_field} -> {result_field}: {result[result_field]}")
+    
+    # Special handling for GPR - try to use revenue as fallback if GPR is still 0
+    if result['gpr'] == 0.0:
+        # Try to find any revenue-related field as fallback for GPR
+        revenue_fields = ['total_revenue', 'revenue', 'gross_income', 'total_income']
+        for field in revenue_fields:
+            if field in financials and financials[field] is not None:
+                revenue_value = safe_float(financials[field])
+                if revenue_value > 0:
+                    result['gpr'] = revenue_value
+                    logger.info(f"Using {field} as fallback for GPR: {result['gpr']}")
+                    break
     
     # Log completion of major processing sections
     logger.info(f"Completed GPR processing: {result['gpr']:.2f}")
     
-    # Ensure EGI is calculated correctly if not provided
+    # Ensure EGI is calculated correctly if not provided or is zero
     if result['egi'] == 0.0:
         calculated_egi = (result['gpr'] - result['vacancy_loss'] - result['concessions'] - 
                          result['bad_debt'] + result['other_income'])
@@ -283,12 +302,12 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"Completed EGI processing: {result['egi']:.2f}")
     logger.info(f"Completed OpEx processing: {result['opex']:.2f}")
     
-    # Ensure NOI is calculated correctly if not provided
+    # Ensure NOI is calculated correctly if not provided or is zero
     if result['noi'] == 0.0 and result['egi'] > 0 and result['opex'] > 0:
         calculated_noi = result['egi'] - result['opex']
         result['noi'] = calculated_noi
         logger.info(f"Calculated NOI: {result['noi']:.2f} (EGI={result['egi']:.2f} - OpEx={result['opex']:.2f})")
-    else:
+    elif result['noi'] != 0.0:
         logger.info(f"Using provided NOI: {result['noi']:.2f}")
     
     logger.info(f"Completed NOI processing: {result['noi']:.2f}")
