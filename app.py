@@ -3799,8 +3799,9 @@ def display_noi_coach():
         st.session_state.noi_coach_history.append({"role": "user", "content": user_question})
         st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
         
-        # Rerun to update the UI with the new messages
-        st.rerun()
+        # Update the UI with the new messages without causing a full rerun
+        # This prevents the infinite loop while still showing the new messages
+        # st.rerun()  # Removed to prevent infinite loop
 
 def display_unified_insights_no_html(insights_data):
     """
