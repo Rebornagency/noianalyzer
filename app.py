@@ -3749,15 +3749,7 @@ def display_noi_coach():
         st.session_state.noi_coach_selected_context = selected_context_key
         # st.rerun() # Optional: rerun if changing context should clear chat or update something immediately
 
-    # Display chat history
-    for message in st.session_state.noi_coach_history:
-        role = message["role"]
-        content = safe_text(message["content"])
-        if role == "user":
-            st.markdown(f"""<div class="chat-message user-message"><div class="chat-message-content">{content}</div></div>""", unsafe_allow_html=True)
-        else:
-            st.markdown(f"""<div class="chat-message assistant-message"><div class="chat-message-content">{content}</div></div>""", unsafe_allow_html=True)
-    
+    # Create the form for chat input
     with st.form(key="noi_coach_form_app", clear_on_submit=True):
         st.markdown("<div class='chat-input-label'>Ask a question about your financial data:</div>", unsafe_allow_html=True)
         user_question = st.text_input("", placeholder="e.g., What's driving the change in NOI?", label_visibility="collapsed")
@@ -3766,7 +3758,7 @@ def display_noi_coach():
         with col_center:
             submit_button = st.form_submit_button("Ask NOI Coach")
     
-    # Handle form submission
+    # Handle form submission BEFORE displaying chat history to ensure immediate display
     if submit_button and user_question:
         logger.info(f"NOI Coach (app.py) question: {user_question} with context: {st.session_state.noi_coach_selected_context}")
         
@@ -3799,9 +3791,25 @@ def display_noi_coach():
         st.session_state.noi_coach_history.append({"role": "user", "content": user_question})
         st.session_state.noi_coach_history.append({"role": "assistant", "content": response})
         
-        # Update the UI with the new messages without causing a full rerun
-        # This prevents the infinite loop while still showing the new messages
-        # st.rerun()  # Removed to prevent infinite loop
+        # Display the new messages immediately
+        # We don't need st.rerun() because we're displaying them directly here
+        st.markdown(f"""<div class="chat-message user-message"><div class="chat-message-content">{safe_text(user_question)}</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="chat-message assistant-message"><div class="chat-message-content">{safe_text(response)}</div></div>""", unsafe_allow_html=True)
+
+    # Display chat history (excluding the last two messages if we just added them)
+    # This prevents duplication while maintaining history
+    history_length = len(st.session_state.noi_coach_history)
+    # If we just processed a new message, don't show the last two (they're already displayed)
+    messages_to_show = history_length - 2 if submit_button and user_question and history_length >= 2 else history_length
+    
+    for i in range(messages_to_show):
+        message = st.session_state.noi_coach_history[i]
+        role = message["role"]
+        content = safe_text(message["content"])
+        if role == "user":
+            st.markdown(f"""<div class="chat-message user-message"><div class="chat-message-content">{content}</div></div>""", unsafe_allow_html=True)
+        else:
+            st.markdown(f"""<div class="chat-message assistant-message"><div class="chat-message-content">{content}</div></div>""", unsafe_allow_html=True)
 
 def display_unified_insights_no_html(insights_data):
     """
