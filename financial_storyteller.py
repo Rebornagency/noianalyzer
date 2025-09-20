@@ -88,7 +88,7 @@ def create_narrative(comparison_results: Dict[str, Any], property_name: str = ""
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are a professional financial analyst specializing in real estate property performance analysis. You write clear, insightful narratives explaining financial performance."
+                    "content": "You are a professional real estate financial analyst with expertise in property performance analysis. You create clear, insightful narratives that explain financial performance for property management stakeholders. Focus on data precision, actionable insights, and clear communication."
                 },
                 {"role": "user", "content": prompt}
             ],
@@ -97,7 +97,7 @@ def create_narrative(comparison_results: Dict[str, Any], property_name: str = ""
         )
         
         # Extract the generated narrative
-        narrative = response.choices[0].message.content
+        narrative = response.choices[0].message.content if response.choices[0].message.content else ""
         logger.info(
             f"Generated narrative successfully",
             extra={
@@ -386,39 +386,41 @@ def create_storyteller_prompt(formatted_data: str, property_name: str) -> str:
     property_name_clean = safe_string(property_name) or "the property"
     
     prompt = f"""
-Please analyze the following financial data for {property_name_clean} and create a comprehensive, professional narrative that explains the financial performance. 
+You are a professional real estate financial analyst tasked with creating a comprehensive narrative analysis of {property_name_clean}'s financial performance. Your narrative must be data-driven, insightful, and actionable for property management stakeholders.
 
 **Financial Data:**
 {formatted_data}
 
 **Analysis Requirements:**
-1. **Executive Summary**: Provide a brief overview of overall financial performance
+1. **Executive Summary**: Provide a concise 2-3 sentence overview of overall financial performance, highlighting the most significant findings
 2. **Key Performance Analysis**: 
-   - If comparison data is available, identify and explain the main factors driving performance changes
+   - If comparison data is available, identify and explain the main factors driving performance changes with specific metrics
    - If only current period data is available, focus on absolute performance metrics and operational efficiency
 3. **Notable Insights**: 
-   - Highlight significant variances if comparison data exists
-   - For single-period analysis, focus on income and expense composition
-4. **Operational Insights**: Provide insights into operational efficiency and areas for improvement
+   - Highlight significant variances if comparison data exists with exact dollar amounts and percentages
+   - For single-period analysis, focus on income and expense composition and relative proportions
+4. **Operational Insights**: Provide insights into operational efficiency and areas for improvement based on the data patterns
 5. **Recommendations**: 
-   - For comparative analysis, provide specific recommendations based on variances
-   - For single-period analysis, suggest areas for further investigation or benchmarking
+   - For comparative analysis, provide 2-3 specific recommendations based on variances with potential impact
+   - For single-period analysis, suggest 2-3 areas for further investigation or benchmarking
 
 **Important Notes:**
+- Focus on the most significant changes and avoid discussing minor fluctuations
 - If comparison data is limited or unavailable, focus on current period performance analysis
 - Do not speculate about trends without comparative data
 - Be explicit about data limitations when relevant
+- Always reference specific dollar amounts and percentages from the data
 
 **Style Guidelines:**
-- Write in a professional, analytical tone
-- Use specific dollar amounts and percentages from the data
-- Focus on actionable insights
+- Write in a professional, analytical tone suitable for property management stakeholders
+- Use specific dollar amounts and percentages from the data to support your analysis
+- Focus on actionable insights that can inform business decisions
 - Organize information logically with clear sections
-- Avoid technical jargon; write for property management stakeholders
-- Keep the narrative concise but comprehensive (aim for 600-1000 words)
+- Avoid technical jargon; explain concepts clearly for non-specialists
+- Keep the narrative concise but comprehensive (aim for 400-600 words)
 
 **Format:**
-Structure the narrative with clear sections and use bullet points where appropriate for readability.
+Structure the narrative with clear sections using headers and bullet points where appropriate for readability.
 
 Generate the financial narrative now:
 """

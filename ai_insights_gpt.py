@@ -60,37 +60,37 @@ def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name
 
     # Create the DETAILED prompt for GPT
     prompt = f"""
-    You are a senior real estate financial analyst providing insights on property performance based on detailed Net Operating Income (NOI) variance analysis.
+You are a senior real estate financial analyst providing insights on property performance based on detailed Net Operating Income (NOI) variance analysis. Your analysis must be data-driven, concise, and actionable.
 
-    Property Name: {property_name or "This Property"}
+Property Name: {property_name or "This Property"}
 
-    Analyze the following financial comparison data:
-    ---
-    {formatted_results}
-    ---
+Analyze the following financial comparison data:
+---
+{formatted_results}
+---
 
-    Based *only* on the data provided, please provide:
-    1.  **Executive Summary:** A concise overview of the property's financial performance, highlighting the main drivers of NOI changes compared to budget and prior periods. Mention key metrics like EGI, Vacancy, and OpEx trends.
-    2.  **Key Performance Insights (3-5 bullet points):** Specific, data-driven observations about significant variances or trends in revenue components (GPR, Vacancy, Other Income), operating expenses (major categories), and overall NOI. Quantify insights where possible (e.g., "Vacancy loss decreased by X%, contributing Y to NOI improvement").
-    3.  **Actionable Recommendations (3-5 bullet points):** Concrete suggestions based *directly* on the observed variances to improve NOI. Focus on areas like reducing specific expenses, improving rent collection/reducing vacancy, increasing other income, or investigating budget variances.
+Based *only* on the data provided, please provide:
+1.  **Executive Summary:** A concise overview of the property's financial performance, highlighting the main drivers of NOI changes compared to budget and prior periods. Mention key metrics like EGI, Vacancy, and OpEx trends. Limit to 2-3 sentences.
+2.  **Key Performance Insights (3-5 bullet points):** Specific, data-driven observations about significant variances or trends in revenue components (GPR, Vacancy, Other Income), operating expenses (major categories), and overall NOI. Quantify insights where possible (e.g., "Vacancy loss decreased by X%, contributing Y to NOI improvement"). Focus on the most impactful changes.
+3.  **Actionable Recommendations (3-5 bullet points):** Concrete suggestions based *directly* on the observed variances to improve NOI. Focus on areas like reducing specific expenses, improving rent collection/reducing vacancy, increasing other income, or investigating budget variances. Prioritize recommendations with the highest potential impact.
 
-    Your reply **must** follow this exact Markdown template (replace bracketed text with your content):
+Your reply **must** follow this exact Markdown template (replace bracketed text with your content):
 
-    ### Executive Summary
-    [Concise narrative paragraph(s)]
+### Executive Summary
+[Concise narrative paragraph(s)]
 
-    ### Key Performance Insights
-    - [Insight 1]
-    - [Insight 2]
-    - [Insight 3]
+### Key Performance Insights
+- [Insight 1]
+- [Insight 2]
+- [Insight 3]
 
-    ### Actionable Recommendations
-    - [Recommendation 1]
-    - [Recommendation 2]
-    - [Recommendation 3]
+### Actionable Recommendations
+- [Recommendation 1]
+- [Recommendation 2]
+- [Recommendation 3]
 
-    Only include the sections shown above – no additional commentary, headers or footnotes. Be professional, objective and data-driven.
-    """
+Only include the sections shown above – no additional commentary, headers or footnotes. Be professional, objective and data-driven. Focus on the most significant findings and avoid minor fluctuations.
+"""
 
     logger.info(f"Sending detailed prompt to GPT API (length: {len(prompt)} chars)...")
     logger.debug(f"GPT Prompt:\n{prompt}")
@@ -100,7 +100,7 @@ def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a senior real estate financial analyst specializing in detailed NOI variance analysis and reporting."},
+                {"role": "system", "content": "You are a senior real estate financial analyst specializing in detailed NOI variance analysis and reporting. You provide concise, actionable insights based on financial data with a focus on accuracy and relevance."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,  # Optimized: Lower temperature for faster, more consistent responses
@@ -108,7 +108,7 @@ def generate_insights_with_gpt(comparison_results: Dict[str, Any], property_name
         )
 
         # Log the response
-        response_content = response.choices[0].message.content
+        response_content = response.choices[0].message.content if response.choices[0].message.content else ""
         logger.info(f"Received response from GPT API (length: {len(response_content)} chars).")
         logger.debug(f"GPT Raw Response:\n{response_content}")
 
@@ -267,7 +267,7 @@ def parse_gpt_response(response_text: str) -> Dict[str, Any]:
     }
 
     # Simple but effective parsing approach
-    sections = {
+    sections: Dict[str, Optional[int]] = {
         "summary": None,
         "performance": None,
         "recommendations": None
@@ -392,7 +392,7 @@ def parse_gpt_response(response_text: str) -> Dict[str, Any]:
     
     return insights
 
-def ask_noi_coach(question: str, comparison_results: Dict[str, Any], current_view: str = None) -> str:
+def ask_noi_coach(question: str, comparison_results: Dict[str, Any], current_view: Optional[str] = None) -> str:
     """
     Ask the NOI Coach to answer a free-form question
     based on the current comparison_results, with awareness of which comparison tab is active.
@@ -422,17 +422,21 @@ def ask_noi_coach(question: str, comparison_results: Dict[str, Any], current_vie
             focus_section = "You should focus primarily on the MONTH-OVER-MONTH COMPARISON in your analysis, as the user is currently viewing month-over-month comparison data."
     
     system = (
-      "You are a helpful NOI coach for real estate professionals analyzing property financial data. "
-      "The user will ask questions about Net Operating Income metrics and variances. "
+      "You are a specialized NOI (Net Operating Income) coach for real estate professionals analyzing property financial performance. "
+      "Your role is to provide clear, concise, and actionable answers to specific questions about the financial data. "
       f"Use ONLY the data provided in the detailed comparison results. {focus_section} "
-      "Be concise, professional, and specific in your responses. "
-      "Refer to exact dollar amounts and percentages when possible. "
-      "Remember that for metrics like vacancy and expenses, negative variances (decreases) are generally positive outcomes."
+      "Be precise with numbers and percentages. "
+      "For metrics like vacancy and expenses, note that negative variances (decreases) are generally positive outcomes. "
+      "Provide practical insights that help property managers make informed decisions. "
+      "Keep responses focused and avoid generic statements."
     )
     
     user = (
       f"Here are the detailed NOI comparison results:\n\n{formatted}\n\n"
-      f"User question: {question}"
+      f"User question: {question}\n\n"
+      "Please provide a focused, data-driven answer to the user's question using only the provided financial data. "
+      "Include specific dollar amounts and percentages where relevant. "
+      "Limit your response to 3-4 concise sentences."
     )
 
     logger.info(f"Sending NOI coach request with current_view: {current_view}")
@@ -446,4 +450,4 @@ def ask_noi_coach(question: str, comparison_results: Dict[str, Any], current_vie
         temperature=0.3,
         max_tokens=500
     )
-    return resp.choices[0].message.content.strip()
+    return resp.choices[0].message.content.strip() if resp.choices[0].message.content else ""

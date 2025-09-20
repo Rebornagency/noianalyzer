@@ -306,14 +306,21 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
     
     # Validate financial calculations
     try:
-        calculated_egi = enriched_result["gpr"] - enriched_result["vacancy_loss"] + enriched_result["other_income"]
+        gpr = enriched_result["gpr"]
+        vacancy_loss = enriched_result["vacancy_loss"]
+        concessions = enriched_result["concessions"]
+        bad_debt = enriched_result["bad_debt"]
+        other_income = enriched_result["other_income"]
+        calculated_egi = gpr - vacancy_loss - concessions - bad_debt + other_income
         if abs(calculated_egi - enriched_result["egi"]) > 1.0:
-            logger.warning(f"EGI calculation mismatch detected, using calculated value")
+            logger.warning(f"EGI calculation mismatch detected: reported={enriched_result['egi']:.2f}, calculated={calculated_egi:.2f} (GPR={gpr:.2f} - Vacancy={vacancy_loss:.2f} - Concessions={concessions:.2f} - BadDebt={bad_debt:.2f} + OtherIncome={other_income:.2f})")
             enriched_result["egi"] = calculated_egi
             
-        calculated_noi = enriched_result["egi"] - enriched_result["opex"]
+        egi = enriched_result["egi"]
+        opex = enriched_result["opex"]
+        calculated_noi = egi - opex
         if abs(calculated_noi - enriched_result["noi"]) > 1.0:
-            logger.warning(f"NOI calculation mismatch detected, using calculated value")
+            logger.warning(f"NOI calculation mismatch detected: reported={enriched_result['noi']:.2f}, calculated={calculated_noi:.2f} (EGI={egi:.2f} - OpEx={opex:.2f})")
             enriched_result["noi"] = calculated_noi
             
     except Exception as e:

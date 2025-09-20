@@ -89,31 +89,107 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
             result['period'] = safe_string(metadata['period'])
             logger.info(f"Using period from metadata: {result['period']}")
     
-    # Map the flat structure to our expected format
+    # Enhanced field mapping to capture more variations of field names
     field_mapping = {
+        # GPR variations
         'gross_potential_rent': 'gpr',
+        'potential_rent': 'gpr',
+        'scheduled_rent': 'gpr',
+        'gross_rental_income': 'gpr',
+        'gross_scheduled_income': 'gpr',
+        'gross_rent': 'gpr',
+        'rental_income': 'gpr',
+        'scheduled_income': 'gpr',
+        # Vacancy loss variations
         'vacancy_loss': 'vacancy_loss',
+        'vacancy': 'vacancy_loss',
+        'credit_loss': 'vacancy_loss',
+        'vacancy_and_credit_loss': 'vacancy_loss',
+        # Concessions variations
         'concessions': 'concessions',
+        'rent_concessions': 'concessions',
+        # Bad debt variations
         'bad_debt': 'bad_debt',
+        'uncollectible_rent': 'bad_debt',
+        # EGI variations
         'effective_gross_income': 'egi',
+        'adjusted_income': 'egi',
+        'effective_income': 'egi',
+        # NOI variations
         'net_operating_income': 'noi',
+        'noi': 'noi',
+        'net_income': 'noi',
+        'net_operating_earnings': 'noi',
+        'operating_income': 'noi',
+        # OpEx variations
+        'operating_expenses': 'opex',
+        'total_operating_expenses': 'opex',
+        'expenses_total': 'opex',
+        'total_expenses': 'opex',
+        'operating_costs': 'opex',
+        'total_operating_costs': 'opex',
+        'operating_expenditures': 'opex',
+        # Property taxes variations
         'property_taxes': 'property_taxes',
+        'taxes': 'property_taxes',
+        'property_tax': 'property_taxes',
+        # Insurance variations
         'insurance': 'insurance',
+        'insurance_expenses': 'insurance',
+        # Repairs and maintenance variations
+        'repairs_maintenance': 'repairs_maintenance',
         'repairs_and_maintenance': 'repairs_maintenance',
+        'maintenance': 'repairs_maintenance',
+        'maintenance_expenses': 'repairs_maintenance',
+        # Utilities variations
         'utilities': 'utilities',
+        'utility_expenses': 'utilities',
+        # Management fees variations
         'management_fees': 'management_fees',
+        'property_management': 'management_fees',
+        'management': 'management_fees',
+        # Other income variations
+        'other_income': 'other_income',
+        'additional_income': 'other_income',
+        # Parking income variations
         'parking': 'parking',
+        'parking_income': 'parking',
+        # Laundry income variations
         'laundry': 'laundry',
+        'laundry_income': 'laundry',
+        # Late fees variations
         'late_fees': 'late_fees',
+        'late_fee_income': 'late_fees',
+        # Pet fees variations
         'pet_fees': 'pet_fees',
+        'pet_rent': 'pet_fees',
+        # Application fees variations
         'application_fees': 'application_fees',
+        'application_fee_income': 'application_fees',
+        # Storage fees variations
         'storage_fees': 'storage_fees',
+        'storage_income': 'storage_fees',
+        # Amenity fees variations
         'amenity_fees': 'amenity_fees',
+        'amenity_income': 'amenity_fees',
+        # Utility reimbursements variations
         'utility_reimbursements': 'utility_reimbursements',
+        'utility_reimbursement_income': 'utility_reimbursements',
+        # Cleaning fees variations
         'cleaning_fees': 'cleaning_fees',
+        'cleaning_income': 'cleaning_fees',
+        # Cancellation fees variations
         'cancellation_fees': 'cancellation_fees',
-        'miscellaneous': 'miscellaneous'
+        'cancellation_fee_income': 'cancellation_fees',
+        # Miscellaneous variations
+        'miscellaneous': 'miscellaneous',
+        'misc': 'miscellaneous',
+        'other': 'miscellaneous'
     }
+    
+    # Log the start of processing
+    logger.info(f"Starting data formatting for file: {api_response.get('file_name', 'unknown')}")
+    logger.info(f"Input data keys: {list(api_response.keys())}")
     
     # Handle both nested and flat structures
     # First, check if we're working with an extraction v2 API response that might have 'financials'
@@ -131,6 +207,9 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
             if 'total_operating_expenses' in operating_expenses:
                 result['opex'] = safe_float(operating_expenses['total_operating_expenses'])
                 logger.info(f"Using nested total_operating_expenses: {result['opex']}")
+            elif 'total' in operating_expenses:
+                result['opex'] = safe_float(operating_expenses['total'])
+                logger.info(f"Using nested operating_expenses.total: {result['opex']}")
             
             # Extract OpEx breakdown components if available
             for field in ['property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees']:
@@ -187,6 +266,32 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         if api_field in financials:
             result[result_field] = safe_float(financials[api_field])
             logger.info(f"Mapped {api_field} -> {result_field}: {result[result_field]}")
+    
+    # Log completion of major processing sections
+    logger.info(f"Completed GPR processing: {result['gpr']:.2f}")
+    
+    # Ensure EGI is calculated correctly if not provided
+    if result['egi'] == 0.0:
+        calculated_egi = (result['gpr'] - result['vacancy_loss'] - result['concessions'] - 
+                         result['bad_debt'] + result['other_income'])
+        if calculated_egi > 0:
+            result['egi'] = calculated_egi
+            logger.info(f"Calculated EGI: {result['egi']:.2f} (GPR={result['gpr']:.2f} - Vacancy={result['vacancy_loss']:.2f} - Concessions={result['concessions']:.2f} - BadDebt={result['bad_debt']:.2f} + OtherIncome={result['other_income']:.2f})")
+    else:
+        logger.info(f"Using provided EGI: {result['egi']:.2f}")
+    
+    logger.info(f"Completed EGI processing: {result['egi']:.2f}")
+    logger.info(f"Completed OpEx processing: {result['opex']:.2f}")
+    
+    # Ensure NOI is calculated correctly if not provided
+    if result['noi'] == 0.0 and result['egi'] > 0 and result['opex'] > 0:
+        calculated_noi = result['egi'] - result['opex']
+        result['noi'] = calculated_noi
+        logger.info(f"Calculated NOI: {result['noi']:.2f} (EGI={result['egi']:.2f} - OpEx={result['opex']:.2f})")
+    else:
+        logger.info(f"Using provided NOI: {result['noi']:.2f}")
+    
+    logger.info(f"Completed NOI processing: {result['noi']:.2f}")
     
     # Clean and validate the final result
     result = clean_financial_data(result)

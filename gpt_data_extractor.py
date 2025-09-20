@@ -173,7 +173,8 @@ Important notes for Actual Income Statements:
 - Look for sections labeled "Income", "Revenue", "Expenses", or "Operating Expenses"
 - The document may use terms like "YTD", "Month-to-Date", or specific month names
 - Focus on the most recent or relevant period if multiple periods are shown
-- Ensure mathematical consistency in your extraction"""
+- Ensure mathematical consistency in your extraction
+- Be precise with negative values which may be shown in parentheses e.g. (1,234.50)"""
             
         elif document_type == "Budget":
             doc_type_context = """This is a Budget document showing projected financial figures for a specific property.
@@ -183,7 +184,8 @@ Important notes for Budget documents:
 - Look for sections labeled "Budget", "Forecast", "Plan", or "Projected"
 - The document may include comparisons to actual results
 - Focus on the budget figures, not the actual or variance columns
-- Ensure mathematical consistency in your extraction"""
+- Ensure mathematical consistency in your extraction
+- Be precise with negative values which may be shown in parentheses e.g. (1,234.50)"""
             
         elif document_type == "Prior Year Actual":
             doc_type_context = """This is a Prior Year Actual statement showing historical financial results for a specific property.
@@ -193,17 +195,25 @@ Important notes for Prior Year Actual statements:
 - Look for sections labeled with previous year indicators
 - The document may include comparisons to current year or budget
 - Focus on the prior year figures, not current year or budget columns
-- Ensure mathematical consistency in your extraction"""
+- Ensure mathematical consistency in your extraction
+- Be precise with negative values which may be shown in parentheses e.g. (1,234.50)"""
         
         # Add period context if available
         period_context = f" for the period {period}" if period else ""
         
-        # Create the base prompt
-        base_prompt = f"""I need to extract specific financial data from this {document_type}{period_context}.
+        # Create the base prompt with clearer instructions
+        base_prompt = f"""You are a senior real estate financial analyst specializing in extracting precise financial data from property income statements. Your task is to extract specific financial metrics from this {document_type}{period_context} with high accuracy.
 
 {doc_type_context}
 
-Focus on extracting these key financial metrics:
+CRITICAL EXTRACTION REQUIREMENTS:
+1. Extract ONLY the specified financial metrics from the document
+2. Be extremely precise with numbers, especially negative values shown in parentheses
+3. If a value is not explicitly stated in the document, use 0 rather than estimating
+4. Do not include any explanations or notes in your response, only the JSON object
+5. All values must be numeric (not strings) and represent actual dollar amounts (not thousands or millions)
+
+Focus on extracting these key financial metrics with exact precision:
 
 1. REVENUE ITEMS:
    - Rental Income: The primary income from property rentals (may be called "Rent Income", "Rental Revenue", etc.)
@@ -211,7 +221,6 @@ Focus on extracting these key financial metrics:
    - Parking Income: Revenue from parking spaces or garages (may be called "Parking", "Garage Income", "Parking Fees", etc.)
    - Application Fees: Income collected from tenant applications (may be called "Application Fees", "Application Income", etc.)
    - Other Revenue: Any additional income sources (may include late fees, pet fees, etc.)
-   - Total Revenue: The sum of all revenue items (may be called "Total Income", "Gross Income", "Total Revenue", etc.)
 
 2. EXPENSE ITEMS:
    - Repairs & Maintenance: Costs for property upkeep and repairs (may include general maintenance, cleaning, landscaping, etc.)
@@ -221,10 +230,11 @@ Focus on extracting these key financial metrics:
    - Insurance: Property insurance costs (may be called "Insurance Expense", "Property Insurance", etc.)
    - Admin/Office Costs: Administrative expenses (may include office supplies, software, professional fees, etc.)
    - Marketing/Advertising: Costs for marketing the property (may be called "Advertising", "Marketing Expense", etc.)
-   - Total Expenses: The sum of all expense items (may be called "Total Operating Expenses", "Total Expenses", etc.)
 
-3. NET OPERATING INCOME (NOI):
-   - This should be the difference between Total Revenue and Total Expenses (may be called "NOI", "Net Operating Income", "Operating Income", etc.)
+3. CALCULATED TOTALS:
+   - Total Revenue: The sum of all revenue items (may be called "Total Income", "Gross Income", "Total Revenue", etc.)
+   - Total Expenses: The sum of all expense items (may be called "Total Operating Expenses", "Total Expenses", etc.)
+   - Net Operating Income (NOI): The difference between Total Revenue and Total Expenses (may be called "NOI", "Net Operating Income", "Operating Income", etc.)
 
 Here's the financial document:
 {text_sample}
@@ -250,13 +260,14 @@ Extract the financial data and provide it in JSON format with the following stru
   "net_operating_income": [number]
 }}
 
-IMPORTANT REQUIREMENTS:
+IMPORTANT VALIDATION REQUIREMENTS:
 1. All financial values MUST be numbers, not strings
 2. The total_revenue MUST equal the sum of revenue items
 3. The total_expenses MUST equal the sum of expense items
 4. The net_operating_income MUST equal total_revenue minus total_expenses
 5. If a value is not found, use 0 rather than leaving it blank
-6. Do not include any explanations or notes in your response, only the JSON object
+6. Pay special attention to negative values shown in parentheses e.g. (1,234.50) should be extracted as -1234.50
+7. Do not include any explanations or notes in your response, only the JSON object
 """
         
         return base_prompt
@@ -276,7 +287,7 @@ IMPORTANT REQUIREMENTS:
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a senior real estate accountant specializing in NOI analysis."},
+                    {"role": "system", "content": "You are a senior real estate financial analyst with expertise in extracting precise financial data from property income statements. You focus on accuracy and mathematical consistency."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,  # Low temperature for more deterministic results
@@ -284,7 +295,7 @@ IMPORTANT REQUIREMENTS:
             )
             
             # Extract response text
-            response_text = response.choices[0].message.content.strip()
+            response_text = response.choices[0].message.content.strip() if response.choices[0].message.content else ""
             
             # Parse JSON response
             try:

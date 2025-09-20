@@ -199,7 +199,7 @@ def calculate_noi_comparisons(consolidated_data: Dict[str, Optional[Dict[str, An
 
 def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
     """
-    Enhanced validation of comparison results
+    Enhanced validation of comparison results with detailed checks
     """
     if "current" not in comparison_results:
         logger.warning("No current month data available for validation")
@@ -207,32 +207,49 @@ def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
     
     current = comparison_results["current"]
     
-    # Validate EGI calculation
-    calculated_egi = calculate_egi(
-        safe_float(current.get("gpr")),
-        safe_float(current.get("vacancy_loss")),
-        safe_float(current.get("concessions")),
-        safe_float(current.get("bad_debt")),
-        safe_float(current.get("other_income"))
-    )
+    # Validate all main metrics are present
+    for metric in MAIN_METRICS:
+        if metric not in current:
+            logger.warning(f"Missing required metric: {metric}")
+            current[metric] = 0.0
     
+    # Validate EGI calculation with detailed breakdown
+    gpr = safe_float(current.get("gpr"))
+    vacancy_loss = safe_float(current.get("vacancy_loss"))
+    concessions = safe_float(current.get("concessions"))
+    bad_debt = safe_float(current.get("bad_debt"))
+    other_income = safe_float(current.get("other_income"))
+    
+    calculated_egi = calculate_egi(gpr, vacancy_loss, concessions, bad_debt, other_income)
     reported_egi = safe_float(current.get("egi"))
     
     if abs(calculated_egi - reported_egi) > 0.01:
         logger.warning(
             f"EGI calculation mismatch: reported={reported_egi:.2f}, "
-            f"calculated={calculated_egi:.2f}"
+            f"calculated={calculated_egi:.2f} "
+            f"(GPR={gpr:.2f} - Vacancy={vacancy_loss:.2f} - Concessions={concessions:.2f} - BadDebt={bad_debt:.2f} + OtherIncome={other_income:.2f})"
         )
+        # Update the EGI value to the calculated one if there's a significant mismatch
+        if "current" in comparison_results and isinstance(comparison_results["current"], dict):
+            comparison_results["current"]["egi"] = calculated_egi
+            logger.info(f"Updated EGI to calculated value: {calculated_egi:.2f}")
     
-    # Validate NOI calculation
-    calculated_noi = calculate_noi(calculated_egi, safe_float(current.get("opex")))
+    # Validate NOI calculation with detailed breakdown
+    egi = calculated_egi  # Use the validated/calculated EGI
+    opex = safe_float(current.get("opex"))
+    calculated_noi = calculate_noi(egi, opex)
     reported_noi = safe_float(current.get("noi"))
     
     if abs(calculated_noi - reported_noi) > 0.01:
         logger.warning(
             f"NOI calculation mismatch: reported={reported_noi:.2f}, "
-            f"calculated={calculated_noi:.2f}"
+            f"calculated={calculated_noi:.2f} "
+            f"(EGI={egi:.2f} - OpEx={opex:.2f})"
         )
+        # Update the NOI value to the calculated one if there's a significant mismatch
+        if "current" in comparison_results and isinstance(comparison_results["current"], dict):
+            comparison_results["current"]["noi"] = calculated_noi
+            logger.info(f"Updated NOI to calculated value: {calculated_noi:.2f}")
     
     # Validate OpEx breakdown summing to total OpEx
     total_opex = safe_float(current.get("opex"))
@@ -249,4 +266,29 @@ def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
         logger.warning(
             f"OpEx components sum mismatch: total={total_opex:.2f}, "
             f"component sum={sum_components:.2f}"
+        )
+    
+    # Validate that we have meaningful data
+    if total_opex == 0 and calculated_egi == 0:
+        logger.error("Both EGI and OpEx are zero - data extraction likely failed")
+    
+    # Additional validation for income/expense categories
+    # Validate that all income components sum correctly
+    income_components_sum = sum(safe_float(current.get(component, 0.0)) for component in INCOME_COMPONENTS)
+    other_income_reported = safe_float(current.get("other_income", 0.0))
+    
+    if abs(income_components_sum - other_income_reported) > 0.01 and other_income_reported > 0:
+        logger.warning(
+            f"Income components sum mismatch: total={other_income_reported:.2f}, "
+            f"component sum={income_components_sum:.2f}"
+        )
+    
+    # Validate that all OpEx components sum correctly
+    opex_components_sum = sum(safe_float(current.get(component, 0.0)) for component in OPEX_COMPONENTS)
+    opex_reported = safe_float(current.get("opex", 0.0))
+    
+    if abs(opex_components_sum - opex_reported) > 0.1 and opex_reported > 0:
+        logger.warning(
+            f"OpEx components sum mismatch: total={opex_reported:.2f}, "
+            f"component sum={opex_components_sum:.2f}"
         )
