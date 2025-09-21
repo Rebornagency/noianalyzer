@@ -312,16 +312,26 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
         bad_debt = enriched_result["bad_debt"]
         other_income = enriched_result["other_income"]
         calculated_egi = gpr - vacancy_loss - concessions - bad_debt + other_income
-        if abs(calculated_egi - enriched_result["egi"]) > 1.0:
-            logger.warning(f"EGI calculation mismatch detected: reported={enriched_result['egi']:.2f}, calculated={calculated_egi:.2f} (GPR={gpr:.2f} - Vacancy={vacancy_loss:.2f} - Concessions={concessions:.2f} - BadDebt={bad_debt:.2f} + OtherIncome={other_income:.2f})")
+        
+        # Always update EGI if we have meaningful GPR data, regardless of mismatch threshold
+        if gpr > 0 or abs(calculated_egi - enriched_result["egi"]) > 1.0:
+            if abs(calculated_egi - enriched_result["egi"]) > 1.0:
+                logger.warning(f"EGI calculation mismatch detected: reported={enriched_result['egi']:.2f}, calculated={calculated_egi:.2f} (GPR={gpr:.2f} - Vacancy={vacancy_loss:.2f} - Concessions={concessions:.2f} - BadDebt={bad_debt:.2f} + OtherIncome={other_income:.2f})")
             enriched_result["egi"] = calculated_egi
             
         egi = enriched_result["egi"]
         opex = enriched_result["opex"]
         calculated_noi = egi - opex
-        if abs(calculated_noi - enriched_result["noi"]) > 1.0:
-            logger.warning(f"NOI calculation mismatch detected: reported={enriched_result['noi']:.2f}, calculated={calculated_noi:.2f} (EGI={egi:.2f} - OpEx={opex:.2f})")
-            enriched_result["noi"] = calculated_noi
+        
+        # Always validate and correct NOI calculation, especially when it's negative operating expenses
+        if gpr > 0 or egi != 0 or opex > 0 or abs(calculated_noi - enriched_result["noi"]) > 1.0:
+            # Special check for the case where NOI is reported as negative operating expenses
+            if abs(enriched_result["noi"] + opex) < 1.0 and egi > 0:
+                logger.warning(f"NOI appears to be reported as negative operating expenses: reported={enriched_result['noi']:.2f}, should be EGI-OpEx={calculated_noi:.2f}")
+                enriched_result["noi"] = calculated_noi
+            elif abs(calculated_noi - enriched_result["noi"]) > 1.0:
+                logger.warning(f"NOI calculation mismatch detected: reported={enriched_result['noi']:.2f}, calculated={calculated_noi:.2f} (EGI={egi:.2f} - OpEx={opex:.2f})")
+                enriched_result["noi"] = calculated_noi
             
     except Exception as e:
         logger.warning(f"Error validating financial calculations: {str(e)}")

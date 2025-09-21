@@ -61,14 +61,19 @@ CURRENCY_FORMAT = "USD"
 
 # Field Mappings for API responses
 FIELD_MAPPING = {
-    "gpr": ["gross_potential_rent", "potential_rent", "scheduled_rent"],
-    "opex": ["operating_expenses", "total_operating_expenses", "expenses_total"],
-    "noi": ["net_operating_income", "noi", "net_income"],
+    "gpr": ["gross_potential_rent", "potential_rent", "scheduled_rent", "total_revenue", "revenue", "gross_income", "total_income"],
+    "opex": ["operating_expenses", "total_operating_expenses", "expenses_total", "total_expenses"],
+    "noi": ["net_operating_income", "noi", "net_income", "operating_income"],
     "egi": ["effective_gross_income", "adjusted_income", "effective_income"]
 }
 
 # Field-name synonyms → canonical name.  Used by utils.common.normalize_field_names()
 FIELD_SYNONYMS = {
+    # GPR aliases
+    "total_revenue": "gpr",
+    "revenue": "gpr",
+    "gross_income": "gpr",
+    "total_income": "gpr",
     # OpEx
     "taxes": "property_taxes",
     "property_tax": "property_taxes",
@@ -78,6 +83,11 @@ FIELD_SYNONYMS = {
     "parking_income": "parking",
     "laundry_income": "laundry",
     "misc": "miscellaneous",
+    # EGI aliases
+    "effective_gross_income": "egi",
+    # NOI aliases
+    "net_operating_income": "noi",
+    "net_income": "noi",
 }
 
 # Validation tolerances

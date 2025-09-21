@@ -100,6 +100,10 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
         'gross_rent': 'gpr',
         'rental_income': 'gpr',
         'scheduled_income': 'gpr',
+        'total_revenue': 'gpr',
+        'revenue': 'gpr',
+        'gross_income': 'gpr',
+        'total_income': 'gpr',
         # Vacancy loss variations
         'vacancy_loss': 'vacancy_loss',
         'vacancy': 'vacancy_loss',
@@ -293,7 +297,7 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     if result['egi'] == 0.0:
         calculated_egi = (result['gpr'] - result['vacancy_loss'] - result['concessions'] - 
                          result['bad_debt'] + result['other_income'])
-        if calculated_egi > 0:
+        if calculated_egi > 0 or result['gpr'] > 0:  # Allow EGI calculation even if it's zero or negative
             result['egi'] = calculated_egi
             logger.info(f"Calculated EGI: {result['egi']:.2f} (GPR={result['gpr']:.2f} - Vacancy={result['vacancy_loss']:.2f} - Concessions={result['concessions']:.2f} - BadDebt={result['bad_debt']:.2f} + OtherIncome={result['other_income']:.2f})")
     else:
@@ -302,11 +306,17 @@ def format_for_noi_comparison(api_response: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f"Completed EGI processing: {result['egi']:.2f}")
     logger.info(f"Completed OpEx processing: {result['opex']:.2f}")
     
-    # Ensure NOI is calculated correctly if not provided or is zero
-    if result['noi'] == 0.0 and result['egi'] > 0 and result['opex'] > 0:
+    # Ensure NOI is calculated correctly regardless of whether it was provided
+    # Fix for issue where NOI was showing as negative operating expenses
+    if result['gpr'] > 0 or result['egi'] != 0 or result['opex'] > 0:
+        # Calculate NOI based on EGI and OpEx if we have meaningful data
         calculated_noi = result['egi'] - result['opex']
-        result['noi'] = calculated_noi
-        logger.info(f"Calculated NOI: {result['noi']:.2f} (EGI={result['egi']:.2f} - OpEx={result['opex']:.2f})")
+        # Only override the provided NOI if there's a significant discrepancy or if it was zero
+        if result['noi'] == 0.0 or abs(result['noi'] - calculated_noi) > 1.0:
+            result['noi'] = calculated_noi
+            logger.info(f"Calculated NOI: {result['noi']:.2f} (EGI={result['egi']:.2f} - OpEx={result['opex']:.2f})")
+        else:
+            logger.info(f"Using provided NOI: {result['noi']:.2f}")
     elif result['noi'] != 0.0:
         logger.info(f"Using provided NOI: {result['noi']:.2f}")
     

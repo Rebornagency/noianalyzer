@@ -269,8 +269,12 @@ def validate_comparison_results(comparison_results: Dict[str, Any]) -> None:
         )
     
     # Validate that we have meaningful data
-    if total_opex == 0 and calculated_egi == 0:
+    if total_opex == 0 and calculated_egi == 0 and gpr == 0:
         logger.error("Both EGI and OpEx are zero - data extraction likely failed")
+    elif gpr > 0 and calculated_egi == 0:
+        logger.warning(f"GPR is {gpr} but EGI is zero - check EGI calculation")
+    elif calculated_noi == 0 and (calculated_egi > 0 or opex > 0):
+        logger.warning(f"NOI is zero but EGI ({calculated_egi}) or OpEx ({opex}) is non-zero - check NOI calculation")
     
     # Additional validation for income/expense categories
     # Validate that all income components sum correctly
