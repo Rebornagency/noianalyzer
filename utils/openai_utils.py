@@ -14,10 +14,12 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Union
 
 import openai
-from openai import OpenAI, error
+from openai import OpenAI
+# Import specific error types from openai
+from openai import RateLimitError, APIConnectionError, APIError
 
 from config import get_openai_api_key
 
@@ -53,19 +55,28 @@ def chat_completion(
     attempt = 0
     backoff = _OPENAI_BACKOFF_SECONDS
 
+    # Convert messages to the correct format
+    formatted_messages = []
+    for msg in messages:
+        if "role" in msg and "content" in msg:
+            formatted_messages.append({"role": msg["role"], "content": msg["content"]})
+        else:
+            # Handle any malformed messages
+            continue
+
     while True:
         attempt += 1
         try:
             response = client.chat.completions.create(
                 model=model,
-                messages=messages,
+                messages=formatted_messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 timeout=_OPENAI_TIMEOUT,
                 **kwargs,
             )
             return response.choices[0].message.content.strip()
-        except (error.RateLimitError, error.APIConnectionError, error.APIError, TimeoutError) as e:
+        except (RateLimitError, APIConnectionError, APIError, TimeoutError) as e:
             if attempt >= _OPENAI_MAX_RETRIES:
                 logger.error("OpenAI chat completion failed after %s attempts: %s", attempt, e)
                 raise
@@ -74,4 +85,4 @@ def chat_completion(
             backoff *= 2  # Exponential back-off, capped implicitly by retry count
         except Exception:
             # Unknown error – do not retry
-            raise 
+            raise

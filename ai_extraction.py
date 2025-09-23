@@ -1,15 +1,15 @@
 import os
 import logging
-import requests
 import json
 import tempfile
 import time
 from typing import Dict, Any, List, Optional, BinaryIO, Union
 import streamlit as st
-from config import get_extraction_api_url, get_api_key
-from constants import ERROR_MESSAGES, DEFAULT_API_CONFIG, FILE_UPLOAD_CONFIG, MAIN_METRICS, OPEX_COMPONENTS
+from config import get_extraction_api_url, get_api_key, get_openai_api_key
+from constants import ERROR_MESSAGES, DEFAULT_API_CONFIG, FILE_UPLOAD_CONFIG, MAIN_METRICS, OPEX_COMPONENTS, INCOME_COMPONENTS
 from utils.error_handler import setup_logger, handle_errors, graceful_degradation, APIError
 from utils.common import safe_float, safe_string, create_fallback_financial_data, normalize_field_names
+from utils.openai_utils import chat_completion
 
 # Setup logger
 logger = setup_logger(__name__)
@@ -23,13 +23,13 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
                     api_url: Optional[str] = None, api_key: Optional[str] = None,
                     max_retries: Optional[int] = None, retry_delay: int = 5) -> Dict[str, Any]:
     """
-    Extract NOI data from a document using the extraction API with enhanced error handling.
+    Extract NOI data from a document using GPT with enhanced error handling.
     
     Args:
         file: Document file to process
         document_type_hint: Optional hint about document type
-        api_url: Optional API URL override
-        api_key: Optional API key override
+        api_url: Not used in GPT implementation (kept for compatibility)
+        api_key: Not used in GPT implementation (kept for compatibility)
         max_retries: Maximum number of retry attempts for API calls
         retry_delay: Delay in seconds between retry attempts
         
@@ -42,7 +42,7 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
     
     file_name = getattr(file, 'name', 'unknown')
     logger.info(
-        f"Starting data extraction",
+        f"Starting GPT-based data extraction",
         extra={
             "file_name": file_name,
             "document_type_hint": document_type_hint,
@@ -50,36 +50,13 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
         }
     )
     
-    # Get API URL and API key from config if not provided
-    if api_url is None:
-        api_url = get_extraction_api_url()
-    # Normalise URL: remove trailing slashes and ensure single /extract suffix
-    if api_url:
-        api_url = api_url.rstrip('/')
-        if not api_url.endswith('/extract'):
-            api_url = f"{api_url}/extract"
+    # Get OpenAI API key
+    openai_api_key = get_openai_api_key()
+    if not openai_api_key:
+        logger.error("OpenAI API key not configured")
+        raise APIError("OpenAI API key not configured. Please set your OpenAI API key.")
     
-    if api_key is None:
-        api_key = get_api_key()
-    
-    # Validate API configuration
-    if not api_url:
-        logger.error("Extraction API URL not configured")
-        raise APIError(ERROR_MESSAGES["API_CONFIGURATION_MISSING"])
-    
-    if not api_key:
-        logger.error("Extraction API key not configured")
-        raise APIError(ERROR_MESSAGES["API_KEY_MISSING"])
-    
-    logger.info(
-        f"API configuration validated",
-        extra={
-            "api_url": api_url,
-            "api_key_length": len(api_key)
-        }
-    )
-    
-    # Prepare files for API request with validation
+    # Prepare file content for processing
     try:
         file_content = file.getvalue()
         # Size guardrail (bytes)
@@ -88,26 +65,17 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
             logger.error(f"Uploaded file exceeds size limit: {len(file_content)} bytes")
             raise APIError("Uploaded file too large (limit {} MB)".format(FILE_UPLOAD_CONFIG.get("MAX_FILE_SIZE", 200)))
         file_type = getattr(file, 'type', 'application/octet-stream')
-        files = {"file": (file_name, file_content, file_type)}
         
         logger.info(
-            f"File prepared for upload",
+            f"File prepared for GPT processing",
             extra={
                 "file_size": len(file_content),
                 "file_type": file_type
             }
         )
     except Exception as e:
-        logger.error(f"Error preparing file for upload: {str(e)}")
-        raise APIError(f"Failed to prepare file for upload: {str(e)}")
-    
-    # Prepare headers with API key
-    headers = {"x-api-key": api_key, "Accept": "application/json"}
-    
-    # Prepare data with document type hint if provided
-    data = {}
-    if document_type_hint:
-        data["document_type"] = safe_string(document_type_hint)
+        logger.error(f"Error preparing file for processing: {str(e)}")
+        raise APIError(f"Failed to prepare file for processing: {str(e)}")
     
     # Retry logic with enhanced error handling
     last_error = None
@@ -125,116 +93,40 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
                 )
             
             # Create spinner in UI for better user feedback
-            spinner_message = f"Extracting data from {file_name} (attempt {attempt+1}/{max_retries})..."
+            spinner_message = f"Extracting data from {file_name} using GPT (attempt {attempt+1}/{max_retries})..."
             
             if hasattr(st, 'spinner'):
                 with st.spinner(spinner_message):
-                    response = requests.post(
-                        api_url, 
-                        files=files, 
-                        data=data, 
-                        headers=headers, 
-                        timeout=DEFAULT_API_CONFIG["TIMEOUT"]
-                    )
+                    result = extract_financial_data_with_gpt(file_content, file_name, document_type_hint, openai_api_key)
             else:
-                response = requests.post(
-                    api_url, 
-                    files=files, 
-                    data=data, 
-                    headers=headers, 
-                    timeout=DEFAULT_API_CONFIG["TIMEOUT"]
-                )
+                result = extract_financial_data_with_gpt(file_content, file_name, document_type_hint, openai_api_key)
             
             attempt_time = time.time() - attempt_start_time
             logger.info(
-                f"API request completed",
+                f"GPT extraction completed",
                 extra={
-                    "status_code": response.status_code,
+                    "file_name": file_name,
                     "response_time": f"{attempt_time:.3f}s",
                     "attempt": attempt + 1
                 }
             )
             
-            # Handle successful response
-            if response.status_code == 200:
-                try:
-                    result = response.json()
-                    
-                    # Validate and enrich the response
-                    validated_result = validate_and_enrich_extraction_result(result, file_name, document_type_hint)
-                    
-                    logger.info(
-                        f"Data extraction successful",
-                        extra={
-                            "file_name": file_name,
-                            "response_keys": list(validated_result.keys()),
-                            "total_time": f"{time.time() - (attempt_start_time - (attempt * retry_delay)):.3f}s"
-                        }
-                    )
-                    
-                    return validated_result
-                    
-                except json.JSONDecodeError as e:
-                    logger.error(f"API returned invalid JSON: {str(e)}")
-                    last_error = APIError("API returned invalid JSON response")
-                    
-                    # Don't retry JSON decode errors
-                    if attempt == max_retries - 1:  # type: ignore
-                        # Return fallback data for invalid JSON
-                        return create_fallback_extraction_result(file_name, document_type_hint, "Invalid API response format")
-                    
-            elif response.status_code == 502:
-                # Bad Gateway - temporary server issue, definitely retry
-                error_msg = f"Server temporarily unavailable (502)"
-                logger.warning(
-                    error_msg,
-                    extra={
-                        "file_name": file_name,
-                        "response_text": response.text[:200]
-                    }
-                )
-                last_error = APIError(error_msg)
-                
-            elif response.status_code >= 500:
-                # Server error, might be temporary
-                error_msg = f"Server error (status {response.status_code})"
-                logger.error(
-                    error_msg,
-                    extra={
-                        "file_name": file_name,
-                        "status_code": response.status_code,
-                        "response_text": response.text[:200]
-                    }
-                )
-                last_error = APIError(error_msg)
-                
-            else:
-                # Client error or other error, don't retry
-                error_msg = f"API request failed (status {response.status_code})"
-                logger.error(
-                    error_msg,
-                    extra={
-                        "file_name": file_name,
-                        "status_code": response.status_code,
-                        "response_text": response.text[:200]
-                    }
-                )
-                
-                # Return fallback for client errors
-                return create_fallback_extraction_result(file_name, document_type_hint, error_msg)
-                
-        except requests.exceptions.Timeout:
-            error_msg = f"Request timed out (attempt {attempt+1})"
-            logger.warning(error_msg, extra={"file_name": file_name})
-            last_error = APIError("Request timeout")
+            # Validate and enrich the response
+            validated_result = validate_and_enrich_extraction_result(result, file_name, document_type_hint)
             
-        except requests.exceptions.ConnectionError:
-            error_msg = f"Connection error (attempt {attempt+1})"
-            logger.warning(error_msg, extra={"file_name": file_name})
-            last_error = APIError("Connection error")
+            logger.info(
+                f"Data extraction successful",
+                extra={
+                    "file_name": file_name,
+                    "response_keys": list(validated_result.keys()),
+                    "total_time": f"{time.time() - (attempt_start_time - (attempt * retry_delay)):.3f}s"
+                }
+            )
             
+            return validated_result
+                    
         except Exception as e:
-            error_msg = f"Unexpected error during extraction: {str(e)}"
+            error_msg = f"Unexpected error during GPT extraction: {str(e)}"
             logger.error(error_msg, exc_info=True, extra={"file_name": file_name})
             last_error = APIError(error_msg)
         
@@ -255,6 +147,154 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
     )
     
     return create_fallback_extraction_result(file_name, document_type_hint, f"Service unavailable after {max_retries} attempts")
+
+
+def extract_financial_data_with_gpt(file_content: bytes, file_name: str, document_type_hint: Optional[str], openai_api_key: str) -> Dict[str, Any]:
+    """
+    Extract financial data from document content using GPT.
+    
+    Args:
+        file_content: The content of the file as bytes
+        file_name: Name of the file
+        document_type_hint: Hint about document type
+        openai_api_key: OpenAI API key
+        
+    Returns:
+        Dictionary containing extracted financial data
+    """
+    # For now, we'll create a simplified version that works with text content
+    # In a full implementation, you'd need to convert PDFs, images, etc. to text
+    try:
+        # Try to decode as text
+        text_content = file_content.decode('utf-8', errors='ignore')
+    except Exception:
+        # If decoding fails, create a placeholder
+        text_content = f"[Document content from {file_name}]"
+    
+    # Create the prompt for GPT
+    prompt = create_gpt_extraction_prompt(text_content, file_name, document_type_hint)
+    
+    # Prepare messages for chat completion
+    messages = [
+        {"role": "system", "content": "You are a senior real estate financial analyst specializing in extracting financial data from property management documents. You are meticulous and accurate."},
+        {"role": "user", "content": prompt}
+    ]
+    
+    logger.info(f"Sending extraction prompt to GPT (length: {len(prompt)} chars)")
+    
+    try:
+        # Call OpenAI API
+        response_content = chat_completion(
+            messages=messages,
+            model="gpt-3.5-turbo",
+            temperature=0.1,
+            max_tokens=2000
+        )
+        
+        logger.info(f"Received response from GPT (length: {len(response_content)} chars)")
+        
+        # Parse the JSON response
+        try:
+            # Extract JSON from response if it's wrapped in other text
+            json_start = response_content.find('{')
+            json_end = response_content.rfind('}') + 1
+            if json_start >= 0 and json_end > json_start:
+                json_str = response_content[json_start:json_end]
+                result = json.loads(json_str)
+            else:
+                result = json.loads(response_content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse GPT response as JSON: {str(e)}")
+            logger.error(f"Response content: {response_content}")
+            raise APIError("GPT returned invalid JSON response")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error calling OpenAI API: {str(e)}")
+        raise APIError(f"Failed to extract data using GPT: {str(e)}")
+
+
+def create_gpt_extraction_prompt(document_text: str, file_name: str, document_type_hint: Optional[str]) -> str:
+    """
+    Create a prompt for GPT to extract financial data from document text.
+    
+    Args:
+        document_text: The text content of the document
+        file_name: Name of the file
+        document_type_hint: Hint about document type
+        
+    Returns:
+        Formatted prompt string
+    """
+    # Truncate document text if too long
+    max_length = 3000  # Limit to prevent token overflow
+    if len(document_text) > max_length:
+        document_text = document_text[:max_length] + "... [truncated]"
+    
+    prompt = f"""
+Extract financial data from the following property management document and return it as a JSON object.
+
+Document Information:
+- File Name: {file_name}
+- Document Type: {document_type_hint or 'Unknown'}
+
+Document Content:
+{document_text}
+
+Instructions:
+1. Extract all financial metrics and return them in the exact JSON structure shown below
+2. All monetary values must be numeric (no currency symbols, commas, or text)
+3. If a value is not found, use 0.0
+4. Ensure all field names match exactly as specified
+5. Calculate derived values (EGI, NOI) if not explicitly provided
+6. Be flexible with field names - look for synonyms and variations
+
+Required JSON Structure:
+{{
+  "file_name": "{file_name}",
+  "document_type": "{document_type_hint or 'unknown'}",
+  "gpr": 0.0,              // Gross Potential Rent
+  "vacancy_loss": 0.0,     // Vacancy Loss
+  "concessions": 0.0,      // Concessions
+  "bad_debt": 0.0,         // Bad Debt
+  "other_income": 0.0,     // Other Income
+  "egi": 0.0,              // Effective Gross Income (calculate if not provided)
+  "opex": 0.0,             // Total Operating Expenses
+  "noi": 0.0,              // Net Operating Income (calculate if not provided)
+  "property_taxes": 0.0,   // Property Taxes
+  "insurance": 0.0,        // Insurance
+  "repairs_maintenance": 0.0,  // Repairs & Maintenance
+  "utilities": 0.0,        // Utilities
+  "management_fees": 0.0,  // Management Fees
+  "parking": 0.0,          // Parking Income
+  "laundry": 0.0,          // Laundry Income
+  "late_fees": 0.0,        // Late Fees
+  "pet_fees": 0.0,         // Pet Fees
+  "application_fees": 0.0, // Application Fees
+  "storage_fees": 0.0,     // Storage Fees
+  "amenity_fees": 0.0,     // Amenity Fees
+  "utility_reimbursements": 0.0,  // Utility Reimbursements
+  "cleaning_fees": 0.0,    // Cleaning Fees
+  "cancellation_fees": 0.0, // Cancellation Fees
+  "miscellaneous": 0.0     // Miscellaneous Income
+}}
+
+Common Field Variations to Look For:
+- GPR: Gross Potential Rent, Potential Rent, Scheduled Rent, Total Revenue, Revenue, Gross Income
+- Vacancy Loss: Vacancy, Credit Loss, Vacancy and Credit Loss
+- Other Income: Additional Income, Miscellaneous Income
+- OpEx: Operating Expenses, Total Operating Expenses, Expenses
+- NOI: Net Operating Income, Net Income, Operating Income
+
+Calculation Rules:
+- EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
+- NOI = EGI - OpEx
+
+Return ONLY the JSON object with the extracted values. Do not include any other text, explanations, or formatting.
+"""
+    
+    return prompt
 
 
 def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str, document_type: Optional[str]) -> Dict[str, Any]:
