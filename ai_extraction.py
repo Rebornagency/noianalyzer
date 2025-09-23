@@ -162,13 +162,70 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
     Returns:
         Dictionary containing extracted financial data
     """
-    # For now, we'll create a simplified version that works with text content
-    # In a full implementation, you'd need to convert PDFs, images, etc. to text
+    text_content = None
+    
+    # Try to use the preprocessing module if available
     try:
-        # Try to decode as text
-        text_content = file_content.decode('utf-8', errors='ignore')
-    except Exception:
-        # If decoding fails, create a placeholder
+        # Import the preprocessing module here to avoid circular imports
+        from preprocessing_module import FilePreprocessor
+        
+        # Create a temporary file to process with the preprocessing module
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_name)[1] or '.tmp') as temp_file:
+            temp_file.write(file_content)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Use the preprocessing module to extract text content
+            preprocessor = FilePreprocessor()
+            preprocessed_data = preprocessor.preprocess(temp_file_path, filename=file_name)
+            
+            # Extract text content from preprocessed data
+            if 'combined_text' in preprocessed_data:
+                text_content = preprocessed_data['combined_text']
+            elif 'content' in preprocessed_data and isinstance(preprocessed_data['content'], dict):
+                content = preprocessed_data['content']
+                if 'combined_text' in content:
+                    text_content = content['combined_text']
+                elif 'text' in content:
+                    if isinstance(content['text'], list):
+                        # Handle PDF text extraction
+                        text_content = '\n\n'.join([page.get('content', '') for page in content['text']])
+                    else:
+                        text_content = content['text']
+                elif 'text_representation' in content:
+                    # Handle Excel/CSV text representation
+                    if isinstance(content['text_representation'], list):
+                        text_content = '\n\n'.join(content['text_representation'])
+                    else:
+                        text_content = str(content['text_representation'])
+                else:
+                    text_content = str(content)
+            else:
+                text_content = str(preprocessed_data.get('content', ''))
+                
+        finally:
+            # Clean up temporary file
+            try:
+                os.unlink(temp_file_path)
+            except Exception:
+                pass
+                
+    except ImportError as e:
+        # If preprocessing module is not available, log and continue with basic text decoding
+        logger.warning(f"Preprocessing module not available: {str(e)}")
+    except Exception as e:
+        # If preprocessing fails, log and fall back to simple text decoding
+        logger.warning(f"Preprocessing failed, falling back to text decoding: {str(e)}")
+    
+    # If we couldn't extract text content through preprocessing, try basic text decoding
+    if text_content is None:
+        try:
+            text_content = file_content.decode('utf-8', errors='ignore')
+        except Exception:
+            text_content = f"[Document content from {file_name}]"
+    
+    # If text content is still empty, fall back to file name
+    if not text_content.strip():
         text_content = f"[Document content from {file_name}]"
     
     # Create the prompt for GPT
