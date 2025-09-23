@@ -164,68 +164,41 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
     """
     text_content = None
     
-    # Try to use the preprocessing module if available
-    try:
-        # Import the preprocessing module here to avoid circular imports
-        from preprocessing_module import FilePreprocessor
-        
-        # Create a temporary file to process with the preprocessing module
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_name)[1] or '.tmp') as temp_file:
-            temp_file.write(file_content)
-            temp_file_path = temp_file.name
-        
-        try:
-            # Use the preprocessing module to extract text content
-            preprocessor = FilePreprocessor()
-            preprocessed_data = preprocessor.preprocess(temp_file_path, filename=file_name)
-            
-            # Extract text content from preprocessed data
-            if 'combined_text' in preprocessed_data:
-                text_content = preprocessed_data['combined_text']
-            elif 'content' in preprocessed_data and isinstance(preprocessed_data['content'], dict):
-                content = preprocessed_data['content']
-                if 'combined_text' in content:
-                    text_content = content['combined_text']
-                elif 'text' in content:
-                    if isinstance(content['text'], list):
-                        # Handle PDF text extraction
-                        text_content = '\n\n'.join([page.get('content', '') for page in content['text']])
-                    else:
-                        text_content = content['text']
-                elif 'text_representation' in content:
-                    # Handle Excel/CSV text representation
-                    if isinstance(content['text_representation'], list):
-                        text_content = '\n\n'.join(content['text_representation'])
-                    else:
-                        text_content = str(content['text_representation'])
-                else:
-                    text_content = str(content)
-            else:
-                text_content = str(preprocessed_data.get('content', ''))
-                
-        finally:
-            # Clean up temporary file
-            try:
-                os.unlink(temp_file_path)
-            except Exception:
-                pass
-                
-    except ImportError as e:
-        # If preprocessing module is not available, log and continue with basic text decoding
-        logger.warning(f"Preprocessing module not available: {str(e)}")
-    except Exception as e:
-        # If preprocessing fails, log and fall back to simple text decoding
-        logger.warning(f"Preprocessing failed, falling back to text decoding: {str(e)}")
+    # Determine file extension
+    _, ext = os.path.splitext(file_name)
+    ext = ext.lower().lstrip('.')
     
-    # If we couldn't extract text content through preprocessing, try basic text decoding
-    if text_content is None:
+    # Try to process based on file extension
+    try:
+        if ext in ['xlsx', 'xls']:
+            # Handle Excel files
+            text_content = extract_text_from_excel(file_content, file_name)
+        elif ext == 'pdf':
+            # Handle PDF files
+            text_content = extract_text_from_pdf(file_content, file_name)
+        elif ext == 'csv':
+            # Handle CSV files
+            text_content = extract_text_from_csv(file_content, file_name)
+        elif ext == 'txt':
+            # Handle text files
+            text_content = file_content.decode('utf-8', errors='ignore')
+        else:
+            # For unknown file types, try to decode as text
+            try:
+                text_content = file_content.decode('utf-8', errors='ignore')
+            except Exception:
+                text_content = f"[Document content from {file_name}]"
+                
+    except Exception as e:
+        # If any processing fails, fall back to basic text decoding
+        logger.warning(f"File processing failed for {file_name}, falling back to text decoding: {str(e)}")
         try:
             text_content = file_content.decode('utf-8', errors='ignore')
         except Exception:
             text_content = f"[Document content from {file_name}]"
     
     # If text content is still empty, fall back to file name
-    if not text_content.strip():
+    if not text_content or not text_content.strip():
         text_content = f"[Document content from {file_name}]"
     
     # Create the prompt for GPT
@@ -270,6 +243,117 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
     except Exception as e:
         logger.error(f"Error calling OpenAI API: {str(e)}")
         raise APIError(f"Failed to extract data using GPT: {str(e)}")
+
+
+def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
+    """
+    Extract text content from Excel file bytes.
+    
+    Args:
+        file_content: Excel file content as bytes
+        file_name: Name of the file
+        
+    Returns:
+        Extracted text content
+    """
+    import pandas as pd
+    import io
+    
+    # Create a temporary file-like object
+    excel_file = io.BytesIO(file_content)
+    
+    # Read all sheets and convert to text
+    text_parts = []
+    
+    # Get list of sheet names
+    xl = pd.ExcelFile(excel_file)
+    sheet_names = xl.sheet_names
+    
+    for sheet_name in sheet_names:
+        # Reset file pointer to beginning
+        excel_file.seek(0)
+        
+        # Read the sheet
+        df = pd.read_excel(excel_file, sheet_name=sheet_name)
+        
+        # Add sheet name as header
+        text_parts.append(f"Sheet: {sheet_name}")
+        
+        # Convert DataFrame to string representation
+        text_parts.append(df.to_string(index=False))
+        
+        # Add separator between sheets
+        text_parts.append("\n" + "="*50 + "\n")
+    
+    return "\n".join(text_parts)
+
+
+def extract_text_from_pdf(file_content: bytes, file_name: str) -> str:
+    """
+    Extract text content from PDF file bytes.
+    
+    Args:
+        file_content: PDF file content as bytes
+        file_name: Name of the file
+        
+    Returns:
+        Extracted text content
+    """
+    try:
+        import pdfplumber
+        import io
+        
+        # Create a temporary file-like object
+        pdf_file = io.BytesIO(file_content)
+        
+        text_parts = []
+        with pdfplumber.open(pdf_file) as pdf:
+            for i, page in enumerate(pdf.pages):
+                page_text = page.extract_text()
+                if page_text:
+                    text_parts.append(f"--- Page {i+1} ---")
+                    text_parts.append(page_text)
+        
+        return "\n".join(text_parts)
+    except Exception as e:
+        logger.warning(f"PDF extraction failed, returning placeholder: {str(e)}")
+        return f"[PDF content from {file_name}]"
+
+
+def extract_text_from_csv(file_content: bytes, file_name: str) -> str:
+    """
+    Extract text content from CSV file bytes.
+    
+    Args:
+        file_content: CSV file content as bytes
+        file_name: Name of the file
+        
+    Returns:
+        Extracted text content
+    """
+    import pandas as pd
+    import io
+    
+    try:
+        # Try to detect encoding
+        import chardet
+        encoding_info = chardet.detect(file_content)
+        encoding = encoding_info.get('encoding', 'utf-8') or 'utf-8'  # Ensure we have a valid encoding
+        
+        # Create a temporary file-like object with detected encoding
+        csv_file = io.StringIO(file_content.decode(encoding))
+        
+        # Read CSV
+        df = pd.read_csv(csv_file)
+        
+        # Convert to string representation
+        return df.to_string(index=False)
+    except Exception as e:
+        logger.warning(f"CSV extraction failed, falling back to basic decoding: {str(e)}")
+        try:
+            return file_content.decode('utf-8', errors='ignore')
+        except Exception:
+            return f"[CSV content from {file_name}]"
 
 
 def create_gpt_extraction_prompt(document_text: str, file_name: str, document_type_hint: Optional[str]) -> str:
