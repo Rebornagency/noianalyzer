@@ -299,10 +299,49 @@ async def extract_data(
             )
             
             # Step 2: Extract data using the extract_noi_data function
-            file_content = open(temp_file_path, "rb").read()
-            file_like = io.BytesIO(file_content)
-            file_like.name = filename
-            # Remove invalid type attribute assignment
+            # Use preprocessed content instead of re-reading the file
+            content_text = ""
+            
+            if 'content' in preprocessed_data and isinstance(preprocessed_data['content'], dict):
+                # Try to get the best text representation from preprocessed data
+                # Check for combined_text first (most comprehensive)
+                if 'combined_text' in preprocessed_data['content']:
+                    content_text = preprocessed_data['content']['combined_text']
+                # Check for text_representation (Excel files)
+                elif 'text_representation' in preprocessed_data['content']:
+                    text_rep = preprocessed_data['content']['text_representation']
+                    if isinstance(text_rep, list):
+                        content_text = "\n\n".join(text_rep)
+                    else:
+                        content_text = str(text_rep)
+                # Check for simple text
+                elif 'text' in preprocessed_data['content']:
+                    text_content = preprocessed_data['content']['text']
+                    if isinstance(text_content, list):
+                        # PDF text extraction
+                        content_text = "\n\n".join([page.get('content', '') for page in text_content])
+                    else:
+                        # Simple text
+                        content_text = str(text_content)
+            
+            # Create a file-like object with the preprocessed content
+            # Define FileLikeObject class once
+            class FileLikeObject:
+                def __init__(self, content, name):
+                    self._content = content
+                    self.name = name
+                
+                def getvalue(self):
+                    return self._content
+            
+            if content_text:
+                file_like = FileLikeObject(content_text.encode('utf-8'), filename)
+                preprocessing_used = True
+            else:
+                # Fallback to original method if no text could be extracted
+                file_content = open(temp_file_path, "rb").read()
+                file_like = FileLikeObject(file_content, filename)
+                preprocessing_used = False
             
             extraction_result = extract_noi_data(file_like, document_type_hint=document_type)
             
@@ -314,7 +353,8 @@ async def extract_data(
                 'filename': file.filename,
                 'document_type': document_type,
                 'period': extraction_result.get('period'),
-                'classification_method': 'user_provided' if document_type else 'unknown'
+                'classification_method': 'user_provided' if document_type else 'unknown',
+                'preprocessing_used': preprocessing_used
             }
             
             return final_result
