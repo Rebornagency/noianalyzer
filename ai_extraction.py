@@ -279,8 +279,16 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
         # Add sheet name as header
         text_parts.append(f"Sheet: {sheet_name}")
         
-        # Convert DataFrame to string representation
-        text_parts.append(df.to_string(index=False))
+        # Improve table representation for better GPT understanding
+        # Remove unnamed columns that are typically artifacts of merged cells
+        columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
+        if columns_to_drop:
+            df = df.drop(columns=columns_to_drop)
+        
+        # Convert DataFrame to string representation with better formatting
+        # Use tab separator for better column alignment
+        table_text = df.to_string(index=False, na_rep='')
+        text_parts.append(table_text)
         
         # Add separator between sheets
         text_parts.append("\n" + "="*50 + "\n")
@@ -390,19 +398,21 @@ Instructions:
 4. Ensure all field names match exactly as specified
 5. Calculate derived values (EGI, NOI) if not explicitly provided
 6. Be flexible with field names - look for synonyms and variations
+7. For tabular data, look for line items in the first column and corresponding values in other columns
+8. Pay special attention to negative values which may be shown in parentheses e.g. (1,234.50) should be extracted as -1234.50
 
 Required JSON Structure:
 {{
   "file_name": "{file_name}",
   "document_type": "{document_type_hint or 'unknown'}",
-  "gpr": 0.0,              // Gross Potential Rent
-  "vacancy_loss": 0.0,     // Vacancy Loss
-  "concessions": 0.0,      // Concessions
-  "bad_debt": 0.0,         // Bad Debt
-  "other_income": 0.0,     // Other Income
-  "egi": 0.0,              // Effective Gross Income (calculate if not provided)
-  "opex": 0.0,             // Total Operating Expenses
-  "noi": 0.0,              // Net Operating Income (calculate if not provided)
+  "gpr": 0.0,              // Gross Potential Rent (Total potential rental income)
+  "vacancy_loss": 0.0,     // Vacancy Loss (Lost income due to vacant units)
+  "concessions": 0.0,      // Concessions (Reduced rent given to tenants)
+  "bad_debt": 0.0,         // Bad Debt (Uncollected rent)
+  "other_income": 0.0,     // Other Income (Parking, laundry, etc.)
+  "egi": 0.0,              // Effective Gross Income (GPR - Vacancy - Concessions - Bad Debt + Other Income)
+  "opex": 0.0,             // Total Operating Expenses (Sum of all operating expenses)
+  "noi": 0.0,              // Net Operating Income (EGI - OpEx)
   "property_taxes": 0.0,   // Property Taxes
   "insurance": 0.0,        // Insurance
   "repairs_maintenance": 0.0,  // Repairs & Maintenance
@@ -424,13 +434,20 @@ Required JSON Structure:
 Common Field Variations to Look For:
 - GPR: Gross Potential Rent, Potential Rent, Scheduled Rent, Total Revenue, Revenue, Gross Income
 - Vacancy Loss: Vacancy, Credit Loss, Vacancy and Credit Loss
-- Other Income: Additional Income, Miscellaneous Income
+- Other Income: Additional Income, Miscellaneous Income, Parking Fees, Laundry Income, Application Fees, Late Fees
 - OpEx: Operating Expenses, Total Operating Expenses, Expenses
 - NOI: Net Operating Income, Net Income, Operating Income
 
 Calculation Rules:
 - EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
 - NOI = EGI - OpEx
+
+Special Instructions for Table Data:
+1. Look for line items in the first column of tables
+2. Look for values in columns labeled with periods (e.g., "Sep 2025 Actual", "Current Month")
+3. When multiple columns exist, focus on the "Actual" values for current month data
+4. Sum all revenue items to calculate Total Revenue/GPR
+5. Sum all expense items to calculate Total Operating Expenses
 
 Return ONLY the JSON object with the extracted values. Do not include any other text, explanations, or formatting.
 """
@@ -465,7 +482,7 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
     }
     
     # Validate financial fields and provide safe defaults
-    financial_fields = MAIN_METRICS + OPEX_COMPONENTS
+    financial_fields = MAIN_METRICS + OPEX_COMPONENTS + INCOME_COMPONENTS
     
     missing_fields = []
     for field in financial_fields:
@@ -485,16 +502,27 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
             }
         )
     
-    # Validate financial calculations
+    # Validate financial calculations with more robust logic
     try:
+        # Get individual income components
         gpr = enriched_result["gpr"]
         vacancy_loss = enriched_result["vacancy_loss"]
         concessions = enriched_result["concessions"]
         bad_debt = enriched_result["bad_debt"]
         other_income = enriched_result["other_income"]
+        
+        # If GPR is 0 but we have other income components, calculate GPR
+        if gpr == 0 and (other_income > 0 or vacancy_loss != 0 or concessions != 0):
+            calculated_gpr = other_income + vacancy_loss + concessions + bad_debt
+            if calculated_gpr > 0:
+                logger.info(f"Calculated GPR from components: {calculated_gpr:.2f}")
+                enriched_result["gpr"] = calculated_gpr
+                gpr = calculated_gpr
+        
+        # Calculate EGI
         calculated_egi = gpr - vacancy_loss - concessions - bad_debt + other_income
         
-        # Always update EGI if we have meaningful GPR data, regardless of mismatch threshold
+        # Always update EGI if we have meaningful GPR data
         if gpr > 0 or abs(calculated_egi - enriched_result["egi"]) > 1.0:
             if abs(calculated_egi - enriched_result["egi"]) > 1.0:
                 logger.warning(f"EGI calculation mismatch detected: reported={enriched_result['egi']:.2f}, calculated={calculated_egi:.2f} (GPR={gpr:.2f} - Vacancy={vacancy_loss:.2f} - Concessions={concessions:.2f} - BadDebt={bad_debt:.2f} + OtherIncome={other_income:.2f})")
@@ -504,7 +532,7 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
         opex = enriched_result["opex"]
         calculated_noi = egi - opex
         
-        # Always validate and correct NOI calculation, especially when it's negative operating expenses
+        # Always validate and correct NOI calculation
         if gpr > 0 or egi != 0 or opex > 0 or abs(calculated_noi - enriched_result["noi"]) > 1.0:
             # Special check for the case where NOI is reported as negative operating expenses
             if abs(enriched_result["noi"] + opex) < 1.0 and egi > 0:

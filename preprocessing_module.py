@@ -33,7 +33,7 @@ class FilePreprocessor:
             'txt': self._process_txt
         }
     
-    def preprocess(self, file_path: str, content_type: str = None, filename: str = None) -> Dict[str, Any]:
+    def preprocess(self, file_path: str, content_type: Optional[str] = None, filename: Optional[str] = None) -> Dict[str, Any]:
         """
         Main method to preprocess a file
         
@@ -125,7 +125,7 @@ class FilePreprocessor:
             Dict containing extracted text and tables
         """
         logger.info(f"Extracting content from PDF: {file_path}")
-        result = {
+        result: Dict[str, Any] = {
             'text': [],
             'tables': []
         }
@@ -147,16 +147,27 @@ class FilePreprocessor:
                         if table:
                             # Convert table to DataFrame for easier processing
                             df = pd.DataFrame(table)
+                            
+                            # Clean up DataFrame - remove empty rows and columns
+                            df = df.dropna(how='all').dropna(axis=1, how='all')
+                            
                             # Use first row as header if it looks like a header
-                            if self._is_header_row(df.iloc[0]):
+                            if len(df) > 0 and self._is_header_row(df.iloc[0]):
                                 df.columns = df.iloc[0]
                                 df = df.iloc[1:]
                             
-                            result['tables'].append({
-                                'page': i + 1,
-                                'table_index': j,
-                                'data': df.to_dict(orient='records')
-                            })
+                            # Remove unnamed columns
+                            columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
+                            if columns_to_drop:
+                                df = df.drop(columns=columns_to_drop)
+                            
+                            # Only add non-empty tables
+                            if not df.empty:
+                                result['tables'].append({
+                                    'page': i + 1,
+                                    'table_index': j,
+                                    'data': df.to_dict(orient='records')
+                                })
         except Exception as e:
             logger.error(f"Error processing PDF: {str(e)}")
             raise
@@ -178,7 +189,7 @@ class FilePreprocessor:
             Dict containing extracted sheets and data
         """
         logger.info(f"Extracting content from Excel: {file_path}")
-        result = {
+        result: Dict[str, Any] = {
             'sheets': [],
             'text_representation': []
         }
@@ -192,15 +203,20 @@ class FilePreprocessor:
                 # Read the sheet
                 df = pd.read_excel(file_path, sheet_name=sheet_name)
                 
+                # Remove unnamed columns that are typically artifacts of merged cells
+                columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
+                if columns_to_drop:
+                    df = df.drop(columns=columns_to_drop)
+                
                 # Store sheet data
                 result['sheets'].append({
                     'name': sheet_name,
                     'data': df.to_dict(orient='records')
                 })
                 
-                # Create text representation of the sheet
+                # Create text representation of the sheet with better formatting
                 text_rep = f"Sheet: {sheet_name}\n"
-                text_rep += df.to_string(index=False)
+                text_rep += df.to_string(index=False, na_rep='')
                 result['text_representation'].append(text_rep)
             
             # Combine all text representations
@@ -223,7 +239,7 @@ class FilePreprocessor:
             Dict containing extracted data
         """
         logger.info(f"Extracting content from CSV: {file_path}")
-        result = {}
+        result: Dict[str, Any] = {}
         
         try:
             # Detect encoding
@@ -235,8 +251,8 @@ class FilePreprocessor:
             # Store data
             result['data'] = df.to_dict(orient='records')
             
-            # Create text representation
-            result['text_representation'] = df.to_string(index=False)
+            # Create text representation with better formatting
+            result['text_representation'] = df.to_string(index=False, na_rep='')
             result['combined_text'] = result['text_representation']
             
         except Exception as e:
@@ -256,7 +272,7 @@ class FilePreprocessor:
             Dict containing extracted text
         """
         logger.info(f"Extracting content from TXT: {file_path}")
-        result = {}
+        result: Dict[str, Any] = {}
         
         try:
             # Detect encoding
@@ -350,7 +366,7 @@ class FilePreprocessor:
         return False
 
 
-def preprocess_file(file_path: str, content_type: str = None, filename: str = None) -> Dict[str, Any]:
+def preprocess_file(file_path: str, content_type: Optional[str] = None, filename: Optional[str] = None) -> Dict[str, Any]:
     """
     Convenience function to preprocess a file
     
