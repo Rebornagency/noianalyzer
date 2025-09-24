@@ -185,12 +185,10 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
             logger.info("Processing as CSV file", extra={"file_name": file_name})
             text_content = extract_text_from_csv(file_content, file_name)
         elif ext == 'txt':
-            # Handle text files with enhanced formatting
+            # Handle text files
             logger.info("Processing as text file", extra={"file_name": file_name})
             try:
                 text_content = file_content.decode('utf-8', errors='ignore')
-                # Enhance text formatting for better GPT parsing
-                text_content = _format_text_content(text_content, file_name)
             except Exception as e:
                 logger.warning(f"Text decoding failed: {str(e)}", extra={"file_name": file_name})
                 text_content = f"[Text content from {file_name}]"
@@ -201,8 +199,6 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
             # Try as text first
             try:
                 text_content = file_content.decode('utf-8', errors='ignore')
-                # Enhance text formatting for better GPT parsing
-                text_content = _format_text_content(text_content, file_name)
                 logger.info("Successfully decoded as text", extra={"file_name": file_name})
             except Exception as e:
                 logger.warning(f"Text decoding failed: {str(e)}", extra={"file_name": file_name})
@@ -228,8 +224,6 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
         logger.warning(f"File processing failed for {file_name}, falling back to text decoding: {str(e)}")
         try:
             text_content = file_content.decode('utf-8', errors='ignore')
-            # Enhance text formatting for better GPT parsing
-            text_content = _format_text_content(text_content, file_name)
         except Exception:
             text_content = f"[Document content from {file_name}]"
     
@@ -269,119 +263,60 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
     
     # Prepare messages for chat completion
     messages = [
-        {"role": "system", "content": "You are a world-class real estate financial analyst with expertise in extracting data from diverse financial documents. You are meticulous, accurate, and never leave fields empty."},
+        {"role": "system", "content": "You are a senior real estate financial analyst specializing in extracting financial data from property management documents. You are meticulous and accurate."},
         {"role": "user", "content": prompt}
     ]
     
     logger.info(f"Sending extraction prompt to GPT (length: {len(prompt)} chars)")
     
-    # Try multiple attempts with GPT
-    max_gpt_attempts = 3
-    for attempt in range(max_gpt_attempts):
+    try:
+        # Call OpenAI API
+        response_content = chat_completion(
+            messages=messages,
+            model="gpt-3.5-turbo",
+            temperature=0.1,
+            max_tokens=2000
+        )
+        
+        logger.info(f"Received response from GPT (length: {len(response_content)} chars)")
+        logger.debug(f"Raw GPT response: {response_content}")
+        
+        # Parse the JSON response
         try:
-            # Call OpenAI API
-            response_content = chat_completion(
-                messages=messages,
-                model="gpt-3.5-turbo",
-                temperature=0.1,
-                max_tokens=2000
-            )
-            
-            logger.info(f"Received response from GPT (length: {len(response_content)} chars)")
-            logger.debug(f"Raw GPT response: {response_content}")
-            
-            # Parse the JSON response
-            try:
-                # Extract JSON from response if it's wrapped in other text
-                json_start = response_content.find('{')
-                json_end = response_content.rfind('}') + 1
-                if json_start >= 0 and json_end > json_start:
-                    json_str = response_content[json_start:json_end]
-                    result = json.loads(json_str)
-                    logger.info(f"Successfully parsed JSON from GPT response")
-                else:
-                    result = json.loads(response_content)
-                    logger.info(f"Successfully parsed direct JSON response")
-                
-                # Validate that we have meaningful data
-                meaningful_fields = 0
-                for key, value in result.items():
-                    if key not in ['file_name', 'document_type'] and isinstance(value, (int, float)) and value != 0.0:
-                        meaningful_fields += 1
-                
-                # If we have meaningful data, return it
-                if meaningful_fields > 0:
-                    logger.info(f"GPT extraction successful with {meaningful_fields} meaningful fields")
-                    # Log the keys in the result for debugging
-                    logger.info(
-                        f"GPT response keys: {list(result.keys())}",
-                        extra={
-                            "file_name": file_name,
-                            "response_keys": list(result.keys())
-                        }
-                    )
-                    return result
-                else:
-                    logger.warning(f"GPT response contains no meaningful data (attempt {attempt + 1}/{max_gpt_attempts})")
-                    
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse GPT response as JSON: {str(e)}")
-                logger.error(f"Response content: {response_content}")
-                # Try to extract any financial data that might be in the response
-                result = _extract_financial_data_from_text(response_content, file_name, document_type_hint)
-                if result and len(result) > 2:
-                    logger.info("Successfully extracted financial data from text response")
-                    return result
-                else:
-                    logger.warning(f"Text extraction from GPT response failed (attempt {attempt + 1}/{max_gpt_attempts})")
-                    
-        except Exception as e:
-            logger.error(f"Error calling OpenAI API (attempt {attempt + 1}/{max_gpt_attempts}): {str(e)}")
-            
-        # If we get here, the attempt failed. Try again with a modified prompt for subsequent attempts
-        if attempt < max_gpt_attempts - 1:
-            logger.info(f"Retrying GPT extraction (attempt {attempt + 2}/{max_gpt_attempts})")
-            # Add a note to be more explicit on retry
-            retry_note = f"\n\nIMPORTANT: This is retry attempt {attempt + 2}. Please be extremely thorough and extract ALL financial data, even if you're unsure. Make educated estimates when needed."
-            messages[1]["content"] = prompt + retry_note
-    
-    # If all GPT attempts fail, try to extract data directly from the document text
-    logger.warning("All GPT attempts failed, trying direct text extraction")
-    direct_result = _extract_financial_data_from_text(text_content, file_name, document_type_hint)
-    if direct_result and len(direct_result) > 2:
-        logger.info("Successfully extracted financial data directly from document text")
-        return direct_result
-    
-    # If everything fails, return a fallback result
-    logger.error("All extraction methods failed, returning fallback result")
-    return {
-        "file_name": file_name,
-        "document_type": document_type_hint or "unknown",
-        "gpr": 0.0,
-        "vacancy_loss": 0.0,
-        "concessions": 0.0,
-        "bad_debt": 0.0,
-        "other_income": 0.0,
-        "egi": 0.0,
-        "opex": 0.0,
-        "noi": 0.0,
-        "property_taxes": 0.0,
-        "insurance": 0.0,
-        "repairs_maintenance": 0.0,
-        "utilities": 0.0,
-        "management_fees": 0.0,
-        "parking": 0.0,
-        "laundry": 0.0,
-        "late_fees": 0.0,
-        "pet_fees": 0.0,
-        "application_fees": 0.0,
-        "storage_fees": 0.0,
-        "amenity_fees": 0.0,
-        "utility_reimbursements": 0.0,
-        "cleaning_fees": 0.0,
-        "cancellation_fees": 0.0,
-        "miscellaneous": 0.0
-    }
+            # Extract JSON from response if it's wrapped in other text
+            json_start = response_content.find('{')
+            json_end = response_content.rfind('}') + 1
+            if json_start >= 0 and json_end > json_start:
+                json_str = response_content[json_start:json_end]
+                result = json.loads(json_str)
+                logger.info(f"Successfully parsed JSON from GPT response")
+            else:
+                result = json.loads(response_content)
+                logger.info(f"Successfully parsed direct JSON response")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse GPT response as JSON: {str(e)}")
+            logger.error(f"Response content: {response_content}")
+            # Try to extract any financial data that might be in the response
+            result = _extract_financial_data_from_text(response_content, file_name, document_type_hint)
+            if result:
+                logger.info("Successfully extracted financial data from text response")
+            else:
+                raise APIError("GPT returned invalid JSON response and no financial data could be extracted")
+        
+        # Log the keys in the result for debugging
+        logger.info(
+            f"GPT response keys: {list(result.keys())}",
+            extra={
+                "file_name": file_name,
+                "response_keys": list(result.keys())
+            }
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error calling OpenAI API: {str(e)}")
+        raise APIError(f"Failed to extract data using GPT: {str(e)})
 
 
 def _extract_financial_data_from_text(text: str, file_name: str, document_type_hint: Optional[str]) -> Dict[str, Any]:
@@ -406,19 +341,16 @@ def _extract_financial_data_from_text(text: str, file_name: str, document_type_h
             "document_type": document_type_hint or "unknown"
         }
         
-        # Normalize the text for better matching
-        normalized_text = text.lower()
-        
-        # Common financial terms and their field mappings with more variations
+        # Common financial terms and their field mappings
         financial_terms = {
-            r'(?:gross\s+potential\s+rent|gpr|potential\s+rent|scheduled\s+rent|total\s+rental\s+income|gross\s+rental\s+income)': 'gpr',
-            r'(?:vacancy\s+loss|vacancy|credit\s+loss|vacancy\s+and\s+credit\s+loss|turnover\s+loss)': 'vacancy_loss',
-            r'(?:concession|concessions|tenant\s+concessions|leasing\s+concessions|move-in\s+concessions|free\s+rent)': 'concessions',
-            r'(?:bad\s+debt|uncollected\s+rent|delinquent\s+rent|write-offs|account\s+receivable\s+write-offs)': 'bad_debt',
-            r'(?:other\s+income|additional\s+income|miscellaneous\s+income|parking\s+(?:fees?|income)|laundry\s+(?:fees?|income)|application\s+fees?|late\s+fees?|pet\s+fees?|storage\s+fees?|amenity\s+fees?|utility\s+reimbursements?|cleaning\s+fees?|cancellation\s+fees?)': 'other_income',
-            r'(?:effective\s+gross\s+income|egi|net\s+rental\s+income|adjusted\s+gross\s+income)': 'egi',
-            r'(?:operating\s+expenses?|opex|total\s+operating\s+expenses|expenses|operating\s+costs|property\s+operating\s+expenses)': 'opex',
-            r'(?:net\s+operating\s+income|noi|net\s+income|operating\s+income|property\s+net\s+income)': 'noi',
+            r'(?:gross\s+potential\s+rent|gpr|potential\s+rent|scheduled\s+rent)': 'gpr',
+            r'(?:vacancy\s+loss|vacancy)': 'vacancy_loss',
+            r'(?:concession|concessions)': 'concessions',
+            r'(?:bad\s+debt)': 'bad_debt',
+            r'(?:other\s+income)': 'other_income',
+            r'(?:effective\s+gross\s+income|egi)': 'egi',
+            r'(?:operating\s+expenses?|opex)': 'opex',
+            r'(?:net\s+operating\s+income|noi)': 'noi',
             r'(?:property\s+tax)': 'property_taxes',
             r'(?:insurance)': 'insurance',
             r'(?:repairs?\s+(?:&|and)\s+maintenance|repairs?|maintenance)': 'repairs_maintenance',
@@ -429,20 +361,14 @@ def _extract_financial_data_from_text(text: str, file_name: str, document_type_h
             r'(?:late\s+fees?)': 'late_fees'
         }
         
-        # Look for monetary values in the text with more flexible patterns
+        # Look for monetary values in the text
         for pattern, field in financial_terms.items():
-            # Look for pattern followed by a value with more flexible matching
-            # This pattern matches various formats: $1,234.50, 1,234.50, (1,234.50), -$1,234.50
-            matches = re.findall(rf'{pattern}.*?[\$:€£¥]?\s*(-?\(?[\d,]+\.?\d*\)?)', normalized_text, re.IGNORECASE)
+            # Look for pattern followed by a value
+            matches = re.findall(rf'{pattern}.*?[\$:]\s*(-?[\d,]+\.?\d*)', text, re.IGNORECASE)
             if matches:
                 # Take the first match and convert to float
                 try:
-                    value_str = matches[0]
-                    # Handle parentheses for negative values
-                    if value_str.startswith('(') and value_str.endswith(')'):
-                        value = -float(value_str[1:-1].replace(',', ''))
-                    else:
-                        value = float(value_str.replace(',', '').replace('$', '').replace('€', '').replace('£', '').replace('¥', ''))
+                    value = float(matches[0].replace(',', ''))
                     result[field] = value
                 except ValueError:
                     pass  # Skip if conversion fails
@@ -450,51 +376,6 @@ def _extract_financial_data_from_text(text: str, file_name: str, document_type_h
         # If we found some financial data, return it
         if len(result) > 2:  # More than just file_name and document_type
             logger.info(f"Extracted {len(result) - 2} financial fields from text response")
-            return result
-        
-        # Try a more aggressive approach - look for any monetary values near financial terms
-        financial_categories = {
-            'gpr': ['gross potential rent', 'potential rent', 'scheduled rent', 'total revenue', 'gross income'],
-            'vacancy_loss': ['vacancy', 'credit loss'],
-            'concessions': ['concession', 'free rent'],
-            'bad_debt': ['bad debt', 'uncollected rent'],
-            'other_income': ['other income', 'parking', 'laundry', 'application fee', 'late fee'],
-            'egi': ['effective gross income'],
-            'opex': ['operating expense', 'operating cost'],
-            'noi': ['net operating income', 'net income']
-        }
-        
-        # Split text into lines for better processing
-        lines = normalized_text.split('\n')
-        for category, terms in financial_categories.items():
-            for term in terms:
-                for i, line in enumerate(lines):
-                    if term in line:
-                        # Look for monetary values in this line and nearby lines
-                        search_lines = lines[max(0, i-1):min(len(lines), i+2)]
-                        for search_line in search_lines:
-                            # Find monetary values
-                            money_matches = re.findall(r'(-?\(?[\d,]+\.?\d*\)?)', search_line)
-                            for match in money_matches:
-                                try:
-                                    # Handle parentheses for negative values
-                                    if match.startswith('(') and match.endswith(')'):
-                                        value = -float(match[1:-1].replace(',', ''))
-                                    else:
-                                        value = float(match.replace(',', ''))
-                                    if category not in result or result[category] == 0.0:
-                                        result[category] = value
-                                        break
-                                except ValueError:
-                                    continue
-                        if category in result:
-                            break
-                if category in result:
-                    break
-        
-        # If we found some financial data, return it
-        if len(result) > 2:  # More than just file_name and document_type
-            logger.info(f"Aggressively extracted {len(result) - 2} financial fields from text response")
             return result
         
         return {}  # Return empty dict if no data found
@@ -649,26 +530,6 @@ def extract_text_from_pdf(file_content: bytes, file_name: str) -> str:
             except Exception as e:
                 logger.warning(f"Alternative PDF extraction also failed: {str(e)}")
         
-        # Format the result for better GPT understanding
-        if result.strip() and "Table" in result:
-            # If we have tables, format them more clearly
-            formatted_parts = []
-            for part in result.split("---"):
-                if part.strip():
-                    if "Table" in part:
-                        # Format tables with better separation
-                        lines = part.strip().split("\n")
-                        formatted_parts.append("--- " + lines[0].strip() + " ---")
-                        for line in lines[1:]:
-                            if "\t" in line:
-                                # This looks like a table row
-                                formatted_parts.append("  " + line)
-                            else:
-                                formatted_parts.append(line)
-                    else:
-                        formatted_parts.append("--- " + part.strip() + " ---")
-            result = "\n".join(formatted_parts)
-        
         return result if result.strip() else f"[PDF content from {file_name}]"
     except Exception as e:
         logger.warning(f"PDF extraction failed, returning placeholder: {str(e)}")
@@ -719,37 +580,14 @@ def extract_text_from_csv(file_content: bytes, file_name: str) -> str:
             
             # Format the DataFrame with clear column separation
             table_text = df.to_string(index=False, na_rep='', max_colwidth=50)
-            
-            # Add clear section headers for better structure
-            result = f"CSV File Content: {file_name}\n" + "="*50 + "\n" + table_text
-            
-            # If the result is too short, try alternative approach
-            if len(result.strip()) < 50:
-                csv_file.seek(0)
-                # Try reading with different parameters to get raw data
-                try:
-                    df_raw = pd.read_csv(csv_file, sep=None, engine='python', header=None)
-                    table_text_raw = df_raw.to_string(index=False, na_rep='', max_colwidth=50)
-                    result = f"CSV File Content (Raw Format): {file_name}\n" + "="*50 + "\n" + table_text_raw
-                except Exception as e:
-                    logger.warning(f"Alternative CSV extraction also failed: {str(e)}")
-            
-            return result
+            return f"CSV File: {file_name}\n{table_text}"
         else:
             return f"[Empty CSV content from {file_name}]"
             
     except Exception as e:
         logger.warning(f"CSV extraction failed, falling back to basic decoding: {str(e)}")
         try:
-            decoded_text = file_content.decode('utf-8', errors='ignore')
-            if decoded_text.strip():
-                # Add structure to plain text CSV
-                lines = decoded_text.strip().split('\n')
-                if len(lines) > 1:
-                    result = f"CSV File Content: {file_name}\n" + "="*50 + "\n"
-                    result += "\n".join(lines)
-                    return result
-            return decoded_text if decoded_text.strip() else f"[CSV content from {file_name}]"
+            return file_content.decode('utf-8', errors='ignore')
         except Exception:
             return f"[CSV content from {file_name}]"
 
@@ -816,39 +654,10 @@ Examples of Financial Statement Structure to Look For:
 - Line items like "Gross Potential Rent", "Vacancy Loss", "Property Taxes", etc.
 - Headers indicating periods like "Sep 2025", "Actual", "Budget", etc.
 - Subtotal lines like "Total Revenue", "Total Operating Expenses", etc.
-
-INTELLIGENT FINANCIAL DATA RECOGNITION:
-You are a highly skilled financial analyst. Your task is to intelligently identify and extract financial data regardless of how it's formatted in the document. 
-Key principles:
-1. Look for financial concepts, not exact wording (e.g., "Net Operating Income", "NOI", "Operating Income" are all the same)
-2. Be flexible with capitalization (e.g., "net operating income", "NET OPERATING INCOME", "Net Operating Income" are all the same)
-3. Recognize common financial abbreviations and variations
-4. Understand that financial statements can be structured in many different ways
-5. Look for monetary values associated with financial concepts
-6. When you see a total or subtotal, verify it makes mathematical sense with the line items above it
-7. Be aware that negative values might be shown as (1,234.50), -1,234.50, or in parentheses
-8. Extract ALL financial metrics, even if they're not explicitly labeled
-
-CRITICAL THINKING APPROACH:
-1. First, scan the entire document to understand its structure
-2. Identify all potential financial line items and their values
-3. Group related items (revenue items, expense items, etc.)
-4. Calculate derived values when not explicitly provided
-5. Double-check your work by verifying mathematical relationships
-6. If you're unsure about a value, make your best educated guess based on context
-7. NEVER leave a field as null or skip it - always provide a numeric value (use 0.0 if truly unknown)
-
-CONTEXTUAL UNDERSTANDING:
-- GPR (Gross Potential Rent) represents total potential rental income
-- EGI (Effective Gross Income) = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
-- OpEx (Operating Expenses) includes all operational costs
-- NOI (Net Operating Income) = EGI - OpEx
-- Understand that documents may use different terminology for the same concepts
 """
 
     prompt = f"""
-You are a world-class real estate financial analyst with expertise in extracting data from diverse financial documents. 
-Your task is to intelligently extract financial data from the provided property management document, regardless of its format or structure.
+Extract financial data from the following property management document and return it as a JSON object.
 
 Document Information:
 - File Name: {file_name}
@@ -857,18 +666,17 @@ Document Information:
 Document Content:
 {document_text}
 
-INSTRUCTIONS:
-Extract all financial metrics from the document and return them in the exact JSON structure shown below. 
-CRITICAL REQUIREMENTS:
-1. Extract ALL financial metrics - do not skip any fields
-2. Be extremely flexible with terminology and formatting variations
-3. All monetary values must be numeric (no currency symbols, commas, or text)
-4. If a value is not explicitly found, CALCULATE it using the provided formulas
-5. If you cannot determine a value, make your best educated estimate based on context
-6. NEVER leave a field as null or skip it - always provide a numeric value (use 0.0 if truly unknown)
-7. Be aware that financial documents can be formatted in countless ways - your job is to intelligently parse ANY format
-
-REQUIRED JSON STRUCTURE:
+Instructions:
+1. Extract all financial metrics and return them in the exact JSON structure shown below
+2. All monetary values must be numeric (no currency symbols, commas, or text)
+3. If a value is not found, use 0.0
+4. Ensure all field names match exactly as specified
+5. Calculate derived values (EGI, NOI) if not explicitly provided
+6. Be flexible with field names - look for synonyms and variations
+7. For tabular data, look for line items in the first column and corresponding values in other columns
+8. Pay special attention to negative values which may be shown in parentheses e.g. (1,234.50) should be extracted as -1234.50
+{format_instructions}
+Required JSON Structure:
 {{
   "file_name": "{file_name}",
   "document_type": "{document_type_hint or 'unknown'}",
@@ -898,36 +706,18 @@ REQUIRED JSON STRUCTURE:
   "miscellaneous": 0.0     // Miscellaneous Income
 }}
 
-EXTENSIVE FIELD VARIATIONS TO LOOK FOR:
-- GPR: Gross Potential Rent, Potential Rent, Scheduled Rent, Total Revenue, Revenue, Gross Income, Potential Income, Scheduled Income
-- Vacancy Loss: Vacancy, Credit Loss, Vacancy and Credit Loss, Vacancy Allowance, Turnover Loss
-- Concessions: Tenant Concessions, Leasing Concessions, Move-in Concessions, Free Rent
-- Bad Debt: Uncollected Rent, Delinquent Rent, Write-offs, Account Receivable Write-offs
-- Other Income: Additional Income, Miscellaneous Income, Parking Fees, Laundry Income, Application Fees, Late Fees, Pet Fees, Storage Fees, Amenity Fees, Utility Reimbursements, Cleaning Fees, Cancellation Fees
-- EGI: Effective Gross Income, Net Rental Income, Adjusted Gross Income
-- OpEx: Operating Expenses, Total Operating Expenses, Expenses, Operating Costs, Property Operating Expenses
-- NOI: Net Operating Income, Net Income, Operating Income, Property Net Income
+Common Field Variations to Look For:
+- GPR: Gross Potential Rent, Potential Rent, Scheduled Rent, Total Revenue, Revenue, Gross Income
+- Vacancy Loss: Vacancy, Credit Loss, Vacancy and Credit Loss
+- Other Income: Additional Income, Miscellaneous Income, Parking Fees, Laundry Income, Application Fees, Late Fees
+- OpEx: Operating Expenses, Total Operating Expenses, Expenses
+- NOI: Net Operating Income, Net Income, Operating Income
 
-NEGATIVE VALUE FORMATS:
-- Recognize these as negative values: (1,234.50), (1234.50), -$1,234.50, -1,234.50
-- Convert them to negative numbers in the JSON output
-
-CALCULATION RULES (Use if not explicitly provided):
+Calculation Rules:
 - EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
 - NOI = EGI - OpEx
-- If you find individual expense items, sum them to calculate OpEx
-- If you find individual income items, sum them to calculate GPR
 
-INTELLIGENT EXTRACTION STRATEGY:
-1. First, scan the entire document to understand its structure and identify all financial data
-2. Look for any text that represents financial concepts, regardless of exact wording
-3. Extract monetary values associated with each financial concept
-4. Be flexible with formatting - data might be in tables, lists, paragraphs, or other structures
-5. When you find subtotals or totals, verify they make mathematical sense with line items
-6. Calculate missing values using the formulas above
-7. Double-check your work for consistency and accuracy
-
-RETURN ONLY the JSON object with the extracted values. Do not include any other text, explanations, or formatting. Make sure all fields are present with numeric values.
+Return ONLY the JSON object with the extracted values. Do not include any other text, explanations, or formatting.
 """
     
     return prompt
@@ -1248,50 +1038,3 @@ def process_uploaded_files(
                 logger.info(f"Removed temporary file: {file_path}")
             except Exception as e:
                 logger.warning(f"Error removing temporary file: {str(e)}")
-
-
-def _format_text_content(text_content: str, file_name: str) -> str:
-    """
-    Format text content for better GPT parsing.
-    
-    Args:
-        text_content: Raw text content
-        file_name: Name of the file
-        
-    Returns:
-        Formatted text content
-    """
-    if not text_content or not text_content.strip():
-        return f"[Text content from {file_name}]"
-    
-    # Clean up excessive whitespace while preserving structure
-    lines = [line.strip() for line in text_content.splitlines() if line.strip()]
-    
-    # Add section headers for common financial statement sections
-    formatted_lines = []
-    section_headers = {
-        'REVENUE': 'REVENUE SECTION',
-        'INCOME': 'INCOME SECTION',
-        'EXPENSE': 'EXPENSE SECTION',
-        'OPERATING': 'OPERATING SECTION',
-        'PROPERTY': 'PROPERTY INFORMATION',
-        'TOTAL': 'SUMMARY',
-        'FINANCIAL': 'FINANCIAL STATEMENT',
-        'RESULT': 'FINANCIAL RESULTS'
-    }
-    
-    # Add file header
-    result_lines = [f"Text File Content: {file_name}", "="*50]
-    
-    for line in lines:
-        result_lines.append(line)
-        # Add section markers for better structure
-        for keyword, header in section_headers.items():
-            if keyword in line.upper() and header not in line:
-                result_lines.append(f"--- {header} ---")
-    
-    # Join lines with appropriate spacing
-    formatted_text = "\n".join(result_lines)
-    
-    return formatted_text
-

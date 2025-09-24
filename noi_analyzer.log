@@ -117,3 +117,147 @@ ImportError: failed to find libmagic.  Check your installation
 2025-09-23 19:21:52,864 - ai_extraction - ERROR - Error calling OpenAI API: Error code: 401 - {'error': {'message': "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.", 'type': 'invalid_request_error', 'param': None, 'code': None}}
 2025-09-23 19:21:52,869 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 2873 chars)
 2025-09-23 19:21:59,260 - ai_extraction - ERROR - Error calling OpenAI API: Error code: 401 - {'error': {'message': "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.", 'type': 'invalid_request_error', 'param': None, 'code': None}}
+2025-09-24 16:41:59,770 - ai_extraction - INFO - Processing file with extension: xlsx
+2025-09-24 16:41:59,771 - ai_extraction - INFO - Processing as Excel file
+2025-09-24 16:41:59,781 - ai_extraction - INFO - Extracted text content length: 2025 chars
+2025-09-24 16:41:59,781 - ai_extraction - INFO - Extracted text content length: 2025 chars
+2025-09-24 16:41:59,781 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5875 chars)
+2025-09-24 16:41:59,781 - ai_extraction - INFO - Received response from GPT (length: 682 chars)
+2025-09-24 16:41:59,781 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5875 chars)
+2025-09-24 16:41:59,782 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+s)
+2025-09-24 16:41:59,782 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+ype', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 16:41:59,782 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 16:53:42,575 - ai_extraction - INFO - Processing file with extension: xlsx
+2025-09-24 16:53:42,575 - ai_extraction - INFO - Processing as Excel file
+2025-09-24 16:53:42,583 - ai_extraction - INFO - Extracted text content length: 1537 chars
+2025-09-24 16:53:42,584 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5774 chars)
+2025-09-24 16:53:42,584 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 16:53:42,584 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 16:53:42,584 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 16:53:42,584 - ai_extraction - INFO - Processing file with extension: csv
+2025-09-24 16:53:42,585 - ai_extraction - INFO - Processing as CSV file
+2025-09-24 16:53:42,586 - ai_extraction - INFO - Extracted text content length: 607 chars
+2025-09-24 16:53:42,586 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 4842 chars)
+2025-09-24 16:53:42,587 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 16:53:42,587 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 16:53:42,587 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 16:53:42,587 - ai_extraction - INFO - Processing file with extension: txt
+2025-09-24 16:53:42,588 - ai_extraction - INFO - Processing as text file
+2025-09-24 16:53:42,588 - ai_extraction - INFO - Extracted text content length: 605 chars
+2025-09-24 16:53:42,588 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 4840 chars)
+2025-09-24 16:53:42,588 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 16:53:42,588 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 16:53:42,588 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:00:16,527 - ai_extraction - INFO - Processing file with extension: xlsx
+2025-09-24 17:00:16,528 - ai_extraction - INFO - Processing as Excel file
+2025-09-24 17:00:16,536 - ai_extraction - INFO - Extracted text content length: 1537 chars
+2025-09-24 17:00:16,537 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5774 chars)
+2025-09-24 17:00:16,538 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:00:16,538 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:00:16,538 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:00:16,538 - ai_extraction - INFO - Processing file with extension: csv
+2025-09-24 17:00:16,538 - ai_extraction - INFO - Processing as CSV file
+2025-09-24 17:00:16,540 - ai_extraction - INFO - Extracted text content length: 607 chars
+2025-09-24 17:00:16,540 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 4842 chars)
+2025-09-24 17:00:16,541 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:00:16,541 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:00:16,541 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:00:16,541 - ai_extraction - INFO - Processing file with extension: txt
+2025-09-24 17:00:16,542 - ai_extraction - INFO - Processing as text file
+2025-09-24 17:00:16,542 - ai_extraction - INFO - Extracted text content length: 605 chars
+2025-09-24 17:00:16,542 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 4840 chars)
+2025-09-24 17:00:16,543 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:00:16,543 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:00:16,543 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:02:28,654 - ai_extraction - INFO - Processing file with extension: xlsx
+2025-09-24 17:02:28,655 - ai_extraction - INFO - Processing as Excel file
+2025-09-24 17:02:28,665 - ai_extraction - INFO - Extracted text content length: 1537 chars
+2025-09-24 17:02:28,665 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5774 chars)
+2025-09-24 17:02:28,665 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:02:28,665 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:02:28,666 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:02:28,666 - ai_extraction - INFO - Processing file with extension: csv
+2025-09-24 17:02:28,666 - ai_extraction - INFO - Processing as CSV file
+2025-09-24 17:02:28,668 - ai_extraction - INFO - Extracted text content length: 666 chars
+2025-09-24 17:02:28,669 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 4901 chars)
+2025-09-24 17:02:28,669 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:02:28,669 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:02:28,669 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:02:28,670 - ai_extraction - INFO - Processing file with extension: txt
+2025-09-24 17:02:28,670 - ai_extraction - INFO - Processing as text file
+2025-09-24 17:02:28,670 - ai_extraction - INFO - Extracted text content length: 956 chars
+2025-09-24 17:02:28,670 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5191 chars)
+2025-09-24 17:02:28,670 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:02:28,670 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:02:28,670 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:04:20,533 - ai_extraction - INFO - Processing file with extension: xlsx
+2025-09-24 17:04:20,534 - ai_extraction - INFO - Processing as Excel file
+2025-09-24 17:04:20,542 - ai_extraction - INFO - Extracted text content length: 1537 chars
+2025-09-24 17:04:20,542 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5774 chars)
+2025-09-24 17:04:20,543 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:04:20,543 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:04:20,543 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:04:20,543 - ai_extraction - INFO - Processing file with extension: csv
+2025-09-24 17:04:20,544 - ai_extraction - INFO - Processing as CSV file
+2025-09-24 17:04:20,546 - ai_extraction - INFO - Extracted text content length: 666 chars
+2025-09-24 17:04:20,546 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 4901 chars)
+2025-09-24 17:04:20,546 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:04:20,546 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:04:20,546 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:04:20,547 - ai_extraction - INFO - Processing file with extension: txt
+2025-09-24 17:04:20,547 - ai_extraction - INFO - Processing as text file
+2025-09-24 17:04:20,547 - ai_extraction - INFO - Extracted text content length: 956 chars
+2025-09-24 17:04:20,547 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5191 chars)
+2025-09-24 17:04:20,548 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:04:20,548 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:04:20,548 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:06:13,400 - ai_extraction - INFO - Processing file with extension: xlsx
+2025-09-24 17:06:13,400 - ai_extraction - INFO - Processing as Excel file
+2025-09-24 17:06:13,411 - ai_extraction - INFO - Extracted text content length: 1537 chars
+2025-09-24 17:06:13,411 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5774 chars)
+2025-09-24 17:06:13,412 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:06:13,412 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:06:13,412 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:06:13,413 - ai_extraction - INFO - Processing file with extension: csv
+2025-09-24 17:06:13,413 - ai_extraction - INFO - Processing as CSV file
+2025-09-24 17:06:13,415 - ai_extraction - INFO - Extracted text content length: 666 chars
+2025-09-24 17:06:13,415 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 4901 chars)
+2025-09-24 17:06:13,415 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:06:13,416 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:06:13,416 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:06:13,416 - ai_extraction - INFO - Processing file with extension: txt
+2025-09-24 17:06:13,416 - ai_extraction - INFO - Processing as text file
+2025-09-24 17:06:13,417 - ai_extraction - INFO - Extracted text content length: 956 chars
+2025-09-24 17:06:13,417 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5191 chars)
+2025-09-24 17:06:13,417 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:06:13,417 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:06:13,417 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:13:20,779 - ai_extraction - INFO - Extracted 7 financial fields from text response
+2025-09-24 17:13:20,780 - ai_extraction - INFO - Extracted 7 financial fields from text response
+2025-09-24 17:13:20,780 - ai_extraction - INFO - Extracted 5 financial fields from text response
+2025-09-24 17:14:34,425 - ai_extraction - INFO - Processing file with extension: xlsx
+2025-09-24 17:14:34,425 - ai_extraction - INFO - Processing as Excel file
+2025-09-24 17:14:34,435 - ai_extraction - INFO - Extracted text content length: 1537 chars
+2025-09-24 17:14:34,435 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 6364 chars)
+2025-09-24 17:14:34,435 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:14:34,435 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:14:34,435 - ai_extraction - INFO - GPT extraction successful with 24 meaningful fields
+2025-09-24 17:14:34,435 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:14:34,436 - ai_extraction - INFO - Processing file with extension: csv
+2025-09-24 17:14:34,436 - ai_extraction - INFO - Processing as CSV file
+2025-09-24 17:14:34,439 - ai_extraction - INFO - Extracted text content length: 666 chars
+2025-09-24 17:14:34,439 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5491 chars)
+2025-09-24 17:14:34,439 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:14:34,439 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:14:34,439 - ai_extraction - INFO - GPT extraction successful with 24 meaningful fields
+2025-09-24 17:14:34,440 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
+2025-09-24 17:14:34,440 - ai_extraction - INFO - Processing file with extension: txt
+2025-09-24 17:14:34,440 - ai_extraction - INFO - Processing as text file
+2025-09-24 17:14:34,440 - ai_extraction - INFO - Extracted text content length: 956 chars
+2025-09-24 17:14:34,440 - ai_extraction - INFO - Sending extraction prompt to GPT (length: 5781 chars)
+2025-09-24 17:14:34,440 - ai_extraction - INFO - Received response from GPT (length: 667 chars)
+2025-09-24 17:14:34,441 - ai_extraction - INFO - Successfully parsed JSON from GPT response
+2025-09-24 17:14:34,441 - ai_extraction - INFO - GPT extraction successful with 24 meaningful fields
+2025-09-24 17:14:34,441 - ai_extraction - INFO - GPT response keys: ['file_name', 'document_type', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance', 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees', 'pet_fees', 'application_fees', 'storage_fees', 'amenity_fees', 'utility_reimbursements', 'cleaning_fees', 'cancellation_fees', 'miscellaneous']
