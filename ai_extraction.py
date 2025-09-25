@@ -151,7 +151,7 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
 
 def extract_financial_data_with_gpt(file_content: bytes, file_name: str, document_type_hint: Optional[str], openai_api_key: str) -> Dict[str, Any]:
     """
-    Extract financial data from document content using GPT.
+    Extract financial data from document content using GPT with enhanced robustness.
     
     Args:
         file_content: The content of the file as bytes
@@ -293,25 +293,44 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
             # Parse the JSON response
             try:
                 # Extract JSON from response if it's wrapped in other text
-                json_start = response_content.find('{')
-                json_end = response_content.rfind('}') + 1
+                json_start = response_content.find('{{')
+                json_end = response_content.rfind('}}') + 2
                 if json_start >= 0 and json_end > json_start:
-                    json_str = response_content[json_start:json_end]
+                    # Handle double braces from GPT formatting
+                    json_str = response_content[json_start:json_end].replace('{{', '{').replace('}}', '}')
                     result = json.loads(json_str)
-                    logger.info(f"Successfully parsed JSON from GPT response")
+                    logger.info(f"Successfully parsed JSON from GPT response with brace correction")
                 else:
-                    result = json.loads(response_content)
-                    logger.info(f"Successfully parsed direct JSON response")
+                    json_start = response_content.find('{')
+                    json_end = response_content.rfind('}') + 1
+                    if json_start >= 0 and json_end > json_start:
+                        json_str = response_content[json_start:json_end]
+                        result = json.loads(json_str)
+                        logger.info(f"Successfully parsed JSON from GPT response")
+                    else:
+                        result = json.loads(response_content)
+                        logger.info(f"Successfully parsed direct JSON response")
                 
-                # Validate that we have meaningful data
-                meaningful_fields = 0
-                for key, value in result.items():
-                    if key not in ['file_name', 'document_type'] and isinstance(value, (int, float)) and value != 0.0:
-                        meaningful_fields += 1
+                # Validate that we have the required structure AND meaningful data
+                required_fields = ['gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 
+                                 'egi', 'opex', 'noi', 'property_taxes', 'insurance', 'repairs_maintenance',
+                                 'utilities', 'management_fees', 'parking', 'laundry', 'late_fees']
                 
-                # If we have meaningful data, return it
-                if meaningful_fields > 0:
-                    logger.info(f"GPT extraction successful with {meaningful_fields} meaningful fields")
+                # Check if we have the required fields in the response
+                has_required_fields = all(field in result for field in required_fields)
+                
+                # Check if we have meaningful (non-zero) financial data
+                has_meaningful_data = False
+                key_metrics = ['gpr', 'egi', 'opex', 'noi']
+                if has_required_fields:
+                    # Check if at least some key financial metrics have non-zero values
+                    meaningful_values = [result.get(metric, 0) for metric in key_metrics]
+                    # At least one key metric should be non-zero for meaningful data
+                    has_meaningful_data = any(float(value) != 0 for value in meaningful_values)
+                
+                # If we have the required structure and meaningful data, return it
+                if has_required_fields and has_meaningful_data:
+                    logger.info(f"GPT extraction successful with required financial fields and meaningful data")
                     # Log the keys in the result for debugging
                     logger.info(
                         f"GPT response keys: {list(result.keys())}",
@@ -321,8 +340,19 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
                         }
                     )
                     return result
+                elif has_required_fields:
+                    logger.warning(f"GPT response has required fields but no meaningful data (attempt {attempt + 1}/{max_gpt_attempts})")
+                    # Log what fields we have for debugging
+                    available_fields = [key for key in result.keys() if key not in ['file_name', 'document_type']]
+                    logger.debug(f"Available fields: {available_fields}")
+                    # Log key metric values
+                    key_metrics_values = {metric: result.get(metric, 0) for metric in key_metrics}
+                    logger.debug(f"Key metrics values: {key_metrics_values}")
                 else:
-                    logger.warning(f"GPT response contains no meaningful data (attempt {attempt + 1}/{max_gpt_attempts})")
+                    logger.warning(f"GPT response missing required financial fields (attempt {attempt + 1}/{max_gpt_attempts})")
+                    # Log what fields we do have for debugging
+                    available_fields = [key for key in result.keys() if key not in ['file_name', 'document_type']]
+                    logger.debug(f"Available fields: {available_fields}")
                     
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse GPT response as JSON: {str(e)}")
@@ -342,7 +372,7 @@ def extract_financial_data_with_gpt(file_content: bytes, file_name: str, documen
         if attempt < max_gpt_attempts - 1:
             logger.info(f"Retrying GPT extraction (attempt {attempt + 2}/{max_gpt_attempts})")
             # Add a note to be more explicit on retry
-            retry_note = f"\n\nIMPORTANT: This is retry attempt {attempt + 2}. Please be extremely thorough and extract ALL financial data, even if you're unsure. Make educated estimates when needed."
+            retry_note = f"\n\nIMPORTANT: This is retry attempt {attempt + 2}. Please be extremely thorough and extract ALL financial data, even if you're unsure. Make educated estimates when needed. DO NOT return all zero values."
             messages[1]["content"] = prompt + retry_note
     
     # If all GPT attempts fail, try to extract data directly from the document text
@@ -505,14 +535,14 @@ def _extract_financial_data_from_text(text: str, file_name: str, document_type_h
 
 def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
     """
-    Extract text content from Excel file bytes.
+    Extract text content from Excel file bytes with enhanced structure preservation.
     
     Args:
         file_content: Excel file content as bytes
         file_name: Name of the file
         
     Returns:
-        Extracted text content
+        Extracted text content with clear structure for AI parsing
     """
     import pandas as pd
     import io
@@ -527,6 +557,11 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
     xl = pd.ExcelFile(excel_file)
     sheet_names = xl.sheet_names
     
+    # Add file header
+    text_parts.append(f"EXCEL DOCUMENT: {file_name}")
+    text_parts.append("=" * 60)
+    text_parts.append("")
+    
     for sheet_name in sheet_names:
         # Reset file pointer to beginning
         excel_file.seek(0)
@@ -534,8 +569,9 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
         # Read the sheet
         df = pd.read_excel(excel_file, sheet_name=sheet_name)
         
-        # Add sheet name as header
-        text_parts.append(f"Sheet: {sheet_name}")
+        # Add sheet header with clear structure markers
+        text_parts.append(f"[SHEET_START] {sheet_name}")
+        text_parts.append("-" * 40)
         
         # Improve table representation for better GPT understanding
         # Remove unnamed columns that are typically artifacts of merged cells
@@ -544,16 +580,58 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
             df = df.drop(columns=columns_to_drop)
         
         # Convert DataFrame to string representation with better formatting
-        # Use tab separator for better column alignment and add clear headers
         if not df.empty:
-            # Format the DataFrame with clear column separation
-            table_text = df.to_string(index=False, na_rep='', max_colwidth=50)
-            text_parts.append(table_text)
+            # Check if this is likely a financial statement
+            first_column_data = df.iloc[:, 0].astype(str).str.lower() if len(df.columns) > 0 else pd.Series([])
+            financial_keywords = ['rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 'maintenance', 
+                                'utilities', 'management', 'parking', 'laundry', 'fee', 'noi', 'egi', 'operating']
+            has_financial_terms = any(
+                first_column_data.str.contains(keyword, na=False).any() 
+                for keyword in financial_keywords
+            )
+            
+            if has_financial_terms and len(df.columns) >= 2:
+                # Format as financial statement with clear category:value pairs
+                text_parts.append("[FINANCIAL_STATEMENT_FORMAT]")
+                text_parts.append("LINE ITEMS:")
+                text_parts.append("")
+                
+                for idx, row in df.iterrows():
+                    # Get values from first two columns
+                    category = str(row.iloc[0]) if len(row) > 0 and pd.notna(row.iloc[0]) else ""
+                    amount = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else ""
+                    
+                    # Only include rows that have meaningful data
+                    if category.strip() and not category.startswith('Unnamed'):
+                        # Clean up category name
+                        category = category.strip()
+                        # Format amount properly
+                        if amount and amount != "nan":
+                            text_parts.append(f"  {category}: {amount}")
+                        else:
+                            # This might be a header or section marker
+                            text_parts.append(f"  SECTION: {category}")
+            else:
+                # Standard table format with clear column headers
+                text_parts.append("[TABLE_FORMAT]")
+                text_parts.append("COLUMN HEADERS: " + " | ".join(str(col) for col in df.columns))
+                text_parts.append("")
+                text_parts.append("DATA ROWS:")
+                # Format as a clean table
+                table_text = df.to_string(index=False, na_rep='[EMPTY]', max_colwidth=30)
+                # Add indentation for clarity
+                for line in table_text.split('\n'):
+                    text_parts.append(f"  {line}")
         else:
-            text_parts.append("[Empty sheet]")
+            text_parts.append("[EMPTY_SHEET]")
         
-        # Add separator between sheets
-        text_parts.append("\n" + "="*80 + "\n")
+        # Add sheet end marker
+        text_parts.append("")
+        text_parts.append("[SHEET_END]")
+        text_parts.append("")
+    
+    # Add document end marker
+    text_parts.append("[DOCUMENT_END]")
     
     result = "\n".join(text_parts)
     
@@ -566,34 +644,40 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
             xl = pd.ExcelFile(excel_file)
             sheet_names = xl.sheet_names
             
-            text_parts = []
+            text_parts = [f"EXCEL DOCUMENT: {file_name}", "=" * 60, ""]
             for sheet_name in sheet_names:
                 excel_file.seek(0)
                 # Read without assuming header structure
                 df_raw = pd.read_excel(excel_file, sheet_name=sheet_name, header=None)
-                text_parts.append(f"Sheet: {sheet_name}")
+                text_parts.append(f"[SHEET_START] {sheet_name}")
+                text_parts.append("-" * 40)
+                text_parts.append("[RAW_DATA_FORMAT]")
                 # Format raw data
-                table_text = df_raw.to_string(index=False, na_rep='', max_colwidth=50)
-                text_parts.append(table_text)
-                text_parts.append("\n" + "="*80 + "\n")
+                table_text = df_raw.to_string(index=False, na_rep='[EMPTY]', max_colwidth=30)
+                for line in table_text.split('\n'):
+                    text_parts.append(f"  {line}")
+                text_parts.append("")
+                text_parts.append("[SHEET_END]")
+                text_parts.append("")
             
+            text_parts.append("[DOCUMENT_END]")
             result = "\n".join(text_parts)
         except Exception as e:
             logger.warning(f"Alternative Excel extraction also failed: {str(e)}")
     
-    return result
+    return result if result.strip() else f"[Excel content from {file_name}]"
 
 
 def extract_text_from_pdf(file_content: bytes, file_name: str) -> str:
     """
-    Extract text content from PDF file bytes.
+    Extract text content from PDF file bytes with enhanced structure preservation.
     
     Args:
         file_content: PDF file content as bytes
         file_name: Name of the file
         
     Returns:
-        Extracted text content
+        Extracted text content with clear structure for AI parsing
     """
     try:
         import pdfplumber
@@ -602,17 +686,42 @@ def extract_text_from_pdf(file_content: bytes, file_name: str) -> str:
         # Create a temporary file-like object
         pdf_file = io.BytesIO(file_content)
         
-        text_parts = []
+        text_parts = [f"PDF DOCUMENT: {file_name}", "=" * 60, ""]
+        
         with pdfplumber.open(pdf_file) as pdf:
             for i, page in enumerate(pdf.pages):
+                text_parts.append(f"[PAGE_START] {i+1}")
+                text_parts.append("-" * 30)
+                
+                # Try to extract both text and tables
                 page_text = page.extract_text()
+                tables = page.extract_tables()
+                
+                # Add page text if available
                 if page_text:
-                    # Add page separator for better structure
-                    text_parts.append(f"--- Page {i+1} ---")
                     # Clean up the text to remove excessive whitespace
-                    cleaned_text = "\n".join(line.strip() for line in page_text.splitlines() if line.strip())
-                    text_parts.append(cleaned_text)
+                    cleaned_lines = [line.strip() for line in page_text.splitlines() if line.strip()]
+                    if cleaned_lines:
+                        text_parts.append("[TEXT_CONTENT]")
+                        text_parts.extend(cleaned_lines)
+                
+                # Add tables if found
+                if tables:
+                    text_parts.append("")
+                    text_parts.append("[TABLES_FOUND]")
+                    for j, table in enumerate(tables):
+                        if table:
+                            text_parts.append(f"[TABLE_{j+1}]")
+                            for row in table:
+                                # Filter out None values and join with clear separators
+                                cleaned_row = [str(cell) if cell is not None else "[EMPTY]" for cell in row]
+                                text_parts.append("  |  ".join(cleaned_row))
+                
+                text_parts.append("")
+                text_parts.append("[PAGE_END]")
+                text_parts.append("")
         
+        text_parts.append("[DOCUMENT_END]")
         result = "\n".join(text_parts)
         
         # If result is empty, try alternative extraction method
@@ -620,54 +729,37 @@ def extract_text_from_pdf(file_content: bytes, file_name: str) -> str:
             pdf_file.seek(0)
             try:
                 # Try with different parameters
-                text_parts = []
+                text_parts = [f"PDF DOCUMENT: {file_name}", "=" * 60, ""]
                 with pdfplumber.open(pdf_file) as pdf:
                     for i, page in enumerate(pdf.pages):
+                        text_parts.append(f"[PAGE_START] {i+1}")
                         # Try extracting tables as well
                         tables = page.extract_tables()
                         page_text = page.extract_text()
                         
-                        text_parts.append(f"--- Page {i+1} ---")
-                        
                         if page_text:
                             # Clean up the text
-                            cleaned_text = "\n".join(line.strip() for line in page_text.splitlines() if line.strip())
-                            text_parts.append(cleaned_text)
+                            cleaned_lines = [line.strip() for line in page_text.splitlines() if line.strip()]
+                            if cleaned_lines:
+                                text_parts.append("[TEXT_CONTENT]")
+                                text_parts.extend(cleaned_lines)
                         
                         # Add tables if found
                         if tables:
-                            text_parts.append("--- Tables on Page ---")
+                            text_parts.append("")
+                            text_parts.append("[TABLES_FOUND]")
                             for j, table in enumerate(tables):
                                 if table:
-                                    text_parts.append(f"Table {j+1}:")
+                                    text_parts.append(f"[TABLE_{j+1}]")
                                     for row in table:
-                                        # Filter out None values and join with tabs
-                                        cleaned_row = [cell if cell is not None else "" for cell in row]
-                                        text_parts.append("\t".join(cleaned_row))
+                                        cleaned_row = [str(cell) if cell is not None else "[EMPTY]" for cell in row]
+                                        text_parts.append("  |  ".join(cleaned_row))
         
+                text_parts.append("")
+                text_parts.append("[DOCUMENT_END]")
                 result = "\n".join(text_parts)
             except Exception as e:
                 logger.warning(f"Alternative PDF extraction also failed: {str(e)}")
-        
-        # Format the result for better GPT understanding
-        if result.strip() and "Table" in result:
-            # If we have tables, format them more clearly
-            formatted_parts = []
-            for part in result.split("---"):
-                if part.strip():
-                    if "Table" in part:
-                        # Format tables with better separation
-                        lines = part.strip().split("\n")
-                        formatted_parts.append("--- " + lines[0].strip() + " ---")
-                        for line in lines[1:]:
-                            if "\t" in line:
-                                # This looks like a table row
-                                formatted_parts.append("  " + line)
-                            else:
-                                formatted_parts.append(line)
-                    else:
-                        formatted_parts.append("--- " + part.strip() + " ---")
-            result = "\n".join(formatted_parts)
         
         return result if result.strip() else f"[PDF content from {file_name}]"
     except Exception as e:
@@ -677,14 +769,14 @@ def extract_text_from_pdf(file_content: bytes, file_name: str) -> str:
 
 def extract_text_from_csv(file_content: bytes, file_name: str) -> str:
     """
-    Extract text content from CSV file bytes.
+    Extract text content from CSV file bytes with enhanced structure preservation.
     
     Args:
         file_content: CSV file content as bytes
         file_name: Name of the file
         
     Returns:
-        Extracted text content
+        Extracted text content with clear structure for AI parsing
     """
     import pandas as pd
     import io
@@ -710,6 +802,9 @@ def extract_text_from_csv(file_content: bytes, file_name: str) -> str:
             csv_file.seek(0)
             df = pd.read_csv(csv_file, sep=None, engine='python')  # Auto-detect separator
         
+        # Format with clear structure
+        text_parts = [f"CSV DOCUMENT: {file_name}", "=" * 60, ""]
+        
         # Improve DataFrame formatting for better GPT understanding
         if not df.empty:
             # Remove unnamed columns that are typically artifacts
@@ -717,46 +812,122 @@ def extract_text_from_csv(file_content: bytes, file_name: str) -> str:
             if columns_to_drop:
                 df = df.drop(columns=columns_to_drop)
             
-            # Format the DataFrame with clear column separation
-            table_text = df.to_string(index=False, na_rep='', max_colwidth=50)
+            # Check if this looks like financial data
+            first_column_data = df.iloc[:, 0].astype(str).str.lower() if len(df.columns) > 0 else pd.Series([])
+            financial_keywords = ['rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 'maintenance', 
+                                'utilities', 'management', 'parking', 'laundry', 'fee', 'noi', 'egi', 'operating']
+            has_financial_terms = any(
+                first_column_data.str.contains(keyword, na=False).any() 
+                for keyword in financial_keywords
+            )
             
-            # Add clear section headers for better structure
-            result = f"CSV File Content: {file_name}\n" + "="*50 + "\n" + table_text
-            
-            # If the result is too short, try alternative approach
-            if len(result.strip()) < 50:
-                csv_file.seek(0)
-                # Try reading with different parameters to get raw data
-                try:
-                    df_raw = pd.read_csv(csv_file, sep=None, engine='python', header=None)
-                    table_text_raw = df_raw.to_string(index=False, na_rep='', max_colwidth=50)
-                    result = f"CSV File Content (Raw Format): {file_name}\n" + "="*50 + "\n" + table_text_raw
-                except Exception as e:
-                    logger.warning(f"Alternative CSV extraction also failed: {str(e)}")
-            
-            return result
+            if has_financial_terms and len(df.columns) >= 2:
+                # Format as financial statement
+                text_parts.append("[FINANCIAL_STATEMENT_FORMAT]")
+                text_parts.append("LINE ITEMS:")
+                text_parts.append("")
+                
+                for idx, row in df.iterrows():
+                    # Get values from first two columns
+                    category = str(row.iloc[0]) if len(row) > 0 and pd.notna(row.iloc[0]) else ""
+                    amount = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else ""
+                    
+                    # Only include rows that have meaningful data
+                    if category.strip() and not category.startswith('Unnamed'):
+                        category = category.strip()
+                        if amount and amount != "nan":
+                            text_parts.append(f"  {category}: {amount}")
+                        else:
+                            text_parts.append(f"  SECTION: {category}")
+            else:
+                # Standard table format
+                text_parts.append("[TABLE_FORMAT]")
+                text_parts.append("COLUMN HEADERS: " + " | ".join(str(col) for col in df.columns))
+                text_parts.append("")
+                text_parts.append("DATA ROWS:")
+                table_text = df.to_string(index=False, na_rep='[EMPTY]', max_colwidth=30)
+                for line in table_text.split('\n'):
+                    text_parts.append(f"  {line}")
         else:
-            return f"[Empty CSV content from {file_name}]"
-            
+            text_parts.append("[EMPTY_CSV_FILE]")
+        
+        text_parts.append("")
+        text_parts.append("[DOCUMENT_END]")
+        result = "\n".join(text_parts)
+        
+        return result
     except Exception as e:
         logger.warning(f"CSV extraction failed, falling back to basic decoding: {str(e)}")
         try:
             decoded_text = file_content.decode('utf-8', errors='ignore')
             if decoded_text.strip():
                 # Add structure to plain text CSV
-                lines = decoded_text.strip().split('\n')
+                lines = [line.strip() for line in decoded_text.strip().split('\n') if line.strip()]
                 if len(lines) > 1:
-                    result = f"CSV File Content: {file_name}\n" + "="*50 + "\n"
-                    result += "\n".join(lines)
-                    return result
+                    result_parts = [f"CSV DOCUMENT: {file_name}", "=" * 60, ""]
+                    result_parts.append("[TEXT_FORMAT]")
+                    result_parts.extend(lines)
+                    result_parts.append("")
+                    result_parts.append("[DOCUMENT_END]")
+                    return "\n".join(result_parts)
             return decoded_text if decoded_text.strip() else f"[CSV content from {file_name}]"
         except Exception:
             return f"[CSV content from {file_name}]"
 
 
+def _format_text_content(text_content: str, file_name: str) -> str:
+    """
+    Format text content for better GPT parsing with clear structure markers.
+    
+    Args:
+        text_content: Raw text content
+        file_name: Name of the file
+        
+    Returns:
+        Formatted text content with structure markers
+    """
+    if not text_content or not text_content.strip():
+        return f"[Text content from {file_name}]"
+    
+    # Clean up excessive whitespace while preserving structure
+    lines = [line.strip() for line in text_content.splitlines() if line.strip()]
+    
+    # Add clear document structure
+    result_parts = [f"TEXT DOCUMENT: {file_name}", "=" * 60, ""]
+    
+    # Add section headers for common financial statement sections
+    section_headers = {
+        'REVENUE': '[REVENUE_SECTION]',
+        'INCOME': '[INCOME_SECTION]', 
+        'EXPENSE': '[EXPENSE_SECTION]',
+        'OPERATING': '[OPERATING_SECTION]',
+        'PROPERTY': '[PROPERTY_INFORMATION]',
+        'TOTAL': '[SUMMARY_SECTION]',
+        'FINANCIAL': '[FINANCIAL_STATEMENT]',
+        'RESULT': '[FINANCIAL_RESULTS]'
+    }
+    
+    for line in lines:
+        result_parts.append(line)
+        # Add section markers for better structure
+        for keyword, header in section_headers.items():
+            if keyword in line.upper() and header not in line:
+                result_parts.append("")
+                result_parts.append(header)
+                result_parts.append("-" * 25)
+    
+    result_parts.append("")
+    result_parts.append("[DOCUMENT_END]")
+    
+    # Join lines with appropriate spacing
+    formatted_text = "\n".join(result_parts)
+    
+    return formatted_text
+
+
 def create_gpt_extraction_prompt(document_text: str, file_name: str, document_type_hint: Optional[str]) -> str:
     """
-    Create a prompt for GPT to extract financial data from document text.
+    Create an enhanced prompt for GPT to extract financial data from structured documents.
     
     Args:
         document_text: The text content of the document
@@ -764,7 +935,7 @@ def create_gpt_extraction_prompt(document_text: str, file_name: str, document_ty
         document_type_hint: Hint about document type
         
     Returns:
-        Formatted prompt string
+        Formatted prompt string with enhanced structure recognition
     """
     # Truncate document text if too long
     max_length = 3000  # Limit to prevent token overflow
@@ -796,77 +967,42 @@ This is a CURRENT PERIOD document. Look for the most recent actual results.
 Focus on current month or year data.
 """
     
-    # Add specific instructions for handling different document formats
-    format_instructions = """
-Document Format Instructions:
-- For TABLE DATA: Look for structured rows and columns with financial line items
-- For FREE-FORM TEXT: Look for financial terms followed by values (e.g., "Gross Potential Rent: $100,000")
-- For MIXED FORMATS: Extract data from both tables and text sections
-
-Special Instructions for Table Data:
-1. Look for line items in the first column of tables
-2. Look for values in columns labeled with periods (e.g., "Sep 2025 Actual", "Current Month")
-3. When multiple columns exist, focus on the "Actual" values for current month data
-4. Sum all revenue items to calculate Total Revenue/GPR
-5. Sum all expense items to calculate Total Operating Expenses
-6. Pay special attention to headers and subtotals in financial statements
-7. Look for common financial line items even if they appear in different formats
-
-Examples of Financial Statement Structure to Look For:
-- Line items like "Gross Potential Rent", "Vacancy Loss", "Property Taxes", etc.
-- Headers indicating periods like "Sep 2025", "Actual", "Budget", etc.
-- Subtotal lines like "Total Revenue", "Total Operating Expenses", etc.
-
-INTELLIGENT FINANCIAL DATA RECOGNITION:
-You are a highly skilled financial analyst. Your task is to intelligently identify and extract financial data regardless of how it's formatted in the document. 
-Key principles:
-1. Look for financial concepts, not exact wording (e.g., "Net Operating Income", "NOI", "Operating Income" are all the same)
-2. Be flexible with capitalization (e.g., "net operating income", "NET OPERATING INCOME", "Net Operating Income" are all the same)
-3. Recognize common financial abbreviations and variations
-4. Understand that financial statements can be structured in many different ways
-5. Look for monetary values associated with financial concepts
-6. When you see a total or subtotal, verify it makes mathematical sense with the line items above it
-7. Be aware that negative values might be shown as (1,234.50), -1,234.50, or in parentheses
-8. Extract ALL financial metrics, even if they're not explicitly labeled
-
-CRITICAL THINKING APPROACH:
-1. First, scan the entire document to understand its structure
-2. Identify all potential financial line items and their values
-3. Group related items (revenue items, expense items, etc.)
-4. Calculate derived values when not explicitly provided
-5. Double-check your work by verifying mathematical relationships
-6. If you're unsure about a value, make your best educated guess based on context
-7. NEVER leave a field as null or skip it - always provide a numeric value (use 0.0 if truly unknown)
-
-CONTEXTUAL UNDERSTANDING:
-- GPR (Gross Potential Rent) represents total potential rental income
-- EGI (Effective Gross Income) = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
-- OpEx (Operating Expenses) includes all operational costs
-- NOI (Net Operating Income) = EGI - OpEx
-- Understand that documents may use different terminology for the same concepts
-"""
-
     prompt = f"""
 You are a world-class real estate financial analyst with expertise in extracting data from diverse financial documents. 
 Your task is to intelligently extract financial data from the provided property management document, regardless of its format or structure.
+
+DOCUMENT STRUCTURE GUIDE:
+The document has been pre-processed with clear structural markers to help you parse it:
+- [SHEET_START]/[SHEET_END]: Excel sheet boundaries
+- [PAGE_START]/[PAGE_END]: PDF page boundaries  
+- [[FINANCIAL_STATEMENT_FORMAT]: Financial data in category: value format
+- [TABLE_FORMAT]: Tabular data with headers
+- [TEXT_CONTENT]: Plain text content
+- SECTION markers: [REVENUE_SECTION], [EXPENSE_SECTION], etc.
 
 Document Information:
 - File Name: {file_name}
 - Document Type: {document_type_hint or 'Unknown'}
 {doc_type_instructions}
+
 Document Content:
 {document_text}
 
 INSTRUCTIONS:
 Extract all financial metrics from the document and return them in the exact JSON structure shown below. 
-CRITICAL REQUIREMENTS:
-1. Extract ALL financial metrics - do not skip any fields
-2. Be extremely flexible with terminology and formatting variations
-3. All monetary values must be numeric (no currency symbols, commas, or text)
-4. If a value is not explicitly found, CALCULATE it using the provided formulas
-5. If you cannot determine a value, make your best educated estimate based on context
-6. NEVER leave a field as null or skip it - always provide a numeric value (use 0.0 if truly unknown)
-7. Be aware that financial documents can be formatted in countless ways - your job is to intelligently parse ANY format
+
+CRITICAL EXTRACTION STRATEGY:
+1. FIRST, identify the document structure using the markers provided
+2. LOOK for financial line items in [FINANCIAL_STATEMENT_FORMAT] sections first
+3. FOR tabular data, examine column headers and row values systematically
+4. IDENTIFY financial concepts by their meaning, not exact wording
+5. HANDLE different formats: "Gross Potential Rent", "Potential Rent", "Scheduled Rent" are all GPR
+6. RECOGNIZE negative values in formats: (1,234.50), -$1,234.50, -1,234.50
+7. CALCULATE derived values when not explicitly provided:
+   - EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
+   - NOI = EGI - OpEx
+8. NEVER leave fields empty - use 0.0 if truly unknown
+9. CRITICALLY IMPORTANT: DO NOT return all zero values. If you cannot find specific values, make educated estimates based on context.
 
 REQUIRED JSON STRUCTURE:
 {{
@@ -899,18 +1035,21 @@ REQUIRED JSON STRUCTURE:
 }}
 
 EXTENSIVE FIELD VARIATIONS TO LOOK FOR:
-- GPR: Gross Potential Rent, Potential Rent, Scheduled Rent, Total Revenue, Revenue, Gross Income, Potential Income, Scheduled Income
-- Vacancy Loss: Vacancy, Credit Loss, Vacancy and Credit Loss, Vacancy Allowance, Turnover Loss
+- GPR: Gross Potential Rent, Potential Rent, Scheduled Rent, Total Revenue, Revenue, Gross Income
+- Vacancy Loss: Vacancy, Credit Loss, Vacancy and Credit Loss, Turnover Loss
 - Concessions: Tenant Concessions, Leasing Concessions, Move-in Concessions, Free Rent
 - Bad Debt: Uncollected Rent, Delinquent Rent, Write-offs, Account Receivable Write-offs
-- Other Income: Additional Income, Miscellaneous Income, Parking Fees, Laundry Income, Application Fees, Late Fees, Pet Fees, Storage Fees, Amenity Fees, Utility Reimbursements, Cleaning Fees, Cancellation Fees
+- Other Income: Additional Income, Miscellaneous Income, Parking Fees, Laundry Income
 - EGI: Effective Gross Income, Net Rental Income, Adjusted Gross Income
-- OpEx: Operating Expenses, Total Operating Expenses, Expenses, Operating Costs, Property Operating Expenses
+- OpEx: Operating Expenses, Total Operating Expenses, Expenses, Operating Costs
 - NOI: Net Operating Income, Net Income, Operating Income, Property Net Income
 
 NEGATIVE VALUE FORMATS:
-- Recognize these as negative values: (1,234.50), (1234.50), -$1,234.50, -1,234.50
-- Convert them to negative numbers in the JSON output
+Convert these formats to negative numbers:
+- (1,234.50) → -1234.50
+- (1234.50) → -1234.50  
+- -$1,234.50 → -1234.50
+- -1,234.50 → -1234.50
 
 CALCULATION RULES (Use if not explicitly provided):
 - EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
@@ -918,16 +1057,8 @@ CALCULATION RULES (Use if not explicitly provided):
 - If you find individual expense items, sum them to calculate OpEx
 - If you find individual income items, sum them to calculate GPR
 
-INTELLIGENT EXTRACTION STRATEGY:
-1. First, scan the entire document to understand its structure and identify all financial data
-2. Look for any text that represents financial concepts, regardless of exact wording
-3. Extract monetary values associated with each financial concept
-4. Be flexible with formatting - data might be in tables, lists, paragraphs, or other structures
-5. When you find subtotals or totals, verify they make mathematical sense with line items
-6. Calculate missing values using the formulas above
-7. Double-check your work for consistency and accuracy
-
-RETURN ONLY the JSON object with the extracted values. Do not include any other text, explanations, or formatting. Make sure all fields are present with numeric values.
+RETURN ONLY the JSON object with the extracted values. Do not include any other text, explanations, or formatting.
+Make sure all fields are present with numeric values. DO NOT return all zero values - make educated estimates when needed.
 """
     
     return prompt
@@ -1250,48 +1381,5 @@ def process_uploaded_files(
                 logger.warning(f"Error removing temporary file: {str(e)}")
 
 
-def _format_text_content(text_content: str, file_name: str) -> str:
-    """
-    Format text content for better GPT parsing.
-    
-    Args:
-        text_content: Raw text content
-        file_name: Name of the file
-        
-    Returns:
-        Formatted text content
-    """
-    if not text_content or not text_content.strip():
-        return f"[Text content from {file_name}]"
-    
-    # Clean up excessive whitespace while preserving structure
-    lines = [line.strip() for line in text_content.splitlines() if line.strip()]
-    
-    # Add section headers for common financial statement sections
-    formatted_lines = []
-    section_headers = {
-        'REVENUE': 'REVENUE SECTION',
-        'INCOME': 'INCOME SECTION',
-        'EXPENSE': 'EXPENSE SECTION',
-        'OPERATING': 'OPERATING SECTION',
-        'PROPERTY': 'PROPERTY INFORMATION',
-        'TOTAL': 'SUMMARY',
-        'FINANCIAL': 'FINANCIAL STATEMENT',
-        'RESULT': 'FINANCIAL RESULTS'
-    }
-    
-    # Add file header
-    result_lines = [f"Text File Content: {file_name}", "="*50]
-    
-    for line in lines:
-        result_lines.append(line)
-        # Add section markers for better structure
-        for keyword, header in section_headers.items():
-            if keyword in line.upper() and header not in line:
-                result_lines.append(f"--- {header} ---")
-    
-    # Join lines with appropriate spacing
-    formatted_text = "\n".join(result_lines)
-    
-    return formatted_text
+
 
