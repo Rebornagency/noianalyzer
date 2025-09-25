@@ -596,10 +596,56 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
                 text_parts.append("LINE ITEMS:")
                 text_parts.append("")
                 
+                # Find the column with numeric values
+                numeric_column_idx = -1
+                for col_idx in range(len(df.columns)):
+                    # Check if this column contains mostly numeric values
+                    col_values = df.iloc[:, col_idx]
+                    numeric_count = 0
+                    total_count = 0
+                    for val in col_values:
+                        if pd.notna(val):
+                            total_count += 1
+                            try:
+                                float(str(val).replace('$', '').replace(',', '').replace('(', '-').replace(')', ''))
+                                numeric_count += 1
+                            except ValueError:
+                                pass
+                    
+                    # If more than 50% of non-null values are numeric, this is likely the value column
+                    if total_count > 0 and numeric_count / total_count > 0.5:
+                        numeric_column_idx = col_idx
+                        break
+                
+                # If we couldn't find a clear numeric column, use the last column
+                if numeric_column_idx == -1 and len(df.columns) > 1:
+                    numeric_column_idx = len(df.columns) - 1
+                
+                # Extract data using the identified columns
+                category_column_idx = 0  # Assume first column has categories
+                
                 for idx, row in df.iterrows():
-                    # Get values from first two columns
-                    category = str(row.iloc[0]) if len(row) > 0 and pd.notna(row.iloc[0]) else ""
-                    amount = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else ""
+                    # Get values from identified columns
+                    category = str(row.iloc[category_column_idx]) if len(row) > category_column_idx and pd.notna(row.iloc[category_column_idx]) else ""
+                    
+                    # Get amount from the numeric column if available
+                    amount = ""
+                    if numeric_column_idx != -1 and len(row) > numeric_column_idx:
+                        raw_amount = row.iloc[numeric_column_idx]
+                        if pd.notna(raw_amount):
+                            amount = str(raw_amount)
+                    
+                    # If no amount in numeric column, try other columns
+                    if not amount and numeric_column_idx != -1:
+                        for col_idx in range(len(df.columns)):
+                            if col_idx != category_column_idx and len(row) > col_idx:
+                                val = row.iloc[col_idx]
+                                if pd.notna(val):
+                                    val_str = str(val)
+                                    # Check if this looks like a monetary value
+                                    if any(char.isdigit() for char in val_str):
+                                        amount = val_str
+                                        break
                     
                     # Only include rows that have meaningful data
                     if category.strip() and not category.startswith('Unnamed'):
@@ -607,7 +653,9 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
                         category = category.strip()
                         # Format amount properly
                         if amount and amount != "nan":
-                            text_parts.append(f"  {category}: {amount}")
+                            # Clean the amount string
+                            cleaned_amount = amount.replace('$', '').replace(',', '').strip()
+                            text_parts.append(f"  {category}: {cleaned_amount}")
                         else:
                             # This might be a header or section marker
                             text_parts.append(f"  SECTION: {category}")
@@ -827,16 +875,64 @@ def extract_text_from_csv(file_content: bytes, file_name: str) -> str:
                 text_parts.append("LINE ITEMS:")
                 text_parts.append("")
                 
+                # Find the column with numeric values
+                numeric_column_idx = -1
+                for col_idx in range(len(df.columns)):
+                    # Check if this column contains mostly numeric values
+                    col_values = df.iloc[:, col_idx]
+                    numeric_count = 0
+                    total_count = 0
+                    for val in col_values:
+                        if pd.notna(val):
+                            total_count += 1
+                            try:
+                                float(str(val).replace('$', '').replace(',', '').replace('(', '-').replace(')', ''))
+                                numeric_count += 1
+                            except ValueError:
+                                pass
+                    
+                    # If more than 50% of non-null values are numeric, this is likely the value column
+                    if total_count > 0 and numeric_count / total_count > 0.5:
+                        numeric_column_idx = col_idx
+                        break
+                
+                # If we couldn't find a clear numeric column, use the last column
+                if numeric_column_idx == -1 and len(df.columns) > 1:
+                    numeric_column_idx = len(df.columns) - 1
+                
+                # Extract data using the identified columns
+                category_column_idx = 0  # Assume first column has categories
+                
                 for idx, row in df.iterrows():
-                    # Get values from first two columns
-                    category = str(row.iloc[0]) if len(row) > 0 and pd.notna(row.iloc[0]) else ""
-                    amount = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else ""
+                    # Get values from identified columns
+                    category = str(row.iloc[category_column_idx]) if len(row) > category_column_idx and pd.notna(row.iloc[category_column_idx]) else ""
+                    
+                    # Get amount from the numeric column if available
+                    amount = ""
+                    if numeric_column_idx != -1 and len(row) > numeric_column_idx:
+                        raw_amount = row.iloc[numeric_column_idx]
+                        if pd.notna(raw_amount):
+                            amount = str(raw_amount)
+                    
+                    # If no amount in numeric column, try other columns
+                    if not amount and numeric_column_idx != -1:
+                        for col_idx in range(len(df.columns)):
+                            if col_idx != category_column_idx and len(row) > col_idx:
+                                val = row.iloc[col_idx]
+                                if pd.notna(val):
+                                    val_str = str(val)
+                                    # Check if this looks like a monetary value
+                                    if any(char.isdigit() for char in val_str):
+                                        amount = val_str
+                                        break
                     
                     # Only include rows that have meaningful data
                     if category.strip() and not category.startswith('Unnamed'):
                         category = category.strip()
                         if amount and amount != "nan":
-                            text_parts.append(f"  {category}: {amount}")
+                            # Clean the amount string
+                            cleaned_amount = amount.replace('$', '').replace(',', '').strip()
+                            text_parts.append(f"  {category}: {cleaned_amount}")
                         else:
                             text_parts.append(f"  SECTION: {category}")
             else:

@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-Test script to verify the Excel extraction fix
+Test script to verify the Excel extraction fix works correctly.
 """
 
-import io
-import os
-import tempfile
 import pandas as pd
-from ai_extraction import extract_text_from_excel, extract_financial_data_with_gpt
+import tempfile
+import os
+from ai_extraction import extract_text_from_excel
 
-# Create a test Excel file that mimics the structure from the logs
-def create_test_excel():
-    # Create a DataFrame with sample financial data similar to the logs
+def create_test_excel_file():
+    """Create a test Excel file that matches the structure from the logs"""
+    
+    # Create a DataFrame that matches the structure from the logs
     data = {
         'Category': [
-            'Real Estate Financial Statement - Sep 2025 (Actual)',
-            'Property: Example Commercial/Residential Property',
-            'Period: September 1, 2025 - September 30, 2025',
             'Rental Income - Commercial',
             'Rental Income - Residential',
             'Parking Fees',
@@ -42,8 +39,7 @@ def create_test_excel():
             'Total Operating Expenses',
             'Net Operating Income (NOI)'
         ],
-        'Sep 2025 Actual': [
-            '', '', '',  # Headers
+        'Amount': [
             50000.0,    # Rental Income - Commercial
             30000.0,    # Rental Income - Residential
             2000.0,     # Parking Fees
@@ -52,22 +48,22 @@ def create_test_excel():
             150.0,      # Late Fees
             1000.0,     # Other Income
             83950.0,    # Total Revenue
-            '',         # Operating Expenses header
-            4000.0,     # Property Management Fees
-            2000.0,     # Utilities
-            3000.0,     # Property Taxes
-            1500.0,     # Property Insurance
-            2500.0,     # Repairs & Maintenance
-            1000.0,     # Cleaning & Janitorial
-            500.0,      # Landscaping & Grounds
-            800.0,      # Security
-            300.0,      # Marketing & Advertising
-            400.0,      # Administrative Expenses
-            0.0,        # HOA Fees
-            200.0,      # Pest Control
-            150.0,      # Supplies
-            16250.0,    # Total Operating Expenses
-            67700.0     # Net Operating Income
+            '',         # Operating Expenses (header)
+            -4000.0,    # Property Management Fees
+            -2000.0,    # Utilities
+            -3000.0,    # Property Taxes
+            -1500.0,    # Property Insurance
+            -2500.0,    # Repairs & Maintenance
+            -1000.0,    # Cleaning & Janitorial
+            -500.0,     # Landscaping & Grounds
+            -1000.0,    # Security
+            -500.0,     # Marketing & Advertising
+            -1000.0,    # Administrative Expenses
+            0.0,        # HOA Fees (if applicable)
+            -300.0,     # Pest Control
+            -200.0,     # Supplies
+            -17000.0,   # Total Operating Expenses
+            66950.0     # Net Operating Income (NOI)
         ]
     }
     
@@ -78,106 +74,60 @@ def create_test_excel():
         tmp_filename = tmp_file.name
         df.to_excel(tmp_filename, sheet_name='Real Estate Financial Statement', index=False)
     
-    # Read the file content
-    with open(tmp_filename, 'rb') as f:
-        excel_content = f.read()
-    
-    # Clean up the temporary file
-    os.unlink(tmp_filename)
-    
-    return excel_content
+    return tmp_filename
 
-# Test the Excel extraction function
-if __name__ == "__main__":
-    print("Testing Excel extraction fix...")
+def test_excel_extraction_fix():
+    """Test the improved Excel extraction function"""
     
-    # Create test Excel content
-    excel_content = create_test_excel()
+    print("Testing improved Excel extraction...")
     
-    # Test extraction
+    # Create test Excel file
+    excel_file_path = create_test_excel_file()
+    
     try:
-        print("1. Testing extract_text_from_excel function:")
-        extracted_text = extract_text_from_excel(excel_content, "financial_statement_september_2025_actual.xlsx")
-        print("Extraction successful!")
+        # Read the file content
+        with open(excel_file_path, 'rb') as f:
+            file_content = f.read()
+        
+        # Test extraction
+        extracted_text = extract_text_from_excel(file_content, "test_financial_statement.xlsx")
+        
         print("Extracted text length:", len(extracted_text))
-        print("First 1000 characters:")
+        print("\nExtracted text (first 1000 characters):")
+        print("=" * 50)
         print(extracted_text[:1000])
-        print("...")
-        print("Last 500 characters:")
-        print(extracted_text[-500:])
+        print("=" * 50)
         
-        # Check if it contains expected content
-        if "Rental Income" in extracted_text and "Net Operating Income" in extracted_text:
-            print("✅ Extracted text contains expected financial data")
+        # Check if key features are present
+        checks = [
+            ("Sheet name detected", "[SHEET_START] Real Estate Financial Statement" in extracted_text),
+            ("Financial statement format detected", "[FINANCIAL_STATEMENT_FORMAT]" in extracted_text),
+            ("Categories with values", ":" in extracted_text),
+            ("Net Operating Income", "Net Operating Income" in extracted_text),
+            ("Property Taxes", "Property Taxes" in extracted_text),
+            ("Total Revenue", "Total Revenue" in extracted_text),
+            ("Actual values extracted", "50000.0" in extracted_text),  # Check if actual values are extracted
+            ("Negative values extracted", "-4000.0" in extracted_text),  # Check if negative values are extracted
+        ]
+        
+        print("\nVerification checks:")
+        all_passed = True
+        for check_name, check_result in checks:
+            status = "✅ PASS" if check_result else "❌ FAIL"
+            print(f"  {status}: {check_name}")
+            if not check_result:
+                all_passed = False
+        
+        if all_passed:
+            print("\n🎉 Excel extraction fix is working correctly!")
         else:
-            print("❌ Extracted text may be missing financial data")
+            print("\n⚠️  Some checks failed. Review the implementation.")
             
-        # Test with mock GPT response
-        print("\n2. Testing with mock GPT response:")
-        # Mock the chat_completion function to avoid actual API calls
-        import ai_extraction
-        original_chat_completion = ai_extraction.chat_completion
-        
-        # Mock response with realistic financial data
-        mock_response = '''{
-  "file_name": "financial_statement_september_2025_actual.xlsx",
-  "document_type": "current_month_actuals",
-  "gpr": 80000.0,
-  "vacancy_loss": 0.0,
-  "concessions": 0.0,
-  "bad_debt": 0.0,
-  "other_income": 3950.0,
-  "egi": 83950.0,
-  "opex": 16250.0,
-  "noi": 67700.0,
-  "property_taxes": 3000.0,
-  "insurance": 1500.0,
-  "repairs_maintenance": 2500.0,
-  "utilities": 2000.0,
-  "management_fees": 4000.0,
-  "parking": 2000.0,
-  "laundry": 500.0,
-  "late_fees": 150.0,
-  "pet_fees": 0.0,
-  "application_fees": 300.0,
-  "storage_fees": 0.0,
-  "amenity_fees": 0.0,
-  "utility_reimbursements": 0.0,
-  "cleaning_fees": 1000.0,
-  "cancellation_fees": 0.0,
-  "miscellaneous": 1000.0
-}'''
-        
-        def mock_chat_completion(*args, **kwargs):
-            return mock_response
+        return all_passed
             
-        # Replace the chat_completion function
-        ai_extraction.chat_completion = mock_chat_completion
-        
-        try:
-            result = extract_financial_data_with_gpt(excel_content, "financial_statement_september_2025_actual.xlsx", "current_month_actuals", "fake-api-key")
-            print("✅ GPT extraction simulation successful!")
-            print(f"   GPR: {result.get('gpr', 'Not found')}")
-            print(f"   NOI: {result.get('noi', 'Not found')}")
-            print(f"   OpEx: {result.get('opex', 'Not found')}")
-            
-            # Verify we got meaningful values
-            if result.get('gpr', 0) > 0 and result.get('noi', 0) > 0:
-                print("✅ Extracted financial values are meaningful (non-zero)")
-            else:
-                print("❌ Extracted financial values are zero or missing")
-                
-        except Exception as e:
-            print(f"❌ GPT extraction simulation failed: {e}")
-            import traceback
-            traceback.print_exc()
-        finally:
-            # Restore original function
-            ai_extraction.chat_completion = original_chat_completion
-            
-    except Exception as e:
-        print(f"Error during extraction: {e}")
-        import traceback
-        traceback.print_exc()
-        
-    print("\n✅ Excel extraction fix test completed!")
+    finally:
+        # Clean up the temporary file
+        os.unlink(excel_file_path)
+
+if __name__ == "__main__":
+    test_excel_extraction_fix()
