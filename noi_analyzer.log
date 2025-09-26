@@ -418,3 +418,6 @@ ype', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', '
 2025-09-25 19:19:09,727 - noianalyzer.ai_extraction - WARNING - Transposed Excel extraction also failed: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
 2025-09-25 19:21:37,592 - ai_extraction - WARNING - Transposed Excel extraction also failed: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
 2025-09-25 19:33:45,011 - config - WARNING - API key not found
+2025-09-26 14:29:33,227 - config - WARNING - API key not found
+2025-09-26 14:29:40,471 - config - WARNING - API key not found
+2025-09-26 14:30:50,919 - config - WARNING - API key not found

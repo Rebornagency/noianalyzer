@@ -444,40 +444,32 @@ class WorldClassExtractor:
                         for keyword in financial_keywords
                     )
                     
-                    if has_financial_terms and len(df.columns) >= 2:
-                        # Format as financial statement
+                    # Check if we have multiple columns (category-value structure)
+                    has_multiple_columns = len(df.columns) >= 2
+                    
+                    if has_financial_terms and has_multiple_columns:
+                        # Format as financial statement with proper category:value pairs
                         text_parts.append("[FINANCIAL_STATEMENT_FORMAT]")
                         text_parts.append("LINE ITEMS:")
                         text_parts.append("")
                         
-                        # Extract data with value identification
-                        category_column_idx = 0
-                        previous_category = ""
-                        
+                        # Process rows to create category:value pairs
+                        # Use the first column as categories and subsequent columns for values
                         for idx, row in df.iterrows():
-                            category = str(row.iloc[category_column_idx]) if len(row) > category_column_idx and pd.notna(row.iloc[category_column_idx]) else ""
-                            
-                            # Find the best value from other columns
-                            amount = ""
-                            for col_idx in range(1, len(df.columns)):
-                                if len(row) > col_idx:
-                                    raw_amount = row.iloc[col_idx]
-                                    if pd.notna(raw_amount):
-                                        amount = str(raw_amount)
-                                        break
-                            
-                            if category.strip() and not category.startswith('Unnamed'):
-                                category = category.strip()
-                                if amount and amount != "nan":
-                                    cleaned_amount = amount.replace('$', '').replace(',', '').strip()
-                                    text_parts.append(f"  {category}: {cleaned_amount}")
-                                    previous_category = category
-                                else:
-                                    text_parts.append(f"  SECTION: {category}")
-                                    previous_category = category
-                            elif amount and amount != "nan" and previous_category:
-                                cleaned_amount = amount.replace('$', '').replace(',', '').strip()
-                                text_parts.append(f"  {previous_category}: {cleaned_amount}")
+                            if len(row) >= 2:
+                                category = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ""
+                                value = str(row.iloc[1]) if pd.notna(row.iloc[1]) else ""
+                                
+                                # Only include rows with meaningful data
+                                if category.strip() and not category.startswith('Unnamed') and category.strip() != '[EMPTY]':
+                                    category = category.strip()
+                                    if value and value != "nan" and value.strip() != '[EMPTY]':
+                                        # Clean the value
+                                        cleaned_value = value.replace('$', '').replace(',', '').strip()
+                                        text_parts.append(f"  {category}: {cleaned_value}")
+                                    else:
+                                        # Section header
+                                        text_parts.append(f"  SECTION: {category}")
                     else:
                         # Standard table format
                         text_parts.append("[TABLE_FORMAT]")
@@ -662,47 +654,83 @@ class WorldClassExtractor:
         # Create enhanced prompt
         prompt = self._create_enhanced_prompt(document_text, document_type)
         
-        # Prepare messages for chat completion
-        messages = [
-            {"role": "system", "content": "You are a world-class real estate financial analyst with expertise in extracting precise financial data from property income statements. You focus on accuracy, mathematical consistency, and providing confidence scores for each extracted value."},
-            {"role": "user", "content": prompt}
-        ]
+        # Try multiple times with different approaches
+        for attempt in range(3):
+            try:
+                # Prepare messages for chat completion
+                messages = [
+                    {"role": "system", "content": "You are a world-class real estate financial analyst. Extract financial data and return ONLY a JSON object."},
+                    {"role": "user", "content": prompt}
+                ]
+                
+                # Call OpenAI API
+                response_content = chat_completion(
+                    messages=messages,
+                    model="gpt-4",  # Use GPT-4 for better accuracy
+                    temperature=0.1 if attempt == 0 else 0.3,  # Lower temperature for first attempt
+                    max_tokens=2000
+                )
+                
+                # Parse the JSON response
+                result = self._parse_gpt_response(response_content)
+                if result and result[0]:  # If we got valid data
+                    return result
+                
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt < 2:  # Don't sleep on the last attempt
+                    time.sleep(2 ** attempt)  # Exponential backoff
+        
+        # If all attempts fail, return empty result
+        return {}, {}
+    
+    def _parse_gpt_response(self, response_content: str) -> Tuple[Dict[str, Any], Dict[str, float]]:
+        """
+        Parse GPT response and extract JSON data.
+        
+        Args:
+            response_content: Raw response from GPT
+            
+        Returns:
+            Tuple of extracted data dictionary and confidence scores
+        """
+        try:
+            # First try to parse as JSON directly
+            result = json.loads(response_content)
+            if isinstance(result, dict) and "financial_data" in result:
+                return result["financial_data"], result.get("confidence_scores", {})
+        except json.JSONDecodeError:
+            pass
         
         try:
-            # Call OpenAI API
-            response_content = chat_completion(
-                messages=messages,
-                model="gpt-4",  # Use GPT-4 for better accuracy
-                temperature=0.1,
-                max_tokens=2000
-            )
+            # Try to extract JSON from response text
+            # Look for JSON object in the response
+            json_start = response_content.find('{')
+            json_end = response_content.rfind('}') + 1
             
-            # Parse the JSON response
-            try:
-                # Extract JSON from response if it's wrapped in other text
-                json_start = response_content.find('{')
-                json_end = response_content.rfind('}') + 1
-                if json_start >= 0 and json_end > json_start:
-                    json_str = response_content[json_start:json_end]
-                    result = json.loads(json_str)
-                    
-                    # Extract data and confidence scores
-                    extracted_data = result.get("financial_data", {})
-                    confidence_scores = result.get("confidence_scores", {})
-                    
-                    return extracted_data, confidence_scores
-                else:
-                    raise json.JSONDecodeError("No JSON found in response", response_content, 0)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse GPT response as JSON: {str(e)}")
-                logger.error(f"Response content: {response_content}")
-                # Return empty result with low confidence
-                return {}, {}
-                
-        except Exception as e:
-            logger.error(f"Error calling OpenAI API: {str(e)}")
-            # Return empty result with low confidence
-            return {}, {}
+            if json_start >= 0 and json_end > json_start:
+                json_str = response_content[json_start:json_end]
+                result = json.loads(json_str)
+                if isinstance(result, dict) and "financial_data" in result:
+                    return result["financial_data"], result.get("confidence_scores", {})
+        except json.JSONDecodeError:
+            pass
+        
+        try:
+            # Try to find and extract JSON using regex
+            import re
+            json_match = re.search(r'({[^{]*"financial_data"[^{]*{.*?}[^}]*"confidence_scores"[^{]*{.*?}[^}]*})', response_content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                result = json.loads(json_str)
+                if isinstance(result, dict) and "financial_data" in result:
+                    return result["financial_data"], result.get("confidence_scores", {})
+        except json.JSONDecodeError:
+            pass
+        
+        # If we still can't parse, log the response for debugging
+        logger.warning(f"Could not parse GPT response as JSON: {response_content[:200]}...")
+        return {}, {}
     
     def _create_enhanced_prompt(self, document_text: str, document_type: DocumentType) -> str:
         """
@@ -718,141 +746,96 @@ class WorldClassExtractor:
         # Document type specific instructions
         doc_type_instructions = ""
         if document_type == DocumentType.BUDGET:
-            doc_type_instructions = """
-Document Type Specific Instructions:
-This is a BUDGET document. Focus on projected/forecasted values rather than actual results.
-Look for terms like "Budget", "Forecast", "Projected", "Estimated" in the document.
-"""
+            doc_type_instructions = "This is a BUDGET document. Focus on projected/forecasted values."
         elif document_type == DocumentType.PRIOR_YEAR_ACTUAL:
-            doc_type_instructions = """
-Document Type Specific Instructions:
-This is a PRIOR YEAR ACTUAL document. Look for historical actual results from a previous year.
-Focus on data from the prior year period.
-"""
+            doc_type_instructions = "This is a PRIOR YEAR ACTUAL document. Look for historical results."
         elif document_type == DocumentType.ACTUAL_INCOME_STATEMENT:
-            doc_type_instructions = """
-Document Type Specific Instructions:
-This is a CURRENT PERIOD ACTUAL document. Look for the most recent actual results.
-Focus on current period data.
-"""
+            doc_type_instructions = "This is a CURRENT PERIOD ACTUAL document. Look for the most recent actual results."
         
         prompt = f"""
-You are a world-class real estate financial analyst with expertise in extracting precise financial data from property income statements. 
+You are a world-class real estate financial analyst. Extract financial data from the document and return ONLY a JSON object.
 
-DOCUMENT STRUCTURE GUIDE:
-The document has been pre-processed with clear structural markers to help you parse it:
-- [SHEET_START]/[SHEET_END]: Excel sheet boundaries
-- [PAGE_START]/[PAGE_END]: PDF page boundaries  
-- [FINANCIAL_STATEMENT_FORMAT]: Financial data in category: value format
-- [TABLE_FORMAT]: Tabular data with headers
-- [TEXT_CONTENT]: Plain text content
-- SECTION markers: [REVENUE_SECTION], [EXPENSE_SECTION], etc.
-
-Document Information:
-- Document Type: {document_type.value}
-{doc_type_instructions}
+Document Type: {document_type.value}
+Instructions: {doc_type_instructions}
 
 Document Content:
 {document_text}
 
-INSTRUCTIONS:
-Extract all financial metrics from the document and return them in the exact JSON structure shown below. 
+Extract these financial metrics and provide confidence scores (0.0 to 1.0):
 
-CRITICAL EXTRACTION STRATEGY:
-1. FIRST, identify the document structure using the markers provided
-2. LOOK for financial line items in [FINANCIAL_STATEMENT_FORMAT] sections first
-3. FOR tabular data, examine column headers and row values systematically
-4. IDENTIFY financial concepts by their meaning, not exact wording
-5. HANDLE different formats: "Gross Potential Rent", "Potential Rent", "Scheduled Rent" are all GPR
-6. RECOGNIZE negative values in formats: (1,234.50), -$1,234.50, -1,234.50
-7. CALCULATE derived values when not explicitly provided:
-   - Effective Gross Income = Gross Potential Rent - Vacancy Loss - Concessions - Bad Debt + Other Income
-   - Net Operating Income = Effective Gross Income - Operating Expenses
-8. NEVER leave fields empty - use 0.0 if truly unknown
-9. CRITICALLY IMPORTANT: DO NOT return all zero values. If you cannot find specific values, make educated estimates based on context.
-10. PROVIDE confidence scores (0.0 to 1.0) for each extracted value based on how certain you are about its accuracy.
-
-REQUIRED JSON STRUCTURE:
+REQUIRED JSON FORMAT:
 {{
   "financial_data": {{
-    "gross_potential_rent": 0.0,          // Gross Potential Rent (Total potential rental income)
-    "vacancy_loss": 0.0,                  // Vacancy Loss (Lost income due to vacant units)
-    "concessions": 0.0,                   // Concessions (Reduced rent given to tenants)
-    "bad_debt": 0.0,                      // Bad Debt (Uncollected rent)
-    "other_income": 0.0,                  // Other Income (Parking, laundry, etc.)
-    "effective_gross_income": 0.0,        // Effective Gross Income (GPR - Vacancy - Concessions - Bad Debt + Other Income)
-    "operating_expenses": 0.0,            // Total Operating Expenses (Sum of all operating expenses)
-    "property_taxes": 0.0,                // Property Taxes
-    "insurance": 0.0,                     // Insurance
-    "repairs_maintenance": 0.0,           // Repairs & Maintenance
-    "utilities": 0.0,                     // Utilities
-    "management_fees": 0.0,               // Management Fees
-    "parking_income": 0.0,                // Parking Income
-    "laundry_income": 0.0,                // Laundry Income
-    "late_fees": 0.0,                     // Late Fees
-    "pet_fees": 0.0,                      // Pet Fees
-    "application_fees": 0.0,              // Application Fees
-    "storage_fees": 0.0,                  // Storage Fees
-    "amenity_fees": 0.0,                  // Amenity Fees
-    "utility_reimbursements": 0.0,        // Utility Reimbursements
-    "cleaning_fees": 0.0,                 // Cleaning Fees
-    "cancellation_fees": 0.0,             // Cancellation Fees
-    "miscellaneous_income": 0.0,          // Miscellaneous Income
-    "net_operating_income": 0.0           // Net Operating Income (EGI - OpEx)
+    "gross_potential_rent": 0.0,
+    "vacancy_loss": 0.0,
+    "concessions": 0.0,
+    "bad_debt": 0.0,
+    "other_income": 0.0,
+    "effective_gross_income": 0.0,
+    "operating_expenses": 0.0,
+    "property_taxes": 0.0,
+    "insurance": 0.0,
+    "repairs_maintenance": 0.0,
+    "utilities": 0.0,
+    "management_fees": 0.0,
+    "parking_income": 0.0,
+    "laundry_income": 0.0,
+    "late_fees": 0.0,
+    "pet_fees": 0.0,
+    "application_fees": 0.0,
+    "storage_fees": 0.0,
+    "amenity_fees": 0.0,
+    "utility_reimbursements": 0.0,
+    "cleaning_fees": 0.0,
+    "cancellation_fees": 0.0,
+    "miscellaneous_income": 0.0,
+    "net_operating_income": 0.0
   }},
   "confidence_scores": {{
-    "gross_potential_rent": 0.0,          // Confidence in GPR value (0.0 to 1.0)
-    "vacancy_loss": 0.0,                  // Confidence in Vacancy Loss value
-    "concessions": 0.0,                   // Confidence in Concessions value
-    "bad_debt": 0.0,                      // Confidence in Bad Debt value
-    "other_income": 0.0,                  // Confidence in Other Income value
-    "effective_gross_income": 0.0,        // Confidence in EGI value
-    "operating_expenses": 0.0,            // Confidence in OpEx value
-    "property_taxes": 0.0,                // Confidence in Property Taxes value
-    "insurance": 0.0,                     // Confidence in Insurance value
-    "repairs_maintenance": 0.0,           // Confidence in Repairs & Maintenance value
-    "utilities": 0.0,                     // Confidence in Utilities value
-    "management_fees": 0.0,               // Confidence in Management Fees value
-    "parking_income": 0.0,                // Confidence in Parking Income value
-    "laundry_income": 0.0,                // Confidence in Laundry Income value
-    "late_fees": 0.0,                     // Confidence in Late Fees value
-    "pet_fees": 0.0,                      // Confidence in Pet Fees value
-    "application_fees": 0.0,              // Confidence in Application Fees value
-    "storage_fees": 0.0,                  // Confidence in Storage Fees value
-    "amenity_fees": 0.0,                  // Confidence in Amenity Fees value
-    "utility_reimbursements": 0.0,        // Confidence in Utility Reimbursements value
-    "cleaning_fees": 0.0,                 // Confidence in Cleaning Fees value
-    "cancellation_fees": 0.0,             // Confidence in Cancellation Fees value
-    "miscellaneous_income": 0.0,          // Confidence in Miscellaneous Income value
-    "net_operating_income": 0.0           // Confidence in NOI value
+    "gross_potential_rent": 0.0,
+    "vacancy_loss": 0.0,
+    "concessions": 0.0,
+    "bad_debt": 0.0,
+    "other_income": 0.0,
+    "effective_gross_income": 0.0,
+    "operating_expenses": 0.0,
+    "property_taxes": 0.0,
+    "insurance": 0.0,
+    "repairs_maintenance": 0.0,
+    "utilities": 0.0,
+    "management_fees": 0.0,
+    "parking_income": 0.0,
+    "laundry_income": 0.0,
+    "late_fees": 0.0,
+    "pet_fees": 0.0,
+    "application_fees": 0.0,
+    "storage_fees": 0.0,
+    "amenity_fees": 0.0,
+    "utility_reimbursements": 0.0,
+    "cleaning_fees": 0.0,
+    "cancellation_fees": 0.0,
+    "miscellaneous_income": 0.0,
+    "net_operating_income": 0.0
   }}
 }}
 
-EXTENSIVE FIELD VARIATIONS TO LOOK FOR:
-- Gross Potential Rent: Gross Potential Rent, Potential Rent, Scheduled Rent, Total Revenue, Revenue, Gross Income
-- Vacancy Loss: Vacancy, Credit Loss, Vacancy and Credit Loss, Turnover Loss
-- Concessions: Tenant Concessions, Leasing Concessions, Move-in Concessions, Free Rent
-- Bad Debt: Uncollected Rent, Delinquent Rent, Write-offs, Account Receivable Write-offs
-- Other Income: Additional Income, Miscellaneous Income, Parking Fees, Laundry Income
-- Effective Gross Income: Effective Gross Income, Net Rental Income, Adjusted Gross Income
-- Operating Expenses: Operating Expenses, Total Operating Expenses, Expenses, Operating Costs
-- Net Operating Income: Net Operating Income, Net Income, Operating Income, Property Net Income
+FINANCIAL TERM MAPPINGS:
+- Gross Potential Rent: Rent, Revenue, Income, Gross Rent
+- Vacancy Loss: Vacancy, Credit Loss
+- Concessions: Free Rent, Tenant Concessions
+- Bad Debt: Uncollected Rent, Delinquent Rent
+- Other Income: Parking, Laundry, Fees
+- Operating Expenses: Expenses, OpEx
+- Net Operating Income: NOI
 
-NEGATIVE VALUE FORMATS:
-Convert these formats to negative numbers:
-- (1,234.50) → -1234.50
-- (1234.50) → -1234.50  
-- -$1,234.50 → -1234.50
-- -1,234.50 → -1234.50
-
-CALCULATION RULES (Use if not explicitly provided):
-- Effective Gross Income = Gross Potential Rent - Vacancy Loss - Concessions - Bad Debt + Other Income
-- Net Operating Income = Effective Gross Income - Operating Expenses
-- If you find individual expense items, sum them to calculate Operating Expenses
-- If you find individual income items, sum them to calculate Gross Potential Rent
-
-RETURN ONLY the JSON object with the extracted values and confidence scores. Do not include any other text, explanations, or formatting.
-Make sure all fields are present with numeric values and confidence scores. DO NOT return all zero values - make educated estimates when needed.
+IMPORTANT:
+1. Return ONLY the JSON object, nothing else
+2. All values must be numbers, not strings
+3. If a value is not found, use 0.0
+4. Provide confidence scores based on how certain you are (1.0 = very certain, 0.0 = guessing)
+5. Calculate derived values when needed:
+   - Effective Gross Income = Gross Potential Rent - Vacancy Loss - Concessions - Bad Debt + Other Income
+   - Net Operating Income = Effective Gross Income - Operating Expenses
 """
         
         return prompt
