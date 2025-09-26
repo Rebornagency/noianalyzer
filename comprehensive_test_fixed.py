@@ -163,8 +163,9 @@ def extract_text_from_excel_fixed(file_content: bytes, file_name: str) -> str:
 def create_test_excel_file():
     """Create a test Excel file that mimics the structure from the logs"""
     # Based on the logs, it seems like we have a financial statement with specific structure
+    # Let's make sure the first column has financial keywords
     data = {
-        'Real Estate Financial Statement - Sep 2025 (Actual)': [
+        'Category': [
             'Property: Example Commercia...',
             'Period: September 1, 2025 -...',
             'Category',

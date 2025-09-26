@@ -1,68 +1,81 @@
 import pandas as pd
 import io
-import tempfile
-import os
-from ai_extraction import extract_text_from_excel
 
-# Create a simple test DataFrame
+# Create test data similar to what we saw in the logs
 data = {
-    'Category': [
-        'Gross Potential Rent',
-        'Vacancy Loss',
-        'Concessions',
-        'Bad Debt',
-        'Other Income',
-        'Effective Gross Income',
-        'Operating Expenses',
-        'Property Taxes',
-        'Insurance',
-        'Repairs & Maintenance',
-        'Utilities',
-        'Management Fees',
-        'Parking',
-        'Laundry',
+    'Real Estate Financial Statement - Sep 2025 (Actual)': [
+        'Property: Example Commercia...',
+        'Period: September 1, 2025 -...',
+        'Category',
+        'Rental Income - Commercial',
+        'Rental Income - Residential',
+        'Parking Fees',
+        'Laundry Income',
+        'Application Fees',
         'Late Fees',
+        'Other Income',
+        'Total Revenue',
+        '',  # Empty row
+        'Operating Expenses',
+        'Property Management Fees',
+        'Utilities',
+        'Property Taxes',
+        'Property Insurance',
+        'Repairs & Maintenance',
+        'Cleaning & Janitorial',
+        'Landscaping & Grounds',
+        'Security',
+        'Marketing & Advertising',
+        'Administrative Expenses',
+        'HOA Fees (if applicable)',
+        'Pest Control',
+        'Supplies',
         'Total Operating Expenses',
-        'Net Operating Income'
+        '',  # Empty row
+        'Net Operating Income (NOI)',
+        'Net Operating Income (NOI)'
     ],
-    'Amount': [
-        80000.0,    # Gross Potential Rent
-        -2000.0,    # Vacancy Loss
-        -1000.0,    # Concessions
-        -500.0,     # Bad Debt
-        3950.0,     # Other Income
-        80450.0,    # Effective Gross Income
-        '',         # Operating Expenses header
-        -3000.0,    # Property Taxes
-        -1500.0,    # Insurance
-        -2500.0,    # Repairs & Maintenance
-        -2000.0,    # Utilities
-        -4000.0,    # Management Fees
-        2000.0,     # Parking
-        500.0,      # Laundry
-        150.0,      # Late Fees
-        -16250.0,   # Total Operating Expenses
-        64200.0     # Net Operating Income
+    'Unnamed: 1': [
+        '', '', '[EMPTY]', '30000.0', '20000.0', '2000.0', '500.0', '300.0', '150.0', '5000.0', '57950.0',
+        '', '', '', '4000.0', '3000.0', '2000.0', '1500.0', '2500.0', '1000.0', '500.0', '1000.0', '500.0', '300.0', '200.0', '100.0', '100.0', '16000.0',
+        '', '41950.0'
     ]
 }
 
 df = pd.DataFrame(data)
+print("Original DataFrame:")
+print(df)
+print("\n" + "="*50 + "\n")
 
-# Save to Excel
-with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp_file:
-    tmp_filename = tmp_file.name
-    df.to_excel(tmp_filename, sheet_name='Financial Statement', index=False)
+# Test our improved logic for identifying value columns
+value_column_indices = []
+for col_idx in range(len(df.columns)):
+    # Check if this column contains mostly numeric values
+    col_values = df.iloc[:, col_idx]
+    numeric_count = 0
+    total_count = 0
+    for val in col_values:
+        if pd.notna(val):
+            total_count += 1
+            try:
+                # Handle various number formats
+                val_str = str(val).strip().replace('$', '').replace(',', '').replace('(', '-').replace(')', '')
+                if val_str and val_str != 'nan':
+                    float(val_str)
+                    numeric_count += 1
+            except ValueError:
+                pass
+    
+    # If more than 30% of non-null values are numeric, consider this a value column
+    if total_count > 0 and numeric_count / total_count > 0.3:
+        value_column_indices.append(col_idx)
 
-# Read the file content
-with open(tmp_filename, 'rb') as f:
-    file_content = f.read()
+print(f"Value column indices: {value_column_indices}")
 
-# Test extraction
-extracted_text = extract_text_from_excel(file_content, "test_file.xlsx")
+# If we couldn't find clear numeric columns, use a heuristic approach
+if not value_column_indices and len(df.columns) >= 2:
+    # Assume the last column contains values
+    value_column_indices = [len(df.columns) - 1]
+    print(f"No clear numeric columns found, using heuristic: {value_column_indices}")
 
-print("Extracted text length:", len(extracted_text))
-print("Extracted text:")
-print(extracted_text)
-
-# Clean up
-os.unlink(tmp_filename)
+print(f"Final value column indices: {value_column_indices}")

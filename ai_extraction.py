@@ -5,6 +5,10 @@ import tempfile
 import time
 from typing import Dict, Any, List, Optional, BinaryIO, Union
 import streamlit as st
+
+# Import the world-class extraction system
+from world_class_extraction import WorldClassExtractor, extract_financial_data as world_class_extract_financial_data
+
 from config import get_extraction_api_url, get_api_key, get_openai_api_key
 from constants import ERROR_MESSAGES, DEFAULT_API_CONFIG, FILE_UPLOAD_CONFIG, MAIN_METRICS, OPEX_COMPONENTS, INCOME_COMPONENTS
 from utils.error_handler import setup_logger, handle_errors, graceful_degradation, APIError
@@ -23,7 +27,7 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
                     api_url: Optional[str] = None, api_key: Optional[str] = None,
                     max_retries: Optional[int] = None, retry_delay: int = 5) -> Dict[str, Any]:
     """
-    Extract NOI data from a document using GPT with enhanced error handling.
+    Extract NOI data from a document using the world-class extraction system.
     
     Args:
         file: Document file to process
@@ -42,7 +46,79 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
     
     file_name = getattr(file, 'name', 'unknown')
     logger.info(
-        f"Starting GPT-based data extraction",
+        f"Starting world-class data extraction",
+        extra={
+            "file_name": file_name,
+            "document_type_hint": document_type_hint,
+            "max_retries": max_retries
+        }
+    )
+    
+    # Prepare file content for processing
+    try:
+        file_content = file.getvalue()
+        # Size guardrail (bytes)
+        max_size_bytes = FILE_UPLOAD_CONFIG.get("MAX_FILE_SIZE", 200) * 1024 * 1024
+        if len(file_content) > max_size_bytes:
+            logger.error(f"Uploaded file exceeds size limit: {len(file_content)} bytes")
+            raise APIError("Uploaded file too large (limit {} MB)".format(FILE_UPLOAD_CONFIG.get("MAX_FILE_SIZE", 200)))
+        file_type = getattr(file, 'type', 'application/octet-stream')
+        
+        logger.info(
+            f"File prepared for world-class processing",
+            extra={
+                "file_size": len(file_content),
+                "file_type": file_type
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error preparing file for processing: {str(e)}")
+        raise APIError(f"Failed to prepare file for processing: {str(e)}")
+    
+    # Use the world-class extraction system
+    try:
+        extractor = WorldClassExtractor()
+        result = extractor.extract_data(file_content, file_name, document_type_hint)
+        
+        # Convert to the expected format for backward compatibility
+        validated_result = validate_and_enrich_extraction_result(result.data, file_name, document_type_hint)
+        
+        # Add extraction metadata
+        validated_result["extraction_confidence"] = result.confidence.value
+        validated_result["extraction_processing_time"] = result.processing_time
+        validated_result["extraction_method"] = result.extraction_method
+        
+        logger.info(
+            f"World-class data extraction successful",
+            extra={
+                "file_name": file_name,
+                "confidence": result.confidence.value,
+                "processing_time": f"{result.processing_time:.3f}s",
+                "response_keys": list(validated_result.keys())
+            }
+        )
+        
+        return validated_result
+        
+    except Exception as e:
+        logger.error(f"World-class extraction failed: {str(e)}", exc_info=True)
+        # Fall back to the original extraction method
+        return _extract_noi_data_original(file, document_type_hint, api_url, api_key, max_retries, retry_delay)
+
+# Keep the original function for fallback
+def _extract_noi_data_original(file: Any, document_type_hint: Optional[str] = None, 
+                              api_url: Optional[str] = None, api_key: Optional[str] = None,
+                              max_retries: Optional[int] = None, retry_delay: int = 5) -> Dict[str, Any]:
+    """
+    Original extract_noi_data implementation as fallback.
+    """
+    # Use default configuration if not provided
+    if max_retries is None:
+        max_retries = DEFAULT_API_CONFIG["MAX_RETRIES"]
+    
+    file_name = getattr(file, 'name', 'unknown')
+    logger.info(
+        f"Starting GPT-based data extraction (fallback)",
         extra={
             "file_name": file_name,
             "document_type_hint": document_type_hint,
@@ -544,176 +620,11 @@ def extract_text_from_excel(file_content: bytes, file_name: str) -> str:
     Returns:
         Extracted text content with clear structure for AI parsing
     """
-    import pandas as pd
-    import io
-    
-    # Create a temporary file-like object
-    excel_file = io.BytesIO(file_content)
-    
-    # Read all sheets and convert to text
-    text_parts = []
-    
-    # Get list of sheet names
-    xl = pd.ExcelFile(excel_file)
-    sheet_names = xl.sheet_names
-    
-    # Add file header
-    text_parts.append(f"EXCEL DOCUMENT: {file_name}")
-    text_parts.append("=" * 60)
-    text_parts.append("")
-    
-    for sheet_name in sheet_names:
-        # Reset file pointer to beginning
-        excel_file.seek(0)
-        
-        # Read the sheet
-        df = pd.read_excel(excel_file, sheet_name=sheet_name)
-        
-        # Add sheet header with clear structure markers
-        text_parts.append(f"[SHEET_START] {sheet_name}")
-        text_parts.append("-" * 40)
-        
-        # Improve table representation for better GPT understanding
-        # Remove unnamed columns that are typically artifacts of merged cells
-        columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
-        if columns_to_drop:
-            df = df.drop(columns=columns_to_drop)
-        
-        # Convert DataFrame to string representation with better formatting
-        if not df.empty:
-            # Check if this is likely a financial statement
-            first_column_data = df.iloc[:, 0].astype(str).str.lower() if len(df.columns) > 0 else pd.Series([])
-            financial_keywords = ['rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 'maintenance', 
-                                'utilities', 'management', 'parking', 'laundry', 'fee', 'noi', 'egi', 'operating']
-            has_financial_terms = any(
-                first_column_data.str.contains(keyword, na=False).any() 
-                for keyword in financial_keywords
-            )
-            
-            if has_financial_terms and len(df.columns) >= 2:
-                # Format as financial statement with clear category:value pairs
-                text_parts.append("[FINANCIAL_STATEMENT_FORMAT]")
-                text_parts.append("LINE ITEMS:")
-                text_parts.append("")
-                
-                # Find the column with numeric values
-                numeric_column_idx = -1
-                for col_idx in range(len(df.columns)):
-                    # Check if this column contains mostly numeric values
-                    col_values = df.iloc[:, col_idx]
-                    numeric_count = 0
-                    total_count = 0
-                    for val in col_values:
-                        if pd.notna(val):
-                            total_count += 1
-                            try:
-                                float(str(val).replace('$', '').replace(',', '').replace('(', '-').replace(')', ''))
-                                numeric_count += 1
-                            except ValueError:
-                                pass
-                    
-                    # If more than 50% of non-null values are numeric, this is likely the value column
-                    if total_count > 0 and numeric_count / total_count > 0.5:
-                        numeric_column_idx = col_idx
-                        break
-                
-                # If we couldn't find a clear numeric column, use the last column
-                if numeric_column_idx == -1 and len(df.columns) > 1:
-                    numeric_column_idx = len(df.columns) - 1
-                
-                # Extract data using the identified columns
-                category_column_idx = 0  # Assume first column has categories
-                
-                for idx, row in df.iterrows():
-                    # Get values from identified columns
-                    category = str(row.iloc[category_column_idx]) if len(row) > category_column_idx and pd.notna(row.iloc[category_column_idx]) else ""
-                    
-                    # Get amount from the numeric column if available
-                    amount = ""
-                    if numeric_column_idx != -1 and len(row) > numeric_column_idx:
-                        raw_amount = row.iloc[numeric_column_idx]
-                        if pd.notna(raw_amount):
-                            amount = str(raw_amount)
-                    
-                    # If no amount in numeric column, try other columns
-                    if not amount and numeric_column_idx != -1:
-                        for col_idx in range(len(df.columns)):
-                            if col_idx != category_column_idx and len(row) > col_idx:
-                                val = row.iloc[col_idx]
-                                if pd.notna(val):
-                                    val_str = str(val)
-                                    # Check if this looks like a monetary value
-                                    if any(char.isdigit() for char in val_str):
-                                        amount = val_str
-                                        break
-                    
-                    # Only include rows that have meaningful data
-                    if category.strip() and not category.startswith('Unnamed'):
-                        # Clean up category name
-                        category = category.strip()
-                        # Format amount properly
-                        if amount and amount != "nan":
-                            # Clean the amount string
-                            cleaned_amount = amount.replace('$', '').replace(',', '').strip()
-                            text_parts.append(f"  {category}: {cleaned_amount}")
-                        else:
-                            # This might be a header or section marker
-                            text_parts.append(f"  SECTION: {category}")
-            else:
-                # Standard table format with clear column headers
-                text_parts.append("[TABLE_FORMAT]")
-                text_parts.append("COLUMN HEADERS: " + " | ".join(str(col) for col in df.columns))
-                text_parts.append("")
-                text_parts.append("DATA ROWS:")
-                # Format as a clean table
-                table_text = df.to_string(index=False, na_rep='[EMPTY]', max_colwidth=30)
-                # Add indentation for clarity
-                for line in table_text.split('\n'):
-                    text_parts.append(f"  {line}")
-        else:
-            text_parts.append("[EMPTY_SHEET]")
-        
-        # Add sheet end marker
-        text_parts.append("")
-        text_parts.append("[SHEET_END]")
-        text_parts.append("")
-    
-    # Add document end marker
-    text_parts.append("[DOCUMENT_END]")
-    
-    result = "\n".join(text_parts)
-    
-    # If the result is empty or too short, try a different approach
-    if len(result.strip()) < 50:
-        # Reset file pointer and try reading with different parameters
-        excel_file.seek(0)
-        try:
-            # Try reading all sheets with header=None to get raw data
-            xl = pd.ExcelFile(excel_file)
-            sheet_names = xl.sheet_names
-            
-            text_parts = [f"EXCEL DOCUMENT: {file_name}", "=" * 60, ""]
-            for sheet_name in sheet_names:
-                excel_file.seek(0)
-                # Read without assuming header structure
-                df_raw = pd.read_excel(excel_file, sheet_name=sheet_name, header=None)
-                text_parts.append(f"[SHEET_START] {sheet_name}")
-                text_parts.append("-" * 40)
-                text_parts.append("[RAW_DATA_FORMAT]")
-                # Format raw data
-                table_text = df_raw.to_string(index=False, na_rep='[EMPTY]', max_colwidth=30)
-                for line in table_text.split('\n'):
-                    text_parts.append(f"  {line}")
-                text_parts.append("")
-                text_parts.append("[SHEET_END]")
-                text_parts.append("")
-            
-            text_parts.append("[DOCUMENT_END]")
-            result = "\n".join(text_parts)
-        except Exception as e:
-            logger.warning(f"Alternative Excel extraction also failed: {str(e)}")
-    
-    return result if result.strip() else f"[Excel content from {file_name}]"
+    # Use the world-class extractor for better Excel text extraction
+    extractor = WorldClassExtractor()
+    structured_text = extractor._extract_structured_text(file_content, file_name, 
+                                                        extractor._preprocess_document(file_content, file_name))
+    return structured_text
 
 
 def extract_text_from_pdf(file_content: bytes, file_name: str) -> str:

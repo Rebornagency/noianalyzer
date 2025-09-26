@@ -413,3 +413,8 @@ ype', 'gpr', 'vacancy_loss', 'concessions', 'bad_debt', 'other_income', 'egi', '
 2025-09-24 20:29:04,074 - ai_extraction - WARNING - All GPT attempts failed, trying direct text extraction
 2025-09-24 20:29:04,075 - ai_extraction - ERROR - All extraction methods failed, returning fallback result
 2025-09-24 20:29:04,076 - ai_extraction - INFO - Extracted 11 financial fields from text response
+2025-09-25 19:13:18,869 - ai_extraction - WARNING - Transposed Excel extraction also failed: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
+2025-09-25 19:15:36,796 - ai_extraction - WARNING - Transposed Excel extraction also failed: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
+2025-09-25 19:19:09,727 - noianalyzer.ai_extraction - WARNING - Transposed Excel extraction also failed: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
+2025-09-25 19:21:37,592 - ai_extraction - WARNING - Transposed Excel extraction also failed: The truth value of a Series is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
+2025-09-25 19:33:45,011 - config - WARNING - API key not found

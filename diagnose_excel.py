@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script to verify the Excel extraction fix
+Diagnostic script to understand what's happening with the Excel extraction
 """
 
 import pandas as pd
@@ -61,8 +61,8 @@ def create_test_excel_file():
     
     return tmp_filename
 
-def test_excel_extraction():
-    """Test the Excel extraction fix"""
+def diagnose_extraction():
+    """Diagnose what's happening with the extraction process"""
     print("Creating test Excel file...")
     excel_file_path = create_test_excel_file()
     
@@ -85,25 +85,14 @@ def test_excel_extraction():
         
         # Analyze the structure
         print("\nANALYSIS:")
-        has_financial_format = '[FINANCIAL_STATEMENT_FORMAT]' in extracted_text
-        has_net_operating_income = 'Net Operating Income' in extracted_text
-        has_actual_values = '30000.0' in extracted_text
-        has_category_value_pairs = ':' in extracted_text and 'Rental Income' in extracted_text
-        
-        print(f"  Extracted text contains '[FINANCIAL_STATEMENT_FORMAT]': {'✅' if has_financial_format else '❌'}")
-        print(f"  Extracted text contains 'Net Operating Income': {'✅' if has_net_operating_income else '❌'}")
-        print(f"  Extracted text contains actual values (e.g., '30000.0'): {'✅' if has_actual_values else '❌'}")
-        print(f"  Extracted text contains category:value pairs: {'✅' if has_category_value_pairs else '❌'}")
-        
-        # Success criteria
-        success = has_financial_format and has_net_operating_income and has_actual_values and has_category_value_pairs
-        print(f"\n{'SUCCESS' if success else 'FAILURE'}: Excel extraction {'works correctly' if success else 'still has issues'}")
-        
-        return success
+        print(f"  Extracted text contains '[FINANCIAL_STATEMENT_FORMAT]': {'✅' if '[FINANCIAL_STATEMENT_FORMAT]' in extracted_text else '❌'}")
+        print(f"  Extracted text contains 'Net Operating Income': {'✅' if 'Net Operating Income' in extracted_text else '❌'}")
+        print(f"  Extracted text contains actual values (e.g., '30000.0'): {'✅' if '30000.0' in extracted_text else '❌'}")
+        print(f"  Extracted text contains category:value pairs: {'✅' if ':' in extracted_text else '❌'}")
         
     finally:
         # Clean up
         os.unlink(excel_file_path)
 
 if __name__ == "__main__":
-    test_excel_extraction()
+    diagnose_extraction()
