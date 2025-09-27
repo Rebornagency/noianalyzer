@@ -426,8 +426,26 @@ class WorldClassExtractor:
                 excel_file.seek(0)
                 df = pd.read_excel(excel_file, sheet_name=sheet_name)
                 
-                # Remove unnamed columns
-                columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
+                # Remove unnamed columns that are truly artifacts (not containing financial data)
+                columns_to_drop = []
+                for col in df.columns:
+                    if str(col).startswith('Unnamed:'):
+                        # Check if this column contains financial data
+                        col_data = df[col]
+                        numeric_count = 0
+                        total_count = 0
+                        for val in col_data:
+                            if pd.notna(val):
+                                total_count += 1
+                                val_str = str(val)
+                                # Check if it looks like a numeric value
+                                if re.search(r'[\d.,]+', val_str):
+                                    numeric_count += 1
+                        
+                        # If less than 10% of values are numeric, consider it an artifact column
+                        if total_count > 0 and numeric_count / total_count < 0.1:
+                            columns_to_drop.append(col)
+                
                 if columns_to_drop:
                     df = df.drop(columns=columns_to_drop)
                 
@@ -447,7 +465,25 @@ class WorldClassExtractor:
                     # Check if we have multiple columns (category-value structure)
                     has_multiple_columns = len(df.columns) >= 2
                     
-                    if has_financial_terms and has_multiple_columns:
+                    # Check if second column has numeric values (more robust check)
+                    has_numeric_values = False
+                    if len(df.columns) >= 2:
+                        second_column = df.iloc[:, 1]
+                        numeric_count = 0
+                        total_count = 0
+                        for val in second_column:
+                            if pd.notna(val):
+                                total_count += 1
+                                val_str = str(val)
+                                # Check if it looks like a numeric value (allowing for currency symbols, commas, etc.)
+                                if re.search(r'[\d.,]+', val_str):
+                                    numeric_count += 1
+                        
+                        # If more than 30% of non-null values in second column are numeric, consider it numeric
+                        if total_count > 0 and numeric_count / total_count > 0.3:
+                            has_numeric_values = True
+                    
+                    if has_financial_terms and has_multiple_columns and has_numeric_values:
                         # Format as financial statement with proper category:value pairs
                         text_parts.append("[FINANCIAL_STATEMENT_FORMAT]")
                         text_parts.append("LINE ITEMS:")
@@ -456,13 +492,18 @@ class WorldClassExtractor:
                         # Process rows to create category:value pairs
                         # Use the first column as categories and subsequent columns for values
                         for idx, row in df.iterrows():
-                            if len(row) >= 2:
+                            if len(row) >= 1:
                                 category = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ""
-                                value = str(row.iloc[1]) if pd.notna(row.iloc[1]) else ""
                                 
                                 # Only include rows with meaningful data
                                 if category.strip() and not category.startswith('Unnamed') and category.strip() != '[EMPTY]':
                                     category = category.strip()
+                                    
+                                    # Check if we have a value in the second column
+                                    value = ""
+                                    if len(row) >= 2 and pd.notna(row.iloc[1]):
+                                        value = str(row.iloc[1])
+                                    
                                     if value and value != "nan" and value.strip() != '[EMPTY]':
                                         # Clean the value
                                         cleaned_value = value.replace('$', '').replace(',', '').strip()

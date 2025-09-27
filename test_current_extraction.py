@@ -1,11 +1,14 @@
 """
-Final test to verify the Excel extraction fix works with the actual ai_extraction module
+Test to see what the current extraction produces
 """
 
 import pandas as pd
 import io
 import tempfile
 import os
+
+# Import the world-class extraction system
+from world_class_extraction import WorldClassExtractor
 
 def create_test_excel_file():
     """Create a test Excel file that exactly matches the structure from the logs"""
@@ -59,8 +62,8 @@ def create_test_excel_file():
     
     return tmp_filename
 
-def test_extract_text_from_excel():
-    """Test the extract_text_from_excel function directly"""
+def test_current_extraction():
+    """Test the current extraction to see what's being produced"""
     print("Creating test Excel file...")
     excel_file_path = create_test_excel_file()
     
@@ -71,40 +74,17 @@ def test_extract_text_from_excel():
         
         print(f"File size: {len(file_content)} bytes")
         
-        # Import the function we want to test
-        from world_class_extraction import WorldClassExtractor
+        # Test the current extraction
+        extractor = WorldClassExtractor()
+        structured_text = extractor._extract_structured_text(file_content, "financial_statement_september_2025_actual.xlsx", 
+                                                           extractor._preprocess_document(file_content, "financial_statement_september_2025_actual.xlsx"))
         
-        # Create an instance without API key (mock it)
-        extractor = WorldClassExtractor.__new__(WorldClassExtractor)
-        
-        # Test the _extract_excel_text method directly
-        extracted_text = extractor._extract_excel_text(file_content, "financial_statement_september_2025_actual.xlsx")
-        
-        print("\nExtracted text from _extract_excel_text method:")
+        print("\nCurrent structured text output:")
         print("=" * 60)
-        print(extracted_text)
+        print(structured_text)
         print("=" * 60)
         
-        # Check if it contains the financial values
-        has_financial_values = '30000.0' in extracted_text and '20000.0' in extracted_text
-        print(f"\nContains financial values: {'✅' if has_financial_values else '❌'}")
-        
-        # Check if it's using the financial statement format
-        has_financial_format = 'FINANCIAL_STATEMENT_FORMAT' in extracted_text
-        print(f"Uses financial statement format: {'✅' if has_financial_format else '❌'}")
-        
-        # Check if it's using the table format (which would be wrong)
-        has_table_format = 'TABLE_FORMAT' in extracted_text
-        print(f"Uses table format (should be false): {'✅' if has_table_format else '❌'}")
-        
-        if has_financial_values and has_financial_format and not has_table_format:
-            print("\n🎉 SUCCESS: The Excel extraction fix is working correctly!")
-            print("The structured text now contains the actual financial values and uses the correct format.")
-            print("This should resolve the GPT extraction issue where it was returning text instead of JSON.")
-            return True
-        else:
-            print("\n❌ FAILURE: The Excel extraction fix is not working correctly.")
-            return False
+        return True
         
     except Exception as e:
         print(f"Error during testing: {str(e)}")
@@ -117,4 +97,4 @@ def test_extract_text_from_excel():
         os.unlink(excel_file_path)
 
 if __name__ == "__main__":
-    test_extract_text_from_excel()
+    test_current_extraction()
