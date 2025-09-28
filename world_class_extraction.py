@@ -625,7 +625,6 @@ ADDITIONAL INSTRUCTIONS FOR ATTEMPT #{attempt + 1}:
         try:
             # Use chat completion with appropriate parameters
             response = chat_completion(
-                client=self.client,
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a world-class real estate financial analyst."},
