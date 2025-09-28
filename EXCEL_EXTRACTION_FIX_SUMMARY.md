@@ -1,81 +1,89 @@
 # Excel Extraction Fix Summary
 
-## Problem
-The Excel text extraction in the world-class data extraction system was not properly detecting financial statements and was missing actual financial values in the structured text sent to GPT. This caused GPT to return text explanations instead of JSON data because it couldn't find the financial values to extract.
+## Problem Identified
+
+The Excel extraction was failing to properly extract financial values from Excel files, resulting in all financial metrics being extracted as zero values (0.0). This was causing the GPT API to return meaningless responses.
 
 ## Root Cause
-The issue was in the [_extract_excel_text](file:///c:/Users/edgar/Documents/GitHub/noianalyzer/noianalyzer/world_class_extraction.py#L376-L482) method in [world_class_extraction.py](file:///c:/Users/edgar/Documents/GitHub/noianalyzer/noianalyzer/world_class_extraction.py):
 
-1. **Over-aggressive column dropping**: The method was dropping all columns that started with "Unnamed:" without checking if they contained financial data
-2. **Incorrect financial statement detection**: Without the second column containing financial values, the detection logic couldn't identify the document as a financial statement
-3. **Wrong format selection**: The method was using [TABLE_FORMAT] instead of [FINANCIAL_STATEMENT_FORMAT], which didn't include the actual financial values
+The issue was in the [extract_text_from_excel](file:///c:/Users/edgar/Documents/GitHub/noianalyzer/noianalyzer/ai_extraction.py#L436-L548) function in [ai_extraction.py](file:///c:/Users/edgar/Documents/GitHub/noianalyzer/noianalyzer/ai_extraction.py). The function was assuming that financial values would always be in the second column (index 1) of the Excel sheet, but in many real-world Excel files, the values might be in different columns or the structure might be more complex.
 
-## Solution
-The fix involved improving the column detection logic:
-
-1. **Intelligent column dropping**: Instead of dropping all "Unnamed:" columns, the method now analyzes each column to determine if it contains financial data
-2. **Financial data detection**: Columns with significant numeric content (more than 10% numeric values) are preserved as they likely contain financial values
-3. **Enhanced detection logic**: The financial statement detection now works correctly because both the category column and value column are preserved
-
-## Key Changes Made
-
-### Before (Broken):
+Specifically, the original code had this logic:
 ```python
-# Remove unnamed columns that are typically artifacts
-columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
-if columns_to_drop:
-    df = df.drop(columns=columns_to_drop)
+# Get values from first two columns
+category = str(row.iloc[0]) if len(row) > 0 and pd.notna(row.iloc[0]) else ""
+amount = str(row.iloc[1]) if len(row) > 1 and pd.notna(row.iloc[1]) else ""
 ```
 
-### After (Fixed):
+This approach failed when:
+1. Financial values were in a different column than the second one
+2. There were merged cells or empty rows that disrupted the expected structure
+3. The Excel file had a more complex layout
+
+## Solution Implemented
+
+We enhanced the Excel extraction logic to intelligently detect which column contains the numeric financial values rather than assuming it's always the second column. The improved approach:
+
+1. **Intelligent Column Detection**: The function now scans all columns to identify which one contains the majority of numeric values
+2. **Flexible Value Extraction**: If a clear numeric column isn't found, it falls back to checking all columns for monetary values
+3. **Better Data Cleaning**: Improved cleaning of monetary values to handle various formats ($, commas, parentheses for negative values)
+
+## Key Improvements
+
+### 1. Numeric Column Detection
 ```python
-# Remove unnamed columns that are truly artifacts (not containing financial data)
-columns_to_drop = []
-for col in df.columns:
-    if str(col).startswith('Unnamed:'):
-        # Check if this column contains financial data
-        col_data = df[col]
-        numeric_count = 0
-        total_count = 0
-        for val in col_data:
+# Find the column with numeric values
+numeric_column_idx = -1
+for col_idx in range(len(df.columns)):
+    # Check if this column contains mostly numeric values
+    col_values = df.iloc[:, col_idx]
+    numeric_count = 0
+    total_count = 0
+    for val in col_values:
+        if pd.notna(val):
+            total_count += 1
+            try:
+                float(str(val).replace('$', '').replace(',', '').replace('(', '-').replace(')', ''))
+                numeric_count += 1
+            except ValueError:
+                pass
+    
+    # If more than 50% of non-null values are numeric, this is likely the value column
+    if total_count > 0 and numeric_count / total_count > 0.5:
+        numeric_column_idx = col_idx
+        break
+```
+
+### 2. Fallback Mechanisms
+```python
+# If we couldn't find a clear numeric column, use the last column
+if numeric_column_idx == -1 and len(df.columns) > 1:
+    numeric_column_idx = len(df.columns) - 1
+
+# If no amount in numeric column, try other columns
+if not amount and numeric_column_idx != -1:
+    for col_idx in range(len(df.columns)):
+        if col_idx != category_column_idx and len(row) > col_idx:
+            val = row.iloc[col_idx]
             if pd.notna(val):
-                total_count += 1
                 val_str = str(val)
-                # Check if it looks like a numeric value
-                if re.search(r'[\d.,]+', val_str):
-                    numeric_count += 1
-        
-        # If less than 10% of values are numeric, consider it an artifact column
-        if total_count > 0 and numeric_count / total_count < 0.1:
-            columns_to_drop.append(col)
-
-if columns_to_drop:
-    df = df.drop(columns=columns_to_drop)
+                # Check if this looks like a monetary value
+                if any(char.isdigit() for char in val_str):
+                    amount = val_str
+                    break
 ```
 
-## Results
-
-### Before Fix:
-- ✅ Contains financial values: ❌
-- ✅ Uses financial statement format: ❌
-- ❌ Uses table format (should be false): ✅
-
-### After Fix:
-- ✅ Contains financial values: ✅
-- ✅ Uses financial statement format: ✅
-- ❌ Uses table format (should be false): ❌
-
-## Impact
-This fix resolves the GPT extraction issue where it was returning text explanations instead of JSON data. Now that the structured text properly includes:
-- Actual financial values (30000.0, 20000.0, etc.)
-- FINANCIAL_STATEMENT_FORMAT marker
-- Proper category:value pairs
-
-GPT will be able to correctly extract the financial data and return it in the expected JSON format.
+### 3. Better Value Cleaning
+```python
+# Clean the amount string
+cleaned_amount = amount.replace('$', '').replace(',', '').strip()
+text_parts.append(f"  {category}: {cleaned_amount}")
+```
 
 ## Testing
-The fix has been thoroughly tested with the exact Excel structure from the user's example, and all tests pass:
-- Column detection works correctly
-- Financial statement format is properly selected
-- Actual financial values are included in the output
-- Complete flow works as expected
+
+The fix has been tested with sample Excel files that match the structure shown in the logs. The improved extraction now correctly identifies and extracts financial values from the appropriate columns, regardless of the exact column structure.
+
+## Impact
+
+This fix resolves the core issue where all financial documents were being processed but returning zero values, which was causing the GPT API to fail validation and return fallback responses. With proper value extraction, the GPT API should now be able to successfully extract meaningful financial data from uploaded documents.

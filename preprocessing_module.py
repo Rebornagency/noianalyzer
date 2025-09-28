@@ -9,6 +9,7 @@ import magic
 import chardet
 import pandas as pd
 import pdfplumber
+import time
 from typing import Dict, Any, List, Tuple, Optional
 import logging
 import json
@@ -100,14 +101,16 @@ class FilePreprocessor:
         # Extract content
         extracted_content = processor(file_path)
         
-        # Add metadata
+        # Add enhanced metadata
         result = {
             'metadata': {
                 'filename': filename or os.path.basename(file_path),
                 'file_type': file_type,
                 'file_size': file_size,
                 'extension': ext,
-                'content_type': content_type
+                'content_type': content_type,
+                'processing_timestamp': time.time(),
+                'processing_method': 'enhanced_preprocessing'
             },
             'content': extracted_content
         }
@@ -116,7 +119,7 @@ class FilePreprocessor:
     
     def _process_pdf(self, file_path: str) -> Dict[str, Any]:
         """
-        Process PDF files using pdfplumber
+        Process PDF files using pdfplumber with enhanced structure detection
         
         Args:
             file_path: Path to the PDF file
@@ -127,7 +130,8 @@ class FilePreprocessor:
         logger.info(f"Extracting content from PDF: {file_path}")
         result: Dict[str, Any] = {
             'text': [],
-            'tables': []
+            'tables': [],
+            'structure_indicators': []
         }
         
         try:
@@ -168,6 +172,10 @@ class FilePreprocessor:
                                     'table_index': j,
                                     'data': df.to_dict(orient='records')
                                 })
+                
+                # Add structure indicators
+                result['structure_indicators'] = self._detect_pdf_structure_indicators(pdf)
+        
         except Exception as e:
             logger.error(f"Error processing PDF: {str(e)}")
             raise
@@ -178,9 +186,52 @@ class FilePreprocessor:
         
         return result
     
+    def _detect_pdf_structure_indicators(self, pdf) -> List[str]:
+        """
+        Detect structure indicators in PDF files.
+        
+        Args:
+            pdf: pdfplumber PDF object
+            
+        Returns:
+            List of structure indicators
+        """
+        indicators = []
+        
+        try:
+            total_pages = len(pdf.pages)
+            indicators.append(f"pages:{total_pages}")
+            
+            # Check first few pages for structure
+            for i, page in enumerate(pdf.pages[:3]):
+                # Extract text
+                page_text = page.extract_text()
+                if page_text:
+                    # Check for financial keywords
+                    text_lower = page_text.lower()
+                    financial_keywords = [
+                        'rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 
+                        'maintenance', 'utilities', 'management', 'parking', 'laundry', 
+                        'fee', 'noi', 'egi', 'operating', 'total'
+                    ]
+                    
+                    for keyword in financial_keywords:
+                        if keyword in text_lower:
+                            indicators.append(f"page_{i}_financial_keyword:{keyword}")
+                
+                # Extract tables
+                tables = page.extract_tables()
+                if tables:
+                    indicators.append(f"page_{i}_tables:{len(tables)}")
+        
+        except Exception as e:
+            logger.warning(f"Error detecting PDF structure indicators: {str(e)}")
+        
+        return indicators
+    
     def _process_excel(self, file_path: str) -> Dict[str, Any]:
         """
-        Process Excel files using pandas and openpyxl
+        Process Excel files using pandas with enhanced structure detection
         
         Args:
             file_path: Path to the Excel file
@@ -191,7 +242,8 @@ class FilePreprocessor:
         logger.info(f"Extracting content from Excel: {file_path}")
         result: Dict[str, Any] = {
             'sheets': [],
-            'text_representation': []
+            'text_representation': [],
+            'structure_indicators': []
         }
         
         try:
@@ -218,6 +270,10 @@ class FilePreprocessor:
                 text_rep = f"Sheet: {sheet_name}\n"
                 text_rep += df.to_string(index=False, na_rep='')
                 result['text_representation'].append(text_rep)
+                
+                # Add structure indicators for this sheet
+                sheet_indicators = self._detect_excel_sheet_structure(df, sheet_name)
+                result['structure_indicators'].extend(sheet_indicators)
             
             # Combine all text representations
             result['combined_text'] = "\n\n".join(result['text_representation'])
@@ -227,6 +283,66 @@ class FilePreprocessor:
             raise
         
         return result
+    
+    def _detect_excel_sheet_structure(self, df, sheet_name: str) -> List[str]:
+        """
+        Detect structure indicators in Excel sheets.
+        
+        Args:
+            df: DataFrame representing the sheet
+            sheet_name: Name of the sheet
+            
+        Returns:
+            List of structure indicators
+        """
+        indicators = [f"sheet:{sheet_name}"]
+        
+        try:
+            if len(df.columns) > 0:
+                column_names = [str(col).lower() for col in df.columns]
+                first_column_data = df.iloc[:, 0].astype(str).str.lower() if len(df.columns) > 0 else pd.Series([])
+                
+                financial_keywords = [
+                    'rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 
+                    'maintenance', 'utilities', 'management', 'parking', 'laundry', 
+                    'fee', 'noi', 'egi', 'operating', 'total'
+                ]
+                
+                # Check column names
+                for keyword in financial_keywords:
+                    if any(keyword in col for col in column_names):
+                        indicators.append(f"sheet_{sheet_name}_financial_keyword_in_columns:{keyword}")
+                        break
+                
+                # Check first column data
+                for keyword in financial_keywords:
+                    if first_column_data.str.contains(keyword, na=False).any():
+                        indicators.append(f"sheet_{sheet_name}_financial_keyword_in_data:{keyword}")
+                        break
+                
+                # Check for numeric columns
+                numeric_columns = 0
+                for col in df.columns:
+                    numeric_count = 0
+                    total_count = 0
+                    for val in df[col]:
+                        if pd.notna(val):
+                            total_count += 1
+                            try:
+                                float(str(val).replace('$', '').replace(',', '').replace('(', '-').replace(')', ''))
+                                numeric_count += 1
+                            except ValueError:
+                                pass
+                    if total_count > 0 and numeric_count / total_count > 0.5:
+                        numeric_columns += 1
+                
+                if numeric_columns > 0:
+                    indicators.append(f"sheet_{sheet_name}_numeric_columns:{numeric_columns}")
+        
+        except Exception as e:
+            logger.warning(f"Error detecting Excel sheet structure: {str(e)}")
+        
+        return indicators
     
     def _process_csv(self, file_path: str) -> Dict[str, Any]:
         """

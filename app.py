@@ -2088,6 +2088,8 @@ except Exception as e:
         logger.info("Using fallback inline template after exception in template loading.")
     except Exception as e2:
         logger.error(f"Failed to create fallback template: {e2}", exc_info=True)
+        report_template = None  # Set to None to indicate failure
+        logger.error("Failed to create any template for PDF generation.")
 # --- End of Jinja2 initialization ---
 
 # Import the logo function
@@ -2696,8 +2698,8 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
 
         # Apply styling for changes
         try:
-            # Try using map() method first (pandas >= 1.3.0)
-            styled_df = main_metrics_df.style.map(
+            # Try using applymap() method first (pandas >= 1.3.0)
+            styled_df = main_metrics_df.style.applymap(
                 highlight_changes, 
                 subset=['Change ($)', 'Change (%)']
             )
@@ -2779,17 +2781,18 @@ def display_comparison_tab(tab_data: Dict[str, Any], prior_key_suffix: str, name
                     
                     # Wrap the styling in a try-except block to handle potential errors
                     try:
-                        # Try using map() method first (pandas >= 1.3.0)
-                        styled_df = opex_df_display.style.map(
+                        # Try using applymap() method first (pandas >= 1.3.0)
+                        styled_df = main_metrics_df.style.applymap(
                             highlight_changes, 
                             subset=['Change ($)', 'Change (%)']
                         )
                     except AttributeError:
-                        # Fallback to applymap() for older pandas versions
-                        styled_df = opex_df_display.style.applymap(
+                        # Fallback to map() for older pandas versions - FIXED: Changed from .map to .applymap
+                        styled_df = main_metrics_df.style.applymap(
                             highlight_changes, 
                             subset=['Change ($)', 'Change (%)']
                         )
+                    
                         
                     # Apply formatting and styling
                     try:
@@ -4009,14 +4012,21 @@ def generate_comprehensive_pdf():
             context['income_breakdown_available'] = False
         
         # Render the template to HTML
-        html_content = report_template.render(**context)
-        logger.info("PDF EXPORT: Comprehensive HTML content rendered from template")
+        try:
+            html_content = report_template.render(**context)
+            logger.info("PDF EXPORT: Comprehensive HTML content rendered from template")
+        except Exception as render_error:
+            logger.error(f"PDF EXPORT: Error rendering template: {str(render_error)}", exc_info=True)
+            return None
         
         # Write HTML to temporary file for debugging if needed
         tmp_path = tempfile.NamedTemporaryFile(delete=False, suffix='.html').name
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-        logger.info(f"PDF EXPORT: HTML content written to temporary file: {tmp_path}")
+        try:
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            logger.info(f"PDF EXPORT: HTML content written to temporary file: {tmp_path}")
+        except Exception as file_error:
+            logger.warning(f"PDF EXPORT: Could not write HTML to temporary file: {str(file_error)}")
         
         # Remove font-display property to prevent WeasyPrint warnings
         html_content = html_content.replace('font-display: swap;', '/* font-display: swap; */')
@@ -5537,393 +5547,410 @@ def main():
 
     # --- Stage 4: Display Results or Welcome Page ---
     if st.session_state.get('processing_completed', False):
-        # Add header credit display for results page (centered) - only if not already shown
-        if (st.session_state.get('user_email') and 
-            CREDIT_SYSTEM_AVAILABLE and 
-            not st.session_state.get('results_header_displayed', False)):
-            # Center the credit display
-            user_email = st.session_state.user_email if isinstance(st.session_state.user_email, str) else ''
-            display_credit_balance_header(user_email)
-            
-            # Add buy more credits button centered below
-            col1, col2, col3 = st.columns([1, 1, 1])
-            with col2:
-                if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
-                    logger.info("🛒 Results Buy More Credits button clicked - showing credit store")
-                    st.session_state.show_credit_store = True
-                    # Clear any conflicting flags
-                    if 'show_credit_success' in st.session_state:
-                        del st.session_state.show_credit_success
-                    # Add error counter to prevent infinite loop
-                    error_count = st.session_state.get('results_header_error_count', 0)
-                    if error_count < 3:  # Limit reruns to prevent infinite loop
-                        st.session_state.results_header_error_count = error_count + 1
-                        st.rerun()
-            
-            # Mark that results header has been displayed
-            st.session_state.results_header_displayed = True
-        
-        # Show results after processing is fully completed
-        # Modern styled title
-        st.markdown(f"""
-        <h1 class="noi-title">
-            <span class="noi-title-accent">NOI</span> Analysis Results
-            {' - <span class="noi-title-property">' + st.session_state.property_name + '</span>' if st.session_state.property_name else ''}
-        </h1>
-        """, unsafe_allow_html=True)
-        
-        # Add styling for property name
-        st.markdown("""
-        <style>
-        .noi-title-property {
-            color: #e6edf3;
-            font-weight: 400;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # Get the comparison results from session state
-        # The st.session_state.comparison_results should be populated by calculate_noi_comparisons
-        # and is expected to have keys like 'month_vs_prior', 'actual_vs_budget', 'year_vs_year', 
-        # and 'current', 'prior', 'budget', 'prior_year' for raw data.
-
-        if not hasattr(st.session_state, 'comparison_results') or not st.session_state.comparison_results:
-            st.error("Error: Comparison results are not available. Please try processing the documents again.")
-            logger.error("st.session_state.comparison_results is missing or empty when trying to display tabs.")
-            return
-        
-        # Check if we have current data but missing comparison data (single document scenario)
-        comparison_data_for_tabs = st.session_state.comparison_results
-        current_data = comparison_data_for_tabs.get('current', {})
-        
-        # Check which comparison types are available
-        available_comparisons = {
-            'month_vs_prior': bool(comparison_data_for_tabs.get('month_vs_prior', {})),
-            'actual_vs_budget': bool(comparison_data_for_tabs.get('actual_vs_budget', {})),
-            'year_vs_year': bool(comparison_data_for_tabs.get('year_vs_year', {}))
-        }
-        
-        has_comparison_data = any(available_comparisons.values())
-        
-        # Log partial data scenario for debugging
-        if current_data and has_comparison_data:
-            missing_comparisons = [k for k, v in available_comparisons.items() if not v]
-            if missing_comparisons:
-                logger.info(f"Partial data scenario detected. Available: {[k for k, v in available_comparisons.items() if v]}, Missing: {missing_comparisons}")
-        
-        # If we have current data but no comparison data, show single-document interface
-        if current_data and not has_comparison_data:
-            logger.info("Single document scenario detected: showing current period summary with guidance for additional uploads")
-            
-            # Enhanced guidance with specific benefits
-            st.info("📄 **Single Document Analysis** - You've uploaded one document. Upload additional documents to unlock powerful comparison features and deeper insights.")
-            
-            # Show comparison benefits clearly
-            with st.expander("🚀 **Why Add More Documents? See the Benefits**", expanded=True):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown("""
-                    **📊 With Prior Month Document:**
-                    - Month-over-month trend analysis
-                    - Identify seasonal patterns
-                    - Track operational improvements
-                    - Variance explanations and insights
-                    """)
-                    
-                    st.markdown("""
-                    **💰 With Budget Document:**
-                    - Budget vs actual variance analysis
-                    - Performance against targets
-                    - Identify budget overruns
-                    - Financial control insights
-                    """)
-                
-                with col2:
-                    st.markdown("""
-                    **📈 With Prior Year Document:**
-                    - Year-over-year growth analysis
-                    - Long-term trend identification
-                    - Annual performance comparison
-                    - Strategic planning insights
-                    """)
-                    
-                    st.markdown("""
-                    **🤖 AI-Powered Enhancements:**
-                    - Detailed financial narratives
-                    - Automated insights and recommendations
-                    - Professional reporting features
-                    - Export capabilities for stakeholders
-                    """)
-            
-            # Display current period summary
-            st.markdown("### Current Period Financial Summary")
-            
-            # Create a formatted display of current period data
-            summary_data = []
-            metrics_order = [
-                ("gpr", "Gross Potential Rent"), ("vacancy_loss", "Vacancy Loss"), 
-                ("other_income", "Other Income"), ("egi", "Effective Gross Income"),
-                ("opex", "Total Operating Expenses"), ("noi", "Net Operating Income")
-            ]
-            
-            for key, name in metrics_order:
-                value = current_data.get(key, 0.0)
-                if value is not None:
-                    summary_data.append({
-                        "Metric": name,
-                        "Amount": f"${float(value):,.2f}"
-                    })
-            
-            if summary_data:
-                summary_df = pd.DataFrame(summary_data)
-                st.dataframe(summary_df, use_container_width=True, hide_index=True)
-                
-                # Add guidance for next steps
-                st.markdown("### 📈 Enable Comparison Analysis")
-                st.markdown("""
-                To unlock the full power of NOI Analyzer, upload additional documents:
-                
-                **For Month-over-Month Analysis:**
-                - Upload your Prior Month Actuals document
-                
-                **For Budget Variance Analysis:**
-                - Upload your Budget document
-                
-                **For Year-over-Year Analysis:**
-                - Upload your Prior Year document
-                
-                Once you upload additional documents, you'll see detailed comparison tabs with:
-                - ✅ Visual charts and graphs
-                - ✅ Variance analysis
-                - ✅ Professional insights and recommendations
-                - ✅ Detailed breakdowns by expense and income categories
-                """)
-                
-                # Add actionable guidance
-                st.markdown("### 📈 Ready to Unlock Full Analysis?")
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    if st.button("📄 Add Prior Month", use_container_width=True, type="secondary"):
-                        st.info("💡 **Quick Tip**: Use the file upload section above to add your Prior Month Actuals document. This enables month-over-month comparison and trend analysis.")
-                
-                with col2:
-                    if st.button("📊 Add Budget", use_container_width=True, type="secondary"):
-                        st.info("💡 **Quick Tip**: Upload your Budget document above to see actual vs budget variance analysis and identify areas where you're over or under budget.")
-                
-                with col3:
-                    if st.button("📅 Add Prior Year", use_container_width=True, type="secondary"):
-                        st.info("💡 **Quick Tip**: Add your Prior Year document to see year-over-year growth trends and annual performance insights.")
-                
-                # Show what they're missing
-                st.markdown("""
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1rem; border-radius: 8px; color: white; margin-top: 1rem;">
-                    <h4>🎯 What You're Missing:</h4>
-                    <ul>
-                        <li><strong>Comparative Charts</strong> - Visual trend analysis and performance graphs</li>
-                        <li><strong>AI Insights</strong> - Automated recommendations and performance drivers</li>
-                        <li><strong>Financial Narrative</strong> - Professional story explaining your numbers</li>
-                        <li><strong>Variance Analysis</strong> - Detailed breakdowns of changes and their causes</li>
-                        <li><strong>Export Features</strong> - PDF reports and Excel exports for stakeholders</li>
-                    </ul>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.warning("Current period data appears to be empty. Please check your uploaded document.")
-            
-            return
-
-        comparison_data_for_tabs = st.session_state.comparison_results
-        logger.info(f"Using comparison_results from session state for tabs. Top-level keys: {list(comparison_data_for_tabs.keys())}")
         try:
-            # Use structure summary for INFO level instead of full structure
-            logger.info(f"comparison_data_for_tabs summary: {len(comparison_data_for_tabs)} top-level keys, data types: {set(type(v).__name__ for v in comparison_data_for_tabs.values())}")
-            # Full structure details moved to DEBUG level
-            logger.debug(f"Full comparison_data_for_tabs structure: {json.dumps({k: list(v.keys()) if isinstance(v, dict) else type(v).__name__ for k, v in comparison_data_for_tabs.items()}, default=str, indent=2)}")
-        except Exception as e:
-            logger.error(f"Error logging comparison_data_for_tabs structure: {e}")
-
-        # Create tabs for each comparison type with modern styling
-        st.markdown("""
-        <style>
-        /* Tabs styling */
-        .stTabs [data-baseweb="tab-list"] {
-            background-color: rgba(16, 23, 42, 0.5) !important;
-            border-radius: 10px 10px 0 0 !important;
-            padding: 0.25rem 0.25rem 0 0.25rem !important;
-            gap: 0 !important;
-            border-bottom: none !important;
-        }
-        
-        .stTabs [data-baseweb="tab"] {
-            border-radius: 8px 8px 0 0 !important;
-            padding: 0.75rem 1.25rem !important;
-            margin: 0 0.125rem !important;
-            background-color: rgba(16, 23, 42, 0.3) !important;
-            border: none !important;
-            color: rgba(230, 237, 243, 0.7) !important;
-            font-size: 1rem !important;
-            font-weight: 500 !important;
-            transition: all 0.2s ease !important;
-        }
-        
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {
-            background-color: #3B82F6 !important;
-            color: white !important;
-        }
-        
-        .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
-            background-color: rgba(16, 23, 42, 0.5) !important;
-            color: #e6edf3 !important;
-        }
-        
-        .stTabs [data-baseweb="tab-panel"] {
-            background-color: rgba(16, 23, 42, 0.2) !important;
-            border-radius: 0 0 10px 10px !important;
-            padding: 1.5rem !important;
-            border: 1px solid rgba(59, 130, 246, 0.1) !important;
-            border-top: none !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Summary", "NOI Coach"])
-        
-        with tabs[0]:
-            st.header("Current Month vs. Prior Month")
-            # Ensure 'month_vs_prior' data exists and is not empty
-            month_vs_prior_calculations = comparison_data_for_tabs.get('month_vs_prior', {})
-            if month_vs_prior_calculations:
-                logger.info(f"APP.PY: Preparing to display Prior Month tab with data: {list(month_vs_prior_calculations.keys())}")
-                try:
-                    # Move full JSON dumps to DEBUG level
-                    logger.debug(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_calculations, default=str, indent=2)}")
-                except Exception as e_log_json:
-                    logger.error(f"APP.PY: Error logging JSON for Prior Month tab data: {e_log_json}")
+            # Add header credit display for results page (centered) - only if not already shown
+            if (st.session_state.get('user_email') and 
+                CREDIT_SYSTEM_AVAILABLE and 
+                not st.session_state.get('results_header_displayed', False)):
+                # Center the credit display
+                user_email = st.session_state.user_email if isinstance(st.session_state.user_email, str) else ''
+                display_credit_balance_header(user_email)
                 
-                # Combine comparison calculations with raw data that display_comparison_tab expects
-                month_vs_prior_data = month_vs_prior_calculations.copy()
-                month_vs_prior_data["current"] = comparison_data_for_tabs.get("current", {})
-                month_vs_prior_data["prior"] = comparison_data_for_tabs.get("prior", {})
+                # Add buy more credits button centered below
+                col1, col2, col3 = st.columns([1, 1, 1])
+                with col2:
+                    if st.button("🛒 Buy More Credits", key="results_header_buy_credits", use_container_width=True, type="primary"):
+                        logger.info("🛒 Results Buy More Credits button clicked - showing credit store")
+                        st.session_state.show_credit_store = True
+                        # Clear any conflicting flags
+                        if 'show_credit_success' in st.session_state:
+                            del st.session_state.show_credit_success
+                        # Add error counter to prevent infinite loop
+                        error_count = st.session_state.get('results_header_error_count', 0)
+                        if error_count < 3:  # Limit reruns to prevent infinite loop
+                            st.session_state.results_header_error_count = error_count + 1
+                            st.rerun()
                 
-                try:
-                    display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
-                except Exception as e:
-                    logger.error(f"Error displaying Prior Month tab: {str(e)}", exc_info=True)
-                    st.error("An error occurred while displaying the Prior Month comparison. This may be due to incomplete data.")
-            else:
-                st.info("📄 **Prior Month Analysis Not Available** - Upload a Prior Month document to enable month-over-month comparison.")
-                logger.info("APP.PY: Prior Month tab displayed with graceful degradation for missing data.")
-                
-        with tabs[1]:
-            st.header("Actual vs. Budget")
-            # Ensure 'actual_vs_budget' data exists and is not empty
-            actual_vs_budget_calculations = comparison_data_for_tabs.get('actual_vs_budget', {})
-            if actual_vs_budget_calculations:
-                logger.info(f"APP.PY: Preparing to display Budget tab with data: {list(actual_vs_budget_calculations.keys())}")
-                try:
-                    # Move full JSON dumps to DEBUG level
-                    logger.debug(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_calculations, default=str, indent=2)}")
-                except Exception as e_log_json:
-                    logger.error(f"APP.PY: Error logging JSON for Budget tab data: {e_log_json}")
-                
-                # Combine comparison calculations with raw data that display_comparison_tab expects
-                actual_vs_budget_data = actual_vs_budget_calculations.copy()
-                actual_vs_budget_data["current"] = comparison_data_for_tabs.get("current", {})
-                actual_vs_budget_data["budget"] = comparison_data_for_tabs.get("budget", {})
-                
-                try:
-                    display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
-                except Exception as e:
-                    logger.error(f"Error displaying Budget tab: {str(e)}", exc_info=True)
-                    st.error("An error occurred while displaying the Budget comparison. This may be due to incomplete data.")
-            else:
-                st.info("📄 **Budget Analysis Not Available** - Upload a Budget document to enable actual vs. budget comparison.")
-                logger.info("APP.PY: Budget tab displayed with graceful degradation for missing data.")
-
-        with tabs[2]:
-            st.header("Current Year vs. Prior Year")
-            # Ensure 'year_vs_year' data exists and is not empty
-            year_vs_year_calculations = comparison_data_for_tabs.get('year_vs_year', {})
-            if year_vs_year_calculations:
-                logger.info(f"APP.PY: Preparing to display Prior Year tab with data: {list(year_vs_year_calculations.keys())}")
-                try:
-                    # Move full JSON dumps to DEBUG level
-                    logger.debug(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_calculations, default=str, indent=2)}")
-                except Exception as e_log_json:
-                    logger.error(f"APP.PY: Error logging JSON for Prior Year tab data: {e_log_json}")
-                
-                # Combine comparison calculations with raw data that display_comparison_tab expects
-                year_vs_year_data = year_vs_year_calculations.copy()
-                year_vs_year_data["current"] = comparison_data_for_tabs.get("current", {})
-                year_vs_year_data["prior_year"] = comparison_data_for_tabs.get("prior_year", {})
-                
-                try:
-                    display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
-                except Exception as e:
-                    logger.error(f"Error displaying Prior Year tab: {str(e)}", exc_info=True)
-                    st.error("An error occurred while displaying the Prior Year comparison. This may be due to incomplete data.")
-            else:
-                st.info("📄 **Prior Year Analysis Not Available** - Upload a Prior Year document to enable year-over-year comparison.")
-                
-                # Show current period summary for context
-                current_data_for_yoy = comparison_data_for_tabs.get('current', {})
-                if current_data_for_yoy:
-                    st.markdown("### Current Year Summary")
-                    
-                    # Create a simple summary table
-                    summary_data = []
-                    for key, name in [("egi", "Effective Gross Income"), ("opex", "Operating Expenses"), ("noi", "Net Operating Income")]:
-                        value = current_data_for_yoy.get(key, 0.0)
-                        if value is not None:
-                            summary_data.append({"Metric": name, "Current Year": f"${float(value):,.2f}"})
-                    
-                    if summary_data:
-                        summary_df = pd.DataFrame(summary_data)
-                        st.dataframe(summary_df, use_container_width=True, hide_index=True)
-                    
-                    st.markdown("💡 **Upload your Prior Year document** above to unlock detailed year-over-year analysis with variance calculations and insights.")
-                else:
-                    st.warning("No current year data available for summary.")
-                
-                logger.info("APP.PY: Prior Year tab displayed with graceful degradation for missing data.")
-        
-        with tabs[3]: # Summary Tab (formerly Financial Narrative & Insights)
-            st.header("Overall Summary & Insights")
+                # Mark that results header has been displayed
+                st.session_state.results_header_displayed = True
             
-            try:
-                # Display the narrative text and editor
-                display_narrative_in_tabs()
-                
-                # Display the consolidated insights (summary, performance, recommendations)
-                if "insights" in st.session_state and st.session_state.insights:
-                    try:
-                        display_unified_insights_no_html(st.session_state.insights)
-                    except Exception as e:
-                        logger.error(f"Error displaying insights: {e}")
-                        st.error("An error occurred while displaying insights. Please try processing documents again.")
-                else:
-                    logger.info("No insights data found in session state for Financial Narrative & Insights tab.")
-                    st.info("Insights (including summary and recommendations) will be displayed here once generated.")
-            except Exception as e:
-                logger.error(f"Error in Summary tab: {str(e)}", exc_info=True)
-                st.error("An error occurred while displaying the summary. The analysis is still available in other tabs.")
+            # Show results after processing is fully completed
+            # Modern styled title
+            st.markdown(f"""
+            <h1 class="noi-title">
+                <span class="noi-title-accent">NOI</span> Analysis Results
+                {' - <span class="noi-title-property">' + st.session_state.property_name + '</span>' if st.session_state.property_name else ''}
+            </h1>
+            """, unsafe_allow_html=True)
+            
+            # Add styling for property name
+            st.markdown("""
+            <style>
+            .noi-title-property {
+                color: #e6edf3;
+                font-weight: 400;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            # Get the comparison results from session state
+            # The st.session_state.comparison_results should be populated by calculate_noi_comparisons
+            # and is expected to have keys like 'month_vs_prior', 'actual_vs_budget', 'year_vs_year', 
+            # and 'current', 'prior', 'budget', 'prior_year' for raw data.
 
-        # Display NOI Coach section
-        with tabs[4]: # NOI Coach tab
+            if not hasattr(st.session_state, 'comparison_results') or not st.session_state.comparison_results:
+                st.error("Error: Comparison results are not available. Please try processing the documents again.")
+                logger.error("st.session_state.comparison_results is missing or empty when trying to display tabs.")
+                return
+            
+            # Check if we have current data but missing comparison data (single document scenario)
+            comparison_data_for_tabs = st.session_state.comparison_results
+            current_data = comparison_data_for_tabs.get('current', {})
+            
+            # Check which comparison types are available
+            available_comparisons = {
+                'month_vs_prior': bool(comparison_data_for_tabs.get('month_vs_prior', {})),
+                'actual_vs_budget': bool(comparison_data_for_tabs.get('actual_vs_budget', {})),
+                'year_vs_year': bool(comparison_data_for_tabs.get('year_vs_year', {}))
+            }
+            
+            has_comparison_data = any(available_comparisons.values())
+            
+            # Log partial data scenario for debugging
+            if current_data and has_comparison_data:
+                missing_comparisons = [k for k, v in available_comparisons.items() if not v]
+                if missing_comparisons:
+                    logger.info(f"Partial data scenario detected. Available: {[k for k, v in available_comparisons.items() if v]}, Missing: {missing_comparisons}")
+            
+            # If we have current data but no comparison data, show single-document interface
+            if current_data and not has_comparison_data:
+                logger.info("Single document scenario detected: showing current period summary with guidance for additional uploads")
+                
+                # Enhanced guidance with specific benefits
+                st.info("📄 **Single Document Analysis** - You've uploaded one document. Upload additional documents to unlock powerful comparison features and deeper insights.")
+                
+                # Show comparison benefits clearly
+                with st.expander("🚀 **Why Add More Documents? See the Benefits**", expanded=True):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown("""
+                        **📊 With Prior Month Document:**
+                        - Month-over-month trend analysis
+                        - Identify seasonal patterns
+                        - Track operational improvements
+                        - Variance explanations and insights
+                        """)
+                        
+                        st.markdown("""
+                        **💰 With Budget Document:**
+                        - Budget vs actual variance analysis
+                        - Performance against targets
+                        - Identify budget overruns
+                        - Financial control insights
+                        """)
+                    
+                    with col2:
+                        st.markdown("""
+                        **📈 With Prior Year Document:**
+                        - Year-over-year growth analysis
+                        - Long-term trend identification
+                        - Annual performance comparison
+                        - Strategic planning insights
+                        """)
+                        
+                        st.markdown("""
+                        **🤖 AI-Powered Enhancements:**
+                        - Detailed financial narratives
+                        - Automated insights and recommendations
+                        - Professional reporting features
+                        - Export capabilities for stakeholders
+                        """)
+                
+                # Display current period summary
+                st.markdown("### Current Period Financial Summary")
+                
+                # Create a formatted display of current period data
+                summary_data = []
+                metrics_order = [
+                    ("gpr", "Gross Potential Rent"), ("vacancy_loss", "Vacancy Loss"), 
+                    ("other_income", "Other Income"), ("egi", "Effective Gross Income"),
+                    ("opex", "Total Operating Expenses"), ("noi", "Net Operating Income")
+                ]
+                
+                for key, name in metrics_order:
+                    value = current_data.get(key, 0.0)
+                    if value is not None:
+                        summary_data.append({
+                            "Metric": name,
+                            "Amount": f"${float(value):,.2f}"
+                        })
+                
+                if summary_data:
+                    summary_df = pd.DataFrame(summary_data)
+                    st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                    
+                    # Add guidance for next steps
+                    st.markdown("### 📈 Enable Comparison Analysis")
+                    st.markdown("""
+                    To unlock the full power of NOI Analyzer, upload additional documents:
+                    
+                    **For Month-over-Month Analysis:**
+                    - Upload your Prior Month Actuals document
+                    
+                    **For Budget Variance Analysis:**
+                    - Upload your Budget document
+                    
+                    **For Year-over-Year Analysis:**
+                    - Upload your Prior Year document
+                    
+                    Once you upload additional documents, you'll see detailed comparison tabs with:
+                    - ✅ Visual charts and graphs
+                    - ✅ Variance analysis
+                    - ✅ Professional insights and recommendations
+                    - ✅ Detailed breakdowns by expense and income categories
+                    """)
+                    
+                    # Add actionable guidance
+                    st.markdown("### 📈 Ready to Unlock Full Analysis?")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        if st.button("📄 Add Prior Month", use_container_width=True, type="secondary"):
+                            st.info("💡 **Quick Tip**: Use the file upload section above to add your Prior Month Actuals document. This enables month-over-month comparison and trend analysis.")
+                    
+                    with col2:
+                        if st.button("📊 Add Budget", use_container_width=True, type="secondary"):
+                            st.info("💡 **Quick Tip**: Upload your Budget document above to see actual vs budget variance analysis and identify areas where you're over or under budget.")
+                    
+                    with col3:
+                        if st.button("📅 Add Prior Year", use_container_width=True, type="secondary"):
+                            st.info("💡 **Quick Tip**: Add your Prior Year document to see year-over-year growth trends and annual performance insights.")
+                    
+                    # Show what they're missing
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1rem; border-radius: 8px; color: white; margin-top: 1rem;">
+                        <h4>🎯 What You're Missing:</h4>
+                        <ul>
+                            <li><strong>Comparative Charts</strong> - Visual trend analysis and performance graphs</li>
+                            <li><strong>AI Insights</strong> - Automated recommendations and performance drivers</li>
+                            <li><strong>Financial Narrative</strong> - Professional story explaining your numbers</li>
+                            <li><strong>Variance Analysis</strong> - Detailed breakdowns of changes and their causes</li>
+                            <li><strong>Export Features</strong> - PDF reports and Excel exports for stakeholders</li>
+                        </ul>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.warning("Current period data appears to be empty. Please check your uploaded document.")
+                
+                return
+
+            comparison_data_for_tabs = st.session_state.comparison_results
+            logger.info(f"Using comparison_results from session state for tabs. Top-level keys: {list(comparison_data_for_tabs.keys())}")
             try:
-                # if NOI_COACH_AVAILABLE:
-                #     display_noi_coach_enhanced()
-                # else:
-                #     display_noi_coach()
-                display_noi_coach() # Directly call the app.py internal version
+                # Use structure summary for INFO level instead of full structure
+                logger.info(f"comparison_data_for_tabs summary: {len(comparison_data_for_tabs)} top-level keys, data types: {set(type(v).__name__ for v in comparison_data_for_tabs.values())}")
+                # Full structure details moved to DEBUG level
+                logger.debug(f"Full comparison_data_for_tabs structure: {json.dumps({k: list(v.keys()) if isinstance(v, dict) else type(v).__name__ for k, v in comparison_data_for_tabs.items()}, default=str, indent=2)}")
             except Exception as e:
-                logger.error(f"Error in NOI Coach tab: {str(e)}", exc_info=True)
-                st.error("An error occurred while loading the NOI Coach. The analysis is still available in other tabs.")
-                st.info("Try refreshing the page or contact support if the issue persists.")
-    
+                logger.error(f"Error logging comparison_data_for_tabs structure: {e}")
+
+            # Create tabs for each comparison type with modern styling
+            st.markdown("""
+            <style>
+            /* Tabs styling */
+            .stTabs [data-baseweb="tab-list"] {
+                background-color: rgba(16, 23, 42, 0.5) !important;
+                border-radius: 10px 10px 0 0 !important;
+                padding: 0.25rem 0.25rem 0 0.25rem !important;
+                gap: 0 !important;
+                border-bottom: none !important;
+            }
+            
+            .stTabs [data-baseweb="tab"] {
+                border-radius: 8px 8px 0 0 !important;
+                padding: 0.75rem 1.25rem !important;
+                margin: 0 0.125rem !important;
+                background-color: rgba(16, 23, 42, 0.3) !important;
+                border: none !important;
+                color: rgba(230, 237, 243, 0.7) !important;
+                font-size: 1rem !important;
+                font-weight: 500 !important;
+                transition: all 0.2s ease !important;
+            }
+            
+            .stTabs [data-baseweb="tab"][aria-selected="true"] {
+                background-color: #3B82F6 !important;
+                color: white !important;
+            }
+            
+            .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+                background-color: rgba(16, 23, 42, 0.5) !important;
+                color: #e6edf3 !important;
+            }
+            
+            .stTabs [data-baseweb="tab-panel"] {
+                background-color: rgba(16, 23, 42, 0.2) !important;
+                border-radius: 0 0 10px 10px !important;
+                padding: 1.5rem !important;
+                border: 1px solid rgba(59, 130, 246, 0.1) !important;
+                border-top: none !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            tabs = st.tabs(["Prior Month", "Budget", "Prior Year", "Summary", "NOI Coach"])
+            
+            with tabs[0]:
+                st.header("Current Month vs. Prior Month")
+                # Ensure 'month_vs_prior' data exists and is not empty
+                month_vs_prior_calculations = comparison_data_for_tabs.get('month_vs_prior', {})
+                if month_vs_prior_calculations:
+                    logger.info(f"APP.PY: Preparing to display Prior Month tab with data: {list(month_vs_prior_calculations.keys())}")
+                    try:
+                        # Move full JSON dumps to DEBUG level
+                        logger.debug(f"APP.PY: Full data for Prior Month tab: {json.dumps(month_vs_prior_calculations, default=str, indent=2)}")
+                    except Exception as e_log_json:
+                        logger.error(f"APP.PY: Error logging JSON for Prior Month tab data: {e_log_json}")
+                    
+                    # Combine comparison calculations with raw data that display_comparison_tab expects
+                    month_vs_prior_data = month_vs_prior_calculations.copy()
+                    month_vs_prior_data["current"] = comparison_data_for_tabs.get("current", {})
+                    month_vs_prior_data["prior"] = comparison_data_for_tabs.get("prior", {})
+                    
+                    try:
+                        display_comparison_tab(month_vs_prior_data, "prior", "Prior Month")
+                    except Exception as e:
+                        logger.error(f"Error displaying Prior Month tab: {str(e)}", exc_info=True)
+                        st.error("An error occurred while displaying the Prior Month comparison. This may be due to incomplete data.")
+                else:
+                    st.info("📄 **Prior Month Analysis Not Available** - Upload a Prior Month document to enable month-over-month comparison.")
+                    logger.info("APP.PY: Prior Month tab displayed with graceful degradation for missing data.")
+                    
+            with tabs[1]:
+                st.header("Actual vs. Budget")
+                # Ensure 'actual_vs_budget' data exists and is not empty
+                actual_vs_budget_calculations = comparison_data_for_tabs.get('actual_vs_budget', {})
+                if actual_vs_budget_calculations:
+                    logger.info(f"APP.PY: Preparing to display Budget tab with data: {list(actual_vs_budget_calculations.keys())}")
+                    try:
+                        # Move full JSON dumps to DEBUG level
+                        logger.debug(f"APP.PY: Full data for Budget tab: {json.dumps(actual_vs_budget_calculations, default=str, indent=2)}")
+                    except Exception as e_log_json:
+                        logger.error(f"APP.PY: Error logging JSON for Budget tab data: {e_log_json}")
+                    
+                    # Combine comparison calculations with raw data that display_comparison_tab expects
+                    actual_vs_budget_data = actual_vs_budget_calculations.copy()
+                    actual_vs_budget_data["current"] = comparison_data_for_tabs.get("current", {})
+                    actual_vs_budget_data["budget"] = comparison_data_for_tabs.get("budget", {})
+                    
+                    try:
+                        display_comparison_tab(actual_vs_budget_data, "budget", "Budget")
+                    except Exception as e:
+                        logger.error(f"Error displaying Budget tab: {str(e)}", exc_info=True)
+                        st.error("An error occurred while displaying the Budget comparison. This may be due to incomplete data.")
+                else:
+                    st.info("📄 **Budget Analysis Not Available** - Upload a Budget document to enable actual vs budget comparison.")
+                    logger.info("APP.PY: Budget tab displayed with graceful degradation for missing data.")
+
+            with tabs[2]:
+                st.header("Current Year vs. Prior Year")
+                # Ensure 'year_vs_year' data exists and is not empty
+                year_vs_year_calculations = comparison_data_for_tabs.get('year_vs_year', {})
+                if year_vs_year_calculations:
+                    logger.info(f"APP.PY: Preparing to display Prior Year tab with data: {list(year_vs_year_calculations.keys())}")
+                    try:
+                        # Move full JSON dumps to DEBUG level
+                        logger.debug(f"APP.PY: Full data for Prior Year tab: {json.dumps(year_vs_year_calculations, default=str, indent=2)}")
+                    except Exception as e_log_json:
+                        logger.error(f"APP.PY: Error logging JSON for Prior Year tab data: {e_log_json}")
+                    
+                    # Combine comparison calculations with raw data that display_comparison_tab expects
+                    year_vs_year_data = year_vs_year_calculations.copy()
+                    year_vs_year_data["current"] = comparison_data_for_tabs.get("current", {})
+                    year_vs_year_data["prior_year"] = comparison_data_for_tabs.get("prior_year", {})
+                    
+                    try:
+                        display_comparison_tab(year_vs_year_data, "prior_year", "Prior Year")
+                    except Exception as e:
+                        logger.error(f"Error displaying Prior Year tab: {str(e)}", exc_info=True)
+                        st.error("An error occurred while displaying the Prior Year comparison. This may be due to incomplete data.")
+                else:
+                    st.info("📄 **Prior Year Analysis Not Available** - Upload a Prior Year document to enable year-over-year comparison.")
+                    
+                    # Show current period summary for context
+                    current_data_for_yoy = comparison_data_for_tabs.get('current', {})
+                    if current_data_for_yoy:
+                        st.markdown("### Current Year Summary")
+                        
+                        # Create a simple summary table
+                        summary_data = []
+                        for key, name in [("egi", "Effective Gross Income"), ("opex", "Operating Expenses"), ("noi", "Net Operating Income")]:
+                            value = current_data_for_yoy.get(key, 0.0)
+                            if value is not None:
+                                summary_data.append({"Metric": name, "Current Year": f"${float(value):,.2f}"})
+                        
+                        if summary_data:
+                            summary_df = pd.DataFrame(summary_data)
+                            st.dataframe(summary_df, use_container_width=True, hide_index=True)
+                        
+                        st.markdown("💡 **Upload your Prior Year document** above to unlock detailed year-over-year analysis with variance calculations and insights.")
+                    else:
+                        st.warning("No current year data available for summary.")
+                    
+                    logger.info("APP.PY: Prior Year tab displayed with graceful degradation for missing data.")
+            
+            with tabs[3]: # Summary Tab (formerly Financial Narrative & Insights)
+                st.header("Overall Summary & Insights")
+                
+                try:
+                    # Display the narrative text and editor
+                    display_narrative_in_tabs()
+                    
+                    # Display the consolidated insights (summary, performance, recommendations)
+                    if "insights" in st.session_state and st.session_state.insights:
+                        try:
+                            display_unified_insights_no_html(st.session_state.insights)
+                        except Exception as e:
+                            logger.error(f"Error displaying insights: {e}")
+                            st.error("An error occurred while displaying insights. Please try processing documents again.")
+                    else:
+                        logger.info("No insights data found in session state for Financial Narrative & Insights tab.")
+                        st.info("Insights (including summary and recommendations) will be displayed here once generated.")
+                except Exception as e:
+                    logger.error(f"Error in Summary tab: {str(e)}", exc_info=True)
+                    st.error("An error occurred while displaying the summary. The analysis is still available in other tabs.")
+
+            # Display NOI Coach section
+            with tabs[4]: # NOI Coach tab
+                try:
+                    # if NOI_COACH_AVAILABLE:
+                    #     display_noi_coach_enhanced()
+                    # else:
+                    #     display_noi_coach()
+                    display_noi_coach() # Directly call the app.py internal version
+                except Exception as e:
+                    logger.error(f"Error in NOI Coach tab: {str(e)}", exc_info=True)
+                    st.error("An error occurred while loading the NOI Coach. The analysis is still available in other tabs.")
+                    st.info("Try refreshing the page or contact support if the issue persists.")
+        
+        except Exception as e:
+            logger.error(f"Critical error in results display section: {str(e)}", exc_info=True)
+            st.error("An unexpected error occurred while displaying the analysis results. Please refresh the page or contact support.")
+            # Provide a fallback display
+            st.markdown("## Analysis Results")
+            st.info("Your financial analysis has been completed successfully, but there was an issue displaying the results in the detailed view.")
+            st.markdown("### Key Metrics:")
+            if hasattr(st.session_state, 'comparison_results') and st.session_state.comparison_results:
+                current_data = st.session_state.comparison_results.get('current', {})
+                if current_data:
+                    st.write(f"**Net Operating Income (NOI):** ${current_data.get('noi', 0):,.2f}")
+                    st.write(f"**Effective Gross Income (EGI):** ${current_data.get('egi', 0):,.2f}")
+                    st.write(f"**Operating Expenses:** ${current_data.get('opex', 0):,.2f}")
+                    st.write(f"**Gross Potential Rent:** ${current_data.get('gpr', 0):,.2f}")
+            st.info("Please try refreshing the page to see the full detailed analysis.")
+
     # Add this code in the main UI section after displaying all tabs
     # (after the st.tabs() section in the main function)
     if st.session_state.processing_completed:
@@ -6494,8 +6521,8 @@ def display_opex_breakdown(opex_data, comparison_type="prior month"):
 
     # Wrap the styling in a try-except block to handle potential errors
     try:
-        # Try using map() method first (pandas >= 1.3.0)
-        styled_df = opex_df_display.style.map(
+        # Try using applymap() method first (pandas >= 1.3.0)
+        styled_df = opex_df_display.style.applymap(
             highlight_changes, 
             subset=['Change ($)', 'Change (%)']
         )
@@ -6823,7 +6850,9 @@ def get_url_params():
     try:
         # Try new st.query_params first (for newer versions)
         if hasattr(st, 'query_params'):
-            return dict(st.query_params)
+            query_params = getattr(st, 'query_params', None)
+            if query_params is not None:
+                return dict(query_params)
     except (AttributeError, Exception):
         pass
     
@@ -6846,8 +6875,10 @@ def clear_url_params():
     """
     try:
         # Try new st.query_params first (for newer versions)
-        if hasattr(st, 'query_params') and hasattr(st.query_params, 'clear'):
-            st.query_params.clear()
+        if hasattr(st, 'query_params'):
+            query_params = getattr(st, 'query_params', None)
+            if query_params is not None and hasattr(query_params, 'clear'):
+                query_params.clear()
             return
     except (AttributeError, Exception):
         pass

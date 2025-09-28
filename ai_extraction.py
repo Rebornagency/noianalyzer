@@ -75,7 +75,7 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
         logger.error(f"Error preparing file for processing: {str(e)}")
         raise APIError(f"Failed to prepare file for processing: {str(e)}")
     
-    # Use the world-class extraction system
+    # Use the world-class extraction system with enhanced error handling
     try:
         extractor = WorldClassExtractor()
         result = extractor.extract_data(file_content, file_name, document_type_hint)
@@ -87,6 +87,10 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
         validated_result["extraction_confidence"] = result.confidence.value
         validated_result["extraction_processing_time"] = result.processing_time
         validated_result["extraction_method"] = result.extraction_method
+        validated_result["extraction_audit_trail"] = result.audit_trail
+        
+        # Enhanced validation for zero values
+        validated_result = _validate_zero_values_in_result(validated_result)
         
         logger.info(
             f"World-class data extraction successful",
@@ -104,6 +108,28 @@ def extract_noi_data(file: Any, document_type_hint: Optional[str] = None,
         logger.error(f"World-class extraction failed: {str(e)}", exc_info=True)
         # Fall back to the original extraction method
         return _extract_noi_data_original(file, document_type_hint, api_url, api_key, max_retries, retry_delay)
+
+def _validate_zero_values_in_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate that zero values in extraction results are legitimate.
+    
+    Args:
+        result: Extracted financial data result
+        
+    Returns:
+        Validated result with appropriate zero handling
+    """
+    validated_result = result.copy()
+    
+    # Key financial metrics that should not be zero in most cases
+    key_metrics = ["gpr", "egi", "noi"]
+    
+    for metric in key_metrics:
+        if validated_result.get(metric, 0.0) == 0.0:
+            # Log warning for zero values in key metrics
+            logger.warning(f"Zero value detected for key metric '{metric}' in extraction result - this may indicate extraction issues")
+    
+    return validated_result
 
 # Keep the original function for fallback
 def _extract_noi_data_original(file: Any, document_type_hint: Optional[str] = None, 
@@ -1159,6 +1185,16 @@ def validate_and_enrich_extraction_result(result: Dict[str, Any], file_name: str
             
     except Exception as e:
         logger.warning(f"Error validating financial calculations: {str(e)}")
+    
+    # Enhanced validation for zero values in key metrics
+    try:
+        key_metrics = ["gpr", "egi", "noi"]
+        for metric in key_metrics:
+            value = enriched_result.get(metric, 0.0)
+            if value == 0.0 and metric != "noi":  # NOI can legitimately be zero or negative
+                logger.warning(f"Zero value detected for key metric '{metric}' after validation - this may indicate extraction issues")
+    except Exception as e:
+        logger.warning(f"Error during zero value validation: {str(e)}")
     
     # Log the final result structure for debugging
     logger.info(

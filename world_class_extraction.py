@@ -144,6 +144,16 @@ class WorldClassExtractor:
             validated_data = self._validate_and_enrich_data(extracted_data, confidence_scores)
             audit_trail.append("Data validation and enrichment completed")
             
+            # Add enhanced validation for zero values
+            audit_trail.append("Performing zero value validation")
+            validated_data = self._validate_zero_values(validated_data)
+            audit_trail.append("Zero value validation completed")
+            
+            # Add enhanced consistency checks
+            audit_trail.append("Performing consistency checks")
+            validated_data = self._perform_consistency_checks(validated_data)
+            audit_trail.append("Consistency checks completed")
+            
             # 6. Calculate overall confidence
             overall_confidence = self._calculate_overall_confidence(confidence_scores)
             audit_trail.append(f"Overall confidence calculated: {overall_confidence.value}")
@@ -164,8 +174,8 @@ class WorldClassExtractor:
             audit_trail.append(f"Error during extraction: {str(e)}")
             processing_time = time.time() - start_time
             
-            # Create fallback result
-            fallback_data = self._create_fallback_data(file_name, document_type_hint)
+            # Create fallback result with enhanced fallback data
+            fallback_data = self._create_enhanced_fallback_data(file_name, document_type_hint)
             
             return ExtractionResult(
                 data=fallback_data,
@@ -174,7 +184,7 @@ class WorldClassExtractor:
                 audit_trail=audit_trail,
                 processing_time=processing_time,
                 document_type=DocumentType.UNKNOWN,
-                extraction_method="fallback"
+                extraction_method="enhanced-fallback"
             )
     
     def _preprocess_document(self, file_content: bytes, file_name: str) -> Dict[str, Any]:
@@ -426,26 +436,8 @@ class WorldClassExtractor:
                 excel_file.seek(0)
                 df = pd.read_excel(excel_file, sheet_name=sheet_name)
                 
-                # Remove unnamed columns that are truly artifacts (not containing financial data)
-                columns_to_drop = []
-                for col in df.columns:
-                    if str(col).startswith('Unnamed:'):
-                        # Check if this column contains financial data
-                        col_data = df[col]
-                        numeric_count = 0
-                        total_count = 0
-                        for val in col_data:
-                            if pd.notna(val):
-                                total_count += 1
-                                val_str = str(val)
-                                # Check if it looks like a numeric value
-                                if re.search(r'[\d.,]+', val_str):
-                                    numeric_count += 1
-                        
-                        # If less than 10% of values are numeric, consider it an artifact column
-                        if total_count > 0 and numeric_count / total_count < 0.1:
-                            columns_to_drop.append(col)
-                
+                # Remove unnamed columns
+                columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
                 if columns_to_drop:
                     df = df.drop(columns=columns_to_drop)
                 
@@ -465,25 +457,7 @@ class WorldClassExtractor:
                     # Check if we have multiple columns (category-value structure)
                     has_multiple_columns = len(df.columns) >= 2
                     
-                    # Check if second column has numeric values (more robust check)
-                    has_numeric_values = False
-                    if len(df.columns) >= 2:
-                        second_column = df.iloc[:, 1]
-                        numeric_count = 0
-                        total_count = 0
-                        for val in second_column:
-                            if pd.notna(val):
-                                total_count += 1
-                                val_str = str(val)
-                                # Check if it looks like a numeric value (allowing for currency symbols, commas, etc.)
-                                if re.search(r'[\d.,]+', val_str):
-                                    numeric_count += 1
-                        
-                        # If more than 30% of non-null values in second column are numeric, consider it numeric
-                        if total_count > 0 and numeric_count / total_count > 0.3:
-                            has_numeric_values = True
-                    
-                    if has_financial_terms and has_multiple_columns and has_numeric_values:
+                    if has_financial_terms and has_multiple_columns:
                         # Format as financial statement with proper category:value pairs
                         text_parts.append("[FINANCIAL_STATEMENT_FORMAT]")
                         text_parts.append("LINE ITEMS:")
@@ -492,18 +466,13 @@ class WorldClassExtractor:
                         # Process rows to create category:value pairs
                         # Use the first column as categories and subsequent columns for values
                         for idx, row in df.iterrows():
-                            if len(row) >= 1:
+                            if len(row) >= 2:
                                 category = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ""
+                                value = str(row.iloc[1]) if pd.notna(row.iloc[1]) else ""
                                 
                                 # Only include rows with meaningful data
                                 if category.strip() and not category.startswith('Unnamed') and category.strip() != '[EMPTY]':
                                     category = category.strip()
-                                    
-                                    # Check if we have a value in the second column
-                                    value = ""
-                                    if len(row) >= 2 and pd.notna(row.iloc[1]):
-                                        value = str(row.iloc[1])
-                                    
                                     if value and value != "nan" and value.strip() != '[EMPTY]':
                                         # Clean the value
                                         cleaned_value = value.replace('$', '').replace(',', '').strip()
@@ -941,6 +910,69 @@ IMPORTANT:
         
         return validated_data
     
+    def _validate_zero_values(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate that zero values are legitimate and not extraction failures.
+        
+        Args:
+            data: Extracted financial data
+            
+        Returns:
+            Validated data with appropriate zero handling
+        """
+        validated_data = data.copy()
+        
+        # Key financial metrics that should not be zero in most cases
+        key_metrics = ["gross_potential_rent", "effective_gross_income", "net_operating_income"]
+        
+        for metric in key_metrics:
+            if validated_data.get(metric, 0.0) == 0.0:
+                # Log warning for zero values in key metrics
+                logger.warning(f"Zero value detected for key metric '{metric}' - this may indicate extraction issues")
+        
+        return validated_data
+    
+    def _perform_consistency_checks(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Perform enhanced consistency checks on financial data.
+        
+        Args:
+            data: Extracted financial data
+            
+        Returns:
+            Data with consistency corrections applied
+        """
+        validated_data = data.copy()
+        
+        # EGI calculation: EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
+        gpr = validated_data.get("gross_potential_rent", 0.0)
+        vacancy_loss = validated_data.get("vacancy_loss", 0.0)
+        concessions = validated_data.get("concessions", 0.0)
+        bad_debt = validated_data.get("bad_debt", 0.0)
+        other_income = validated_data.get("other_income", 0.0)
+        reported_egi = validated_data.get("effective_gross_income", 0.0)
+        
+        calculated_egi = gpr - vacancy_loss - concessions - bad_debt + other_income
+        
+        # Check if EGI is significantly different from calculated value
+        if abs(calculated_egi - reported_egi) > 1.0:
+            logger.info(f"EGI inconsistency detected: reported={reported_egi:.2f}, calculated={calculated_egi:.2f}")
+            validated_data["effective_gross_income"] = calculated_egi
+        
+        # NOI calculation: NOI = EGI - Operating Expenses
+        egi = validated_data.get("effective_gross_income", 0.0)
+        opex = validated_data.get("operating_expenses", 0.0)
+        reported_noi = validated_data.get("net_operating_income", 0.0)
+        
+        calculated_noi = egi - opex
+        
+        # Check if NOI is significantly different from calculated value
+        if abs(calculated_noi - reported_noi) > 1.0:
+            logger.info(f"NOI inconsistency detected: reported={reported_noi:.2f}, calculated={calculated_noi:.2f}")
+            validated_data["net_operating_income"] = calculated_noi
+        
+        return validated_data
+    
     def _calculate_overall_confidence(self, confidence_scores: Dict[str, float]) -> ExtractionConfidence:
         """
         Calculate overall confidence based on individual field confidence scores.
@@ -967,22 +999,23 @@ IMPORTANT:
         else:
             return ExtractionConfidence.UNCERTAIN
     
-    def _create_fallback_data(self, file_name: str, document_type_hint: Optional[str]) -> Dict[str, Any]:
+    def _create_enhanced_fallback_data(self, file_name: str, document_type_hint: Optional[str]) -> Dict[str, Any]:
         """
-        Create fallback data when extraction fails.
+        Create enhanced fallback data when extraction fails.
         
         Args:
             file_name: Name of the file
             document_type_hint: Optional hint about document type
             
         Returns:
-            Fallback data dictionary
+            Enhanced fallback data dictionary
         """
         fallback_data = self.financial_metrics.copy()
         fallback_data["file_name"] = file_name
         fallback_data["document_type_hint"] = document_type_hint or "unknown"
         fallback_data["extraction_status"] = "failed"
         fallback_data["requires_manual_entry"] = True
+        fallback_data["user_message"] = f"Automatic extraction failed for {file_name}. Please enter data manually."
         
         return fallback_data
 
