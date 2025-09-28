@@ -129,7 +129,7 @@ def test_extraction_system():
         
         # Preprocess and validate
         template_preprocessed = preprocessor.preprocess(files['template'])
-        template_has_data = preprocessor.validate_financial_content(template_preprocessed)
+        template_has_data = preprocessor.validate_financial_content(template_preprocessed['content'])
         print(f"   Template preprocessing successful")
         print(f"   Template has financial data: {template_has_data}")
         
@@ -155,7 +155,7 @@ def test_extraction_system():
         
         # Preprocess and validate
         financial_preprocessed = preprocessor.preprocess(files['financial'])
-        financial_has_data = preprocessor.validate_financial_content(financial_preprocessed)
+        financial_has_data = preprocessor.validate_financial_content(financial_preprocessed['content'])
         print(f"   Financial preprocessing successful")
         print(f"   Financial file has financial data: {financial_has_data}")
         
@@ -184,7 +184,7 @@ def test_extraction_system():
         
         # Preprocess and validate
         excel_preprocessed = preprocessor.preprocess(files['excel'])
-        excel_has_data = preprocessor.validate_financial_content(excel_preprocessed)
+        excel_has_data = preprocessor.validate_financial_content(excel_preprocessed['content'])
         print(f"   Excel preprocessing successful")
         print(f"   Excel file has financial data: {excel_has_data}")
         

@@ -1,7 +1,8 @@
 """
-World-Class Data Extraction System for NOI Analyzer
+Enhanced World-Class Data Extraction System for NOI Analyzer
 This module provides enhanced data extraction capabilities with confidence scoring,
-audit trails, and robust error handling for all document types.
+audit trails, and robust error handling for all document types, including
+assistant-based extraction as an enhancement option.
 """
 
 import os
@@ -27,6 +28,14 @@ from preprocessing_module import FilePreprocessor
 # Setup logger
 logger = setup_logger(__name__)
 
+# Try to import the assistant-based extraction (optional dependency)
+try:
+    from assistant_based_extraction import AssistantBasedExtractor
+    ASSISTANT_BASED_EXTRACTION_AVAILABLE = True
+except ImportError:
+    ASSISTANT_BASED_EXTRACTION_AVAILABLE = False
+    logger.warning("Assistant-based extraction not available. Install required dependencies for this feature.")
+
 class DocumentType(Enum):
     """Enumeration of supported document types"""
     ACTUAL_INCOME_STATEMENT = "Actual Income Statement"
@@ -41,6 +50,13 @@ class ExtractionConfidence(Enum):
     LOW = "low"
     UNCERTAIN = "uncertain"
 
+class ExtractionMethod(Enum):
+    """Enumeration of extraction methods"""
+    GPT_4_ENHANCED = "gpt-4-enhanced-with-validation"
+    ASSISTANT_BASED = "assistant-based-extraction"
+    TEMPLATE_VALIDATION = "template-validation"
+    ENHANCED_FALLBACK = "enhanced-fallback"
+
 @dataclass
 class ExtractionResult:
     """Data class for extraction results with confidence and audit information"""
@@ -52,14 +68,18 @@ class ExtractionResult:
     document_type: DocumentType
     extraction_method: str
 
-class WorldClassExtractor:
+class EnhancedWorldClassExtractor:
     """
-    World-class data extraction system with enhanced preprocessing,
-    confidence scoring, and audit trails.
+    Enhanced world-class data extraction system with multiple extraction methods,
+    including assistant-based extraction as an option.
     """
     
-    def __init__(self):
-        """Initialize the extractor with OpenAI client"""
+    def __init__(self, use_assistant_extraction: bool = False):
+        """Initialize the extractor with OpenAI client and optional assistant-based extraction.
+        
+        Args:
+            use_assistant_extraction: Whether to use assistant-based extraction when available
+        """
         self.openai_api_key = get_openai_api_key()
         if not self.openai_api_key:
             raise ValueError("OpenAI API key not configured")
@@ -67,6 +87,9 @@ class WorldClassExtractor:
         
         # Initialize the file preprocessor
         self.preprocessor = FilePreprocessor()
+        
+        # Whether to use assistant-based extraction
+        self.use_assistant_extraction = use_assistant_extraction and ASSISTANT_BASED_EXTRACTION_AVAILABLE
         
         # Define the standard financial metrics structure
         self.financial_metrics = {
@@ -111,6 +134,7 @@ class WorldClassExtractor:
                     document_type_hint: Optional[str] = None) -> ExtractionResult:
         """
         Extract financial data from a document with confidence scoring and audit trail.
+        Uses assistant-based extraction when available and enabled, otherwise falls back to GPT-4.
         
         Args:
             file_content: Document content as bytes
@@ -147,7 +171,7 @@ class WorldClassExtractor:
                     audit_trail=audit_trail,
                     processing_time=processing_time,
                     document_type=DocumentType.UNKNOWN,
-                    extraction_method="template-validation"
+                    extraction_method=ExtractionMethod.TEMPLATE_VALIDATION.value
                 )
             
             # 3. Determine document type
@@ -160,10 +184,17 @@ class WorldClassExtractor:
             structured_text = self._extract_structured_text(file_content, file_name, preprocessed_content)
             audit_trail.append(f"Structured text extracted. Length: {len(structured_text)}")
             
-            # 5. Extract financial data using GPT-4 with enhanced prompt and retry mechanism
-            audit_trail.append("Extracting financial data with GPT-4 (with retry mechanism)")
-            extracted_data, confidence_scores = self._extract_with_gpt_with_retry(structured_text, document_type)
-            audit_trail.append("GPT-4 extraction completed")
+            # 5. Extract financial data using the appropriate method
+            if self.use_assistant_extraction and ASSISTANT_BASED_EXTRACTION_AVAILABLE:
+                audit_trail.append("Extracting financial data with assistant-based extraction")
+                extracted_data, confidence_scores = self._extract_with_assistant(structured_text, file_name, document_type_hint)
+                extraction_method = ExtractionMethod.ASSISTANT_BASED.value
+                audit_trail.append("Assistant-based extraction completed")
+            else:
+                audit_trail.append("Extracting financial data with GPT-4 (with retry mechanism)")
+                extracted_data, confidence_scores = self._extract_with_gpt_with_retry(structured_text, document_type)
+                extraction_method = ExtractionMethod.GPT_4_ENHANCED.value
+                audit_trail.append("GPT-4 extraction completed")
             
             # 6. Validate and enrich the extracted data
             audit_trail.append("Validating and enriching extracted data")
@@ -202,7 +233,7 @@ class WorldClassExtractor:
                 audit_trail=audit_trail,
                 processing_time=processing_time,
                 document_type=document_type,
-                extraction_method="gpt-4-enhanced-with-validation"
+                extraction_method=extraction_method
             )
             
         except Exception as e:
@@ -219,7 +250,7 @@ class WorldClassExtractor:
                 audit_trail=audit_trail,
                 processing_time=processing_time,
                 document_type=DocumentType.UNKNOWN,
-                extraction_method="enhanced-fallback"
+                extraction_method=ExtractionMethod.ENHANCED_FALLBACK.value
             )
     
     def _preprocess_document(self, file_content: bytes, file_name: str) -> Dict[str, Any]:
@@ -394,6 +425,49 @@ class WorldClassExtractor:
                 return DocumentType.PRIOR_YEAR_ACTUAL
         
         return DocumentType.UNKNOWN
+    
+    def _extract_with_assistant(self, structured_text: str, file_name: str, 
+                               document_type_hint: Optional[str]) -> Tuple[Dict[str, Any], Dict[str, float]]:
+        """
+        Extract financial data using the assistant-based extraction method.
+        
+        Args:
+            structured_text: Formatted text for processing
+            file_name: Name of the file
+            document_type_hint: Hint about document type
+            
+        Returns:
+            Tuple of extracted data and confidence scores
+        """
+        try:
+            # Check if assistant-based extraction is available
+            if not ASSISTANT_BASED_EXTRACTION_AVAILABLE:
+                raise ImportError("Assistant-based extraction not available. Install required dependencies for this feature.")
+            
+            # Initialize the assistant-based extractor using a factory approach
+            try:
+                # Dynamically get the class if it exists
+                extractor_class = globals()['AssistantBasedExtractor']
+                extractor = extractor_class()
+            except KeyError:
+                raise ImportError("Assistant-based extraction not available. Install required dependencies for this feature.")
+            
+            # Extract financial data using the assistant
+            result = extractor.extract_financial_data(
+                document_content=structured_text,
+                document_name=file_name,
+                document_type=document_type_hint or "Unknown"
+            )
+            
+            # Convert the result to the expected format
+            financial_data = result.get('financial_data', {})
+            confidence_scores = result.get('confidence_scores', {})
+            
+            return financial_data, confidence_scores
+            
+        except Exception as e:
+            logger.error(f"Error in assistant-based extraction: {str(e)}")
+            raise
     
     def _extract_with_gpt_with_retry(self, structured_text: str, document_type: DocumentType, 
                                     max_retries: int = 3) -> Tuple[Dict[str, Any], Dict[str, float]]:
@@ -892,7 +966,8 @@ ADDITIONAL INSTRUCTIONS FOR ATTEMPT #{attempt + 1}:
 
 
 def extract_financial_data(file_content: bytes, file_name: str, 
-                          document_type_hint: Optional[str] = None) -> ExtractionResult:
+                          document_type_hint: Optional[str] = None,
+                          use_assistant_extraction: bool = False) -> ExtractionResult:
     """
     Convenience function to extract financial data from a document.
     
@@ -900,9 +975,10 @@ def extract_financial_data(file_content: bytes, file_name: str,
         file_content: Document content as bytes
         file_name: Name of the file
         document_type_hint: Optional hint about document type
+        use_assistant_extraction: Whether to use assistant-based extraction when available
         
     Returns:
         ExtractionResult with data, confidence, and audit information
     """
-    extractor = WorldClassExtractor()
+    extractor = EnhancedWorldClassExtractor(use_assistant_extraction=use_assistant_extraction)
     return extractor.extract_data(file_content, file_name, document_type_hint)
