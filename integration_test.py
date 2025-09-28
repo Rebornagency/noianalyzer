@@ -95,7 +95,7 @@ def test_compatibility():
         # Test backward compatibility function
         print("\nTesting backward compatibility function...")
         compat_result = extract_financial_data(file_content, "financial_statement_september_2025_actual.xlsx", "Actual Income Statement")
-        print(f"Backward compatibility function successful. Extracted {len(compat_result)} fields")
+        print(f"Backward compatibility function successful. Extracted {len(compat_result.data)} fields")
         
         # Compare key financial metrics
         print("\nComparing key financial metrics:")
@@ -104,7 +104,7 @@ def test_compatibility():
         
         for metric in key_metrics:
             new_value = result.data.get(metric, 0.0)
-            compat_value = compat_result.get(metric, 0.0)
+            compat_value = compat_result.data.get(metric, 0.0)
             print(f"  {metric}:")
             print(f"    World-class: {new_value} (confidence: {result.confidence_scores.get(metric, 0.0):.2f})")
             print(f"    Compatible:  {compat_value}")

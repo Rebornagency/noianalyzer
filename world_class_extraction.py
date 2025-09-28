@@ -13,6 +13,7 @@ import re
 from typing import Dict, Any, List, Optional, Union, Tuple
 from dataclasses import dataclass
 from enum import Enum
+import hashlib
 
 import pandas as pd
 import pdfplumber
@@ -21,6 +22,7 @@ from openai import OpenAI
 from config import get_openai_api_key
 from utils.openai_utils import chat_completion
 from utils.error_handler import setup_logger
+from preprocessing_module import FilePreprocessor
 
 # Setup logger
 logger = setup_logger(__name__)
@@ -62,6 +64,9 @@ class WorldClassExtractor:
         if not self.openai_api_key:
             raise ValueError("OpenAI API key not configured")
         self.client = OpenAI(api_key=self.openai_api_key)
+        
+        # Initialize the file preprocessor
+        self.preprocessor = FilePreprocessor()
         
         # Define the standard financial metrics structure
         self.financial_metrics = {
@@ -116,49 +121,79 @@ class WorldClassExtractor:
             ExtractionResult with data, confidence, and audit information
         """
         start_time = time.time()
-        audit_trail = [f"Starting extraction for {file_name}"]
+        audit_trail = [f"Starting extraction for {file_name} at {time.strftime('%Y-%m-%d %H:%M:%S')}"]
         
         try:
-            # 1. Preprocess the document
+            # 1. Preprocess the document with validation
             audit_trail.append("Preprocessing document")
             preprocessed_content = self._preprocess_document(file_content, file_name)
-            audit_trail.append(f"Preprocessing completed. Content length: {len(preprocessed_content)}")
+            audit_trail.append(f"Preprocessing completed. Content length: {len(str(preprocessed_content))}")
             
-            # 2. Determine document type
+            # 2. Validate that document contains actual financial data
+            audit_trail.append("Validating financial content")
+            has_financial_data = self.preprocessor.validate_financial_content(preprocessed_content)
+            audit_trail.append(f"Financial content validation result: {has_financial_data}")
+            
+            if not has_financial_data:
+                audit_trail.append("Document identified as template without financial data")
+                # Create a result indicating no financial data
+                empty_result = self._create_empty_financial_result()
+                processing_time = time.time() - start_time
+                
+                return ExtractionResult(
+                    data=empty_result,
+                    confidence=ExtractionConfidence.UNCERTAIN,
+                    confidence_scores={},
+                    audit_trail=audit_trail,
+                    processing_time=processing_time,
+                    document_type=DocumentType.UNKNOWN,
+                    extraction_method="template-validation"
+                )
+            
+            # 3. Determine document type
             audit_trail.append("Determining document type")
             document_type = self._determine_document_type(file_name, document_type_hint, preprocessed_content)
             audit_trail.append(f"Document type determined: {document_type.value}")
             
-            # 3. Extract text with enhanced structure
-            audit_trail.append("Extracting structured text")
+            # 4. Extract structured text with multi-modal approach
+            audit_trail.append("Extracting structured text with multi-modal approach")
             structured_text = self._extract_structured_text(file_content, file_name, preprocessed_content)
             audit_trail.append(f"Structured text extracted. Length: {len(structured_text)}")
             
-            # 4. Extract financial data using GPT-4 with enhanced prompt
-            audit_trail.append("Extracting financial data with GPT-4")
-            extracted_data, confidence_scores = self._extract_with_gpt(structured_text, document_type)
+            # 5. Extract financial data using GPT-4 with enhanced prompt and retry mechanism
+            audit_trail.append("Extracting financial data with GPT-4 (with retry mechanism)")
+            extracted_data, confidence_scores = self._extract_with_gpt_with_retry(structured_text, document_type)
             audit_trail.append("GPT-4 extraction completed")
             
-            # 5. Validate and enrich the extracted data
+            # 6. Validate and enrich the extracted data
             audit_trail.append("Validating and enriching extracted data")
             validated_data = self._validate_and_enrich_data(extracted_data, confidence_scores)
             audit_trail.append("Data validation and enrichment completed")
             
-            # Add enhanced validation for zero values
+            # 7. Add enhanced validation for zero values
             audit_trail.append("Performing zero value validation")
             validated_data = self._validate_zero_values(validated_data)
             audit_trail.append("Zero value validation completed")
             
-            # Add enhanced consistency checks
+            # 8. Add enhanced consistency checks
             audit_trail.append("Performing consistency checks")
             validated_data = self._perform_consistency_checks(validated_data)
             audit_trail.append("Consistency checks completed")
             
-            # 6. Calculate overall confidence
+            # 9. Calculate overall confidence
             overall_confidence = self._calculate_overall_confidence(confidence_scores)
             audit_trail.append(f"Overall confidence calculated: {overall_confidence.value}")
             
+            # 10. Add document hash for audit trail
+            document_hash = hashlib.md5(file_content).hexdigest()
+            audit_trail.append(f"Document hash: {document_hash}")
+            
             processing_time = time.time() - start_time
+            
+            # Add metadata to the result
+            validated_data["file_name"] = file_name
+            validated_data["document_hash"] = document_hash
+            validated_data["processing_timestamp"] = time.time()
             
             return ExtractionResult(
                 data=validated_data,
@@ -167,7 +202,7 @@ class WorldClassExtractor:
                 audit_trail=audit_trail,
                 processing_time=processing_time,
                 document_type=document_type,
-                extraction_method="gpt-4-enhanced"
+                extraction_method="gpt-4-enhanced-with-validation"
             )
             
         except Exception as e:
@@ -189,7 +224,7 @@ class WorldClassExtractor:
     
     def _preprocess_document(self, file_content: bytes, file_name: str) -> Dict[str, Any]:
         """
-        Preprocess document to determine type and basic structure.
+        Preprocess document to determine type and basic structure with enhanced error handling.
         
         Args:
             file_content: Document content as bytes
@@ -198,581 +233,277 @@ class WorldClassExtractor:
         Returns:
             Dictionary with preprocessing information
         """
-        _, ext = os.path.splitext(file_name)
-        ext = ext.lower().lstrip('.')
-        
-        preprocessing_info = {
-            "file_name": file_name,
-            "file_extension": ext,
-            "content_length": len(file_content),
-            "detected_type": None,
-            "structure_indicators": []
-        }
-        
-        # Detect document type based on content
-        if ext in ['xlsx', 'xls']:
-            preprocessing_info["detected_type"] = "excel"
-            preprocessing_info["structure_indicators"] = self._detect_excel_structure(file_content)
-        elif ext == 'pdf':
-            preprocessing_info["detected_type"] = "pdf"
-            preprocessing_info["structure_indicators"] = self._detect_pdf_structure(file_content)
-        elif ext == 'csv':
-            preprocessing_info["detected_type"] = "csv"
-        elif ext == 'txt':
-            preprocessing_info["detected_type"] = "text"
+        try:
+            # Create a temporary file for preprocessing
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                tmp_file.write(file_content)
+                tmp_file_path = tmp_file.name
             
-        return preprocessing_info
+            try:
+                # Use the FilePreprocessor to handle all file types
+                preprocessed = self.preprocessor.preprocess(tmp_file_path, filename=file_name)
+                return preprocessed
+            finally:
+                # Clean up temporary file
+                os.unlink(tmp_file_path)
+                
+        except Exception as e:
+            logger.error(f"Error preprocessing document {file_name}: {str(e)}")
+            # Return a minimal structure if preprocessing fails
+            return {
+                'content': {},
+                'metadata': {
+                    'filename': file_name,
+                    'error': str(e)
+                }
+            }
     
-    def _detect_excel_structure(self, file_content: bytes) -> List[str]:
+    def _extract_structured_text(self, file_content: bytes, file_name: str, preprocessed_content: Dict[str, Any]) -> str:
         """
-        Detect structure indicators in Excel files.
+        Extract structured text from preprocessed content using hierarchical approach.
         
         Args:
-            file_content: Excel file content as bytes
+            file_content: Original file content
+            file_name: Name of the file
+            preprocessed_content: Preprocessed content from FilePreprocessor
             
         Returns:
-            List of structure indicators
+            Structured text for GPT processing
         """
-        indicators = []
         try:
-            excel_file = io.BytesIO(file_content)
-            xl = pd.ExcelFile(excel_file)
+            # Use hierarchical approach for text input
+            # 1. Prefer 'combined_text' when available
+            if 'content' in preprocessed_content and 'combined_text' in preprocessed_content['content']:
+                text = preprocessed_content['content']['combined_text']
+                if text and len(text.strip()) > 0:
+                    return self._format_structured_text(text, file_name, preprocessed_content)
             
-            for sheet_name in xl.sheet_names:
-                excel_file.seek(0)
-                df = pd.read_excel(excel_file, sheet_name=sheet_name)
-                
-                # Check for financial keywords in column names and first column
-                if len(df.columns) > 0:
-                    column_names = [str(col).lower() for col in df.columns]
-                    first_column_data = df.iloc[:, 0].astype(str).str.lower() if len(df.columns) > 0 else pd.Series([])
-                    
-                    financial_keywords = [
-                        'rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 
-                        'maintenance', 'utilities', 'management', 'parking', 'laundry', 
-                        'fee', 'noi', 'egi', 'operating', 'total'
-                    ]
-                    
-                    # Check column names
-                    for keyword in financial_keywords:
-                        if any(keyword in col for col in column_names):
-                            indicators.append(f"financial_keyword_in_columns:{keyword}")
-                            break
-                    
-                    # Check first column data
-                    for keyword in financial_keywords:
-                        if first_column_data.str.contains(keyword, na=False).any():
-                            indicators.append(f"financial_keyword_in_data:{keyword}")
-                            break
-                    
-                    # Check for numeric columns
-                    numeric_columns = 0
-                    for col in df.columns:
-                        numeric_count = 0
-                        total_count = 0
-                        for val in df[col]:
-                            if pd.notna(val):
-                                total_count += 1
-                                try:
-                                    float(str(val).replace('$', '').replace(',', '').replace('(', '-').replace(')', ''))
-                                    numeric_count += 1
-                                except ValueError:
-                                    pass
-                        if total_count > 0 and numeric_count / total_count > 0.5:
-                            numeric_columns += 1
-                    
-                    if numeric_columns > 0:
-                        indicators.append(f"numeric_columns:{numeric_columns}")
-        
+            # 2. Fall back to 'text_representation' for structured documents like Excel
+            if 'content' in preprocessed_content and 'text_representation' in preprocessed_content['content']:
+                text_rep = preprocessed_content['content']['text_representation']
+                if isinstance(text_rep, list) and len(text_rep) > 0:
+                    text = "\n\n".join(text_rep)
+                    if text and len(text.strip()) > 0:
+                        return self._format_structured_text(text, file_name, preprocessed_content)
+                elif isinstance(text_rep, str) and len(text_rep.strip()) > 0:
+                    return self._format_structured_text(text_rep, file_name, preprocessed_content)
+            
+            # 3. Use simple 'text' content as final fallback
+            if 'content' in preprocessed_content and 'text' in preprocessed_content['content']:
+                text_content = preprocessed_content['content']['text']
+                if isinstance(text_content, list) and len(text_content) > 0:
+                    # For PDF content with multiple pages
+                    pages_text = []
+                    for page in text_content:
+                        if isinstance(page, dict) and 'content' in page:
+                            pages_text.append(page['content'])
+                    text = "\n\n".join(pages_text)
+                    if text and len(text.strip()) > 0:
+                        return self._format_structured_text(text, file_name, preprocessed_content)
+                elif isinstance(text_content, str) and len(text_content.strip()) > 0:
+                    return self._format_structured_text(text_content, file_name, preprocessed_content)
+            
+            # If we still don't have text, convert the entire content to string
+            return self._format_structured_text(str(preprocessed_content), file_name, preprocessed_content)
+            
         except Exception as e:
-            logger.warning(f"Error detecting Excel structure: {str(e)}")
-        
-        return indicators
+            logger.error(f"Error extracting structured text from {file_name}: {str(e)}")
+            return f"Error extracting text from document: {str(e)}"
     
-    def _detect_pdf_structure(self, file_content: bytes) -> List[str]:
+    def _format_structured_text(self, text: str, file_name: str, preprocessed_content: Dict[str, Any]) -> str:
         """
-        Detect structure indicators in PDF files.
+        Format text with clear section headers and structural markers.
         
         Args:
-            file_content: PDF file content as bytes
+            text: Raw text content
+            file_name: Name of the file
+            preprocessed_content: Preprocessed content
             
         Returns:
-            List of structure indicators
+            Formatted structured text
         """
-        indicators = []
-        try:
-            pdf_file = io.BytesIO(file_content)
-            with pdfplumber.open(pdf_file) as pdf:
-                total_pages = len(pdf.pages)
-                indicators.append(f"pages:{total_pages}")
-                
-                # Check first few pages for structure
-                for i, page in enumerate(pdf.pages[:3]):
-                    # Extract text
-                    page_text = page.extract_text()
-                    if page_text:
-                        # Check for financial keywords
-                        text_lower = page_text.lower()
-                        financial_keywords = [
-                            'rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 
-                            'maintenance', 'utilities', 'management', 'parking', 'laundry', 
-                            'fee', 'noi', 'egi', 'operating', 'total'
-                        ]
-                        
-                        for keyword in financial_keywords:
-                            if keyword in text_lower:
-                                indicators.append(f"page_{i}_financial_keyword:{keyword}")
-                    
-                    # Extract tables
-                    tables = page.extract_tables()
-                    if tables:
-                        indicators.append(f"page_{i}_tables:{len(tables)}")
+        # Add document metadata as headers
+        formatted_text = f"DOCUMENT_FILE_NAME: {file_name}\n"
+        formatted_text += f"DOCUMENT_PROCESSING_TIMESTAMP: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
         
-        except Exception as e:
-            logger.warning(f"Error detecting PDF structure: {str(e)}")
+        # Add metadata if available
+        if 'metadata' in preprocessed_content:
+            metadata = preprocessed_content['metadata']
+            if 'extension' in metadata:
+                formatted_text += f"DOCUMENT_FILE_TYPE: {metadata['extension']}\n"
+            if 'file_type' in metadata:
+                formatted_text += f"DOCUMENT_MIME_TYPE: {metadata['file_type']}\n"
         
-        return indicators
+        # Add structure indicators if available
+        if 'content' in preprocessed_content and 'structure_indicators' in preprocessed_content['content']:
+            indicators = preprocessed_content['content']['structure_indicators']
+            if indicators and len(indicators) > 0:
+                formatted_text += f"DOCUMENT_STRUCTURE_INDICATORS: {', '.join(indicators)}\n"
+        
+        # Add separator and the actual content
+        formatted_text += "\n" + "="*50 + "\n"
+        formatted_text += "DOCUMENT_CONTENT_START\n"
+        formatted_text += "="*50 + "\n\n"
+        formatted_text += text
+        formatted_text += "\n\n" + "="*50 + "\n"
+        formatted_text += "DOCUMENT_CONTENT_END\n"
+        formatted_text += "="*50 + "\n"
+        
+        return formatted_text
     
     def _determine_document_type(self, file_name: str, document_type_hint: Optional[str], 
-                                preprocessing_info: Dict[str, Any]) -> DocumentType:
+                                preprocessed_content: Dict[str, Any]) -> DocumentType:
         """
-        Determine document type based on file name and content.
+        Determine document type from file name, hint, or content.
         
         Args:
             file_name: Name of the file
-            document_type_hint: Optional hint about document type
-            preprocessing_info: Preprocessing information
+            document_type_hint: Hint about document type
+            preprocessed_content: Preprocessed content
             
         Returns:
             DocumentType enum value
         """
-        file_name_lower = file_name.lower()
-        
-        # First check document type hint
+        # Use hint if provided
         if document_type_hint:
-            document_type_hint_lower = document_type_hint.lower()
-            if "budget" in document_type_hint_lower:
+            if "actual" in document_type_hint.lower() and "income" in document_type_hint.lower():
+                return DocumentType.ACTUAL_INCOME_STATEMENT
+            elif "budget" in document_type_hint.lower():
                 return DocumentType.BUDGET
-            elif "prior" in document_type_hint_lower:
-                if "year" in document_type_hint_lower:
-                    return DocumentType.PRIOR_YEAR_ACTUAL
-                else:
-                    return DocumentType.ACTUAL_INCOME_STATEMENT  # Prior month
-            elif "actual" in document_type_hint_lower:
-                return DocumentType.ACTUAL_INCOME_STATEMENT
-        
-        # Check file name
-        if "budget" in file_name_lower:
-            return DocumentType.BUDGET
-        elif "prior" in file_name_lower:
-            if "year" in file_name_lower:
+            elif "prior" in document_type_hint.lower() and "year" in document_type_hint.lower():
                 return DocumentType.PRIOR_YEAR_ACTUAL
-            else:
-                return DocumentType.ACTUAL_INCOME_STATEMENT  # Prior month
-        elif "actual" in file_name_lower or "current" in file_name_lower:
-            return DocumentType.ACTUAL_INCOME_STATEMENT
         
-        # Check preprocessing indicators
-        structure_indicators = preprocessing_info.get("structure_indicators", [])
-        for indicator in structure_indicators:
-            if "financial_keyword" in indicator:
+        # Try to determine from file name
+        file_name_lower = file_name.lower()
+        if "actual" in file_name_lower and "income" in file_name_lower:
+            return DocumentType.ACTUAL_INCOME_STATEMENT
+        elif "budget" in file_name_lower:
+            return DocumentType.BUDGET
+        elif "prior" in file_name_lower and "year" in file_name_lower:
+            return DocumentType.PRIOR_YEAR_ACTUAL
+        
+        # Try to determine from content
+        if 'content' in preprocessed_content:
+            content_str = str(preprocessed_content['content']).lower()
+            if "actual" in content_str and "income" in content_str:
                 return DocumentType.ACTUAL_INCOME_STATEMENT
+            elif "budget" in content_str:
+                return DocumentType.BUDGET
+            elif "prior" in content_str and "year" in content_str:
+                return DocumentType.PRIOR_YEAR_ACTUAL
         
         return DocumentType.UNKNOWN
     
-    def _extract_structured_text(self, file_content: bytes, file_name: str, 
-                                preprocessing_info: Dict[str, Any]) -> str:
+    def _extract_with_gpt_with_retry(self, structured_text: str, document_type: DocumentType, 
+                                    max_retries: int = 3) -> Tuple[Dict[str, Any], Dict[str, float]]:
         """
-        Extract structured text from document with clear formatting for AI parsing.
+        Extract financial data using GPT-4 with retry mechanism and progressive prompting.
         
         Args:
-            file_content: Document content as bytes
-            file_name: Name of the file
-            preprocessing_info: Preprocessing information
+            structured_text: Formatted text for GPT processing
+            document_type: Type of document
+            max_retries: Maximum number of retry attempts
             
         Returns:
-            Structured text representation of the document
+            Tuple of extracted data and confidence scores
         """
-        _, ext = os.path.splitext(file_name)
-        ext = ext.lower().lstrip('.')
+        last_error = None
         
-        if ext in ['xlsx', 'xls']:
-            return self._extract_excel_text(file_content, file_name)
-        elif ext == 'pdf':
-            return self._extract_pdf_text(file_content, file_name)
-        elif ext == 'csv':
-            return self._extract_csv_text(file_content, file_name)
-        elif ext == 'txt':
-            return self._extract_txt_text(file_content, file_name)
-        else:
-            # Fallback to basic text extraction
+        for attempt in range(max_retries):
             try:
-                return file_content.decode('utf-8', errors='ignore')
-            except Exception:
-                return f"[Content from {file_name}]"
-    
-    def _extract_excel_text(self, file_content: bytes, file_name: str) -> str:
-        """
-        Extract structured text from Excel files.
-        
-        Args:
-            file_content: Excel file content as bytes
-            file_name: Name of the file
-            
-        Returns:
-            Structured text representation of the Excel file
-        """
-        text_parts = [f"EXCEL DOCUMENT: {file_name}", "=" * 60, ""]
-        
-        try:
-            excel_file = io.BytesIO(file_content)
-            xl = pd.ExcelFile(excel_file)
-            
-            for sheet_name in xl.sheet_names:
-                text_parts.append(f"[SHEET_START] {sheet_name}")
-                text_parts.append("-" * 40)
-                
-                # Reset file pointer and read sheet
-                excel_file.seek(0)
-                df = pd.read_excel(excel_file, sheet_name=sheet_name)
-                
-                # Remove unnamed columns
-                columns_to_drop = [col for col in df.columns if str(col).startswith('Unnamed:')]
-                if columns_to_drop:
-                    df = df.drop(columns=columns_to_drop)
-                
-                if not df.empty:
-                    # Check if this looks like a financial statement
-                    first_column_data = df.iloc[:, 0].astype(str).str.lower() if len(df.columns) > 0 else pd.Series([])
-                    financial_keywords = [
-                        'rent', 'income', 'revenue', 'expense', 'tax', 'insurance', 
-                        'maintenance', 'utilities', 'management', 'parking', 'laundry', 
-                        'fee', 'noi', 'egi', 'operating', 'total'
-                    ]
-                    has_financial_terms = any(
-                        first_column_data.str.contains(keyword, na=False).any() 
-                        for keyword in financial_keywords
-                    )
-                    
-                    # Check if we have multiple columns (category-value structure)
-                    has_multiple_columns = len(df.columns) >= 2
-                    
-                    if has_financial_terms and has_multiple_columns:
-                        # Format as financial statement with proper category:value pairs
-                        text_parts.append("[FINANCIAL_STATEMENT_FORMAT]")
-                        text_parts.append("LINE ITEMS:")
-                        text_parts.append("")
-                        
-                        # Process rows to create category:value pairs
-                        # Use the first column as categories and subsequent columns for values
-                        for idx, row in df.iterrows():
-                            if len(row) >= 2:
-                                category = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ""
-                                value = str(row.iloc[1]) if pd.notna(row.iloc[1]) else ""
-                                
-                                # Only include rows with meaningful data
-                                if category.strip() and not category.startswith('Unnamed') and category.strip() != '[EMPTY]':
-                                    category = category.strip()
-                                    if value and value != "nan" and value.strip() != '[EMPTY]':
-                                        # Clean the value
-                                        cleaned_value = value.replace('$', '').replace(',', '').strip()
-                                        text_parts.append(f"  {category}: {cleaned_value}")
-                                    else:
-                                        # Section header
-                                        text_parts.append(f"  SECTION: {category}")
-                    else:
-                        # Standard table format
-                        text_parts.append("[TABLE_FORMAT]")
-                        text_parts.append("COLUMN HEADERS: " + " | ".join(str(col) for col in df.columns))
-                        text_parts.append("")
-                        text_parts.append("DATA ROWS:")
-                        table_text = df.to_string(index=False, na_rep='[EMPTY]', max_colwidth=30)
-                        for line in table_text.split('\n'):
-                            text_parts.append(f"  {line}")
+                if attempt > 0:
+                    logger.info(f"Retry attempt {attempt + 1}/{max_retries}")
+                    # For retry attempts, use a more explicit prompt
+                    prompt = self._create_enhanced_extraction_prompt(structured_text, document_type, attempt)
                 else:
-                    text_parts.append("[EMPTY_SHEET]")
+                    # First attempt with standard prompt
+                    prompt = self._create_extraction_prompt(structured_text, document_type)
                 
-                text_parts.append("")
-                text_parts.append("[SHEET_END]")
-                text_parts.append("")
-            
-            text_parts.append("[DOCUMENT_END]")
-            
-        except Exception as e:
-            logger.warning(f"Error extracting Excel text: {str(e)}")
-            text_parts = [f"[Excel content from {file_name}]"]
-        
-        return "\n".join(text_parts)
-    
-    def _extract_pdf_text(self, file_content: bytes, file_name: str) -> str:
-        """
-        Extract structured text from PDF files.
-        
-        Args:
-            file_content: PDF file content as bytes
-            file_name: Name of the file
-            
-        Returns:
-            Structured text representation of the PDF file
-        """
-        text_parts = [f"PDF DOCUMENT: {file_name}", "=" * 60, ""]
-        
-        try:
-            pdf_file = io.BytesIO(file_content)
-            with pdfplumber.open(pdf_file) as pdf:
-                for i, page in enumerate(pdf.pages):
-                    text_parts.append(f"[PAGE_START] {i+1}")
-                    text_parts.append("-" * 30)
+                # Extract data using GPT
+                response = self._extract_with_gpt(prompt)
+                
+                # Validate response structure
+                if isinstance(response, dict) and 'financial_data' in response and 'confidence_scores' in response:
+                    return response['financial_data'], response['confidence_scores']
+                else:
+                    raise ValueError("Invalid response structure from GPT")
                     
-                    # Extract text
-                    page_text = page.extract_text()
-                    if page_text:
-                        # Clean up text
-                        cleaned_lines = [line.strip() for line in page_text.splitlines() if line.strip()]
-                        if cleaned_lines:
-                            text_parts.append("[TEXT_CONTENT]")
-                            text_parts.extend(cleaned_lines)
-                    
-                    # Extract tables
-                    tables = page.extract_tables()
-                    if tables:
-                        text_parts.append("")
-                        text_parts.append("[TABLES_FOUND]")
-                        for j, table in enumerate(tables):
-                            if table:
-                                text_parts.append(f"[TABLE_{j+1}]")
-                                for row in table:
-                                    cleaned_row = [str(cell) if cell is not None else "[EMPTY]" for cell in row]
-                                    text_parts.append("  |  ".join(cleaned_row))
-                    
-                    text_parts.append("")
-                    text_parts.append("[PAGE_END]")
-                    text_parts.append("")
-            
-            text_parts.append("[DOCUMENT_END]")
-            
-        except Exception as e:
-            logger.warning(f"Error extracting PDF text: {str(e)}")
-            text_parts = [f"[PDF content from {file_name}]"]
-        
-        return "\n".join(text_parts)
-    
-    def _extract_csv_text(self, file_content: bytes, file_name: str) -> str:
-        """
-        Extract structured text from CSV files.
-        
-        Args:
-            file_content: CSV file content as bytes
-            file_name: Name of the file
-            
-        Returns:
-            Structured text representation of the CSV file
-        """
-        text_parts = [f"CSV DOCUMENT: {file_name}", "=" * 60, ""]
-        
-        try:
-            # Try to detect encoding
-            import chardet
-            encoding_info = chardet.detect(file_content)
-            encoding = encoding_info.get('encoding', 'utf-8') or 'utf-8'
-            
-            try:
-                csv_text = file_content.decode(encoding)
-            except (UnicodeDecodeError, LookupError):
-                csv_text = file_content.decode('utf-8', errors='ignore')
-            
-            # Split into lines
-            lines = [line.strip() for line in csv_text.splitlines() if line.strip()]
-            if lines:
-                text_parts.append("[CSV_CONTENT]")
-                text_parts.extend(lines)
-            
-            text_parts.append("")
-            text_parts.append("[DOCUMENT_END]")
-            
-        except Exception as e:
-            logger.warning(f"Error extracting CSV text: {str(e)}")
-            text_parts = [f"[CSV content from {file_name}]"]
-        
-        return "\n".join(text_parts)
-    
-    def _extract_txt_text(self, file_content: bytes, file_name: str) -> str:
-        """
-        Extract structured text from TXT files.
-        
-        Args:
-            file_content: TXT file content as bytes
-            file_name: Name of the file
-            
-        Returns:
-            Structured text representation of the TXT file
-        """
-        try:
-            text_content = file_content.decode('utf-8', errors='ignore')
-            
-            # Add structure markers
-            text_parts = [f"TEXT DOCUMENT: {file_name}", "=" * 60, ""]
-            
-            # Add section headers for common financial terms
-            section_headers = {
-                'REVENUE': '[REVENUE_SECTION]',
-                'INCOME': '[INCOME_SECTION]', 
-                'EXPENSE': '[EXPENSE_SECTION]',
-                'OPERATING': '[OPERATING_SECTION]',
-                'PROPERTY': '[PROPERTY_INFORMATION]',
-                'TOTAL': '[SUMMARY_SECTION]',
-                'FINANCIAL': '[FINANCIAL_STATEMENT]',
-                'RESULT': '[FINANCIAL_RESULTS]'
-            }
-            
-            lines = [line.strip() for line in text_content.splitlines() if line.strip()]
-            for line in lines:
-                text_parts.append(line)
-                # Add section markers
-                for keyword, header in section_headers.items():
-                    if keyword in line.upper() and header not in line:
-                        text_parts.append("")
-                        text_parts.append(header)
-                        text_parts.append("-" * 25)
-            
-            text_parts.append("")
-            text_parts.append("[DOCUMENT_END]")
-            
-            return "\n".join(text_parts)
-        except Exception as e:
-            logger.warning(f"Error extracting TXT text: {str(e)}")
-            return f"[Text content from {file_name}]"
-    
-    def _extract_with_gpt(self, document_text: str, document_type: DocumentType) -> Tuple[Dict[str, Any], Dict[str, float]]:
-        """
-        Extract financial data using GPT-4 with enhanced prompt and confidence scoring.
-        
-        Args:
-            document_text: Structured text representation of the document
-            document_type: Type of document
-            
-        Returns:
-            Tuple of extracted data dictionary and confidence scores
-        """
-        # Truncate document text if too long
-        max_length = 3000
-        if len(document_text) > max_length:
-            start_length = int(max_length * 0.7)
-            end_length = max_length - start_length - 50
-            document_text = document_text[:start_length] + "... [truncated] ..." + document_text[-end_length:]
-        
-        # Create enhanced prompt
-        prompt = self._create_enhanced_prompt(document_text, document_type)
-        
-        # Try multiple times with different approaches
-        for attempt in range(3):
-            try:
-                # Prepare messages for chat completion
-                messages = [
-                    {"role": "system", "content": "You are a world-class real estate financial analyst. Extract financial data and return ONLY a JSON object."},
-                    {"role": "user", "content": prompt}
-                ]
-                
-                # Call OpenAI API
-                response_content = chat_completion(
-                    messages=messages,
-                    model="gpt-4",  # Use GPT-4 for better accuracy
-                    temperature=0.1 if attempt == 0 else 0.3,  # Lower temperature for first attempt
-                    max_tokens=2000
-                )
-                
-                # Parse the JSON response
-                result = self._parse_gpt_response(response_content)
-                if result and result[0]:  # If we got valid data
-                    return result
-                
             except Exception as e:
-                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-                if attempt < 2:  # Don't sleep on the last attempt
+                last_error = e
+                logger.warning(f"GPT extraction attempt {attempt + 1} failed: {str(e)}")
+                if attempt < max_retries - 1:
+                    # Wait before retry
                     time.sleep(2 ** attempt)  # Exponential backoff
+                continue
         
-        # If all attempts fail, return empty result
-        return {}, {}
+        # If all retries failed, raise the last error
+        if last_error:
+            raise last_error
+        else:
+            raise Exception("GPT extraction failed after all retries")
     
-    def _parse_gpt_response(self, response_content: str) -> Tuple[Dict[str, Any], Dict[str, float]]:
+    def _create_extraction_prompt(self, text: str, document_type: DocumentType) -> str:
         """
-        Parse GPT response and extract JSON data.
+        Create extraction prompt based on document type with enhanced context.
         
         Args:
-            response_content: Raw response from GPT
-            
-        Returns:
-            Tuple of extracted data dictionary and confidence scores
-        """
-        try:
-            # First try to parse as JSON directly
-            result = json.loads(response_content)
-            if isinstance(result, dict) and "financial_data" in result:
-                return result["financial_data"], result.get("confidence_scores", {})
-        except json.JSONDecodeError:
-            pass
-        
-        try:
-            # Try to extract JSON from response text
-            # Look for JSON object in the response
-            json_start = response_content.find('{')
-            json_end = response_content.rfind('}') + 1
-            
-            if json_start >= 0 and json_end > json_start:
-                json_str = response_content[json_start:json_end]
-                result = json.loads(json_str)
-                if isinstance(result, dict) and "financial_data" in result:
-                    return result["financial_data"], result.get("confidence_scores", {})
-        except json.JSONDecodeError:
-            pass
-        
-        try:
-            # Try to find and extract JSON using regex
-            import re
-            json_match = re.search(r'({[^{]*"financial_data"[^{]*{.*?}[^}]*"confidence_scores"[^{]*{.*?}[^}]*})', response_content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-                result = json.loads(json_str)
-                if isinstance(result, dict) and "financial_data" in result:
-                    return result["financial_data"], result.get("confidence_scores", {})
-        except json.JSONDecodeError:
-            pass
-        
-        # If we still can't parse, log the response for debugging
-        logger.warning(f"Could not parse GPT response as JSON: {response_content[:200]}...")
-        return {}, {}
-    
-    def _create_enhanced_prompt(self, document_text: str, document_type: DocumentType) -> str:
-        """
-        Create an enhanced prompt for GPT-4 with confidence scoring instructions.
-        
-        Args:
-            document_text: Structured text representation of the document
+            text: Preprocessed text from the document
             document_type: Type of document
             
         Returns:
-            Enhanced prompt string
+            Extraction prompt for GPT
         """
-        # Document type specific instructions
-        doc_type_instructions = ""
-        if document_type == DocumentType.BUDGET:
-            doc_type_instructions = "This is a BUDGET document. Focus on projected/forecasted values."
-        elif document_type == DocumentType.PRIOR_YEAR_ACTUAL:
-            doc_type_instructions = "This is a PRIOR YEAR ACTUAL document. Look for historical results."
-        elif document_type == DocumentType.ACTUAL_INCOME_STATEMENT:
-            doc_type_instructions = "This is a CURRENT PERIOD ACTUAL document. Look for the most recent actual results."
+        # Prepare a sample of the text for GPT (first 3000 characters to leave room for prompt)
+        text_sample = text[:3000]
         
-        prompt = f"""
-You are a world-class real estate financial analyst. Extract financial data from the document and return ONLY a JSON object.
+        # Create document type specific context
+        doc_type_context = ""
+        if document_type == DocumentType.ACTUAL_INCOME_STATEMENT:
+            doc_type_context = """This is an Actual Income Statement showing real financial results for a specific property.
+
+Important notes for Actual Income Statements:
+- These are ACTUAL results, not projections or budgets
+- Look for sections labeled "Income", "Revenue", "Expenses", or "Operating Expenses"
+- The document may use terms like "YTD", "Month-to-Date", or specific month names
+- Focus on the most recent or relevant period if multiple periods are shown
+- Ensure mathematical consistency in your extraction
+- Be precise with negative values which may be shown in parentheses e.g. (1,234.50)"""
+            
+        elif document_type == DocumentType.BUDGET:
+            doc_type_context = """This is a Budget document showing projected financial figures for a specific property.
+
+Important notes for Budget documents:
+- These are PROJECTED figures, not actual results
+- Look for sections labeled "Budget", "Forecast", "Plan", or "Projected"
+- The document may include comparisons to actual results
+- Focus on the budget figures, not the actual or variance columns
+- Ensure mathematical consistency in your extraction
+- Be precise with negative values which may be shown in parentheses e.g. (1,234.50)"""
+            
+        elif document_type == DocumentType.PRIOR_YEAR_ACTUAL:
+            doc_type_context = """This is a Prior Year Actual statement showing historical financial results for a specific property.
+
+Important notes for Prior Year Actual statements:
+- These are HISTORICAL results from a previous period
+- Look for sections labeled with previous year indicators
+- The document may include comparisons to current year or budget
+- Focus on the prior year figures, not current year or budget columns
+- Ensure mathematical consistency in your extraction
+- Be precise with negative values which may be shown in parentheses e.g. (1,234.50)"""
+        else:
+            doc_type_context = """This is a financial document of unknown type. Please identify the document type and extract accordingly."""
+        
+        # Create the full prompt with explicit instructions
+        prompt = f"""You are a world-class real estate financial analyst. Extract financial data and return ONLY a JSON object.
 
 Document Type: {document_type.value}
-Instructions: {doc_type_instructions}
+Instructions: {doc_type_context}
 
 Document Content:
-{document_text}
+{text_sample}
 
 Extract these financial metrics and provide confidence scores (0.0 to 1.0):
-
 REQUIRED JSON FORMAT:
 {{
   "financial_data": {{
@@ -846,14 +577,138 @@ IMPORTANT:
 5. Calculate derived values when needed:
    - Effective Gross Income = Gross Potential Rent - Vacancy Loss - Concessions - Bad Debt + Other Income
    - Net Operating Income = Effective Gross Income - Operating Expenses
+6. Be precise with negative values which may be shown in parentheses e.g. (1,234.50) should be -1234.50
+7. Handle currency formatting (e.g., $1,234.50 should be 1234.50)
 """
         
         return prompt
     
+    def _create_enhanced_extraction_prompt(self, text: str, document_type: DocumentType, attempt: int) -> str:
+        """
+        Create an enhanced extraction prompt for retry attempts.
+        
+        Args:
+            text: Preprocessed text from the document
+            document_type: Type of document
+            attempt: Retry attempt number
+            
+        Returns:
+            Enhanced extraction prompt for GPT
+        """
+        # For retry attempts, be more explicit and provide examples
+        base_prompt = self._create_extraction_prompt(text, document_type)
+        
+        # Add retry-specific instructions
+        retry_instructions = f"""
+        
+ADDITIONAL INSTRUCTIONS FOR ATTEMPT #{attempt + 1}:
+- Pay extra attention to number formatting and currency symbols
+- Look for values in tables, lists, and structured sections
+- If you see ranges or multiple values, use the most relevant one
+- For missing values, use 0.0 but set confidence score accordingly
+- Double-check that all required fields are present in your response
+- Ensure your JSON is properly formatted with no syntax errors
+"""
+        
+        return base_prompt + retry_instructions
+    
+    def _extract_with_gpt(self, prompt: str) -> Dict[str, Any]:
+        """
+        Extract data using GPT with proper error handling.
+        
+        Args:
+            prompt: Prompt for GPT
+            
+        Returns:
+            Extracted data as dictionary
+        """
+        try:
+            # Use chat completion with appropriate parameters
+            response = chat_completion(
+                client=self.client,
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a world-class real estate financial analyst."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1,  # Low temperature for consistency
+                max_tokens=2000
+            )
+            
+            # Extract content from response using safe attribute access
+            content = ""
+            try:
+                # Safely navigate the response structure using getattr
+                choices = getattr(response, 'choices', None)
+                if choices and len(choices) > 0:
+                    choice = choices[0]
+                    message = getattr(choice, 'message', None)
+                    if message:
+                        content = getattr(message, 'content', str(message))
+                    else:
+                        content = str(choice)
+                else:
+                    # Try to convert response to dict and access choices
+                    if hasattr(response, '__dict__'):
+                        response_dict = response.__dict__
+                        choices = response_dict.get('choices', [])
+                        if choices and len(choices) > 0:
+                            choice = choices[0]
+                            message = getattr(choice, 'message', choice)
+                            if hasattr(message, '__dict__'):
+                                message_dict = message.__dict__
+                                content = message_dict.get('content', str(message))
+                            else:
+                                content = str(message)
+                        else:
+                            content = str(response_dict)
+                    else:
+                        content = str(response)
+            except Exception as e:
+                # Fallback to string conversion
+                logger.warning(f"Error navigating response structure: {str(e)}")
+                content = str(response)
+            
+            # Parse JSON response
+            parsed_data = self._parse_gpt_response(content)
+            # Return the full parsed data (which includes financial_data and confidence_scores)
+            return parsed_data
+                
+        except Exception as e:
+            logger.error(f"Error in GPT extraction: {str(e)}")
+            raise
+    
+    @staticmethod
+    def _parse_gpt_response(response_content: str) -> Dict[str, Any]:
+        """
+        Parse GPT response content and extract JSON data.
+        
+        Args:
+            response_content: String content from GPT response
+            
+        Returns:
+            Dictionary containing financial_data and confidence_scores
+        """
+        # Parse JSON response
+        # Try to extract JSON from the response content
+        json_start = response_content.find('{')
+        json_end = response_content.rfind('}') + 1
+        
+        if json_start >= 0 and json_end > json_start:
+            json_str = response_content[json_start:json_end]
+            try:
+                parsed_data = json.loads(json_str)
+                return parsed_data
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON parsing error: {str(e)}")
+                raise ValueError(f"Failed to parse JSON from GPT response: {str(e)}")
+        else:
+            raise ValueError("No JSON object found in GPT response")
+
     def _validate_and_enrich_data(self, extracted_data: Dict[str, Any], 
                                  confidence_scores: Dict[str, float]) -> Dict[str, Any]:
         """
-        Validate and enrich extracted data with calculations and defaults.
+        Validate and enrich extracted data with calculations and formatting.
         
         Args:
             extracted_data: Raw extracted data
@@ -862,63 +717,66 @@ IMPORTANT:
         Returns:
             Validated and enriched data
         """
-        # Start with standard financial metrics structure
-        validated_data = self.financial_metrics.copy()
+        # Start with a copy of the extracted data
+        validated_data = extracted_data.copy() if extracted_data else {}
         
-        # Update with extracted data
-        for key, value in extracted_data.items():
-            if key in validated_data:
+        # Ensure all required fields are present
+        for field in self.financial_metrics.keys():
+            if field not in validated_data:
+                validated_data[field] = 0.0
+        
+        # Convert all values to float and handle string representations
+        for field, value in validated_data.items():
+            if isinstance(value, str):
+                # Handle currency formatting and parentheses for negative values
+                cleaned_value = value.strip().replace('$', '').replace(',', '')
+                if cleaned_value.startswith('(') and cleaned_value.endswith(')'):
+                    cleaned_value = '-' + cleaned_value[1:-1]
                 try:
-                    validated_data[key] = float(value)
+                    validated_data[field] = float(cleaned_value)
                 except (ValueError, TypeError):
-                    validated_data[key] = 0.0
+                    validated_data[field] = 0.0
+            elif not isinstance(value, (int, float)):
+                validated_data[field] = 0.0
+            else:
+                validated_data[field] = float(value)
         
-        # Perform financial calculations to ensure consistency
-        # Calculate Effective Gross Income if not provided or low confidence
-        gpr_confidence = confidence_scores.get("gross_potential_rent", 0.0)
-        egi_confidence = confidence_scores.get("effective_gross_income", 0.0)
-        
-        if gpr_confidence > 0.5:  # We have reasonable confidence in GPR
-            calculated_egi = (
-                validated_data["gross_potential_rent"] - 
-                validated_data["vacancy_loss"] - 
-                validated_data["concessions"] - 
-                validated_data["bad_debt"] + 
-                validated_data["other_income"]
-            )
-            
-            # If EGI confidence is low or calculated value is significantly different, use calculated value
-            if egi_confidence < 0.5 or abs(calculated_egi - validated_data["effective_gross_income"]) > 1.0:
-                validated_data["effective_gross_income"] = calculated_egi
-                confidence_scores["effective_gross_income"] = max(egi_confidence, gpr_confidence * 0.9)
-        
-        # Calculate Net Operating Income if not provided or low confidence
-        egi_confidence = confidence_scores.get("effective_gross_income", 0.0)
-        opex_confidence = confidence_scores.get("operating_expenses", 0.0)
-        noi_confidence = confidence_scores.get("net_operating_income", 0.0)
-        
-        if egi_confidence > 0.5 and opex_confidence > 0.5:  # We have reasonable confidence in both
-            calculated_noi = validated_data["effective_gross_income"] - validated_data["operating_expenses"]
-            
-            # If NOI confidence is low or calculated value is significantly different, use calculated value
-            if noi_confidence < 0.5 or abs(calculated_noi - validated_data["net_operating_income"]) > 1.0:
-                validated_data["net_operating_income"] = calculated_noi
-                confidence_scores["net_operating_income"] = max(
-                    noi_confidence, 
-                    min(egi_confidence, opex_confidence) * 0.9
-                )
+        # Calculate derived metrics if not provided
+        self._calculate_derived_metrics(validated_data)
         
         return validated_data
     
-    def _validate_zero_values(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _calculate_derived_metrics(self, data: Dict[str, Any]) -> None:
         """
-        Validate that zero values are legitimate and not extraction failures.
+        Calculate derived financial metrics.
         
         Args:
-            data: Extracted financial data
+            data: Financial data dictionary to update
+        """
+        # Calculate Effective Gross Income if not provided or if confidence is low
+        if data.get("effective_gross_income", 0.0) == 0.0:
+            egi = (data.get("gross_potential_rent", 0.0) - 
+                  data.get("vacancy_loss", 0.0) - 
+                  data.get("concessions", 0.0) - 
+                  data.get("bad_debt", 0.0) + 
+                  data.get("other_income", 0.0))
+            data["effective_gross_income"] = egi
+        
+        # Calculate Net Operating Income if not provided or if confidence is low
+        if data.get("net_operating_income", 0.0) == 0.0:
+            noi = (data.get("effective_gross_income", 0.0) - 
+                  data.get("operating_expenses", 0.0))
+            data["net_operating_income"] = noi
+    
+    def _validate_zero_values(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate that zero values in extraction results are legitimate.
+        
+        Args:
+            data: Financial data dictionary
             
         Returns:
-            Validated data with appropriate zero handling
+            Validated data dictionary
         """
         validated_data = data.copy()
         
@@ -928,57 +786,58 @@ IMPORTANT:
         for metric in key_metrics:
             if validated_data.get(metric, 0.0) == 0.0:
                 # Log warning for zero values in key metrics
-                logger.warning(f"Zero value detected for key metric '{metric}' - this may indicate extraction issues")
+                logger.warning(f"Zero value detected for key metric '{metric}' in extraction result - this may indicate extraction issues")
         
         return validated_data
     
     def _perform_consistency_checks(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Perform enhanced consistency checks on financial data.
+        Perform consistency checks on extracted financial data.
         
         Args:
-            data: Extracted financial data
+            data: Financial data dictionary
             
         Returns:
-            Data with consistency corrections applied
+            Data dictionary with consistency flags
         """
-        validated_data = data.copy()
+        # Add consistency check results to the data
+        data["consistency_checks"] = {}
         
-        # EGI calculation: EGI = GPR - Vacancy Loss - Concessions - Bad Debt + Other Income
-        gpr = validated_data.get("gross_potential_rent", 0.0)
-        vacancy_loss = validated_data.get("vacancy_loss", 0.0)
-        concessions = validated_data.get("concessions", 0.0)
-        bad_debt = validated_data.get("bad_debt", 0.0)
-        other_income = validated_data.get("other_income", 0.0)
-        reported_egi = validated_data.get("effective_gross_income", 0.0)
+        # Check EGI calculation consistency
+        calculated_egi = (data.get("gross_potential_rent", 0.0) - 
+                         data.get("vacancy_loss", 0.0) - 
+                         data.get("concessions", 0.0) - 
+                         data.get("bad_debt", 0.0) + 
+                         data.get("other_income", 0.0))
         
-        calculated_egi = gpr - vacancy_loss - concessions - bad_debt + other_income
+        reported_egi = data.get("effective_gross_income", 0.0)
         
-        # Check if EGI is significantly different from calculated value
-        if abs(calculated_egi - reported_egi) > 1.0:
-            logger.info(f"EGI inconsistency detected: reported={reported_egi:.2f}, calculated={calculated_egi:.2f}")
-            validated_data["effective_gross_income"] = calculated_egi
+        # Allow for small rounding differences
+        if abs(calculated_egi - reported_egi) <= 1.0:
+            data["consistency_checks"]["egi_calculation"] = "consistent"
+        else:
+            data["consistency_checks"]["egi_calculation"] = "inconsistent"
+            logger.warning(f"EGI calculation inconsistency: calculated={calculated_egi}, reported={reported_egi}")
         
-        # NOI calculation: NOI = EGI - Operating Expenses
-        egi = validated_data.get("effective_gross_income", 0.0)
-        opex = validated_data.get("operating_expenses", 0.0)
-        reported_noi = validated_data.get("net_operating_income", 0.0)
+        # Check NOI calculation consistency
+        calculated_noi = reported_egi - data.get("operating_expenses", 0.0)
+        reported_noi = data.get("net_operating_income", 0.0)
         
-        calculated_noi = egi - opex
+        # Allow for small rounding differences
+        if abs(calculated_noi - reported_noi) <= 1.0:
+            data["consistency_checks"]["noi_calculation"] = "consistent"
+        else:
+            data["consistency_checks"]["noi_calculation"] = "inconsistent"
+            logger.warning(f"NOI calculation inconsistency: calculated={calculated_noi}, reported={reported_noi}")
         
-        # Check if NOI is significantly different from calculated value
-        if abs(calculated_noi - reported_noi) > 1.0:
-            logger.info(f"NOI inconsistency detected: reported={reported_noi:.2f}, calculated={calculated_noi:.2f}")
-            validated_data["net_operating_income"] = calculated_noi
-        
-        return validated_data
+        return data
     
     def _calculate_overall_confidence(self, confidence_scores: Dict[str, float]) -> ExtractionConfidence:
         """
         Calculate overall confidence based on individual field confidence scores.
         
         Args:
-            confidence_scores: Confidence scores for each field
+            confidence_scores: Dictionary of field confidence scores
             
         Returns:
             Overall ExtractionConfidence level
@@ -999,31 +858,43 @@ IMPORTANT:
         else:
             return ExtractionConfidence.UNCERTAIN
     
-    def _create_enhanced_fallback_data(self, file_name: str, document_type_hint: Optional[str]) -> Dict[str, Any]:
+    def _create_empty_financial_result(self) -> Dict[str, Any]:
         """
-        Create enhanced fallback data when extraction fails.
+        Create a result structure for documents without financial data.
+        
+        Returns:
+            Empty financial result with appropriate flags
+        """
+        empty_result = self.financial_metrics.copy()
+        empty_result["extraction_status"] = "no_financial_data"
+        empty_result["requires_manual_entry"] = True
+        empty_result["error_message"] = "Document appears to be a template without actual financial data. Please upload a document containing real financial figures."
+        return empty_result
+    
+    def _create_enhanced_fallback_data(self, file_name: str, 
+                                      document_type_hint: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create enhanced fallback data with better error handling.
         
         Args:
             file_name: Name of the file
-            document_type_hint: Optional hint about document type
+            document_type_hint: Hint about document type
             
         Returns:
-            Enhanced fallback data dictionary
+            Enhanced fallback data
         """
         fallback_data = self.financial_metrics.copy()
         fallback_data["file_name"] = file_name
-        fallback_data["document_type_hint"] = document_type_hint or "unknown"
+        fallback_data["document_type_hint"] = document_type_hint or ""
         fallback_data["extraction_status"] = "failed"
         fallback_data["requires_manual_entry"] = True
-        fallback_data["user_message"] = f"Automatic extraction failed for {file_name}. Please enter data manually."
-        
         return fallback_data
 
-# Convenience function for backward compatibility
+
 def extract_financial_data(file_content: bytes, file_name: str, 
-                          document_type_hint: Optional[str] = None) -> Dict[str, Any]:
+                          document_type_hint: Optional[str] = None) -> ExtractionResult:
     """
-    Extract financial data from document (backward compatibility function).
+    Convenience function to extract financial data from a document.
     
     Args:
         file_content: Document content as bytes
@@ -1031,8 +902,7 @@ def extract_financial_data(file_content: bytes, file_name: str,
         document_type_hint: Optional hint about document type
         
     Returns:
-        Dictionary containing extracted financial data
+        ExtractionResult with data, confidence, and audit information
     """
     extractor = WorldClassExtractor()
-    result = extractor.extract_data(file_content, file_name, document_type_hint)
-    return result.data
+    return extractor.extract_data(file_content, file_name, document_type_hint)

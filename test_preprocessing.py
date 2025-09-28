@@ -1,73 +1,66 @@
-import io
-import os
-import tempfile
-from preprocessing_module import FilePreprocessor
-
-# Create a mock file object with sample financial data
-sample_text = """
-PROPERTY MANAGEMENT STATEMENT
-JANUARY 2024
-
-REVENUE:
-Gross Potential Rent: $100,000
-Vacancy Loss: ($5,000)
-Concessions: ($2,000)
-Other Income: $3,000
-Effective Gross Income: $96,000
-
-EXPENSES:
-Property Taxes: $12,000
-Insurance: $2,000
-Repairs & Maintenance: $3,000
-Utilities: $4,000
-Management Fees: $6,000
-Total Operating Expenses: $27,000
-
-Net Operating Income: $69,000
+"""
+Simple test to verify preprocessing module works with actual data
 """
 
-# Create a temporary text file
-with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as temp_file:
-    temp_file.write(sample_text)
-    temp_file_path = temp_file.name
+import pandas as pd
+import json
+import sys
+import os
 
-try:
-    # Test the preprocessing module
-    preprocessor = FilePreprocessor()
-    result = preprocessor.preprocess(temp_file_path, filename="sample_financial_statement.txt")
-    
-    print("Preprocessing successful!")
-    print(f"Result keys: {list(result.keys())}")
-    
-    if 'content' in result:
-        content = result['content']
-        print(f"Content keys: {list(content.keys()) if isinstance(content, dict) else 'Not a dict'}")
-        
-        if isinstance(content, dict) and 'combined_text' in content:
-            print("Combined text found:")
-            print(content['combined_text'][:200] + "..." if len(content['combined_text']) > 200 else content['combined_text'])
-        elif isinstance(content, dict) and 'text' in content:
-            print("Text content found:")
-            if isinstance(content['text'], list):
-                for i, page in enumerate(content['text']):
-                    print(f"Page {i+1}: {page.get('content', '')[:100]}...")
-            else:
-                print(content['text'][:200] + "..." if len(content['text']) > 200 else content['text'])
-        else:
-            print(f"Content: {str(content)[:200]}...")
-    
-    print("\nMetadata:")
-    if 'metadata' in result:
-        for key, value in result['metadata'].items():
-            print(f"  {key}: {value}")
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-except Exception as e:
-    print(f"Error during preprocessing: {e}")
-    import traceback
-    traceback.print_exc()
-finally:
-    # Clean up temporary file
+from preprocessing_module import preprocess_file
+
+def create_test_csv():
+    """Create a simple CSV file with financial data"""
+    data = {
+        'Category': ['Rental Income', 'Property Taxes', 'Insurance', 'Net Operating Income'],
+        'Amount': [50000.0, 10000.0, 5000.0, 35000.0]
+    }
+    df = pd.DataFrame(data)
+    file_path = 'test_financial_data.csv'
+    df.to_csv(file_path, index=False)
+    return file_path
+
+def test_preprocessing():
+    """Test the preprocessing module with actual data"""
+    print("Creating test CSV file...")
+    csv_file_path = create_test_csv()
+    
     try:
-        os.unlink(temp_file_path)
-    except Exception:
-        pass
+        print(f"Created test file: {csv_file_path}")
+        
+        # Test preprocessing
+        print("\nPreprocessing file...")
+        result = preprocess_file(csv_file_path)
+        
+        print("Preprocessing successful!")
+        print(f"File type: {result['metadata']['file_type']}")
+        print(f"Extension: {result['metadata']['extension']}")
+        print(f"Content length: {len(result['content'].get('combined_text', ''))} characters")
+        
+        # Show a sample of the extracted content
+        combined_text = result['content'].get('combined_text', '')
+        print(f"\nSample of extracted content (first 500 chars):")
+        print("-" * 50)
+        print(combined_text[:500])
+        print("-" * 50)
+        
+        print("\nTest completed successfully!")
+        return True
+        
+    except Exception as e:
+        print(f"Error during testing: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+        
+    finally:
+        # Clean up
+        if os.path.exists(csv_file_path):
+            os.unlink(csv_file_path)
+            print(f"\nCleaned up temporary file: {csv_file_path}")
+
+if __name__ == "__main__":
+    test_preprocessing()

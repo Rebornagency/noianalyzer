@@ -100,7 +100,7 @@ def test_world_class_extraction():
         print("\nTesting backward compatibility function...")
         compat_result = extract_financial_data(file_content, "financial_statement_september_2025_actual.xlsx", "Actual Income Statement")
         print("Backward compatibility function works correctly!")
-        print(f"Extracted {len(compat_result)} fields")
+        print(f"Extracted {len(compat_result.data)} fields")
         
         return True
         

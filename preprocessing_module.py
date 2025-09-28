@@ -10,6 +10,7 @@ import chardet
 import pandas as pd
 import pdfplumber
 import time
+import re
 from typing import Dict, Any, List, Tuple, Optional
 import logging
 import json
@@ -456,7 +457,159 @@ class FilePreprocessor:
         # This is a simplified approach; a more robust solution would use regex
         
         return text
+
+    def validate_financial_content(self, content_data: Dict[str, Any]) -> bool:
+        """
+        Validate that extracted content contains actual financial data
+        
+        Args:
+            content_data: The content extracted from the file
+            
+        Returns:
+            True if the content contains financial data, False otherwise
+        """
+        try:
+            # Count meaningful numerical values (non-zero, non-trivial)
+            meaningful_numerical_count = 0
+            total_entries = 0
+            financial_indicators = 0
+            
+            # For CSV/Excel files with 'data' key
+            if 'data' in content_data and isinstance(content_data['data'], list):
+                for row in content_data['data']:
+                    if isinstance(row, dict):
+                        for key, value in row.items():
+                            total_entries += 1
+                            # Check for financial keywords in column names
+                            if isinstance(key, str) and self._is_financial_term(key):
+                                financial_indicators += 1
+                            
+                            if isinstance(value, (int, float)) and value != 0 and abs(value) >= 1:
+                                meaningful_numerical_count += 1
+                            elif isinstance(value, str) and value.strip():
+                                # Check if string contains meaningful numerical data
+                                cleaned_value = str(value).strip().replace('$', '').replace(',', '').replace('(', '-').replace(')', '')
+                                if cleaned_value and cleaned_value not in ['-', '']:
+                                    try:
+                                        num_value = float(cleaned_value)
+                                        if num_value != 0 and abs(num_value) >= 1:
+                                            meaningful_numerical_count += 1
+                                    except ValueError:
+                                        # Check for financial keywords in values
+                                        if self._is_financial_term(value):
+                                            financial_indicators += 1
+            
+            # For Excel files with 'sheets' key
+            elif 'sheets' in content_data and isinstance(content_data['sheets'], list):
+                for sheet in content_data['sheets']:
+                    if isinstance(sheet, dict) and 'data' in sheet:
+                        sheet_data = sheet['data']
+                        if isinstance(sheet_data, list):
+                            for row in sheet_data:
+                                if isinstance(row, dict):
+                                    for key, value in row.items():
+                                        total_entries += 1
+                                        # Check for financial keywords in column names
+                                        if isinstance(key, str) and self._is_financial_term(key):
+                                            financial_indicators += 1
+                                            
+                                        if isinstance(value, (int, float)) and value != 0 and abs(value) >= 1:
+                                            meaningful_numerical_count += 1
+                                        elif isinstance(value, str) and value.strip():
+                                            # Check if string contains meaningful numerical data
+                                            cleaned_value = str(value).strip().replace('$', '').replace(',', '').replace('(', '-').replace(')', '')
+                                            if cleaned_value and cleaned_value not in ['-', '']:
+                                                try:
+                                                    num_value = float(cleaned_value)
+                                                    if num_value != 0 and abs(num_value) >= 1:
+                                                        meaningful_numerical_count += 1
+                                                except ValueError:
+                                                    # Check for financial keywords in values
+                                                    if self._is_financial_term(value):
+                                                        financial_indicators += 1
+            
+            # For text content
+            elif 'combined_text' in content_data:
+                text = content_data['combined_text']
+                # Find meaningful numerical patterns (currency amounts, significant numbers)
+                meaningful_patterns = re.findall(r'\$[0-9,]+\.?\d*|[0-9,]+\.?\d*\s*(?:dollars|usd)', text, re.IGNORECASE)
+                # Also look for plain numbers that are significant (> 100)
+                plain_numbers = re.findall(r'\b\d{3,}\.?\d*\b', text)
+                
+                # Filter plain numbers to only include significant values
+                significant_plain_numbers = [n for n in plain_numbers if float(n) >= 100]
+                
+                meaningful_numerical_count = len(meaningful_patterns) + len(significant_plain_numbers)
+                total_entries = len(text.split())
+                
+                # Check for financial terms
+                financial_terms = ['income', 'expense', 'revenue', 'tax', 'insurance', 'rent', 'fee', 'noi', 
+                                 'operating', 'property', 'maintenance', 'utilities', 'management']
+                text_lower = text.lower()
+                for term in financial_terms:
+                    if term in text_lower:
+                        financial_indicators += 1
+            
+            # For PDF content with text
+            elif 'text' in content_data and isinstance(content_data['text'], list):
+                total_text = ""
+                for page in content_data['text']:
+                    if isinstance(page, dict) and 'content' in page:
+                        total_text += page['content']
+                
+                # Apply same logic as text content
+                meaningful_patterns = re.findall(r'\$[0-9,]+\.?\d*|[0-9,]+\.?\d*\s*(?:dollars|usd)', total_text, re.IGNORECASE)
+                plain_numbers = re.findall(r'\b\d{3,}\.?\d*\b', total_text)
+                significant_plain_numbers = [n for n in plain_numbers if float(n) >= 100]
+                
+                meaningful_numerical_count = len(meaningful_patterns) + len(significant_plain_numbers)
+                total_entries = len(total_text.split())
+                
+                # Check for financial terms
+                financial_terms = ['income', 'expense', 'revenue', 'tax', 'insurance', 'rent', 'fee', 'noi', 
+                                 'operating', 'property', 'maintenance', 'utilities', 'management']
+                text_lower = total_text.lower()
+                for term in financial_terms:
+                    if term in text_lower:
+                        financial_indicators += 1
+            
+            # Determine if content has sufficient financial data
+            logger.info(f"Financial content validation: {meaningful_numerical_count} meaningful numerical values, {financial_indicators} financial indicators out of {total_entries} entries")
+            
+            # For a document to be considered as having financial data, it should have:
+            # 1. At least 3 meaningful numerical values, OR
+            # 2. At least 5 financial indicators, OR
+            # 3. At least 1% of entries being meaningful numerical values (for larger documents)
+            has_sufficient_data = (meaningful_numerical_count >= 3 or 
+                                 financial_indicators >= 5 or
+                                 (total_entries > 0 and meaningful_numerical_count / total_entries >= 0.01))
+            
+            return has_sufficient_data
+                
+        except Exception as e:
+            logger.warning(f"Error validating financial content: {str(e)}")
+            # If validation fails, assume content might have data
+            return True
     
+    def _is_financial_term(self, term: str) -> bool:
+        """
+        Check if a term is a financial term.
+        
+        Args:
+            term: Term to check
+            
+        Returns:
+            True if the term is a financial term, False otherwise
+        """
+        financial_terms = [
+            'income', 'expense', 'revenue', 'tax', 'insurance', 'rent', 'fee', 'noi', 
+            'operating', 'property', 'maintenance', 'utilities', 'management', 'egi',
+            'concessions', 'vacancy', 'debt', 'parking', 'laundry', 'total'
+        ]
+        
+        term_lower = term.lower()
+        return any(fin_term in term_lower for fin_term in financial_terms)
+
     def _is_header_row(self, row: pd.Series) -> bool:
         """
         Check if a row looks like a header row
